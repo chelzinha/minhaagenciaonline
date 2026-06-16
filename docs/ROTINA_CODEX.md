@@ -1,8 +1,8 @@
-\# Rotina Codex - Projeto minhaagenciaonline
+# Rotina Codex - Projeto minhaagenciaonline
 
 
 
-\## Objetivo
+## Objetivo
 
 
 
@@ -10,31 +10,31 @@ Definir como Rachel deve usar o Codex neste repositorio para trabalhar de forma 
 
 
 
-\## Fluxo recomendado
+## Fluxo recomendado
 
 
 
 Codex local no VS Code
 
-\-> analisa arquivos
+-> analisa arquivos
 
-\-> altera localmente quando autorizado
+-> altera localmente quando autorizado
 
-\-> mostra diff
+-> mostra diff
 
-\-> Rachel revisa
+-> Rachel revisa
 
-\-> commit apenas depois da revisao
+-> commit apenas depois da revisao
 
-\-> push apenas depois da aprovacao
-
-
-
-\## Modos de uso
+-> push apenas depois da aprovacao
 
 
 
-\### 1. Analise sem alterar
+## Modos de uso
+
+
+
+### 1. Analise sem alterar
 
 
 
@@ -46,17 +46,17 @@ Regras:
 
 
 
-\* Nao editar arquivos.
+* Nao editar arquivos.
 
-\* Nao commitar.
+* Nao commitar.
 
-\* Nao fazer push.
+* Nao fazer push.
 
-\* Entregar resumo, riscos e plano.
+* Entregar resumo, riscos e plano.
 
 
 
-\### 2. Edicao local segura
+### 2. Edicao local segura
 
 
 
@@ -68,17 +68,17 @@ Regras:
 
 
 
-\* Criar mudancas pequenas.
+* Criar mudancas pequenas.
 
-\* Atualizar docs proporcionais.
+* Atualizar docs proporcionais.
 
-\* Mostrar git diff antes de commit.
+* Mostrar git diff antes de commit.
 
-\* Nao fazer push sem autorizacao.
+* Nao fazer push sem autorizacao.
 
 
 
-\### 3. Preparar commit
+### 3. Preparar commit
 
 
 
@@ -90,17 +90,17 @@ Regras:
 
 
 
-\* Conferir git status.
+* Conferir git status.
 
-\* Conferir se nao ha arquivos temporarios.
+* Conferir se nao ha arquivos temporarios.
 
-\* Conferir se nao ha segredo.
+* Conferir se nao ha segredo.
 
-\* Criar commit claro.
+* Criar commit claro.
 
 
 
-\### 4. Enviar para GitHub
+### 4. Enviar para GitHub
 
 
 
@@ -112,39 +112,39 @@ Regras:
 
 
 
-\* Push somente da branch atual.
+* Push somente da branch atual.
 
-\* Informar link ou instrucao de Pull Request.
+* Informar link ou instrucao de Pull Request.
 
-\* Nao fazer merge automaticamente.
-
-
-
-\## Proibido sem autorizacao explicita
+* Nao fazer merge automaticamente.
 
 
 
-\* Alterar Apps Script.
-
-\* Alterar planilhas.
-
-\* Alterar endpoints.
-
-\* Alterar actions da API.
-
-\* Alterar nomes de abas ou colunas.
-
-\* Publicar no Netlify.
-
-\* Fazer merge.
-
-\* Apagar arquivos.
-
-\* Registrar token, senha, chave, URL completa de Web App, ID de planilha ou dado real.
+## Proibido sem autorizacao explicita
 
 
 
-\## Documentacao obrigatoria
+* Alterar Apps Script.
+
+* Alterar planilhas.
+
+* Alterar endpoints.
+
+* Alterar actions da API.
+
+* Alterar nomes de abas ou colunas.
+
+* Publicar no Netlify.
+
+* Fazer merge.
+
+* Apagar arquivos.
+
+* Registrar token, senha, chave, URL completa de Web App, ID de planilha ou dado real.
+
+
+
+## Documentacao obrigatoria
 
 
 
@@ -152,41 +152,41 @@ Quando houver alteracao:
 
 
 
-\* Atualizar CHANGELOG.md.
+* Atualizar CHANGELOG.md.
 
-\* Atualizar docs relacionado ao impacto.
+* Atualizar docs relacionado ao impacto.
 
-\* Atualizar docs/FRONTEND.md se mexer em frontend.
+* Atualizar docs/FRONTEND.md se mexer em frontend.
 
-\* Atualizar docs/APPS\_SCRIPT.md se mexer em Apps Script.
+* Atualizar docs/APPS_SCRIPT.md se mexer em Apps Script.
 
-\* Atualizar docs/PLANILHAS\_E\_DADOS.md se envolver dados, abas ou colunas.
+* Atualizar docs/PLANILHAS_E_DADOS.md se envolver dados, abas ou colunas.
 
-\* Atualizar docs/PERFORMANCE.md se envolver lentidao, cache ou otimizacao.
+* Atualizar docs/PERFORMANCE.md se envolver lentidao, cache ou otimizacao.
 
-\* Atualizar docs/SEGURANCA\_E\_DADOS.md se envolver dados sensiveis, permissao, payload, logs ou credenciais.
-
-
-
-\## Checklist antes de finalizar
+* Atualizar docs/SEGURANCA_E_DADOS.md se envolver dados sensiveis, permissao, payload, logs ou credenciais.
 
 
 
-\* git status --short revisado.
+## Checklist antes de finalizar
 
-\* git diff --stat revisado.
 
-\* Nenhum arquivo temporario.
 
-\* Nenhum segredo.
+* git status --short revisado.
 
-\* Nenhuma URL completa sensivel.
+* git diff --stat revisado.
 
-\* Nenhum dado real de cliente.
+* Nenhum arquivo temporario.
 
-\* Documentacao atualizada.
+* Nenhum segredo.
 
-\* Checklist de teste informado.
+* Nenhuma URL completa sensivel.
+
+* Nenhum dado real de cliente.
+
+* Documentacao atualizada.
+
+* Checklist de teste informado.
 
 
 

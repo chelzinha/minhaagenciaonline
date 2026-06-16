@@ -1,4 +1,4 @@
-\# Prompt padrao - trabalho local seguro
+# Prompt padrao - trabalho local seguro
 
 
 
@@ -18,15 +18,15 @@ Antes de alterar qualquer arquivo:
 
 
 
-1\. Leia AGENTS.md.
+1. Leia AGENTS.md.
 
-2\. Rode git status.
+2. Rode git status.
 
-3\. Identifique o modulo afetado.
+3. Identifique o modulo afetado.
 
-4\. Entenda o fluxo atual.
+4. Entenda o fluxo atual.
 
-5\. Preserve o que ja funciona.
+5. Preserve o que ja funciona.
 
 
 
@@ -34,21 +34,21 @@ Regras desta tarefa:
 
 
 
-\* Trabalhe apenas localmente.
+* Trabalhe apenas localmente.
 
-\* Nao faca push.
+* Nao faca push.
 
-\* Nao abra Pull Request.
+* Nao abra Pull Request.
 
-\* Nao publique no Netlify.
+* Nao publique no Netlify.
 
-\* Nao altere Apps Script, planilhas, endpoints, actions, rotas ou nomes de abas sem autorizacao explicita.
+* Nao altere Apps Script, planilhas, endpoints, actions, rotas ou nomes de abas sem autorizacao explicita.
 
-\* Se precisar alterar algo, faca mudancas pequenas e reversiveis.
+* Se precisar alterar algo, faca mudancas pequenas e reversiveis.
 
-\* Atualize documentacao proporcional ao impacto.
+* Atualize documentacao proporcional ao impacto.
 
-\* Nunca registre tokens, senhas, URLs completas de Web App, IDs de planilha ou dados reais.
+* Nunca registre tokens, senhas, URLs completas de Web App, IDs de planilha ou dados reais.
 
 
 
@@ -56,27 +56,27 @@ Ao final, mostre:
 
 
 
-1\. arquivos analisados;
+1. arquivos analisados;
 
-2\. arquivos alterados;
+2. arquivos alterados;
 
-3\. resumo da mudanca;
+3. resumo da mudanca;
 
-4\. riscos ou pontos de atencao;
+4. riscos ou pontos de atencao;
 
-5\. checklist de teste;
+5. checklist de teste;
 
-6\. git status --short;
+6. git status --short;
 
-7\. git diff --stat;
+7. git diff --stat;
 
-8\. sugestao de commit.
+8. sugestao de commit.
 
 
 
 Tarefa:
 
-\[descrever aqui a tarefa]
+[descrever aqui a tarefa]
 
 
 
