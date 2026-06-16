@@ -1,0 +1,10 @@
+﻿{
+  "name": "minhaagenciaonline",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Projeto tecnico da Plataforma Digital AGF Jose Bonifacio",
+  "scripts": {
+    "start": "netlify dev",
+    "preview": "netlify dev"
+  }
+}

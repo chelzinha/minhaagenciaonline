@@ -1,0 +1,5 @@
+﻿[build]
+  publish = "frontend"
+
+[dev]
+  publish = "frontend"
