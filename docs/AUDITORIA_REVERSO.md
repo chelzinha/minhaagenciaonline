@@ -219,3 +219,54 @@ Pontos de performance:
 
 Proxima etapa:
 - Auditar dados e planilhas usados por readEtiqueta, confirmDropoff, getUserHistory, getDashboard e getUnitStatus.
+
+## 14. Mapa inicial de dados e planilhas do Reverso
+
+Objetivo desta etapa:
+- Identificar quais pontos do backend do Reverso acessam planilhas, locks, leitura e escrita de dados.
+- Registrar apenas informacoes tecnicas, sem expor IDs, URLs, tokens, dados reais ou nomes de clientes.
+
+Arquivos principais identificados para o fluxo Reverso:
+
+| Arquivo | Papel no fluxo | Achados principais |
+|---|---|---|
+| apps-script/logistica/03_Core.gs | Regras de negocio do Reverso | Possui reversaReadEtiqueta(), reversaConfirmDropoff(), LockService, leituras com getDataRange/getRange e escritas com setValues |
+| apps-script/logistica/04_Api.gs | Entrada HTTP e roteamento por action | Possui doGet, doPost, routeApiRequest_(), apiGetUserHistory_(), apiGetDashboard_(), apiGetUnitStatus_(), apiReadEtiqueta_() e apiConfirmDropoff_() |
+| apps-script/logistica/01_SetupSheets.gs | Estrutura de planilhas | Cria/garante abas, cabecalhos e estrutura inicial |
+| apps-script/logistica/02_SupportData.gs | Dados auxiliares e validacoes | Usa AUX_LISTAS, PARAMETROS, validacoes e escrita em lote |
+| apps-script/logistica/12_AdminPerformance.gs | Apoio de performance | Usa CacheService, indicando existencia de camada ou rotina de performance administrativa |
+
+Funcoes principais ligadas diretamente ao Reverso:
+- reversaReadEtiqueta(payload)
+- reversaConfirmDropoff(payload)
+- apiGetUserHistory_(req)
+- apiGetDashboard_(req)
+- apiGetUnitStatus_(req)
+- apiReadEtiqueta_(req)
+- apiConfirmDropoff_(req)
+
+Uso de planilhas identificado:
+- Uso de LockService em pontos de escrita ou operacao concorrente.
+- Uso de getDataRange().getValues() em alguns pontos, que pode ser pesado quando a planilha crescer.
+- Uso de getRange().getValues() para leituras especificas.
+- Uso de setValues() e appendRowsBatch_(), o que indica preferencia por escrita em lote em alguns fluxos.
+- Uso de getSheetByName(), indicando dependencia direta de nomes de abas.
+
+Pontos de performance a observar:
+- getDashboard pode ser pesado se montar resumo lendo muitas linhas da planilha.
+- getUserHistory pode crescer com o historico e deve considerar filtros, limite ou paginacao.
+- readEtiqueta e confirmDropoff devem evitar varredura ampla de planilha quando possivel.
+- getUnitStatus e getUnitBySlug sao candidatos a cache curto.
+
+Atencao sensivel:
+- Nao registrar IDs completos de planilhas, URLs de Web App, tokens, chaves, senhas ou dados reais.
+- Planilhas podem conter dados pessoais e operacionais.
+- Qualquer ajuste futuro que altere abas, colunas, permissoes, logs ou payloads deve atualizar docs/PLANILHAS_E_DADOS.md e docs/SEGURANCA_E_DADOS.md.
+
+Conclusao parcial:
+- O fluxo Reverso usa Apps Script como backend principal e Google Sheets como base operacional.
+- O uso de LockService e setValues e positivo para concorrencia e escrita em lote.
+- O uso de getDataRange exige atencao em telas de dashboard, historico e buscas por etiqueta.
+
+Proxima etapa:
+- Auditar com mais detalhe quais abas e cabecalhos sao usados por reversaReadEtiqueta(), reversaConfirmDropoff(), apiGetUserHistory_(), apiGetDashboard_() e apiGetUnitStatus_(), sem expor dados reais.
