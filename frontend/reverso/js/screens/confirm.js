@@ -1,4 +1,4 @@
-import { Store } from '../../state/store.js';
+﻿import { Store } from '../../state/store.js';
 import { Router } from '../router.js';
 import { Api } from '../../services/api.js';
 import { UI } from '../ui.js';
@@ -8,8 +8,9 @@ export function mount(){
   document.getElementById('btnBackToForm')?.addEventListener('click',()=>Router.go('/form-reversa'));
   document.getElementById('btnConfirmDropoff')?.addEventListener('click', async()=>{
     if(!document.getElementById('confirmChecklist').checked) return UI.toast('Confirme o checklist antes de continuar.','error');
-    try{ UI.showLoading('Registrando drop-off...'); const data=await Api.confirmDropoff({usuario_id:state.user.usuario_id,codigo_etiqueta:state.currentEtiqueta.codigo_etiqueta,...state.currentForm}); Store.setSuccess(data); Router.go('/success'); }
-    catch(err){ UI.toast(err.message || 'Não foi possível registrar o drop-off.','error'); }
+    try{ UI.showLoading('Registrando a entrega do pacote...'); const data=await Api.confirmDropoff({usuario_id:state.user.usuario_id,codigo_etiqueta:state.currentEtiqueta.codigo_etiqueta,...state.currentForm}); Store.setSuccess(data); Router.go('/success'); }
+    catch(err){ UI.toast(err.message || 'Não foi possível registrar a entrega. Confira os dados e tente novamente.','error'); }
     finally{ UI.hideLoading(); }
   });
 }
+

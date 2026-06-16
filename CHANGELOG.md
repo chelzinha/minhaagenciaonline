@@ -32,3 +32,9 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Mapeadas telas do frontend, camada API, Apps Script, dados, planilhas, riscos e melhorias futuras.
 - Consolidados pontos principais em APPS_SCRIPT, PLANILHAS_E_DADOS, PERFORMANCE e SEGURANCA_E_DADOS.
 - Nenhuma alteracao funcional aplicada nesta etapa.
+
+## Melhoria UX - mensagens do Reverso
+
+- Ajustadas mensagens de loading e erro no frontend do modulo Reverso.
+- Melhoradas mensagens de autenticacao, validacao de etiqueta, servidor e carregamento de unidade.
+- Nenhuma regra de negocio, endpoint, planilha ou Apps Script foi alterado.

@@ -17,7 +17,7 @@ import { APP_CONFIG } from '../js/config.js';
 
 async function request(action, payload = {}) {
   if (!APP_CONFIG.API_BASE_URL) {
-    throw new Error('URL da API não configurada.');
+    throw new Error('Configuração de atendimento indisponível.');
   }
 
   const timeoutMs = Number(APP_CONFIG.API_TIMEOUT_MS || 60000);
@@ -45,9 +45,9 @@ async function request(action, payload = {}) {
     response = await fetch(APP_CONFIG.API_BASE_URL, options);
   } catch (error) {
     if (timedOut || error?.name === 'AbortError') {
-      throw new Error('O servidor demorou demais para responder. Tente novamente.');
+      throw new Error('O servidor demorou para responder. Aguarde alguns segundos e tente novamente.');
     }
-    throw new Error('Falha de rede ao contatar o servidor: ' + (error?.message || error));
+    throw new Error('Não foi possível conectar ao atendimento agora. ' + (error?.message || error));
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
   }
@@ -64,11 +64,11 @@ async function request(action, payload = {}) {
   }
 
   if (!data || typeof data !== 'object') {
-    throw new Error('Resposta vazia do servidor.');
+    throw new Error('Não recebemos resposta do servidor. Tente novamente.');
   }
 
   if (!response.ok || data.ok === false) {
-    const err = new Error(data?.error?.message || data?.message || 'Erro ao processar requisição.');
+    const err = new Error(data?.error?.message || data?.message || 'Não foi possível concluir a solicitação.');
     err.payload = data;
     throw err;
   }
@@ -91,3 +91,4 @@ export const Api = {
   markRecebidaAgencia(payload) { return request('markRecebidaAgencia', payload); },
   markPostada(payload) { return request('markPostada', payload); }
 };
+
