@@ -9,3 +9,23 @@ Os arquivos .clasp.json foram ignorados via .gitignore para evitar exposicao de 
 Antes do commit inicial dos Apps Script, foi realizada verificacao por termos sensiveis como token, secret, senha, password, api_key, client_secret, authorization, bearer, credencial, private_key, CWS e NUVEMSHOP.
 
 Resultado informado: apareceram apenas referencias a nomes de variaveis/funcoes, sem segredo real identificado.
+
+## Modulo Reverso - atencao de seguranca e dados
+
+Tipo de atencao:
+- Endpoint Web App usado pelo frontend.
+- Actions publicas recebidas pelo backend.
+- Planilhas com possiveis dados pessoais, historico operacional e rastreio.
+
+Cuidados obrigatorios:
+- Nao registrar URL completa de Web App em documentacao.
+- Nao registrar ID completo de planilha.
+- Nao registrar token, senha, chave ou segredo.
+- Nao registrar payload completo com dados reais.
+- Evitar logs com CPF, telefone, e-mail ou dados de cliente completos.
+
+Validacoes recomendadas:
+- Cada action deve validar payload.
+- Cada action deve validar usuario e unidade quando aplicavel.
+- Operacoes de escrita devem validar permissao e estado atual do registro.
+- Respostas ao frontend devem retornar apenas os dados necessarios.

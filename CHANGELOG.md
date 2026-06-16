@@ -25,3 +25,10 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Criado .gitignore para impedir versionamento de arquivos .clasp.json.
 - Realizada verificacao inicial para evitar envio de segredos reais.
 - Commit relacionado: badf763.
+
+## Auditoria tecnica - Modulo Reverso
+
+- Documentada auditoria inicial do modulo Reverso.
+- Mapeadas telas do frontend, camada API, Apps Script, dados, planilhas, riscos e melhorias futuras.
+- Consolidados pontos principais em APPS_SCRIPT, PLANILHAS_E_DADOS, PERFORMANCE e SEGURANCA_E_DADOS.
+- Nenhuma alteracao funcional aplicada nesta etapa.
