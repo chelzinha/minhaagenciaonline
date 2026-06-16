@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#00416B">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Postagens AGF José Bonifácio">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Minhas Postagens AGF José Bonifácio</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/x-icon" href="/assets/pwa/app/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/app/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/pwa/app/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/pwa/app/apple-touch-icon.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles/tokens.css?v=destinatarios-v30-password-toggle">
+  <link rel="stylesheet" href="styles/base.css?v=destinatarios-v30-password-toggle">
+  <link rel="stylesheet" href="styles/components.css?v=destinatarios-v30-password-toggle">
+  <link rel="stylesheet" href="styles/screens.css?v=destinatarios-v30-password-toggle">
+  <link rel="stylesheet" href="styles/nfe-import.css?v=destinatarios-v30-password-toggle">
+<link rel="stylesheet" href="/shared/ui/agf-ui.css"/>
+<script src="/shared/auth/agf-auth-config.js"></script>
+<script src="/shared/auth/agf-auth-client.js"></script>
+</head>
+<body class="app-booting">
+
+  <div class="loading" id="loading" aria-hidden="true" role="status" aria-live="polite">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <div id="loadingText">Carregando...</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <div class="modal" id="modal" aria-hidden="true" role="presentation">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody" tabindex="-1">
+      <div class="modal-title" id="modalTitle">Confirmar</div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="modalCancel">Cancelar</button>
+        <button class="btn btn-primary" id="modalConfirm">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <section id="screen-login" class="screen-login">
+    <div class="login-panel">
+      <div class="login-hero">
+        <div class="login-hero-glow" aria-hidden="true"></div>
+        <div class="login-hero-inner">
+          <img src="assets/icon-app.png" alt="Minhas Postagens" class="login-logo-img">
+          <h1 class="login-title">Minhas Postagens</h1>
+          <p class="login-tagline">AGF José Bonifácio</p>
+        </div>
+      </div>
+
+      <div class="login-sheet">
+        <div class="login-sheet-head">
+          <h2 class="login-sheet-title">Acesse sua área de postagens</h2>
+          <p class="login-sheet-sub">Calcule fretes e emita etiquetas com mais rapidez.</p>
+        </div>
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label class="field-label" for="loginUser">Login</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">person</span>
+              <input id="loginUser" type="text" inputmode="text" autocapitalize="none" autocomplete="username" placeholder="Seu login" required>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="loginPass">Senha</label>
+            <div class="field-input password-input">
+              <span class="material-symbols-rounded">lock</span>
+              <input id="loginPass" type="password" inputmode="text" autocapitalize="none" autocomplete="current-password" placeholder="Sua senha" required>
+              <button class="password-toggle" type="button" data-password-toggle="loginPass" aria-label="Mostrar senha" aria-pressed="false" title="Mostrar senha"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-block btn-lg login-cta" type="submit" id="loginBtn">
+            Entrar
+            <span class="material-symbols-rounded">arrow_forward</span>
+          </button>
+        </form>
+        <div class="login-footer">
+          <span class="material-symbols-rounded">support_agent</span>
+          <a class="login-support-link" id="loginSupportLink" href="https://wa.me/5585988864444" target="_blank" rel="noopener noreferrer">
+		  Fale com a gente no WhatsApp</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="screen-app" class="app-shell hidden">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <button class="icon-btn" id="navHome" title="Início" aria-label="Início">
+          <span class="material-symbols-rounded">home</span>
+        </button>
+        <div class="agf-topbar-copy"><div class="topbar-title" id="topbarTitle">Cotação</div><div class="agf-topbar-subtitle">AGF JOSÉ BONIFÁCIO</div></div>
+        <button class="icon-btn" id="navLogout" title="Sair" aria-label="Sair">
+          <span class="material-symbols-rounded">logout</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="screenMount" tabindex="-1"></main>
+
+    <nav class="bottom-nav" aria-label="Navegação principal">
+      <a href="#/nova" class="bn-item" data-route="/nova">
+        <span class="material-symbols-rounded">request_quote</span>
+        <span>Cotação</span>
+      </a>
+      <a href="#/etiqueta" class="bn-item" data-route="/etiqueta">
+        <span class="material-symbols-rounded">sell</span>
+        <span>Etiqueta</span>
+      </a>
+      <a href="#/destinatarios" class="bn-item" data-route="/destinatarios">
+        <span class="material-symbols-rounded">contacts</span>
+        <span>Destinatários</span>
+      </a>
+      <a href="#/historico" class="bn-item" data-route="/historico">
+        <span class="material-symbols-rounded">history</span>
+        <span>Histórico</span>
+      </a>
+      <a href="#/config" class="bn-item" data-route="/config">
+        <span class="material-symbols-rounded">settings</span>
+        <span>Conta</span>
+      </a>
+    </nav>
+  </div>
+
+  <template id="tpl-nova">
+    <section class="screen">
+      <section class="hero">
+        <div class="hero-top">
+          <div class="hero-greet">
+            <span class="hero-hi">Olá,</span>
+            <span class="hero-name" id="heroNome">—</span>
+          </div>
+          <span class="hero-status" aria-label="Conectado">
+            <span class="material-symbols-rounded">verified</span>
+          </span>
+        </div>
+        <div class="hero-chips">
+          <span class="chip"><span class="material-symbols-rounded">badge</span><span id="heroContrato">—</span></span>
+          <span class="chip"><span class="material-symbols-rounded">credit_card</span><span id="heroCartao">—</span></span>
+        </div>
+      </section>
+
+      <form id="formNova" novalidate>
+
+        <!-- ========================================================
+             ETAPA 1 — COTAÇÃO
+             Sempre visível. O usuário informa só o mínimo pra cotar:
+             CEP destino, tipo, peso, dimensões. Ao clicar "Cotar",
+             o backend devolve todas as modalidades habilitadas (PAC
+             e SEDEX) e o usuário escolhe uma clicando no card.
+             ======================================================== -->
+        <div class="etapa-badge"><span>1</span> Cotação</div>
+
+        <section class="card">
+          <header class="card-head">
+            <span class="material-symbols-rounded">where_to_vote</span>
+            <h2>CEP de destino</h2>
+          </header>
+          <div class="field">
+            <label class="field-label" for="destCep">CEP</label>
+            <div class="field-input field-with-action">
+              <span class="material-symbols-rounded">markunread_mailbox</span>
+              <input id="destCep" type="text" inputmode="numeric" maxlength="9" placeholder="00000-000" required>
+              <button type="button" class="field-action" id="btnBuscarCep">
+                <span class="material-symbols-rounded">search</span>
+                <span>Buscar</span>
+              </button>
+            </div>
+            <div class="field-hint" id="cepHint" hidden>—</div>
+          </div>
+        </section>
+
+        <section class="card">
+          <header class="card-head">
+            <span class="material-symbols-rounded">hand_package</span>
+            <h2>Tipo do objeto</h2>
+          </header>
+          <div class="seg seg-3 tipo-objeto-seg">
+            <label class="seg-item is-selected">
+              <input type="radio" name="tipoObjeto" value="CAIXA" checked>
+              <span class="material-symbols-rounded">package_2</span>
+              <span class="seg-title">Caixa/Pacote</span>
+            </label>
+            <label class="seg-item">
+              <input type="radio" name="tipoObjeto" value="ENVELOPE">
+              <span class="material-symbols-rounded">mail</span>
+              <span class="seg-title">Envelope</span>
+            </label>
+            <label class="seg-item">
+              <input type="radio" name="tipoObjeto" value="ROLO">
+              <span class="material-symbols-rounded">database</span>
+              <span class="seg-title">Rolo</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <header class="card-head">
+            <span class="material-symbols-rounded">straighten</span>
+            <h2>Dimensões e peso</h2>
+          </header>
+          <div class="grid-2 grid-unidades">
+            <div class="field">
+              <label class="field-label" for="pesoG">Peso</label>
+              <div class="field-input field-suffix">
+                <span class="material-symbols-rounded">weight</span>
+                <input id="pesoG" type="number" inputmode="numeric" min="1" step="1" placeholder="500" required>
+                <span class="suffix">g</span>
+              </div>
+            </div>
+          </div>
+          <div class="grid-3 grid-unidades" id="dimensoesGrid">
+            <div class="field" id="alturaField">
+              <label class="field-label" for="alturaCm">Altura</label>
+              <div class="field-input field-suffix">
+                <span class="material-symbols-rounded">height</span>
+                <input id="alturaCm" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0">
+                <span class="suffix">cm</span>
+              </div>
+            </div>
+            <div class="field" id="larguraField">
+              <label class="field-label" for="larguraCm">Largura</label>
+              <div class="field-input field-suffix">
+                <span class="material-symbols-rounded">open_in_full</span>
+                <input id="larguraCm" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0">
+                <span class="suffix">cm</span>
+              </div>
+            </div>
+            <div class="field" id="comprimentoField">
+              <label class="field-label" for="comprimentoCm">Comprimento</label>
+              <div class="field-input field-suffix">
+                <span class="material-symbols-rounded">straighten</span>
+                <input id="comprimentoCm" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0">
+                <span class="suffix">cm</span>
+              </div>
+            </div>
+            <div class="field" id="diametroField" hidden>
+              <label class="field-label" for="diametroCm">Diâmetro</label>
+              <div class="field-input field-suffix">
+                <span class="material-symbols-rounded">radio_button_unchecked</span>
+                <input id="diametroCm" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0">
+                <span class="suffix">cm</span>
+              </div>
+            </div>
+          </div>
+          <div class="field-hint" id="dimensoesHint">Caixa/Pacote: altura, largura e comprimento.</div>
+        </section>
+
+          <section class="card">
+            <header class="card-head">
+              <span class="material-symbols-rounded">tune</span>
+              <h2>Opcionais da cotação</h2>
+            </header>
+            <div class="grid-2">
+              <div class="field">
+                <label class="field-label" for="valorDeclarado">Valor declarado</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">paid</span>
+                  <input id="valorDeclarado" type="text" inputmode="decimal" placeholder="0,00">
+                </div>
+                <div class="field-hint">Valor do seguro (opcional)</div>
+              </div>
+              <div class="field">
+                <label class="field-label">Aviso de Recebimento</label>
+                <div class="seg seg-2 seg-compact">
+                  <label class="seg-item is-selected">
+                    <input type="radio" name="ar" value="NAO" checked>
+                    <span class="seg-title">Sem AR</span>
+                  </label>
+                  <label class="seg-item">
+                    <input type="radio" name="ar" value="SIM">
+                    <span class="seg-title">Com AR</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label">Mão Própria</label>
+              <div class="seg seg-2 seg-compact">
+                <label class="seg-item is-selected">
+                  <input type="radio" name="maoPropria" value="NAO" checked>
+                  <span class="seg-title">Não</span>
+                </label>
+                <label class="seg-item">
+                  <input type="radio" name="maoPropria" value="SIM">
+                  <span class="seg-title">Sim</span>
+                </label>
+              </div>
+            </div>
+
+          </section>
+
+
+        <!-- Card de resultados da cotação (aparece após clicar em Cotar) -->
+        <section class="card cotacao-card" id="cotacaoCard" hidden>
+          <div class="cotacao-mini-resumo" id="cotacaoMiniResumo" hidden></div>
+          <header class="card-head">
+            <span class="material-symbols-rounded">request_quote</span>
+            <h2>Escolha o serviço</h2>
+            <button type="button" class="btn-link" id="btnRecotar">Recalcular</button>
+          </header>
+          <div class="opcoes-cotacao" id="opcoesCotacao">—</div>
+        </section>
+
+        <!-- Ação principal da etapa 1 -->
+        <div class="sticky-actions sticky-actions-single" id="stickyEtapa1">
+          <button type="button" class="btn btn-primary btn-lg btn-block" id="btnCotar">
+            <span class="material-symbols-rounded">request_quote</span>
+            Cotar preços e prazos
+          </button>
+        </div>
+
+        <!-- ========================================================
+             ETAPA 2 — DADOS DA ETIQUETA
+             Escondida até o usuário escolher uma cotação. Contém
+             o destinatário + opcionais + NF/DC (condicional) +
+             botão gerar etiqueta.
+             ======================================================== -->
+        <div id="etapa2Wrap" hidden>
+
+          <div class="etapa-badge"><span>2</span> Dados da etiqueta</div>
+
+          <section class="card escolha-confirmada" id="escolhaConfirmada">
+            <div class="escolha-row">
+              <div>
+                <div class="escolha-label">Serviço escolhido</div>
+                <div class="escolha-valor" id="escolhaValor">—</div>
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm" id="btnTrocarCotacao">
+                <span class="material-symbols-rounded">swap_horiz</span>
+                Trocar
+              </button>
+            </div>
+          </section>
+
+          <section class="card">
+        <header class="card-head">
+          <span class="material-symbols-rounded">hand_package</span>
+          <h2>Tipo de objeto</h2>
+        </header>
+        <div class="field-hint">Escolha o formato do envio. Peso e medidas ficam ocultos nesta aba, mas o tipo do objeto continua obrigatório para a pré-postagem.</div>
+        <div class="seg seg-3" id="etqTipoObjetoSeg">
+          <label class="seg-item is-selected">
+            <input type="radio" name="etqTipoObjeto" value="PACOTE" checked>
+            <span class="material-symbols-rounded">package_2</span>
+            <span class="seg-title">Pacote</span>
+            <span class="seg-sub">Caixas e pacotes</span>
+          </label>
+          <label class="seg-item">
+            <input type="radio" name="etqTipoObjeto" value="ENVELOPE">
+            <span class="material-symbols-rounded">mail</span>
+            <span class="seg-title">Envelope</span>
+            <span class="seg-sub">Documentos e itens planos</span>
+          </label>
+          <label class="seg-item">
+            <input type="radio" name="etqTipoObjeto" value="ROLO">
+            <span class="material-symbols-rounded">database</span>
+            <span class="seg-title">Rolo</span>
+            <span class="seg-sub">Tubos e cilindros</span>
+          </label>
+        </div>
+      </section>
+
+          <section class="card nfe-import-card" id="cardNfeImport">
+            <header class="card-head">
+              <span class="material-symbols-rounded">upload_file</span>
+              <h2>Importar dados da NF-e</h2>
+            </header>
+            <div class="nfe-import-box">
+              <div class="field">
+                <label class="field-label" for="nfePdfNova">PDF da NF-e / DANFE</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">picture_as_pdf</span>
+                  <input id="nfePdfNova" type="file" accept="application/pdf,.pdf">
+                </div>
+              </div>
+              <div class="nfe-import-actions">
+                <button type="button" class="btn btn-ghost" id="btnNfeImportNova">
+                  <span class="material-symbols-rounded">auto_awesome</span>
+                  Importar PDF
+                </button>
+              </div>
+            </div>
+            <div class="nfe-import-note">
+              <span class="material-symbols-rounded">info</span>
+              <span>Vai enviar com nota fiscal? Importe o PDF da NF-e para preencher automaticamente os dados do destinatário, o valor declarado e os produtos do envio.<br>Se o seu envio não tiver nota fiscal, pode seguir normalmente sem importar nenhum arquivo.</span>
+            </div>
+            <div class="nfe-status" id="nfeStatusNova" hidden></div>
+            <div class="nfe-preview-actions">
+              <button type="button" class="btn btn-ghost btn-danfe-preview" id="btnNfeDanfePreviewNova" hidden>
+                <span class="material-symbols-rounded">fact_check</span>
+                Abrir DANFE 10x15
+              </button>
+            </div>
+          </section>
+
+      <section class="card card-dest">
+            <header class="card-head">
+              <span class="material-symbols-rounded">person_pin_circle</span>
+              <h2>Destinatário</h2>
+            </header>
+
+            <div class="field field-autocomplete">
+              <label class="field-label" for="destNome">Nome</label>
+              <div class="field-input">
+                <span class="material-symbols-rounded">person</span>
+                <input id="destNome" type="text" autocomplete="off" placeholder="Comece a digitar para buscar..." required>
+              </div>
+              <div class="autocomplete-list" id="destAutocomplete" hidden></div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label class="field-label" for="destCpfCnpj">CPF/CNPJ</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">badge</span>
+                  <input id="destCpfCnpj" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00">
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="destCelular">Celular</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">call</span>
+                  <input id="destCelular" type="tel" inputmode="tel" placeholder="(00) 00000-0000">
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="destEmail">E-mail</label>
+              <div class="field-input">
+                <span class="material-symbols-rounded">mail</span>
+                <input id="destEmail" type="email" placeholder="Opcional">
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="destEndereco">Logradouro</label>
+              <div class="field-input">
+                <span class="material-symbols-rounded">home_pin</span>
+                <input id="destEndereco" type="text" placeholder="Rua, avenida..." required>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label class="field-label" for="destNumero">Número</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">tag</span>
+                  <input id="destNumero" type="text" inputmode="numeric" placeholder="Nº" required>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="destComplemento">Complemento</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">add_home</span>
+                  <input id="destComplemento" type="text" placeholder="Apto, sala...">
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label class="field-label" for="destBairro">Bairro</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">apartment</span>
+                  <input id="destBairro" type="text" required>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="destCidade">Cidade</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">location_city</span>
+                  <input id="destCidade" type="text" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="field" style="max-width:140px">
+              <label class="field-label" for="destUf">UF</label>
+              <div class="field-input">
+                <span class="material-symbols-rounded">map</span>
+                <input id="destUf" type="text" inputmode="text" autocapitalize="characters" maxlength="2" placeholder="UF" required>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <header class="card-head">
+              <span class="material-symbols-rounded">print</span>
+              <h2>Finalização da etiqueta</h2>
+            </header>
+
+            <div class="field">
+              <label class="field-label">Formato do rótulo</label>
+              <div class="seg seg-2 seg-compact">
+                <label class="seg-item is-selected">
+                  <input type="radio" name="formatoEtiqueta" value="ET" checked>
+                  <span class="material-symbols-rounded">print_connect</span>
+                  <span class="seg-title">Etiqueta 10×15</span>
+                </label>
+                <label class="seg-item">
+                  <input type="radio" name="formatoEtiqueta" value="A4">
+                  <span class="material-symbols-rounded">description</span>
+                  <span class="seg-title">A4</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label">Objetos proibidos</label>
+              <label class="check-card" for="objetoNaoProibido">
+                <input id="objetoNaoProibido" type="checkbox" checked>
+                <span class="check-box" aria-hidden="true"></span>
+                <span class="check-copy">Eu declaro não enviar objeto proibido no fluxo postal.</span>
+              </label>
+              <div class="field-hint">Obrigatório para concluir a pré-postagem.</div>
+            </div>
+          </section>
+
+          <section class="card" id="cardTipoDocumento" hidden>
+            <header class="card-head">
+              <span class="material-symbols-rounded">article</span>
+              <h2>Nota fiscal ou declaração de conteúdo</h2>
+            </header>
+            <div class="seg seg-2">
+              <label class="seg-item is-selected">
+                <input type="radio" name="tipoDocumento" value="DC" checked>
+                <span class="material-symbols-rounded">featured_play_list</span>
+                <span class="seg-title">Sem NF</span>
+                <span class="seg-sub">Emitir DC-e pelos Correios</span>
+              </label>
+              <label class="seg-item">
+                <input type="radio" name="tipoDocumento" value="NF">
+                <span class="material-symbols-rounded">receipt_long</span>
+                <span class="seg-title">Com NF</span>
+                <span class="seg-sub">Informar nota fiscal</span>
+              </label>
+            </div>
+            <div class="field-hint">Sem NF, o app emite DC-e pelos Correios. Com NF, os itens continuam sendo enviados para conformidade dos Correios.</div>
+          </section>
+
+
+          <!-- Card NF — mostrado quando o usuário selecionar NF -->
+          <section class="card" id="cardNF" hidden>
+            <header class="card-head">
+              <span class="material-symbols-rounded">receipt_long</span>
+              <h2>Nota Fiscal / NF-e</h2>
+            </header>
+            <div class="grid-2">
+              <div class="field">
+                <label class="field-label" for="nfNumero">Número</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">tag</span>
+                  <input id="nfNumero" type="text" inputmode="numeric" placeholder="Ex: 12345" required>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="nfSerie">Série</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">category</span>
+                  <input id="nfSerie" type="text" inputmode="numeric" placeholder="Ex: 1" required>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="nfValor">Valor total da NF</label>
+              <div class="field-input">
+                <span class="material-symbols-rounded">paid</span>
+                <input id="nfValor" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" required>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="nfChave">Chave NF-e (opcional)</label>
+              <div class="field-input">
+                <span class="material-symbols-rounded">pin</span>
+                <input id="nfChave" type="text" inputmode="numeric" placeholder="44 dígitos">
+              </div>
+              <div class="field-hint">Se informar, a chave deve ter 44 dígitos.</div>
+            </div>
+          </section>
+
+          <!-- Card DC — mantido no fluxo para informar o conteúdo da remessa -->
+          <section class="card" id="cardDC" hidden>
+            <header class="card-head">
+              <span class="material-symbols-rounded">featured_play_list</span>
+              <h2>Declaração de Conteúdo</h2>
+              <button type="button" class="btn-link" id="btnAddItemDC">+ Adicionar item</button>
+            </header>
+            <div class="dc-lista" id="dcLista"></div>
+            <div class="dc-total-row">
+              <span>Total</span>
+              <strong id="dcTotal">R$ 0,00</strong>
+            </div>
+            <div class="field-hint">
+              Informe todos os itens que estão dentro do pacote. Esse conteúdo acompanha a pré-postagem. Sem NF, o app gera o DACE da DC-e; com NF, os itens continuam sendo enviados para conformidade dos Correios.
+            </div>
+          </section>
+
+          <!-- Ação principal da etapa 2 -->
+          <div class="sticky-actions sticky-actions-single">
+            <button type="submit" class="btn btn-primary btn-lg btn-block" id="btnGerar">
+              <span class="material-symbols-rounded">print</span>
+              Gerar Etiqueta
+            </button>
+          </div>
+        </div> <!-- /etapa2Wrap -->
+
+      </form>
+    </section>
+  </template>
+
+  <!-- Template de um item DC (usado pelo JS pra clonar) -->
+  <template id="tpl-item-dc">
+    <div class="dc-item">
+      <div class="dc-item-grid">
+        <div class="field">
+          <label class="field-label">Quantidade</label>
+          <div class="field-input">
+            <input type="number" class="dc-qtd" min="1" step="1" value="1" required>
+          </div>
+        </div>
+        <div class="field dc-desc-field">
+          <label class="field-label">Descrição do item</label>
+          <div class="field-input">
+            <input type="text" class="dc-desc" placeholder="Ex: Camiseta algodão M" required>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Valor (R$)</label>
+          <div class="field-input">
+            <input type="number" class="dc-valor" min="0" step="0.01" placeholder="0,00" required>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="dc-remove" title="Remover item" aria-label="Remover item">
+        <span class="material-symbols-rounded">delete</span>
+      </button>
+    </div>
+  </template>
+
+
+<template id="tpl-etiqueta">
+  <section class="screen">
+    <section class="hero">
+      <div class="hero-top">
+        <div class="hero-greet">
+          <span class="hero-hi">Olá,</span>
+          <span class="hero-name" id="heroNomeEtq">—</span>
+        </div>
+        <span class="hero-status" aria-label="Conectado">
+          <span class="material-symbols-rounded">verified</span>
+        </span>
+      </div>
+      <div class="hero-chips">
+        <span class="chip"><span class="material-symbols-rounded">badge</span><span id="heroContratoEtq">—</span></span>
+        <span class="chip"><span class="material-symbols-rounded">credit_card</span><span id="heroCartaoEtq">—</span></span>
+      </div>
+    </section>
+
+    <form id="formEtiquetaDireta" novalidate>
+      <div class="etapa-badge"><span>1</span> Tipo de envio</div>
+      <section class="card">
+        <header class="card-head">
+          <span class="material-symbols-rounded">ads_click</span>
+          <h2>Escolha o serviço disponível</h2>
+        </header>
+        <div class="field-hint">Esta aba pula a etapa de cotação e vai direto para os dados da etiqueta.</div>
+        <div class="seg seg-2" id="etqServicoSeg"></div>
+      </section>
+
+      <div class="etapa-badge"><span>2</span> Dados da etiqueta</div>
+
+      <section class="card escolha-confirmada">
+        <div class="escolha-row">
+          <div>
+            <div class="escolha-label">Serviço escolhido</div>
+            <div class="escolha-valor" id="etqServicoResumo">Selecione um serviço</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <header class="card-head">
+          <span class="material-symbols-rounded">hand_package</span>
+          <h2>Tipo de objeto</h2>
+        </header>
+        <div class="field-hint">Escolha o formato do envio. Peso e medidas ficam ocultos nesta aba, mas o tipo do objeto continua obrigatório para a pré-postagem.</div>
+        <div class="seg seg-3" id="etqTipoObjetoSeg">
+          <label class="seg-item is-selected">
+            <input type="radio" name="etqTipoObjeto" value="PACOTE" checked>
+            <span class="material-symbols-rounded">package_2</span>
+            <span class="seg-title">Pacote</span>
+            <span class="seg-sub">Caixas e pacotes</span>
+          </label>
+          <label class="seg-item">
+            <input type="radio" name="etqTipoObjeto" value="ENVELOPE">
+            <span class="material-symbols-rounded">mail</span>
+            <span class="seg-title">Envelope</span>
+            <span class="seg-sub">Documentos e itens planos</span>
+          </label>
+          <label class="seg-item">
+            <input type="radio" name="etqTipoObjeto" value="ROLO">
+            <span class="material-symbols-rounded">database</span>
+            <span class="seg-title">Rolo</span>
+            <span class="seg-sub">Tubos e cilindros</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="card nfe-import-card" id="etqCardNfeImport">
+        <header class="card-head">
+          <span class="material-symbols-rounded">upload_file</span>
+          <h2>Importar dados da NF-e</h2>
+        </header>
+        <div class="nfe-import-box">
+          <div class="field">
+            <label class="field-label" for="nfePdfEtq">PDF da NF-e / DANFE</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">picture_as_pdf</span>
+              <input id="nfePdfEtq" type="file" accept="application/pdf,.pdf">
+            </div>
+          </div>
+          <div class="nfe-import-actions">
+            <button type="button" class="btn btn-ghost" id="btnNfeImportEtq">
+              <span class="material-symbols-rounded">auto_awesome</span>
+              Importar PDF
+            </button>
+          </div>
+        </div>
+        <div class="nfe-import-note">
+          <span class="material-symbols-rounded">info</span>
+          <span>Vai enviar com nota fiscal? Importe o PDF da NF-e para preencher automaticamente os dados do destinatário, o valor declarado e os produtos do envio.<br>Se o seu envio não tiver nota fiscal, pode seguir normalmente sem importar nenhum arquivo.</span>
+        </div>
+        <div class="nfe-status" id="nfeStatusEtq" hidden></div>
+        <div class="nfe-preview-actions">
+          <button type="button" class="btn btn-ghost btn-danfe-preview" id="btnNfeDanfePreviewEtq" hidden>
+            <span class="material-symbols-rounded">fact_check</span>
+            Abrir DANFE 10x15
+          </button>
+          <span class="nfe-test-tag">DANFE 10x15</span>
+        </div>
+      </section>
+
+      <section class="card card-dest">
+        <header class="card-head">
+          <span class="material-symbols-rounded">person_pin_circle</span>
+          <h2>Destinatário</h2>
+        </header>
+
+        <div class="field field-autocomplete">
+          <label class="field-label" for="etqDestNome">Nome</label>
+          <div class="field-input">
+            <span class="material-symbols-rounded">person</span>
+            <input id="etqDestNome" type="text" autocomplete="off" placeholder="Comece a digitar para buscar..." required>
+          </div>
+          <div class="autocomplete-list" id="etqDestAutocomplete" hidden></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="etqDestCpfCnpj">CPF/CNPJ</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">badge</span>
+              <input id="etqDestCpfCnpj" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00">
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="etqDestCelular">Celular</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">call</span>
+              <input id="etqDestCelular" type="tel" inputmode="tel" placeholder="(00) 00000-0000">
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="etqDestEmail">E-mail</label>
+          <div class="field-input">
+            <span class="material-symbols-rounded">mail</span>
+            <input id="etqDestEmail" type="email" placeholder="Opcional">
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="etqDestCep">CEP</label>
+          <div class="field-input field-with-action">
+            <span class="material-symbols-rounded">markunread_mailbox</span>
+            <input id="etqDestCep" type="text" inputmode="numeric" maxlength="9" placeholder="00000-000" required>
+            <button type="button" class="field-action" id="etqBtnBuscarCep">
+              <span class="material-symbols-rounded">search</span>
+              <span>Buscar</span>
+            </button>
+          </div>
+          <div class="field-hint" id="etqCepHint" hidden>—</div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="etqDestEndereco">Logradouro</label>
+          <div class="field-input">
+            <span class="material-symbols-rounded">home_pin</span>
+            <input id="etqDestEndereco" type="text" placeholder="Rua, avenida..." required>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="etqDestNumero">Número</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">tag</span>
+              <input id="etqDestNumero" type="text" inputmode="numeric" placeholder="Nº" required>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="etqDestComplemento">Complemento</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">add_home</span>
+              <input id="etqDestComplemento" type="text" placeholder="Apto, sala...">
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="etqDestBairro">Bairro</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">apartment</span>
+              <input id="etqDestBairro" type="text" required>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="etqDestCidade">Cidade</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">location_city</span>
+              <input id="etqDestCidade" type="text" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="field" style="max-width:140px">
+          <label class="field-label" for="etqDestUf">UF</label>
+          <div class="field-input">
+            <span class="material-symbols-rounded">map</span>
+            <input id="etqDestUf" type="text" inputmode="text" autocapitalize="characters" maxlength="2" placeholder="UF" required>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <header class="card-head">
+          <span class="material-symbols-rounded">tune</span>
+          <h2>Opcionais da etiqueta</h2>
+        </header>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="etqValorDeclarado">Valor declarado</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">paid</span>
+              <input id="etqValorDeclarado" type="text" inputmode="decimal" placeholder="0,00">
+            </div>
+            <div class="field-hint">Valor do seguro (opcional)</div>
+          </div>
+          <div class="field">
+            <label class="field-label">Aviso de Recebimento</label>
+            <div class="seg seg-2 seg-compact">
+              <label class="seg-item is-selected">
+                <input type="radio" name="etqAr" value="NAO" checked>
+                <span class="seg-title">Sem AR</span>
+              </label>
+              <label class="seg-item">
+                <input type="radio" name="etqAr" value="SIM">
+                <span class="seg-title">Com AR</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Mão Própria</label>
+          <div class="seg seg-2 seg-compact">
+            <label class="seg-item is-selected">
+              <input type="radio" name="etqMaoPropria" value="NAO" checked>
+              <span class="seg-title">Não</span>
+            </label>
+            <label class="seg-item">
+              <input type="radio" name="etqMaoPropria" value="SIM">
+              <span class="seg-title">Sim</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Formato do rótulo</label>
+          <div class="seg seg-2 seg-compact">
+            <label class="seg-item is-selected">
+              <input type="radio" name="etqFormatoEtiqueta" value="ET" checked>
+              <span class="material-symbols-rounded">print_connect</span>
+              <span class="seg-title">Etiqueta 10×15</span>
+            </label>
+            <label class="seg-item">
+              <input type="radio" name="etqFormatoEtiqueta" value="A4">
+              <span class="material-symbols-rounded">description</span>
+              <span class="seg-title">A4</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Objetos proibidos</label>
+          <label class="check-card" for="etqObjetoNaoProibido">
+            <input id="etqObjetoNaoProibido" type="checkbox" checked>
+            <span class="check-box" aria-hidden="true"></span>
+            <span class="check-copy">Eu declaro não enviar objeto proibido no fluxo postal.</span>
+          </label>
+          <div class="field-hint">Obrigatório para concluir a pré-postagem.</div>
+        </div>
+      </section>
+
+      <section class="card" id="etqCardTipoDocumento">
+        <header class="card-head">
+          <span class="material-symbols-rounded">article</span>
+          <h2>Nota fiscal ou declaração de conteúdo</h2>
+        </header>
+        <div class="seg seg-2">
+          <label class="seg-item is-selected">
+            <input type="radio" name="etqTipoDocumento" value="DC" checked>
+            <span class="material-symbols-rounded">featured_play_list</span>
+            <span class="seg-title">Sem NF</span>
+            <span class="seg-sub">Emitir DC-e pelos Correios</span>
+          </label>
+          <label class="seg-item">
+            <input type="radio" name="etqTipoDocumento" value="NF">
+            <span class="material-symbols-rounded">receipt_long</span>
+            <span class="seg-title">Com NF</span>
+            <span class="seg-sub">Informar nota fiscal</span>
+          </label>
+        </div>
+      </section>
+
+
+      <section class="card" id="etqCardNF" hidden>
+        <header class="card-head">
+          <span class="material-symbols-rounded">receipt_long</span>
+          <h2>Nota Fiscal / NF-e</h2>
+        </header>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="etqNfNumero">Número</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">tag</span>
+              <input id="etqNfNumero" type="text" inputmode="numeric" placeholder="Ex: 12345" required>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="etqNfSerie">Série</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">category</span>
+              <input id="etqNfSerie" type="text" inputmode="numeric" placeholder="Ex: 1" required>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="etqNfValor">Valor total da NF</label>
+          <div class="field-input">
+            <span class="material-symbols-rounded">paid</span>
+            <input id="etqNfValor" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" required>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="etqNfChave">Chave NF-e (opcional)</label>
+          <div class="field-input">
+            <span class="material-symbols-rounded">pin</span>
+            <input id="etqNfChave" type="text" inputmode="numeric" placeholder="44 dígitos">
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="etqCardDC">
+        <header class="card-head">
+          <span class="material-symbols-rounded">featured_play_list</span>
+          <h2>Declaração de Conteúdo</h2>
+          <button type="button" class="btn-link" id="etqBtnAddItemDC">+ Adicionar item</button>
+        </header>
+        <div class="dc-lista" id="etqDcLista"></div>
+        <div class="dc-total-row">
+          <span>Total</span>
+          <strong id="etqDcTotal">R$ 0,00</strong>
+        </div>
+      </section>
+
+      <div class="sticky-actions sticky-actions-single">
+        <button type="submit" class="btn btn-primary btn-lg btn-block" id="btnGerarDireta">
+          <span class="material-symbols-rounded">print</span>
+          Gerar Etiqueta
+        </button>
+      </div>
+    </form>
+  </section>
+</template>
+
+  <template id="tpl-sucesso">
+    <section class="screen">
+      <div class="success-card">
+        <div class="success-icon">
+          <span class="material-symbols-rounded">check_circle</span>
+        </div>
+        <h1 class="success-title">Etiqueta gerada!</h1>
+        <p class="success-sub">Código de rastreio</p>
+        <div class="success-codigo" id="successCodigo">—</div>
+        <div class="success-actions">
+          <button class="btn btn-primary btn-block btn-lg" id="btnImprimir">
+            <span class="material-symbols-rounded">print</span>
+            Imprimir
+          </button>
+          <button class="btn btn-ghost btn-block" id="btnBaixar">
+            <span class="material-symbols-rounded">download</span>
+            Baixar PDF
+          </button>
+          <button class="btn btn-whatsapp btn-block" id="btnWhatsapp">
+            <span class="wa-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19.05 4.94A9.77 9.77 0 0 0 12.09 2C6.66 2 2.24 6.4 2.24 11.83c0 1.74.46 3.43 1.33 4.91L2 22l5.43-1.51a9.8 9.8 0 0 0 4.66 1.19h.01c5.43 0 9.85-4.41 9.85-9.84 0-2.63-1.03-5.11-2.9-6.9Zm-6.96 15.08h-.01a8.13 8.13 0 0 1-4.14-1.13l-.3-.18-3.22.9.86-3.14-.19-.32a8.16 8.16 0 0 1-1.25-4.32c0-4.48 3.65-8.13 8.14-8.13 2.17 0 4.21.84 5.74 2.38a8.06 8.06 0 0 1 2.38 5.74c0 4.48-3.65 8.13-8.14 8.13Zm4.46-6.08c-.24-.12-1.42-.7-1.64-.78-.22-.08-.38-.12-.54.12-.16.24-.62.78-.76.94-.14.16-.28.18-.52.06-.24-.12-1.02-.38-1.95-1.22-.72-.64-1.2-1.44-1.34-1.68-.14-.24-.02-.37.1-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.54-1.3-.74-1.79-.2-.47-.4-.41-.54-.42l-.46-.01c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.69 2.58 4.1 3.62.57.24 1.01.38 1.36.49.57.18 1.1.15 1.52.09.46-.07 1.42-.58 1.62-1.14.2-.56.2-1.04.14-1.14-.06-.1-.22-.16-.46-.28Z"/>
+              </svg>
+            </span>
+            Enviar por WhatsApp
+          </button>
+          <button class="btn btn-ghost btn-block" id="btnNova">
+            <span class="material-symbols-rounded">add</span>
+            Nova etiqueta
+          </button>
+        </div>
+        <div class="success-preview">
+          <iframe id="pdfPreview" title="Preview da etiqueta"></iframe>
+        </div>
+      </div>
+    </section>
+  </template>
+
+  <template id="tpl-destinatarios">
+    <section class="screen">
+      <section class="dest-top-actions" aria-label="Ações de destinatários">
+        <button type="button" class="btn btn-primary" id="destNovo"><span class="material-symbols-rounded">person_add</span>Novo</button>
+        <button type="button" class="btn btn-ghost" id="destImportarCsv"><span class="material-symbols-rounded">upload_file</span>Importar CSV</button>
+        <a class="btn btn-ghost" href="modelos/modelo_importacao_destinatarios.csv" download><span class="material-symbols-rounded">download</span>Baixar modelo CSV</a>
+        <input id="destCsvFile" type="file" accept=".csv,text/csv" hidden>
+      </section>
+      <p class="dest-import-hint">Importe até 500 destinatários por arquivo. Use o modelo CSV para cadastrar ou atualizar registros existentes.</p>
+
+      <section class="card dest-control-toolbar">
+        <div class="field"><label class="field-label" for="destBusca">Buscar</label><div class="field-input"><span class="material-symbols-rounded">search</span><input id="destBusca" type="text" placeholder="Nome, CPF/CNPJ, celular ou CEP"></div></div>
+        <div class="field"><label class="field-label" for="destFiltroUf">Filtrar por UF</label><div class="field-input"><span class="material-symbols-rounded">map</span><select id="destFiltroUf"><option value="">Todas as UFs</option></select></div></div>
+        <div class="dest-control-count"><span>Total</span><strong id="destTotal">—</strong></div>
+      </section>
+
+      <section class="card dest-cadastro-card" id="destCadastroCard" hidden>
+        <header class="card-head"><span class="material-symbols-rounded">person_edit</span><h2 id="destCadTitulo">Novo destinatário</h2></header>
+        <form id="destCadastroForm" novalidate>
+          <input id="destCadId" type="hidden">
+
+          <section class="dest-form-block">
+            <header class="dest-form-block-head"><span class="dest-form-block-number">1</span><div><h3>Dados do destinatário</h3><p>Dados de contato e endereço para preenchimento automático da etiqueta.</p></div></header>
+            <div class="field"><label class="field-label" for="destCadNome">Nome</label><div class="field-input"><span class="material-symbols-rounded">person</span><input id="destCadNome" type="text" required></div></div>
+            <div class="grid-2">
+              <div class="field"><label class="field-label" for="destCadCpfCnpj">CPF/CNPJ</label><div class="field-input"><span class="material-symbols-rounded">badge</span><input id="destCadCpfCnpj" type="text" inputmode="numeric"></div></div>
+              <div class="field"><label class="field-label" for="destCadCelular">Celular</label><div class="field-input"><span class="material-symbols-rounded">call</span><input id="destCadCelular" type="text" inputmode="tel"></div></div>
+            </div>
+            <div class="field"><label class="field-label" for="destCadEmail">E-mail</label><div class="field-input"><span class="material-symbols-rounded">mail</span><input id="destCadEmail" type="email"></div></div>
+            <div class="field"><label class="field-label" for="destCadCep">CEP</label><div class="field-input field-with-action"><span class="material-symbols-rounded">markunread_mailbox</span><input id="destCadCep" type="text" inputmode="numeric" maxlength="9" required><button class="field-action" type="button" id="destCadBtnBuscarCep"><span class="material-symbols-rounded">search</span>Buscar</button></div><div class="field-hint" id="destCadCepHint" hidden></div></div>
+            <div class="field"><label class="field-label" for="destCadLogradouro">Logradouro</label><div class="field-input"><span class="material-symbols-rounded">home_pin</span><input id="destCadLogradouro" type="text" required></div></div>
+            <div class="grid-2"><div class="field"><label class="field-label" for="destCadNumero">Número</label><div class="field-input"><span class="material-symbols-rounded">tag</span><input id="destCadNumero" type="text" required></div></div><div class="field"><label class="field-label" for="destCadComplemento">Complemento</label><div class="field-input"><span class="material-symbols-rounded">add_home</span><input id="destCadComplemento" type="text"></div></div></div>
+            <div class="grid-3"><div class="field"><label class="field-label" for="destCadBairro">Bairro</label><div class="field-input"><span class="material-symbols-rounded">apartment</span><input id="destCadBairro" type="text" required></div></div><div class="field"><label class="field-label" for="destCadCidade">Cidade</label><div class="field-input"><span class="material-symbols-rounded">location_city</span><input id="destCadCidade" type="text" required></div></div><div class="field"><label class="field-label" for="destCadUf">UF</label><div class="field-input"><span class="material-symbols-rounded">map</span><input id="destCadUf" type="text" maxlength="2" required></div></div></div>
+          </section>
+
+          <section class="dest-form-block">
+            <header class="dest-form-block-head"><span class="dest-form-block-number">2</span><div><h3>Documentação do envio</h3><p>Marque os documentos normalmente utilizados para este destinatário.</p></div></header>
+            <div class="grid-2"><label class="check-card"><input id="destCadEnvioNf" type="checkbox"><span class="check-box"></span><span class="check-copy">Envio de NF</span></label><label class="check-card"><input id="destCadEnvioDc" type="checkbox"><span class="check-box"></span><span class="check-copy">Envio de Declaração de Conteúdo</span></label></div>
+          </section>
+
+          <section class="dest-form-block">
+            <header class="dest-form-block-head"><span class="dest-form-block-number">3</span><div><h3>Usar valor declarado</h3><p>Defina se o Valor Declarado deve ser utilizado como preferência deste destinatário.</p></div></header>
+            <div class="seg seg-2 seg-compact"><label class="seg-item"><input type="radio" name="destCadSempreVd" value="SIM"><span class="seg-title">Sim</span></label><label class="seg-item is-selected"><input type="radio" name="destCadSempreVd" value="NAO" checked><span class="seg-title">Não</span></label></div>
+          </section>
+
+          <section class="dest-form-block">
+            <header class="dest-form-block-head"><span class="dest-form-block-number">4</span><div><h3>Forma de pagamento preferencial</h3><p>Preferência comercial registrada para consultas futuras.</p></div></header>
+            <div class="seg seg-3 seg-compact"><label class="seg-item"><input type="radio" name="destCadPagamento" value="PIX"><span class="seg-title">PIX</span></label><label class="seg-item"><input type="radio" name="destCadPagamento" value="CARTAO_AVISTA"><span class="seg-title">Cartão à vista</span></label><label class="seg-item"><input type="radio" name="destCadPagamento" value="CARTAO_PARCELADO"><span class="seg-title">Cartão parcelado</span></label></div>
+          </section>
+
+          <section class="dest-form-block">
+            <header class="dest-form-block-head"><span class="dest-form-block-number">5</span><div><h3>Frete por conta</h3><p>Indique quem normalmente assume o custo do frete.</p></div></header>
+            <div class="seg seg-2 seg-compact"><label class="seg-item"><input type="radio" name="destCadFreteConta" value="CIF"><span class="seg-title">CIF (Remetente)</span></label><label class="seg-item"><input type="radio" name="destCadFreteConta" value="FOB"><span class="seg-title">FOB (Destinatário)</span></label></div>
+          </section>
+
+          <div class="dest-cadastro-actions"><button type="button" class="btn btn-ghost" id="destCadCancelar">Cancelar</button><button type="submit" class="btn btn-primary"><span class="material-symbols-rounded">save</span>Salvar destinatário</button></div>
+        </form>
+      </section>
+      <section class="dest-control-list" id="destLista"><div class="hist-empty">Carregando...</div></section>
+    </section>
+  </template>
+
+  <template id="tpl-historico">
+    <section class="screen">
+      <div class="hist-toolbar">
+        <div class="field hist-search">
+          <div class="field-input">
+            <span class="material-symbols-rounded">search</span>
+            <input id="histBusca" type="text" placeholder="Buscar destinatário, código...">
+          </div>
+        </div>
+        <div class="hist-filter-grid">
+          <label class="hist-filter-field hist-month-field" for="histMes">
+            <span class="hist-filter-label">Mês</span>
+            <input id="histMes" class="hist-month" type="month" aria-label="Filtrar histórico por mês">
+          </label>
+          <label class="hist-filter-field" for="histStatus">
+            <span class="hist-filter-label">Status</span>
+            <select id="histStatus" class="hist-select">
+              <option value="">Todos os status</option>
+              <option value="CONCLUIDO">Concluídos</option>
+              <option value="ERRO_PREPOST">Erro pré-postagem</option>
+              <option value="ERRO_VALIDACAO">Erro validação</option>
+              <option value="ERRO_ROTULO">Erro rótulo</option>
+              <option value="CANCELADO">Cancelados</option>
+            </select>
+          </label>
+          <label class="hist-filter-field" for="histUf">
+            <span class="hist-filter-label">UF</span>
+            <select id="histUf" class="hist-select">
+              <option value="">Todas as UFs</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <section class="hist-summary" id="histResumo" aria-live="polite">
+        <div class="hist-summary-head">
+          <div>
+            <div class="hist-summary-eyebrow">Resumo financeiro</div>
+            <h2 class="hist-summary-title" id="histResumoTitulo">Todos os meses</h2>
+          </div>
+          <span class="material-symbols-rounded hist-summary-icon">payments</span>
+        </div>
+        <div class="hist-summary-grid">
+          <div class="hist-summary-item">
+            <span>Postagens concluídas</span>
+            <strong id="histResumoQtd">—</strong>
+          </div>
+          <div class="hist-summary-item is-total">
+            <span>Total das postagens</span>
+            <strong id="histResumoValor">—</strong>
+          </div>
+          <div class="hist-summary-item">
+            <span>Resultados encontrados</span>
+            <strong id="histResumoResultados">—</strong>
+          </div>
+        </div>
+      </section>
+      <div class="hist-list" id="histList">
+        <div class="hist-empty">Carregando...</div>
+      </div>
+    </section>
+  </template>
+
+  <template id="tpl-config">
+    <section class="screen">
+      <section class="card">
+        <header class="card-head">
+          <span class="material-symbols-rounded">person</span>
+          <h2>Cliente</h2>
+        </header>
+        <div class="kv-list" id="cfgKvList">—</div>
+      </section>
+
+      <section class="card">
+        <header class="card-head">
+          <span class="material-symbols-rounded">vpn_key</span>
+          <h2>Conexão Correios</h2>
+        </header>
+        <div class="kv-list" id="cfgCwsKv">—</div>
+        <button class="btn btn-ghost btn-block" id="btnTestarToken">
+          <span class="material-symbols-rounded">network_check</span>
+          Testar conexão Correios
+        </button>
+        <button class="btn btn-ghost btn-block" id="btnDiagnostico">
+          <span class="material-symbols-rounded">bug_report</span>
+          Diagnóstico completo
+        </button>
+        <pre class="diagnostico-output" id="diagnosticoOut" hidden></pre>
+      </section>
+    </section>
+  </template>
+
+  <script src="js/config.js?v=destinatarios-v30-password-toggle"></script>
+  <script src="js/api.js?v=destinatarios-v30-password-toggle"></script>
+  <script src="js/ui.js?v=destinatarios-v30-password-toggle"></script>
+  <script src="js/nfe-import.js?v=destinatarios-v30-password-toggle"></script>
+  <script src="js/app.js?v=destinatarios-v30-password-toggle"></script>
+  <script src="js/router.js?v=destinatarios-v30-password-toggle"></script>
+  <script src="js/screens/login.js?v=destinatarios-v30-password-toggle"></script>
+  <script src="js/screens/nova.js?v=destinatarios-v30-password-toggle"></script>
+  <script src="js/screens/etiqueta.js?v=destinatarios-v30-password-toggle"></script>
+  <script src="js/screens/sucesso.js?v=destinatarios-v30-password-toggle"></script>
+  <script src="js/screens/historico.js?v=destinatarios-v30-password-toggle"></script>
+  <script src="js/screens/destinatarios.js?v=destinatarios-v30-password-toggle"></script>
+  <script src="js/screens/config.js?v=destinatarios-v30-password-toggle"></script>
+<script src="/shared/ui/agf-ui.js"></script>
+</body>
+</html>

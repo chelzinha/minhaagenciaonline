@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AGF José Bonifácio | Agência Franqueada dos Correios</title>
+  <meta name="description" content="AGF José Bonifácio | Agência Franqueada dos Correios. Acesse o nosso Aplicativo de Postagens e Conector Nuvemshop" />
+  <meta name="theme-color" content="#00416B" />
+  
+  <meta property="og:title" content="AGF José Bonifácio | Agência Franqueada dos Correios" />
+  <meta property="og:description" content="Atendimento digital, postagens, etiquetas e apoio para lojistas." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://minhaagenciaonline.com.br/" />
+  <meta property="og:image" content="https://minhaagenciaonline.com.br/assets/og-whatsapp-correios-v2.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="1200" />
+  <meta property="og:image:type" content="image/png" />
+
+  <link rel="icon" href="/assets/pwa/root/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/pwa/root/favicon-16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/root/favicon-32.png" />
+  <link rel="apple-touch-icon" href="/assets/pwa/root/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet" />
+  <link rel="preload" as="image" href="/assets/logo-agf-jose-bonifacio.png" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/shared/ui/agf-ui.css" />
+  <script src="/shared/auth/agf-auth-config.js"></script>
+  <script src="/shared/auth/agf-auth-client.js"></script>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/" aria-label="AGF José Bonifácio">
+        <img class="brand-mark" src="/assets/correios-logo-2.png" alt="Correios" />
+        <span class="brand-copy"><strong>AGF José Bonifácio</strong><small>Minha Agência Online</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="Navegação principal">
+        <a href="#acessos">Acessos</a><a href="#servicos">Serviços</a><a href="#unidades">Unidades</a>
+      </nav>
+      <a class="header-internal" href="/agf/" aria-label="Acesso interno da agência">
+        <span class="material-symbols-rounded" aria-hidden="true">lock</span><span>Acesso interno</span>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <div class="status-pill">
+            <span class="material-symbols-rounded" aria-hidden="true">verified</span>
+             Atendimento Presencial + Atendimento Digital
+          </div>
+
+          <img class="hero-logo" src="/assets/logo-agf-jose-bonifacio.png" alt="AGF José Bonifácio e Correios" />
+
+          <h1 id="hero-title">Sua agência dos Correios com acesso rápido, atendimento direto e apoio para postagens</h1>
+          <p class="hero-lead">
+            Acesse o nosso Aplicativo de Postagens e Conector Nuvemshop. Conheça nossos serviços!
+          </p>
+
+          <div class="hero-actions" id="acessos" aria-label="Acessos principais">
+			<a class="action-card action-primary" href="/app" target="_blank" rel="noopener noreferrer">
+			  <span class="action-icon action-icon-custom" aria-hidden="true">
+				<img src="/assets/icon-app.svg" alt="" />
+			  </span>
+			  <span>
+				<strong>App Minhas Postagens</strong>
+				<small>Gere suas etiquetas no celular</small>
+			  </span>
+			  <span class="arrow material-symbols-rounded" aria-hidden="true">arrow_forward</span>
+			</a>
+
+			<a class="action-card action-yellow" href="/nuvem" target="_blank" rel="noopener noreferrer">
+			  <span class="action-icon material-symbols-rounded" aria-hidden="true">cloud</span>
+			  <span>
+				<strong>Conector Nuvemshop</strong>
+				<small>Sincronização de pedidos Nuvemshop e Etiquetas</small>
+			  </span>
+			  <span class="arrow material-symbols-rounded" aria-hidden="true">arrow_forward</span>
+			</a>
+
+            <a class="action-card action-cep" href="/cep/" target="_blank" rel="noopener noreferrer">
+              <span class="action-icon material-symbols-rounded" data-agf-icon="cep" aria-hidden="true">location_on</span>
+              <span><strong>Consulta de CEP</strong><small>Encontre CEP e endereço rapidamente</small></span>
+              <span class="arrow material-symbols-rounded" aria-hidden="true">arrow_forward</span>
+            </a>
+          </div>
+        </div>
+
+        <aside class="hero-panel" aria-label="Cartão de atendimento rápido">
+          <div class="panel-topline">
+            <span class="live-dot" aria-hidden="true"></span>
+            Canal rápido da agência
+          </div>
+
+          <h2>Fale com a gente</h2>
+          <p>Envie suas etiquetas, tire dúvidas ou converse com a nossa equipe.</p>
+
+          <a class="whatsapp-hero" href="https://wa.me/5585988864444" target="_blank" rel="noopener noreferrer">
+            <img src="/assets/whatsapp.svg" alt="" aria-hidden="true" />
+            Chamar no WhatsApp
+          </a>
+
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="servicos" aria-labelledby="servicos-title">
+      <div class="container">
+        <div class="section-heading">
+          <span class="eyebrow">Para clientes e lojistas</span>
+          <h2 id="servicos-title">O básico bem resolvido: postagem, etiqueta e atendimento sem enrolação.</h2>
+        </div>
+
+        <div class="services-grid">
+          <article class="service-card featured-service">
+            <span class="service-icon material-symbols-rounded" aria-hidden="true">sell</span>
+            <h3>Etiquetas e envio</h3>
+            <p>Organização de etiquetas para deixar o atendimento mais rápido e reduzir retrabalho na postagem.</p>
+          </article>
+
+          <article class="service-card">
+            <span class="service-icon material-symbols-rounded" aria-hidden="true">inventory_2</span>
+            <h3>Postagens</h3>
+            <p>Apoio prático para rotina de encomendas, pacotes e atendimento presencial.</p>
+          </article>
+
+          <article class="service-card">
+            <span class="service-icon material-symbols-rounded" aria-hidden="true">storefront</span>
+            <h3>Apoio ao lojista</h3>
+            <p>Fluxo pensado para quem vende presencial e online.</p>
+          </article>
+
+          <article class="service-card">
+            <span class="service-icon material-symbols-rounded" aria-hidden="true">support_agent</span>
+            <h3>Atendimento direto</h3>
+            <p>Contato rápido com a equipe para orientação, dúvidas e encaminhamento correto.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section units-section" id="unidades" aria-labelledby="unidades-title">
+      <div class="container">
+        <div class="section-heading centered">
+          <span class="eyebrow">Contato e localização</span>
+          <h2 id="unidades-title">Encontre nossas unidades em Fortaleza.</h2>
+        </div>
+
+        <div class="units-grid">
+          <article class="unit-card">
+            <div class="unit-info">
+              <div class="unit-title-row">
+                <span class="unit-badge material-symbols-rounded" aria-hidden="true">local_post_office</span>
+                <h3>AGF José Bonifácio</h3>
+              </div>
+
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-icon material-symbols-rounded" aria-hidden="true">location_on</span>
+                  <div>
+                    <strong>Localização</strong>
+                    <span>Av. Aguanambi, 674 - José Bonifácio<br>Fortaleza - CE, 60055-974</span>
+                  </div>
+                </div>
+
+                <a class="info-item info-whatsapp" href="https://wa.me/5585988864444" target="_blank" rel="noopener noreferrer">
+                  <span class="whatsapp-icon-wrap"><img src="/assets/whatsapp.svg" alt="" aria-hidden="true" /></span>
+                  <div>
+                    <strong>WhatsApp</strong>
+                    <span>(85) 98886-4444</span>
+                  </div>
+                </a>
+
+                <div class="info-item">
+                  <span class="info-icon material-symbols-rounded" aria-hidden="true">schedule</span>
+                  <div>
+                    <strong>Horário de Atendimento</strong>
+                    <span>Seg a Sex<br>08:00 - 17:00</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+			<div class="map-wrap">
+			<iframe
+			title="Mapa AGF José Bonifácio"
+			loading="lazy"
+			allowfullscreen
+			referrerpolicy="no-referrer-when-downgrade"
+			src="https://www.google.com/maps?q=Av.%20Aguanambi%2C%20674%20-%20Jos%C3%A9%20Bonif%C3%A1cio%2C%20Fortaleza%20-%20CE%2C%2060055-974&z=16&output=embed">
+		  </iframe>
+		</div>
+          </article>
+
+          <article class="unit-card">
+            <div class="unit-info">
+              <div class="unit-title-row">
+                <span class="unit-badge material-symbols-rounded" aria-hidden="true">store</span>
+                <h3>Guichê Shopping Metrô</h3>
+              </div>
+
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-icon material-symbols-rounded" aria-hidden="true">location_on</span>
+                  <div>
+                    <strong>Localização</strong>
+                    <span>Rua 24 de Maio, 444 - Centro<br>Fortaleza - CE, 60020-000</span>
+                  </div>
+                </div>
+
+                <a class="info-item info-whatsapp" href="https://wa.me/5585988864433" target="_blank" rel="noopener noreferrer">
+                  <span class="whatsapp-icon-wrap"><img src="/assets/whatsapp.svg" alt="" aria-hidden="true" /></span>
+                  <div>
+                    <strong>WhatsApp</strong>
+                    <span>(85) 98886-4433</span>
+                  </div>
+                </a>
+
+                <div class="info-item">
+                  <span class="info-icon material-symbols-rounded" aria-hidden="true">schedule</span>
+                  <div>
+                    <strong>Horário de Atendimento</strong>
+                    <span>Seg a Sex<br>08:00 - 17:30</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+			<div class="map-wrap">
+		  <iframe
+			title="Mapa Guichê Shopping Metrô"
+			loading="lazy"
+			allowfullscreen
+			referrerpolicy="no-referrer-when-downgrade"
+			src="https://www.google.com/maps?q=Rua%2024%20de%20Maio%2C%20444%20-%20Centro%2C%20Fortaleza%20-%20CE%2C%2060020-000&z=16&output=embed">
+		  </iframe>
+		</div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <a class="floating-whatsapp" href="https://wa.me/5585988864444" target="_blank" rel="noopener noreferrer" aria-label="Falar com a AGF José Bonifácio pelo WhatsApp">
+    <img src="/assets/whatsapp.svg" alt="" aria-hidden="true" />
+  </a>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>AGF José Bonifácio | Agência Franqueada dos Correios</p>
+    </div>
+  </footer>
+  <script src="/shared/ui/agf-ui.js"></script>
+  <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));}</script>
+</body>
+</html>

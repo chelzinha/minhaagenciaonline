@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DANFE Simplificado 10x15 — Minhas Postagens</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/preview.css?v=danfe-preview-v14">
+  <link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/assets/pwa/root/favicon.ico" sizes="any"/>
+</head>
+<body>
+  <header class="topbar no-print topbar-print-only">
+    <div class="brand">
+      <span class="brand-icon material-symbols-rounded">print</span>
+      <div>
+        <strong>DANFE Simplificado — Etiqueta</strong>
+        <small>Impressão em 10 × 15 cm</small>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="btnPrint" class="btn btn-dark" type="button"><span class="material-symbols-rounded">print</span>Imprimir DANFE 10x15</button>
+      <button id="btnClose" class="btn btn-light topbar-close-hidden" type="button" aria-hidden="true" tabindex="-1"><span class="material-symbols-rounded">close</span>Fechar</button>
+    </div>
+  </header>
+
+  <main class="layout layout-print-only">
+    <section class="workspace-hidden" hidden aria-hidden="true">
+      <div id="sourceInfo"></div>
+      <div id="reviewForm"></div>
+      <div id="validationList"></div>
+      <div id="saveStatus" hidden></div>
+      <span id="validationBadge"></span>
+      <button id="btnRender" type="button"></button>
+      <button id="btnSaveValidated" type="button"></button>
+      <button id="btnSaveDivergence" type="button"></button>
+    </section>
+
+    <aside class="preview-wrap preview-wrap-only">
+      <div class="preview-toolbar no-print">
+        <strong>Etiqueta 10 × 15 cm</strong>
+        <span class="preview-required">Pronta para impressão</span>
+      </div>
+      <section id="danfeLabel" class="danfe-label" aria-label="DANFE Simplificado Etiqueta 10x15"></section>
+    </aside>
+  </main>
+
+  <script src="./js/preview.js?v=danfe-preview-v14"></script>
+</body>
+</html>

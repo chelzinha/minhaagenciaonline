@@ -1,0 +1,16 @@
+{
+  "name":"AGF José Bonifácio",
+  "short_name":"AGF José Bonifácio",
+  "description":"Agência de Correios Franqueada em Fortaleza.",
+  "start_url":"/",
+  "scope":"/",
+  "display":"standalone",
+  "background_color":"#F5F8FC",
+  "theme_color":"#00416B",
+  "icons":[
+    {"src":"/assets/pwa/root/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"/assets/pwa/root/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"/assets/pwa/root/icon-192-maskable.png","sizes":"192x192","type":"image/png","purpose":"maskable"},
+    {"src":"/assets/pwa/root/icon-512-maskable.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+  ]
+}

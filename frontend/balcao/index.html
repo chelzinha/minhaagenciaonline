@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Atendimento Balcão AGF</title>
+  <meta name="theme-color" content="#00416B" />
+  <link rel="icon" href="/assets/favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles/balcao.css" />
+<link rel="stylesheet" href="/shared/ui/agf-ui.css"/>
+<script src="/shared/auth/agf-auth-config.js"></script>
+<script src="/shared/auth/agf-auth-client.js"></script>
+<script>window.AGF_ACCESS={roles:['admin','manager','user'],app:'balcao'};</script>
+<script src="/shared/auth/agf-route-guard.js"></script>
+<link rel="manifest" href="/balcao/manifest.webmanifest"/>
+<link rel="icon" href="/assets/pwa/balcao/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/balcao/favicon-32.png"/>
+<link rel="apple-touch-icon" href="/assets/pwa/balcao/apple-touch-icon.png"/>
+</head>
+<body>
+  <header class="topbar agf-standard-topbar">
+    <div class="topbar-inner agf-standard-topbar-inner">
+      <a class="brand agf-standard-brand" href="/agf/" aria-label="Voltar ao portal interno">
+        <span class="brand-logo agf-standard-brand-tile"><img src="/assets/correios-logo-2.png" alt="" /></span>
+        <span class="agf-standard-copy"><strong>Atendimento Balcão</strong><small>AGF JOSÉ BONIFÁCIO</small></span>
+      </a>
+      <div class="topbar-actions agf-standard-actions">
+        <span class="version-pill"><span class="material-symbols-rounded">bolt</span><span id="versionText">v—</span></span>
+        <a class="agf-standard-action" href="/agf/" title="Portal interno"><span class="material-symbols-rounded">apps</span><span>Portal</span></a>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-shell">
+     <div class="grid-main">
+      <div class="stack">
+        <div class="etapa-badge"><span>1</span> Cotação de balcão</div>
+
+        <form id="formCotacao" class="stack" novalidate>
+          <section class="card">
+            <header class="card-head">
+              <span class="material-symbols-rounded">route</span>
+              <div>
+                <h2>Origem e destino</h2>
+                <p>O CEP da agência vem como padrão, mas pode ser alterado.</p>
+              </div>
+            </header>
+
+            <div class="grid-2">
+              <div class="field">
+                <label class="field-label" for="cepOrigem">CEP de origem</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">store</span>
+                  <input id="cepOrigem" type="text" inputmode="numeric" maxlength="9" placeholder="60055-974" required />
+                  <button type="button" class="field-action" id="btnBuscarOrigem"><span class="material-symbols-rounded">search</span>Buscar</button>
+                </div>
+                <div class="field-hint" id="origemHint">CEP padrão da agência.</div>
+                <button type="button" class="btn btn-ghost" id="btnOrigemDefault"><span class="material-symbols-rounded">restart_alt</span>Usar CEP da agência</button>
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="cepDestino">CEP de destino</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">markunread_mailbox</span>
+                  <input id="cepDestino" type="text" inputmode="numeric" maxlength="9" placeholder="00000-000" required />
+                  <button type="button" class="field-action" id="btnBuscarDestino"><span class="material-symbols-rounded">search</span>Buscar</button>
+                </div>
+                <div class="field-hint" id="destinoHint">Digite o CEP para carregar cidade e UF.</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <header class="card-head">
+              <span class="material-symbols-rounded">deployed_code</span>
+              <div>
+                <h2>Objeto</h2>
+                <p>Informe peso, formato e dimensões para calcular peso tarifado.</p>
+              </div>
+            </header>
+
+            <div class="seg seg-3" id="tipoObjetoSeg">
+              <label class="seg-item is-selected">
+                <input type="radio" name="tipoObjeto" value="PACOTE" checked />
+                <span class="material-symbols-rounded">package_2</span>
+                <span class="seg-title">Pacote</span>
+                <span class="seg-sub">Caixa ou pacote comum</span>
+              </label>
+              <label class="seg-item">
+                <input type="radio" name="tipoObjeto" value="ENVELOPE" />
+                <span class="material-symbols-rounded">mail</span>
+                <span class="seg-title">Envelope</span>
+                <span class="seg-sub">Documento ou item plano</span>
+              </label>
+              <label class="seg-item">
+                <input type="radio" name="tipoObjeto" value="ROLO" />
+                <span class="material-symbols-rounded">database</span>
+                <span class="seg-title">Rolo</span>
+                <span class="seg-sub">Tubo ou cilindro</span>
+              </label>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="grid-3">
+              <div class="field">
+                <label class="field-label" for="pesoG">Peso (g)</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">scale</span>
+                  <input id="pesoG" type="number" inputmode="numeric" min="1" step="1" placeholder="Ex: 6210" required />
+                </div>
+              </div>
+              <div class="field" id="fieldAltura">
+                <label class="field-label" for="alturaCm">Altura (cm)</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">height</span>
+                  <input id="alturaCm" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Ex: 23" />
+                </div>
+              </div>
+              <div class="field" id="fieldLargura">
+                <label class="field-label" for="larguraCm">Largura (cm)</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">open_in_full</span>
+                  <input id="larguraCm" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Ex: 32" />
+                </div>
+              </div>
+              <div class="field" id="fieldComprimento">
+                <label class="field-label" for="comprimentoCm">Comprimento (cm)</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">straighten</span>
+                  <input id="comprimentoCm" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Ex: 40" />
+                </div>
+              </div>
+              <div class="field" id="fieldDiametro" hidden>
+                <label class="field-label" for="diametroCm">Diâmetro (cm)</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">radio_button_unchecked</span>
+                  <input id="diametroCm" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Ex: 8" />
+                </div>
+              </div>
+            </div>
+            <div class="field-hint" id="dimensoesHint" style="margin-top:10px">Pacote: informe altura, largura e comprimento.</div>
+          </section>
+
+          <section class="card">
+            <header class="card-head">
+              <span class="material-symbols-rounded">tune</span>
+              <div>
+                <h2>Opcionais</h2>
+                <p>Esses adicionais entram na simulação do valor à vista.</p>
+              </div>
+            </header>
+
+            <div class="grid-3">
+              <div class="field">
+                <label class="field-label" for="valorDeclarado">Valor declarado</label>
+                <div class="field-input">
+                  <span class="material-symbols-rounded">paid</span>
+                  <input id="valorDeclarado" type="text" inputmode="numeric" placeholder="0,00" />
+                </div>
+              </div>
+              <label class="check-card">
+                <input type="checkbox" id="ar" />
+                <span>Aviso de Recebimento</span>
+              </label>
+              <label class="check-card">
+                <input type="checkbox" id="maoPropria" />
+                <span>Mão Própria</span>
+              </label>
+            </div>
+          </section>
+
+          <div class="actions">
+            <button type="submit" class="btn btn-primary"><span class="material-symbols-rounded">calculate</span>Calcular opções</button>
+            <button type="button" class="btn btn-ghost" id="btnLimpar"><span class="material-symbols-rounded">mop</span>Limpar</button>
+          </div>
+        </form>
+
+        <section class="card">
+          <header class="card-head">
+            <span class="material-symbols-rounded">view_list</span>
+            <div>
+              <h2>Opções disponíveis:</h2>
+              </div>
+          </header>
+          <div class="results" id="results"></div>
+        </section>
+
+        <section class="stack hidden" id="etiquetaSection">
+          <div class="etapa-badge"><span>2</span> Dados para Etiqueta de Endereçamento</div>
+
+          <section class="card">
+            <header class="card-head">
+              <span class="material-symbols-rounded">person_pin_circle</span>
+              <div>
+                <h2>Remetente</h2>
+              </div>
+            </header>
+
+            <div class="field">
+              <label class="field-label" for="remNome">Nome/Razão Social</label>
+              <div class="field-input"><span class="material-symbols-rounded">person</span><input id="remNome" type="text" placeholder="Nome do remetente" required /></div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label class="field-label" for="remCpfCnpj">CPF/CNPJ</label>
+                <div class="field-input"><span class="material-symbols-rounded">badge</span><input id="remCpfCnpj" type="text" inputmode="numeric" placeholder="Opcional" /></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="remCelular">Celular</label>
+                <div class="field-input"><span class="material-symbols-rounded">call</span><input id="remCelular" type="tel" inputmode="tel" placeholder="(00) 00000-0000" /></div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="remEmail">E-mail</label>
+              <div class="field-input"><span class="material-symbols-rounded">mail</span><input id="remEmail" type="email" placeholder="Opcional" /></div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="remCep">CEP</label>
+              <div class="field-input"><span class="material-symbols-rounded">markunread_mailbox</span><input id="remCep" type="text" inputmode="numeric" maxlength="9" placeholder="00000-000" required /><button type="button" class="field-action" id="btnBuscarRemCep"><span class="material-symbols-rounded">search</span>Buscar</button></div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="remEndereco">Logradouro</label>
+              <div class="field-input"><span class="material-symbols-rounded">home_pin</span><input id="remEndereco" type="text" required /></div>
+            </div>
+            <div class="grid-2">
+              <div class="field"><label class="field-label" for="remNumero">Número</label><div class="field-input"><span class="material-symbols-rounded">tag</span><input id="remNumero" type="text" required /></div></div>
+              <div class="field"><label class="field-label" for="remComplemento">Complemento</label><div class="field-input"><span class="material-symbols-rounded">add_home</span><input id="remComplemento" type="text" /></div></div>
+            </div>
+            <div class="grid-3">
+              <div class="field"><label class="field-label" for="remBairro">Bairro</label><div class="field-input"><span class="material-symbols-rounded">apartment</span><input id="remBairro" type="text" required /></div></div>
+              <div class="field"><label class="field-label" for="remCidade">Cidade</label><div class="field-input"><span class="material-symbols-rounded">location_city</span><input id="remCidade" type="text" required /></div></div>
+              <div class="field"><label class="field-label" for="remUf">UF</label><div class="field-input"><span class="material-symbols-rounded">map</span><input id="remUf" type="text" maxlength="2" required /></div></div>
+            </div>
+          </section>
+
+          <section class="card">
+            <header class="card-head">
+              <span class="material-symbols-rounded">location_on</span>
+              <div>
+                <h2>Destinatário</h2>
+              </div>
+            </header>
+
+            <div class="field">
+              <label class="field-label" for="destNome">Nome/Razão Social</label>
+              <div class="field-input"><span class="material-symbols-rounded">person</span><input id="destNome" type="text" placeholder="Nome do destinatário" required /></div>
+            </div>
+            <div class="grid-2">
+              <div class="field"><label class="field-label" for="destCpfCnpj">CPF/CNPJ</label><div class="field-input"><span class="material-symbols-rounded">badge</span><input id="destCpfCnpj" type="text" inputmode="numeric" placeholder="Opcional" /></div></div>
+              <div class="field"><label class="field-label" for="destCelular">Celular</label><div class="field-input"><span class="material-symbols-rounded">call</span><input id="destCelular" type="tel" inputmode="tel" placeholder="(00) 00000-0000" /></div></div>
+            </div>
+            <div class="field"><label class="field-label" for="destEmail">E-mail</label><div class="field-input"><span class="material-symbols-rounded">mail</span><input id="destEmail" type="email" placeholder="Opcional" /></div></div>
+
+            <div class="field">
+              <label class="field-label" for="destCep">CEP</label>
+              <div class="field-input"><span class="material-symbols-rounded">markunread_mailbox</span><input id="destCep" type="text" inputmode="numeric" maxlength="9" placeholder="00000-000" required /><button type="button" class="field-action" id="btnBuscarDestCep"><span class="material-symbols-rounded">search</span>Buscar</button></div>
+            </div>
+            <div class="field"><label class="field-label" for="destEndereco">Logradouro</label><div class="field-input"><span class="material-symbols-rounded">home_pin</span><input id="destEndereco" type="text" required /></div></div>
+            <div class="grid-2">
+              <div class="field"><label class="field-label" for="destNumero">Número</label><div class="field-input"><span class="material-symbols-rounded">tag</span><input id="destNumero" type="text" required /></div></div>
+              <div class="field"><label class="field-label" for="destComplemento">Complemento</label><div class="field-input"><span class="material-symbols-rounded">add_home</span><input id="destComplemento" type="text" /></div></div>
+            </div>
+            <div class="grid-3">
+              <div class="field"><label class="field-label" for="destBairro">Bairro</label><div class="field-input"><span class="material-symbols-rounded">apartment</span><input id="destBairro" type="text" required /></div></div>
+              <div class="field"><label class="field-label" for="destCidade">Cidade</label><div class="field-input"><span class="material-symbols-rounded">location_city</span><input id="destCidade" type="text" required /></div></div>
+              <div class="field"><label class="field-label" for="destUf">UF</label><div class="field-input"><span class="material-symbols-rounded">map</span><input id="destUf" type="text" maxlength="2" required /></div></div>
+            </div>
+          </section>
+
+          <section class="card">
+            <header class="card-head">
+              <span class="material-symbols-rounded">description</span>
+              <div>
+                <h2>Observação operacional</h2>
+             </div>
+            </header>
+            <div class="textarea-wrap"><textarea id="observacao" placeholder="Ex: etiqueta SRO física será colada no balcão; conferir conteúdo antes da postagem."></textarea></div>
+            <div id="rascunhoIdWrap" class="field-hint ok hidden" style="margin-top:10px">Rascunho salvo: <strong id="rascunhoId">—</strong></div>
+          </section>
+
+          <div class="actions">
+            <button type="button" class="btn btn-primary" id="btnSalvarRascunho"><span class="material-symbols-rounded">save</span>Salvar rascunho</button>
+            <button type="button" class="btn btn-yellow" id="btnImprimirFicha"><span class="material-symbols-rounded">print</span>Imprimir Etiqueta</button>
+          </div>
+        </section>
+      </div>
+
+      <aside class="card side-card">
+        <header class="card-head">
+          <span class="material-symbols-rounded">receipt_long</span>
+          <div>
+            <h2>Resumo</h2>
+            <p>Conferência rápida do atendimento.</p>
+          </div>
+        </header>
+        <div class="summary-list">
+          <div class="summary-row"><span>Origem</span><strong id="summaryOrigem">—</strong></div>
+          <div class="summary-row"><span>Destino</span><strong id="summaryDestino">—</strong></div>
+          <div class="summary-row"><span>Objeto</span><strong id="summaryObjeto">—</strong></div>
+          <div class="summary-row"><span>Valor declarado</span><strong id="summaryVd">R$ 0,00</strong></div>
+          <div class="summary-row"><span>Selecionado</span><strong id="summaryServico">Nenhum serviço selecionado</strong></div>
+        </div>
+        <div class="summary-alert">
+          A Etiqueta de Endereçamento não gera SRO. O rastreio será definido no atendimento, com a etiqueta física de balcão à vista.
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="loading" id="loading" aria-hidden="true">
+    <div class="loading-card"><span class="spinner"></span><span id="loadingText">Processando...</span></div>
+  </div>
+  <div class="print-only" id="printArea"></div>
+
+  <script src="./js/config.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/balcao.js"></script>
+<script src="/shared/ui/agf-ui.js"></script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/balcao/sw.js').catch(()=>{}));}</script>
+</body>
+</html>

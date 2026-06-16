@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#00416B">
+<title>Painel Comercial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../styles/app-shell.css"/>
+
+<style>
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  PAINEL COMERCIAL — CSS inline (page-specific)          ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+/* Tokens herdados do app-shell.css — sem hardcode */
+
+.pg{max-width:100%;padding:0}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:2px;padding:3px;border-radius:999px;background:#ECEEF3;margin-bottom:10px;max-width:100%;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1 1 0;min-width:0;text-align:center;border:none;background:transparent;color:var(--text-secondary);border-radius:999px;padding:10px 12px;font:700 13px/1.1 inherit;cursor:pointer;white-space:nowrap;transition:.2s}
+.tab:hover{background:rgba(0,65,107,.06);color:var(--primary)}
+.tab.on{background:var(--primary);color:#fff;box-shadow:0 1px 4px rgba(0,65,107,.25)}
+@media(max-width:720px){.tabs{padding:3px;gap:2px}.tab{flex:0 0 auto;padding:9px 10px;font-size:11px}}
+
+/* ── Views ── */
+.vw{display:none}.vw.on{display:block}
+
+/* ── KPI cards (compact) ── */
+.k{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:14px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.k-l{font-size:9px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.k-v{font-size:22px;font-weight:900;letter-spacing:-.03em;line-height:1.1}
+.k-n{font-size:10px;color:var(--text-secondary);font-weight:700;margin-top:4px;display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.k-bar{margin-top:6px;height:5px;border-radius:999px;background:#edf1f5;overflow:hidden}
+.k-bar>div{height:100%;border-radius:999px}
+.k-s{position:absolute;top:0;left:0;width:3px;height:100%}
+
+/* ── Grids ── */
+.g{display:grid;gap:8px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:1fr 1fr}
+@media(max-width:900px){.g4,.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.g4,.g3,.g2{grid-template-columns:1fr}.k-v{font-size:18px}}
+
+/* ── Box genérico ── */
+.bx{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:14px;box-shadow:var(--shadow)}
+.bx-t{font-size:12px;font-weight:900;color:var(--primary);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.bx-sub{font-size:10px;color:var(--text-secondary);font-weight:700}
+
+/* ── Badges ── */
+.bg{display:inline-block;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:900;white-space:nowrap}
+.b-ok{background:var(--success-soft);color:#1b6d34}
+.b-wr{background:var(--warning-soft);color:#8a6a00}
+.b-dn{background:var(--danger-soft);color:#9a2a22}
+.b-bl{background:var(--primary-soft);color:#0052a3}
+.b-mt{background:#edf1f5;color:var(--text-secondary)}
+
+/* ── Deltas ── */
+.dl{font-weight:800;font-size:10px}
+.dl.up{color:var(--success)}.dl.dn{color:var(--danger)}.dl.fl{color:var(--text-secondary)}
+.dl.up::before{content:'▲ '}.dl.dn::before{content:'▼ '}
+
+/* ── Agenda cards ── */
+.ev-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;border:1px solid var(--border);background:var(--surface);transition:box-shadow .15s}
+.ev-card+.ev-card{margin-top:6px}
+.ev-time{font-size:11px;font-weight:800;color:var(--primary);min-width:42px;text-align:center}
+.ev-body{flex:1;min-width:0}
+.ev-name{font-size:13px;font-weight:700;color:var(--text-main);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-meta{font-size:10px;color:var(--text-secondary);font-weight:600;margin-top:2px;display:flex;gap:4px;align-items:center}
+.ev-bar{width:3px;border-radius:999px;align-self:stretch;min-height:36px;flex:0 0 3px}
+
+/* ── Fila urgente ── */
+.fila-card{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:16px;border:1px solid var(--border);background:var(--surface)}
+.fila-card+.fila-card{margin-top:6px}
+.fila-pos{font-size:13px;font-weight:900;color:var(--primary);min-width:20px;text-align:center}
+.fila-body{flex:1;min-width:0}
+.fila-nm{font-size:12px;font-weight:700;color:var(--text-main);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fila-tags{display:flex;gap:3px;margin-top:3px;flex-wrap:wrap;align-items:center}
+.fila-canal{width:28px;height:28px;border-radius:999px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;flex:0 0 28px}
+.fila-canal .mi{font-size:16px}
+
+/* ── Funil visual ── */
+.funnel{display:flex;flex-direction:column;gap:6px;padding:8px 0}
+.funnel-stage{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:16px;margin:0 auto;transition:transform .15s;cursor:default;width:100%}
+.funnel-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.funnel-data{text-align:right}
+.funnel-data-v{font-size:16px;font-weight:900}
+.funnel-data-q{font-size:10px;font-weight:700;opacity:.8}
+
+/* ── Heatmap semanal ── */
+.hm-grid{display:grid;grid-template-columns:90px repeat(5,1fr);gap:2px;font-size:10px}
+.hm-hdr{font-weight:800;color:var(--text-secondary);text-transform:uppercase;text-align:center;padding:6px 2px;letter-spacing:.04em}
+.hm-row-label{font-weight:700;color:var(--text-main);display:flex;align-items:center;padding:6px 4px;font-size:10px}
+.hm-cell{text-align:center;padding:8px 4px;border-radius:8px;font-weight:800;font-size:12px;color:var(--primary);transition:transform .1s}
+.hm-0{background:var(--surface);color:var(--text-muted)}
+.hm-1{background:rgba(0,65,107,.08)}
+.hm-2{background:rgba(0,65,107,.18)}
+.hm-3{background:rgba(0,65,107,.30);color:#fff}
+.hm-4{background:rgba(0,65,107,.50);color:#fff}
+.hm-5{background:var(--primary);color:#fff}
+
+/* ── Barras horizontais ── */
+.bars{display:flex;flex-direction:column;gap:5px}
+.barr{display:grid;grid-template-columns:50px 1fr 75px;gap:5px;align-items:center}
+.barn{font-weight:800;color:var(--text-main);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bart{height:7px;border-radius:999px;background:#edf1f5;overflow:hidden}
+.barf{height:100%;background:var(--primary-mid);border-radius:999px}
+.barv{text-align:right;font-weight:800;color:var(--text-main);font-size:10px}
+
+/* ── Donut ── */
+.dw{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.dcv{width:130px;height:130px;flex:0 0 auto}
+.leg{display:flex;flex-direction:column;gap:3px;flex:1;min-width:140px}
+.lr{display:flex;align-items:center;justify-content:space-between;gap:3px}
+.ll{display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden}
+.dt{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.llb{font-size:9px;font-weight:800;color:var(--text-main);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lv{font-size:9px;font-weight:800;color:var(--text-secondary);white-space:nowrap}
+
+/* ── Rodapé ── */
+.ftn{text-align:center;color:var(--text-secondary);font-size:10px;font-weight:700;padding:6px 0;margin-top:6px}
+
+/* ── Alerta card ── */
+.alerta-card{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:14px;border:1px solid var(--border)}
+.alerta-card+.alerta-card{margin-top:6px}
+.alerta-icon{width:28px;height:28px;border-radius:999px;display:flex;align-items:center;justify-content:center;flex:0 0 28px}
+.alerta-icon .mi{font-size:16px}
+.alerta-body{flex:1;min-width:0}
+.alerta-title{font-size:11px;font-weight:700;color:var(--text-main)}
+.alerta-desc{font-size:10px;color:var(--text-secondary);margin-top:2px}
+
+/* ── Tendência ── */
+.tend-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tend-card{text-align:center;padding:10px 8px}
+.tend-label{font-size:10px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px}
+.tend-val{font-size:20px;font-weight:900}
+
+/* ── Print ── */
+@media print{
+  .topbar-shell,.bottom-nav,.tabs{display:none!important}
+  .vw{display:block!important}
+  .bx,.k{box-shadow:none!important;border-color:#d9dee8!important}
+}
+</style>
+<link rel="manifest" href="/intra/manifest.webmanifest"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/intra/favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/pwa/intra/favicon-16.png"/>
+<link rel="apple-touch-icon" href="/assets/pwa/intra/apple-touch-icon.png"/>
+<meta name="application-name" content="AGF José Bonifácio"/>
+<meta name="apple-mobile-web-app-title" content="AGF José Bonifácio"/>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/intra/sw.js').catch(function(e){console.warn('SW reg fail',e);});});}</script>
+<link rel="stylesheet" href="/shared/ui/agf-ui.css"/>
+<script src="/shared/auth/agf-auth-config.js"></script>
+<script src="/shared/auth/agf-auth-client.js"></script>
+<script>window.AGF_ACCESS={roles:['admin','manager'],app:'intra'};</script>
+<script src="/shared/auth/agf-route-guard.js"></script>
+</head>
+
+<body>
+<div class="app-shell">
+
+<header class="topbar-shell">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo-circle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" aria-hidden="true"><path fill="#fed200" d="M 7.38 11.98 L 16.57 11.98 L 15.85 13.07 L 14.27 15 L 13.07 16.57 L 11.98 18.02 L 12.22 18.51 L 13.91 20.68 L 16.57 24.07 L 16.57 24.32 L 7.62 24.32 L 6.65 23.83 L 5.32 22.14 L 3.99 20.45 L 2.42 18.39 L 2.54 17.66 L 3.87 15.97 L 5.32 14.15 L 6.53 12.58 L 7.14 12.1 Z"/><path fill="#007cc3" d="M 13.67 5.68 L 22.5 5.68 L 23.47 6.05 L 24.43 7.14 L 26.01 9.2 L 27.34 10.89 L 27.82 11.49 L 27.82 12.22 L 26.73 13.67 L 25.4 15.36 L 23.71 17.54 L 22.86 18.02 L 13.79 18.02 L 14.27 17.18 L 15.48 15.73 L 16.7 14.15 L 18.02 12.46 L 18.39 11.86 L 16.93 10.04 L 15.73 8.47 L 14.39 6.77 Z"/><path fill="#003a66" d="M 13.67 5.68 L 21.53 5.68 L 22.14 6.17 L 22.26 7.02 L 21.29 8.35 L 19.96 10.04 L 18.63 11.73 L 18.27 11.73 L 16.7 9.68 L 15.24 7.86 L 13.67 5.8 Z"/><path fill="#d69e00" d="M 11.73 18.14 L 12.34 18.63 L 13.79 20.57 L 15.36 22.5 L 16.57 24.07 L 16.57 24.32 L 8.71 24.32 L 8.11 23.71 L 8.11 22.98 L 8.83 21.89 L 10.28 20.08 Z"/></svg></div>
+      <div class="topbar-title"><h1>Painel Comercial</h1><p>AGF JOSÉ BONIFÁCIO</p></div>
+    </div>
+    <div class="topbar-right">
+      <a class="icon-circle" href="../" aria-label="Home"><span class="mi">home</span></a>
+      <button class="icon-circle" aria-label="Atualizar" onclick="window.location.reload()"><span class="mi">refresh</span></button>
+    </div>
+  </div>
+</header>
+
+<main class="page-body">
+<div class="pg">
+  <nav class="tabs">
+    <button class="tab on" data-v="hj">Hoje</button>
+    <button class="tab" data-v="sm">Semana</button>
+    <button class="tab" data-v="fn">Funil</button>
+    <button class="tab" data-v="rs">Resultado</button>
+  </nav>
+
+  <!-- ════════════ ABA HOJE ════════════ -->
+  <section class="vw on" id="v-hj"></section>
+
+  <!-- ════════════ ABA SEMANA ════════════ -->
+  <section class="vw" id="v-sm"></section>
+
+  <!-- ════════════ ABA FUNIL ════════════ -->
+  <section class="vw" id="v-fn"></section>
+
+  <!-- ════════════ ABA RESULTADO ════════════ -->
+  <section class="vw" id="v-rs"></section>
+
+  <div class="ftn">Dados mock para validação visual • Conectar à API route=painel</div>
+</div>
+</main>
+
+<!-- ╔══ BOTTOM NAV ══╗ -->
+<nav class="bottom-nav" aria-label="Navegação principal"><div class="bottom-nav-inner">
+  <a class="bnav-item" href="../"><div class="bnav-pill"><span class="mi">home</span></div><span class="bnav-label">Home</span></a>
+  <a class="bnav-item" href="/crm/?view=prospects"><div class="bnav-pill"><span class="mi">explore</span></div><span class="bnav-label">Prospects</span></a>
+  <a class="bnav-item" href="/crm/?view=clientes"><div class="bnav-pill"><span class="mi">badge</span></div><span class="bnav-label">CRM</span></a>
+  <a class="bnav-item" href="/crm/?view=agenda"><div class="bnav-pill"><span class="mi">event</span></div><span class="bnav-label">Agenda</span></a>
+  <a class="bnav-item" href="../#mais"><div class="bnav-pill"><span class="mi">more_horiz</span></div><span class="bnav-label">Mais</span></a>
+</div></nav>
+
+</div><!-- /app-shell -->
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   PAINEL COMERCIAL — JS (dados mock + renderização)
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Helpers ── */
+function E(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function M(v){return'R$ '+(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function N(v){return(+v||0).toLocaleString('pt-BR',{maximumFractionDigits:1})}
+function P(v){return(+v||0).toFixed(1).replace('.',',')+' %'}
+function Cp(v){var n=+v||0;if(n>=1e6)return(n/1e6).toFixed(1).replace('.',',')+' M';if(n>=1e3)return(n/1e3).toFixed(1).replace('.',',')+' K';return M(n)}
+function $(id){return document.getElementById(id)}
+
+/* ── Dados Mock ── */
+var MOCK={
+  hoje:{
+    saudacao:'Bom dia, Júlio',
+    data:'Qua, 16/Abr 2026',
+    receita:42350.80,
+    meta:75000,
+    percMeta:56.5,
+    metaRest:32649.20,
+    mediaNec:3265,
+    agenda:[
+      {h:'08:30',nome:'MERCADO LIVRE MARKETPLACE',tipo:'WhatsApp',acao:'FIDELIZAR',bar:'ev-green-bar'},
+      {h:'09:00',nome:'ARPOADOR CONFECÇÕES',tipo:'Visita',acao:'FIDELIZAR',bar:'ev-blue-bar'},
+      {h:'10:30',nome:'FRARMACOES FARMACIA',tipo:'Ligação',acao:'RESGATAR',bar:'ev-pink-bar'},
+      {h:'14:00',nome:'ATELIE DA MODA',tipo:'WhatsApp',acao:'CONVERTER',bar:'ev-yellow-bar'},
+      {h:'15:30',nome:'SUPERMERCADO BOM PREÇO',tipo:'Visita',acao:'FIDELIZAR',bar:'ev-blue-bar'}
+    ],
+    fila:[
+      {pos:1,nome:'DISTRIBUIDORA ALFA',acao:'RESGATAR',pr:'CRITICA',score:100,canal:'call'},
+      {pos:2,nome:'SUPERFRETE LOGÍSTICA',acao:'RESGATAR',pr:'CRITICA',score:95,canal:'chat'},
+      {pos:3,nome:'CASA DAS TINTAS LTDA',acao:'FIDELIZAR',pr:'ALTA',score:90,canal:'directions_car'},
+      {pos:4,nome:'SHOPEE MARKETPLACE',acao:'FIDELIZAR',pr:'ALTA',score:88,canal:'chat'},
+      {pos:5,nome:'IMPORTADORA GOLDEN',acao:'CONVERTER',pr:'ALTA',score:86,canal:'chat'}
+    ],
+    visitasHoje:1,
+    contatosHoje:3,
+    pendentes:8
+  },
+  semana:{
+    heatmap:{
+      labels:['Seg','Ter','Qua','Qui','Sex'],
+      rows:[
+        {acao:'CONVERTER',vals:[1,2,0,0,0]},
+        {acao:'RESGATAR',vals:[3,1,2,0,0]},
+        {acao:'FIDELIZAR',vals:[4,3,5,0,0]},
+        {acao:'MANTER',vals:[2,1,0,0,0]},
+        {acao:'CANCELAR',vals:[0,1,0,0,0]}
+      ]
+    },
+    realizadas:32,
+    realizadasAnt:28,
+    visitas:6,
+    visitasMeta:10,
+    taxaContato:68,
+    alertas:[
+      {nome:'ARPOADOR CONFECÇÕES',desc:'Caiu para QUEDA_REAL — faturamento -32% no mês',tipo:'danger'},
+      {nome:'DISTRIBUIDORA ALFA',desc:'Sem postagem há 45 dias — era contrato ativo',tipo:'danger'},
+      {nome:'SHOPEE MARKETPLACE',desc:'Queda de 18% em objetos — monitorar frequência',tipo:'warning'}
+    ]
+  },
+  funil:{
+    stages:[
+      {acao:'BASE TOTAL',qtd:187,fat:75000,cor:'var(--primary-soft)',corTx:'var(--primary)',w:100},
+      {acao:'FIDELIZAR',qtd:52,fat:28400,cor:'var(--ac-fidelizar-bg)',corTx:'var(--ac-fidelizar)',w:92},
+      {acao:'MANTER',qtd:48,fat:15200,cor:'var(--ac-manter-bg)',corTx:'var(--ac-manter)',w:84},
+      {acao:'CONVERTER',qtd:28,fat:12800,cor:'var(--ac-converter-bg)',corTx:'var(--ac-converter)',w:76},
+      {acao:'RESGATAR',qtd:22,fat:6200,cor:'var(--ac-resgatar-bg)',corTx:'var(--ac-resgatar)',w:60},
+      {acao:'CANCELAR',qtd:19,fat:2800,cor:'var(--ac-cancelar-bg)',corTx:'var(--ac-cancelar)',w:52}
+    ],
+    donut:[
+      {label:'FIDELIZAR',value:52},
+      {label:'MANTER',value:48},
+      {label:'CONVERTER',value:28},
+      {label:'RESGATAR',value:22},
+      {label:'CANCELAR',value:19},
+    ]
+  },
+  resultado:{
+    fM:42350.80,metaM:75000,percM:56.5,fdPct:-5.2,
+    tkM:48.60,tkP:52.10,tdPct:-6.7,
+    ativos:142,ativosAnt:138,aDelta:2.9,
+    retencao:78.5,
+    mSeries:[
+      {ym:'Nov/25',faturamento:58200},{ym:'Dez/25',faturamento:62800},
+      {ym:'Jan/26',faturamento:62861},{ym:'Fev/26',faturamento:55941},
+      {ym:'Mar/26',faturamento:68400},{ym:'Abr/26',faturamento:42350}
+    ],
+    tendencia:[{label:'CRESCENDO',value:38},{label:'ESTAVEL',value:42},{label:'CAINDO',value:20}],
+    etqChart:[{label:'Contrato',value:45200},{label:'Sem contrato',value:29800}],
+    dailySeries:[
+      {day:'01',valor:3200},{day:'02',valor:2800},{day:'03',valor:3500},{day:'04',valor:4100},
+      {day:'07',valor:3800},{day:'08',valor:2900},{day:'09',valor:3600},{day:'10',valor:4200},
+      {day:'11',valor:3100},{day:'14',valor:3400},{day:'15',valor:3850},{day:'16',valor:0}
+    ]
+  }
+};
+
+/* ── Badge de ação ── */
+function aB(a){
+  var m={RESGATAR:'b-dn',CONVERTER:'b-wr',FIDELIZAR:'b-ok',CANCELAR:'b-mt',MANTER:'b-mt'};
+  return '<span class="bg '+(m[a]||'b-mt')+'">'+E(a||'—')+'</span>';
+}
+
+/* ── Badge prioridade ── */
+function pB(p){
+  if(p==='CRITICA')return '<span class="bg" style="background:#7f1d1d;color:#fff">CRÍTICA</span>';
+  if(p==='ALTA')return '<span class="bg b-dn">ALTA</span>';
+  if(p==='MEDIA')return '<span class="bg b-wr">MÉDIA</span>';
+  return '<span class="bg b-mt">BAIXA</span>';
+}
+
+/* ── Canal ícone ── */
+function cI(c){
+  return '<div class="fila-canal"><span class="mi">'+E(c||'chat')+'</span></div>';
+}
+
+/* ── KPI card ── */
+function K(o){
+  var s=o.s?'<div class="k-s" style="background:var(--'+(o.s)+')"></div>':'';
+  var d=o.d!=null?' '+(o.d>0?'<span class="dl up">'+P(Math.abs(o.d))+'</span>':o.d<0?'<span class="dl dn">'+P(Math.abs(o.d))+'</span>':'<span class="dl fl">0 %</span>'):'';
+  var b='';
+  if(o.p!=null){b='<div class="k-bar"><div style="width:'+Math.max(0,Math.min(100,+o.p))+'%;background:var(--'+(o.bc||'primary-mid')+')"></div></div>';}
+  return '<div class="k">'+s+'<div class="k-l">'+o.t+'</div><div class="k-v">'+o.v+'</div><div class="k-n">'+(o.n||'')+d+'</div>'+b+'</div>';
+}
+
+/* ── Barras ── */
+function rB(t,s,k,fm){
+  k=k||'faturamento';fm=fm||M;
+  if(!s||!s.length)return '<div class="bx"><div class="bx-t">'+t+'</div><span style="color:var(--text-secondary)">Sem dados.</span></div>';
+  var mx=Math.max.apply(null,s.map(function(x){return +(x[k]||0)}))||1;
+  return '<div class="bx"><div class="bx-t">'+t+'</div><div class="bars">'+
+    s.map(function(x){var v=+(x[k]||0);return '<div class="barr"><div class="barn">'+E(x.ym||x.label||x.day||'')+'</div><div class="bart"><div class="barf" style="width:'+(v/mx*100)+'%"></div></div><div class="barv">'+fm(v)+'</div></div>';}).join('')+
+    '</div></div>';
+}
+
+/* ── Donut ── */
+var dnC=0;
+function rD(data,ttl,fmtV){
+  var vF=fmtV||M;
+  var a=(data||[]).filter(function(x){return +(x.value||0)>0}).slice(0,8);
+  var tot=a.reduce(function(s,x){return s+Number(x.value||0)},0);
+  if(!a.length||tot<=0)return '<div class="bx"><div class="bx-t">'+ttl+'</div><span style="color:var(--text-secondary)">Sem dados.</span></div>';
+  var cs=['#003366','#0066b3','#1e8e3e','#e6a700','#d93025','#5a6d82','#7c3aed','#0891b2'];
+  var id='d'+(++dnC);
+  var lg=a.map(function(x,i){var p=(+x.value/tot)*100;return '<div class="lr"><div class="ll"><span class="dt" style="background:'+cs[i%8]+'"></span><span class="llb">'+E(x.label)+'</span></div><span class="lv">'+P(p)+'</span></div>';}).join('');
+  setTimeout(function(){
+    var cv=document.getElementById(id);if(!cv)return;
+    var ct=cv.getContext('2d'),sz=cv.width,cx=sz/2,cy=sz/2,R=sz*.42,H=sz*.26,sa=-Math.PI/2;
+    a.forEach(function(x,i){var p=+x.value/tot,ea=sa+p*2*Math.PI;ct.beginPath();ct.moveTo(cx+Math.cos(sa)*H,cy+Math.sin(sa)*H);ct.arc(cx,cy,R,sa,ea);ct.arc(cx,cy,H,ea,sa,true);ct.closePath();ct.fillStyle=cs[i%8];ct.fill();sa=ea;});
+    ct.fillStyle='#fff';ct.beginPath();ct.arc(cx,cy,H,0,2*Math.PI);ct.fill();
+    ct.fillStyle='#1a2332';ct.font='700 11px Source Sans 3,sans-serif';ct.textAlign='center';ct.textBaseline='middle';ct.fillText(N(tot),cx,cy);
+  },50);
+  return '<div class="bx"><div class="bx-t">'+ttl+'</div><div class="dw"><canvas id="'+id+'" class="dcv" width="130" height="130"></canvas><div class="leg">'+lg+'</div></div></div>';
+}
+
+/* ═══════════ RENDER: HOJE ═══════════ */
+function rHj(){
+  var d=MOCK.hoje;
+  var agH=d.agenda.map(function(a){
+    return '<div class="ev-card"><div class="ev-bar" style="background:var(--'+a.bar+')"></div><div class="ev-time">'+E(a.h)+'</div><div class="ev-body"><div class="ev-name">'+E(a.nome)+'</div><div class="ev-meta">'+E(a.tipo)+' • '+aB(a.acao)+'</div></div></div>';
+  }).join('');
+
+  var filaH=d.fila.map(function(f){
+    return '<div class="fila-card"><div class="fila-pos">'+f.pos+'</div><div class="fila-body"><div class="fila-nm">'+E(f.nome)+'</div><div class="fila-tags">'+aB(f.acao)+' '+pB(f.pr)+'</div></div>'+cI(f.canal)+'</div>';
+  }).join('');
+
+  $('v-hj').innerHTML=
+    '<div class="hero-card"><div class="hero-eyebrow">'+E(d.saudacao)+' • '+E(d.data)+'</div><div class="hero-value">'+M(d.receita)+'</div><div class="k-bar" style="margin-top:10px;height:6px"><div style="width:'+d.percMeta+'%;background:var(--accent);border-radius:999px"></div></div><div class="hero-footer"><div class="hero-mini"><div class="hero-mini-label">% da meta</div><div class="hero-mini-value">'+P(d.percMeta)+'</div></div><div class="hero-mini"><div class="hero-mini-label">Meta restante</div><div class="hero-mini-value">'+Cp(d.metaRest)+'</div></div><div class="hero-mini"><div class="hero-mini-label">Média/dia nec.</div><div class="hero-mini-value">'+Cp(d.mediaNec)+'</div></div></div></div>'+
+
+    '<div class="bx" style="margin-top:10px"><div class="bx-t"><span><span class="mi" style="font-size:16px;vertical-align:-3px">event_note</span> Agenda de Hoje</span><span class="bg b-bl">'+d.agenda.length+'</span></div>'+agH+'</div>'+
+
+    '<div class="bx" style="margin-top:10px"><div class="bx-t"><span><span class="mi" style="font-size:16px;vertical-align:-3px;color:var(--danger)">local_fire_department</span> Fila Urgente</span><span class="bg b-dn">'+d.fila.length+'</span></div>'+filaH+'</div>'+
+
+    '<div class="g g3" style="margin-top:10px">'+
+      K({t:'Visitas hoje',v:N(d.visitasHoje),s:'ac-visitar'})+
+      K({t:'Contatos hoje',v:N(d.contatosHoje),s:'success'})+
+      K({t:'Pendentes',v:N(d.pendentes),s:'warning'})+
+    '</div>';
+}
+
+/* ═══════════ RENDER: SEMANA ═══════════ */
+function rSm(){
+  var d=MOCK.semana;
+  var hm=d.heatmap;
+  function hmLvl(v){if(!v)return'hm-0';if(v<=1)return'hm-1';if(v<=2)return'hm-2';if(v<=3)return'hm-3';if(v<=4)return'hm-4';return'hm-5'}
+
+  var hmH='<div class="hm-grid"><div class="hm-hdr"></div>'+hm.labels.map(function(l){return'<div class="hm-hdr">'+E(l)+'</div>'}).join('')+'</div>';
+
+  var hmR=hm.rows.map(function(r){
+    return '<div class="hm-grid"><div class="hm-row-label">'+E(r.acao)+'</div>'+r.vals.map(function(v){return'<div class="hm-cell '+hmLvl(v)+'">'+v+'</div>'}).join('')+'</div>';
+  }).join('');
+
+  var totRow=hm.labels.map(function(_,i){return hm.rows.reduce(function(s,r){return s+(r.vals[i]||0)},0)});
+  hmR+='<div class="hm-grid"><div class="hm-row-label" style="font-weight:900;color:var(--primary)">TOTAL</div>'+totRow.map(function(v){return'<div class="hm-cell" style="font-weight:900;color:var(--primary);background:var(--accent-soft)">'+v+'</div>'}).join('')+'</div>';
+
+  var dRealizadas=d.realizadas-d.realizadasAnt;
+  var dPct=d.realizadasAnt?((dRealizadas/d.realizadasAnt)*100):0;
+
+  var alertasH=d.alertas.map(function(a){
+    var bgC=a.tipo==='danger'?'var(--danger-soft)':'var(--warning-soft)';
+    var fgC=a.tipo==='danger'?'var(--danger)':'var(--warning)';
+    return '<div class="alerta-card" style="background:'+bgC+'"><div class="alerta-icon" style="background:'+bgC+';color:'+fgC+'"><span class="mi">warning</span></div><div class="alerta-body"><div class="alerta-title">'+E(a.nome)+'</div><div class="alerta-desc">'+E(a.desc)+'</div></div></div>';
+  }).join('');
+
+  $('v-sm').innerHTML=
+    '<div class="bx"><div class="bx-t"><span><span class="mi" style="font-size:16px;vertical-align:-3px">grid_view</span> Atividade da Semana</span></div>'+hmH+hmR+'</div>'+
+
+    '<div class="g g3" style="margin-top:10px">'+
+      K({t:'Ações realizadas',v:N(d.realizadas),n:'Ant: '+N(d.realizadasAnt),d:dPct,s:'success'})+
+      K({t:'Visitas',v:d.visitas+'/'+d.visitasMeta,n:'Meta semanal',p:(d.visitas/d.visitasMeta*100),bc:'primary-mid',s:'primary'})+
+      K({t:'Taxa de contato',v:P(d.taxaContato),n:'da fila contactada',s:'accent'})+
+    '</div>'+
+
+    '<div class="bx" style="margin-top:10px"><div class="bx-t"><span><span class="mi" style="font-size:16px;vertical-align:-3px;color:var(--danger)">warning</span> Alertas da Semana</span><span class="bg b-dn">'+d.alertas.length+'</span></div>'+alertasH+'</div>';
+}
+
+/* ═══════════ RENDER: FUNIL ═══════════ */
+function rFn(){
+  var d=MOCK.funil;
+  var fH=d.stages.map(function(s){
+    return '<div class="funnel-stage" style="background:'+s.cor+';color:'+s.corTx+';max-width:'+s.w+'%"><div><div class="funnel-label">'+E(s.acao)+'</div></div><div class="funnel-data"><div class="funnel-data-v">'+Cp(s.fat)+'</div><div class="funnel-data-q">'+N(s.qtd)+' clientes</div></div></div>';
+  }).join('');
+
+  $('v-fn').innerHTML=
+    '<div class="bx"><div class="bx-t"><span><span class="mi" style="font-size:16px;vertical-align:-3px">filter_alt</span> Funil Comercial</span></div><div class="funnel">'+fH+'</div></div>'+
+
+    '<div style="margin-top:10px">'+rD(d.donut,'Distribuição por Ação',N)+'</div>';
+}
+
+/* ═══════════ RENDER: RESULTADO ═══════════ */
+function rRs(){
+  var d=MOCK.resultado;
+  var tTot=(d.tendencia||[]).reduce(function(s,x){return s+(+x.value||0)},0)||1;
+  var tMap={};(d.tendencia||[]).forEach(function(x){tMap[x.label]=x.value||0});
+  var pC=((tMap.CRESCENDO||0)/tTot*100).toFixed(1).replace('.',',');
+  var pE=((tMap.ESTAVEL||0)/tTot*100).toFixed(1).replace('.',',');
+  var pD=((tMap.CAINDO||0)/tTot*100).toFixed(1).replace('.',',');
+
+  $('v-rs').innerHTML=
+    '<div class="g g4">'+
+      K({t:'Receita do mês',v:M(d.fM),n:'Meta: '+M(d.metaM),d:d.fdPct,s:'primary',p:d.percM,bc:'primary-mid'})+
+      K({t:'Ticket médio',v:M(d.tkM),n:'Ant: '+M(d.tkP),d:d.tdPct,s:'accent'})+
+      K({t:'Clientes ativos',v:N(d.ativos),n:'Ant: '+N(d.ativosAnt),d:d.aDelta,s:'success'})+
+      K({t:'Retenção 30d',v:P(d.retencao),s:'primary'})+
+    '</div>'+
+
+    '<div class="bx" style="margin-top:10px"><div class="bx-t">Tendência da base</div><div class="tend-row">'+
+      '<div class="tend-card"><div class="tend-label">Crescendo</div><div class="tend-val" style="color:var(--success)">'+pC+'%<span style="font-size:18px;margin-left:4px">▲</span></div></div>'+
+      '<div class="tend-card"><div class="tend-label">Estável</div><div class="tend-val" style="color:var(--text-secondary)">'+pE+'%<span style="font-size:18px;margin-left:4px">◗</span></div></div>'+
+      '<div class="tend-card"><div class="tend-label">Caindo</div><div class="tend-val" style="color:var(--danger)">'+pD+'%<span style="font-size:18px;margin-left:4px">▼</span></div></div>'+
+    '</div></div>'+
+
+    '<div class="g g2" style="margin-top:10px">'+
+      rB('Receita mês a mês',d.mSeries,'faturamento',M)+
+      rD(d.etqChart,'Contrato × Sem contrato')+
+    '</div>'+
+
+    '<div style="margin-top:10px">'+rB('Receita diária do mês',d.dailySeries,'valor',M)+'</div>';
+}
+
+/* ═══════════ TABS ═══════════ */
+function aT(v){
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.toggle('on',b.dataset.v===v)});
+  document.querySelectorAll('.vw').forEach(function(el){el.classList.toggle('on',el.id==='v-'+v)});
+}
+document.querySelectorAll('.tab').forEach(function(b){b.addEventListener('click',function(){aT(b.dataset.v)})});
+
+/* ═══════════ INIT ═══════════ */
+rHj();
+rSm();
+rFn();
+rRs();
+</script>
+<script src="/shared/ui/agf-ui.js"></script>
+</body>
+</html>

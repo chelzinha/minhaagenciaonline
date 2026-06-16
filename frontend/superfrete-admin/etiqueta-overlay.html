@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Etiqueta AGF - Overlay PDF Oficial</title>
+  <meta name="theme-color" content="#00416B" />
+  <link rel="icon" href="/assets/favicon.ico" sizes="any" />
+  <style>
+    @page { size: 105mm 148mm; margin: 0; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #e9eef3;
+      color: #111;
+    }
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      background: #fff;
+      border-bottom: 1px solid #d5dce4;
+      box-shadow: 0 8px 24px rgba(0,0,0,.08);
+    }
+    .toolbar strong { font-size: 14px; }
+    .toolbar small { color: #546171; display: block; margin-top: 2px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    button, a.btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-primary { background: #00416B; color: #fff; }
+    .btn-muted { background: #eef3f7; color: #17324d; }
+    .btn-danger { background: #b42318; color: #fff; }
+    .stage {
+      min-height: calc(100vh - 62px);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 18px;
+    }
+    .label-page {
+      position: relative;
+      width: 105mm;
+      height: 148mm;
+      background: #fff;
+      box-shadow: 0 12px 36px rgba(0,0,0,.22);
+      overflow: hidden;
+    }
+    #pdfCanvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 105mm;
+      height: 148mm;
+      display: block;
+    }
+    .logo-overlay {
+      position: absolute;
+      background: #fff;
+      border: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      text-align: center;
+      padding: 2mm;
+    }
+    .logo-overlay img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .logo-fallback {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #00416B;
+      font-weight: 900;
+      font-size: 12pt;
+      line-height: 1.05;
+      overflow: hidden;
+      word-break: break-word;
+    }
+    .loading, .error {
+      max-width: 720px;
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 12px 36px rgba(0,0,0,.12);
+    }
+    .error { border-left: 6px solid #b42318; }
+    .hidden { display: none !important; }
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none; }
+      .stage { display: block; padding: 0; min-height: 0; }
+      .label-page { box-shadow: none; width: 105mm; height: 148mm; margin: 0; page-break-after: always; }
+      .loading, .error { display: none; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <div>
+      <strong>Etiqueta AGF - PDF oficial com logo do cliente</strong>
+      <small id="statusText">Carregando...</small>
+    </div>
+    <div class="actions">
+      <a id="officialPdfLink" class="btn btn-muted" href="#" target="_blank" rel="noopener">PDF oficial</a>
+      <button id="btnPrint" class="btn btn-primary" type="button" disabled>Imprimir</button>
+      <button id="btnReload" class="btn btn-muted" type="button">Recarregar</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div id="loadingBox" class="loading">Carregando PDF oficial da SuperFrete...</div>
+    <div id="errorBox" class="error hidden"></div>
+    <section id="labelPage" class="label-page hidden" aria-label="Etiqueta AGF">
+      <canvas id="pdfCanvas"></canvas>
+      <div id="logoOverlay" class="logo-overlay"></div>
+    </section>
+  </main>
+
+  <script src="./js/config.js?v=etapa7c"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function getOrderId() {
+      return new URLSearchParams(window.location.search).get('orderId') || '';
+    }
+
+    function getWebAppUrl() {
+      return localStorage.getItem(SF_ADMIN_CONFIG.STORAGE_KEYS.WEBAPP_URL) || SF_ADMIN_CONFIG.GAS_WEBAPP_URL;
+    }
+
+    function getSessionToken() {
+      return localStorage.getItem(SF_ADMIN_CONFIG.STORAGE_KEYS.SESSION_TOKEN) || '';
+    }
+
+    async function callBackend(action, params) {
+      const url = getWebAppUrl();
+      if (!url || url.indexOf('__COLE_AQUI') >= 0) throw new Error('URL do Web App não configurada. Volte ao painel admin e salve a URL.');
+      const sessionToken = getSessionToken();
+      if (!sessionToken) throw new Error('Sessão admin não encontrada. Volte ao painel e faça login novamente.');
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(Object.assign({ action, sessionToken }, params || {}))
+      });
+      const json = await resp.json();
+      if (!json || json.ok === false) throw new Error((json && json.error) || 'Erro desconhecido no backend.');
+      return json.data;
+    }
+
+    function base64ToUint8Array(base64) {
+      const raw = atob(base64);
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+      return bytes;
+    }
+
+    function fitName(name) {
+      const clean = String(name || '').trim() || 'Cliente';
+      return clean.length > 34 ? clean.slice(0, 31) + '...' : clean;
+    }
+
+    function renderLogo(data) {
+      const o = data.overlay || {};
+      const cliente = data.cliente || {};
+      const rem = data.remetente || {};
+      const box = $('logoOverlay');
+      box.style.left = Number(o.leftMm || 5.5) + 'mm';
+      box.style.top = Number(o.topMm || 6) + 'mm';
+      box.style.width = Number(o.widthMm || 29) + 'mm';
+      box.style.height = Number(o.heightMm || 23.5) + 'mm';
+      box.style.padding = Number(o.logoPaddingMm || 2) + 'mm';
+
+      const logoUrl = String(cliente.LOGO_DATA_URL || cliente.LOGO_URL || '').trim();
+      const fallbackName = fitName(cliente.NOME_EXIBICAO || rem.NOME_REMETENTE || rem.RAZAO_SOCIAL || 'Cliente');
+
+      if (logoUrl) {
+        const img = new Image();
+        img.alt = 'Logo do cliente';
+        img.onload = () => { box.innerHTML = ''; box.appendChild(img); };
+        img.onerror = () => { box.innerHTML = '<div class="logo-fallback">' + escapeHtml(fallbackName) + '</div>'; };
+        img.src = logoUrl;
+        box.innerHTML = '<div class="logo-fallback">Carregando logo...</div>';
+      } else {
+        box.innerHTML = '<div class="logo-fallback">' + escapeHtml(fallbackName) + '</div>';
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    async function renderPdfPage(pdfBase64) {
+      if (!window.pdfjsLib) throw new Error('Biblioteca PDF.js não carregou. Verifique a conexão com a internet ou use o PDF oficial.');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const pdfData = base64ToUint8Array(pdfBase64);
+      const doc = await pdfjsLib.getDocument({ data: pdfData }).promise;
+      const page = await doc.getPage(1);
+      const scale = 3.2;
+      const viewport = page.getViewport({ scale });
+      const canvas = $('pdfCanvas');
+      const ctx = canvas.getContext('2d', { alpha: false });
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+    }
+
+    async function load() {
+      const orderId = getOrderId();
+      $('loadingBox').classList.remove('hidden');
+      $('errorBox').classList.add('hidden');
+      $('labelPage').classList.add('hidden');
+      $('btnPrint').disabled = true;
+      $('statusText').textContent = 'Carregando...';
+
+      try {
+        if (!orderId) throw new Error('ORDER_ID_AGF não informado na URL.');
+        const data = await callBackend('sfAdminGetAgfLabelOverlayData', { orderIdAgf: orderId });
+        if (data && data.etiqueta && data.etiqueta.PDF_OFICIAL_URL) {
+          $('officialPdfLink').href = data.etiqueta.PDF_OFICIAL_URL;
+        }
+        await renderPdfPage(data.pdf.base64);
+        renderLogo(data);
+        $('labelPage').classList.remove('hidden');
+        $('loadingBox').classList.add('hidden');
+        $('btnPrint').disabled = false;
+        const tracking = data && data.etiqueta && data.etiqueta.TRACKING ? ' | SRO: ' + data.etiqueta.TRACKING : '';
+        $('statusText').textContent = 'Pronta para imprimir' + tracking;
+      } catch (err) {
+        $('loadingBox').classList.add('hidden');
+        $('errorBox').classList.remove('hidden');
+        $('errorBox').innerHTML = '<h3>Não foi possível montar a etiqueta AGF</h3><p>' + escapeHtml(err.message || String(err)) + '</p><p>Use o botão PDF oficial como fallback ou volte ao painel e clique em Atualizar SF.</p>';
+        $('statusText').textContent = 'Erro ao carregar';
+      }
+    }
+
+    $('btnPrint').addEventListener('click', () => window.print());
+    $('btnReload').addEventListener('click', () => load());
+    window.addEventListener('load', load);
+  </script>
+</body>
+</html>

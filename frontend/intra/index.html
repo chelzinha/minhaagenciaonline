@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#00416B">
+  <title>Gerencial — AGF José Bonifácio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/app-shell.css">
+  <style>
+    /* Página específica: nenhum style extra necessário — tudo no design system */
+  </style>
+<link rel="manifest" href="/intra/manifest.webmanifest"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/intra/favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/pwa/intra/favicon-16.png"/>
+<link rel="apple-touch-icon" href="/assets/pwa/intra/apple-touch-icon.png"/>
+<meta name="application-name" content="AGF José Bonifácio"/>
+<meta name="apple-mobile-web-app-title" content="AGF José Bonifácio"/>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/intra/sw.js').catch(function(e){console.warn('SW reg fail',e);});});}</script>
+<link rel="stylesheet" href="/shared/ui/agf-ui.css"/>
+<script src="/shared/auth/agf-auth-config.js"></script>
+<script src="/shared/auth/agf-auth-client.js"></script>
+<script>window.AGF_ACCESS={roles:['admin','manager'],app:'intra'};</script>
+<script src="/shared/auth/agf-route-guard.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ═══ TOPBAR ═══ -->
+  <header class="topbar-shell">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="logo-circle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" aria-hidden="true"><path fill="#fed200" d="M 7.38 11.98 L 16.57 11.98 L 15.85 13.07 L 14.27 15 L 13.07 16.57 L 11.98 18.02 L 12.22 18.51 L 13.91 20.68 L 16.57 24.07 L 16.57 24.32 L 7.62 24.32 L 6.65 23.83 L 5.32 22.14 L 3.99 20.45 L 2.42 18.39 L 2.54 17.66 L 3.87 15.97 L 5.32 14.15 L 6.53 12.58 L 7.14 12.1 Z"/><path fill="#007cc3" d="M 13.67 5.68 L 22.5 5.68 L 23.47 6.05 L 24.43 7.14 L 26.01 9.2 L 27.34 10.89 L 27.82 11.49 L 27.82 12.22 L 26.73 13.67 L 25.4 15.36 L 23.71 17.54 L 22.86 18.02 L 13.79 18.02 L 14.27 17.18 L 15.48 15.73 L 16.7 14.15 L 18.02 12.46 L 18.39 11.86 L 16.93 10.04 L 15.73 8.47 L 14.39 6.77 Z"/><path fill="#003a66" d="M 13.67 5.68 L 21.53 5.68 L 22.14 6.17 L 22.26 7.02 L 21.29 8.35 L 19.96 10.04 L 18.63 11.73 L 18.27 11.73 L 16.7 9.68 L 15.24 7.86 L 13.67 5.8 Z"/><path fill="#d69e00" d="M 11.73 18.14 L 12.34 18.63 L 13.79 20.57 L 15.36 22.5 L 16.57 24.07 L 16.57 24.32 L 8.71 24.32 L 8.11 23.71 L 8.11 22.98 L 8.83 21.89 L 10.28 20.08 Z"/></svg></div>
+        <div class="topbar-title">
+          <h1>Painel Interno</h1>
+          <p>AGF JOSÉ BONIFÁCIO</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-circle" aria-label="Atualizar" onclick="window.location.reload()">
+          <span class="mi">refresh</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══ CONTEÚDO ═══ -->
+  <main class="page-body stack-16">
+
+    <!-- Grid de módulos -->
+    <section class="menu-grid">
+
+      <a class="menu-card" href="dashboard/">
+        <div class="menu-icon menu-icon--green">
+          <span class="mi">dashboard</span>
+        </div>
+        <div class="menu-copy">
+          <p class="menu-title">Dashboard</p>
+          <p class="menu-subtitle">Visão gerencial com indicadores</p>
+        </div>
+        <div class="menu-arrow"><span class="mi">chevron_right</span></div>
+      </a>
+		
+		<a class="menu-card" href="inteligencia/">
+	  <div class="menu-icon menu-icon--navy">
+		<span class="mi">query_stats</span>
+	  </div>
+	  <div class="menu-copy">
+		<p class="menu-title">Inteligência</p>
+		<p class="menu-subtitle">KPIs e análises executivas</p>
+	  </div>
+	  <div class="menu-arrow"><span class="mi">chevron_right</span></div>
+	</a>
+
+      <a class="menu-card" href="/crm/">
+        <div class="menu-icon menu-icon--navy">
+          <span class="mi">badge</span>
+        </div>
+        <div class="menu-copy">
+          <p class="menu-title">CRM</p>
+          <p class="menu-subtitle">Jornada comercial, prospects, carteira e Agenda</p>
+        </div>
+        <div class="menu-arrow"><span class="mi">chevron_right</span></div>
+      </a>
+
+      <a class="menu-card" href="resumo/">
+        <div class="menu-icon menu-icon--amber">
+          <span class="mi">description</span>
+        </div>
+        <div class="menu-copy">
+          <p class="menu-title">Resumos</p>
+          <p class="menu-subtitle">Diário, semanal e mensal</p>
+        </div>
+        <div class="menu-arrow"><span class="mi">chevron_right</span></div>
+      </a>
+
+      <a class="menu-card" href="logistica/">
+        <div class="menu-icon menu-icon--teal">
+          <span class="mi">local_shipping</span>
+        </div>
+        <div class="menu-copy">
+          <p class="menu-title">Logística</p>
+          <p class="menu-subtitle">Capacidade por janela e rotas</p>
+        </div>
+        <div class="menu-arrow"><span class="mi">chevron_right</span></div>
+      </a>
+
+      <a class="menu-card" href="caixa/">
+        <div class="menu-icon menu-icon--green">
+          <span class="mi">account_balance_wallet</span>
+        </div>
+        <div class="menu-copy">
+          <p class="menu-title">Caixa</p>
+          <p class="menu-subtitle">Módulo financeiro</p>
+        </div>
+        <div class="menu-arrow"><span class="mi">chevron_right</span></div>
+      </a>
+
+      <a class="menu-card" href="manuais/">
+        <div class="menu-icon menu-icon--purple">
+          <span class="mi">folder</span>
+        </div>
+        <div class="menu-copy">
+          <p class="menu-title">Manuais</p>
+          <p class="menu-subtitle">Base de apoio e materiais</p>
+        </div>
+        <div class="menu-arrow"><span class="mi">chevron_right</span></div>
+      </a>
+
+    </section>
+
+    <p class="menu-footer">v10 — AGF José Bonifácio © 2026</p>
+
+  </main>
+
+  <!-- ═══ BOTTOM NAV ═══ -->
+  <nav class="bottom-nav" aria-label="Navegação principal"><div class="bottom-nav-inner">
+    <a class="bnav-item is-active" href="./">
+      <div class="bnav-pill"><span class="mi">home</span></div>
+      <span class="bnav-label">Home</span>
+    </a>
+    <a class="bnav-item" href="/crm/?view=prospects">
+      <div class="bnav-pill"><span class="mi">explore</span></div>
+      <span class="bnav-label">Prospects</span>
+    </a>
+    <a class="bnav-item" href="/crm/?view=clientes">
+      <div class="bnav-pill"><span class="mi">badge</span></div>
+      <span class="bnav-label">CRM</span>
+    </a>
+    <a class="bnav-item" href="/crm/?view=agenda">
+      <div class="bnav-pill"><span class="mi">event</span></div>
+      <span class="bnav-label">Agenda</span>
+    </a>
+    <a class="bnav-item" href="#mais" id="bnav-mais">
+      <div class="bnav-pill"><span class="mi">more_horiz</span></div>
+      <span class="bnav-label">Mais</span>
+    </a>
+  </div></nav>
+
+</div>
+
+<!-- ═══ SHEET "MAIS" ═══ -->
+<div class="modal-overlay" id="modal-mais">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3 class="sheet-title">Mais módulos</h3>
+    <div class="menu-grid">
+      <a class="menu-card" href="dashboard/">
+        <div class="menu-icon menu-icon--green"><span class="mi">dashboard</span></div>
+        <div class="menu-copy">
+          <p class="menu-title">Dashboard</p>
+          <p class="menu-subtitle">Visão gerencial</p>
+        </div>
+        <div class="menu-arrow"><span class="mi">chevron_right</span></div>
+      </a>
+	  <a class="menu-card" href="inteligencia/">
+  <div class="menu-icon menu-icon--navy"><span class="mi">query_stats</span></div>
+  <div class="menu-copy">
+    <p class="menu-title">Inteligência</p>
+    <p class="menu-subtitle">KPIs e análises executivas</p>
+  </div>
+  <div class="menu-arrow"><span class="mi">chevron_right</span></div>
+</a>
+      <a class="menu-card" href="resumo/">
+        <div class="menu-icon menu-icon--amber"><span class="mi">description</span></div>
+        <div class="menu-copy">
+          <p class="menu-title">Resumos</p>
+          <p class="menu-subtitle">Diário, semanal e mensal</p>
+        </div>
+        <div class="menu-arrow"><span class="mi">chevron_right</span></div>
+      </a>
+      <a class="menu-card" href="logistica/">
+        <div class="menu-icon menu-icon--teal"><span class="mi">local_shipping</span></div>
+        <div class="menu-copy">
+          <p class="menu-title">Logística</p>
+          <p class="menu-subtitle">Capacidade e rotas</p>
+        </div>
+        <div class="menu-arrow"><span class="mi">chevron_right</span></div>
+      </a>
+      <a class="menu-card" href="caixa/">
+        <div class="menu-icon menu-icon--green"><span class="mi">account_balance_wallet</span></div>
+        <div class="menu-copy">
+          <p class="menu-title">Caixa</p>
+          <p class="menu-subtitle">Módulo financeiro</p>
+        </div>
+        <div class="menu-arrow"><span class="mi">chevron_right</span></div>
+      </a>
+      <a class="menu-card" href="manuais/">
+        <div class="menu-icon menu-icon--purple"><span class="mi">folder</span></div>
+        <div class="menu-copy">
+          <p class="menu-title">Manuais</p>
+          <p class="menu-subtitle">Base de apoio</p>
+        </div>
+        <div class="menu-arrow"><span class="mi">chevron_right</span></div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Bottom Nav: "Mais" abre sheet ── */
+(function(){
+  var btn = document.getElementById('bnav-mais');
+  var modal = document.getElementById('modal-mais');
+  if (!btn || !modal) return;
+
+  btn.addEventListener('click', function(e){
+    e.preventDefault();
+    modal.classList.add('is-open');
+  });
+
+  modal.addEventListener('click', function(e){
+    if (e.target === modal) modal.classList.remove('is-open');
+  });
+
+  /* Fechar com ESC */
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') modal.classList.remove('is-open');
+  });
+})();
+</script>
+
+<script src="/shared/ui/agf-ui.js"></script>
+</body>
+</html>

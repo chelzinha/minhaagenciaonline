@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1"><meta name="theme-color" content="#00416B">
+<title>Usuários internos — AGF José Bonifácio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
+<link rel="manifest" href="/agf/manifest.webmanifest"><link rel="icon" href="/assets/pwa/agf/favicon.ico"><link rel="apple-touch-icon" href="/assets/pwa/agf/apple-touch-icon.png"><link rel="stylesheet" href="/shared/ui/agf-ui.css?v=ver-senha-v3"><link rel="stylesheet" href="/agf/agf.css?v=ver-senha-v3"><link rel="stylesheet" href="/agf/usuarios/usuarios.css?v=ver-senha-v3">
+<script src="/shared/auth/agf-auth-config.js"></script><script src="/shared/auth/agf-auth-client.js"></script><script>window.AGF_ACCESS={roles:['admin']};</script><script src="/shared/auth/agf-route-guard.js"></script>
+</head>
+<body>
+<header class="portal-topbar"><div class="portal-topbar-inner"><a class="portal-brand" href="/agf/"><span class="agf-brand-tile"><span class="material-symbols-rounded">manage_accounts</span></span><span class="portal-brand-copy"><strong>Usuários internos</strong><small>AGF JOSÉ BONIFÁCIO</small></span></a><div class="portal-top-actions"><a class="agf-icon-button" href="/agf/"><span class="material-symbols-rounded">arrow_back</span><span>Voltar</span></a><button class="agf-icon-button" id="logoutButton" type="button"><span class="material-symbols-rounded">logout</span><span>Sair</span></button></div></div></header>
+<main class="users-main">
+<section class="users-intro"><div><h1>Controle de acesso</h1><p>Cadastre usuários, selecione aplicativos, vincule responsáveis ao CRM e encerre sessões sem editar planilhas manualmente.</p></div><div class="intro-actions"><button id="syncCrmButton" class="users-button" type="button"><span class="material-symbols-rounded">sync</span>Sincronizar responsáveis CRM</button><button id="purgeButton" class="users-button" type="button"><span class="material-symbols-rounded">cleaning_services</span>Limpar sessões antigas</button></div></section>
+<section class="users-layout">
+<form id="userForm" class="users-panel form-panel" autocomplete="off">
+<div class="panel-title"><div><h2 id="formTitle">Novo usuário</h2><p>Senha mínima: 6 caracteres. Em edição, deixe a senha vazia para manter a atual.</p></div><button id="clearButton" class="icon-clear" type="button" title="Limpar formulário"><span class="material-symbols-rounded">restart_alt</span></button></div>
+<label class="user-field"><span>Login</span><input id="username" name="username" required minlength="3" maxlength="60" pattern="[a-z0-9._-]{3,60}" placeholder="ex.: atendente.01"></label>
+<label class="user-field"><span>Nome exibido</span><input id="displayName" name="displayName" required maxlength="80" placeholder="Nome da pessoa"></label>
+<div class="user-field password-field"><label for="password">Senha</label><div class="password-input-wrap"><input id="password" name="password" type="password" minlength="6" maxlength="160" autocomplete="new-password" placeholder="Obrigatória no cadastro"><button class="password-toggle" type="button" data-password-toggle="password" aria-label="Mostrar senha" aria-pressed="false" title="Mostrar senha"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button></div></div>
+<div class="user-two"><label class="user-field"><span>Perfil</span><select id="role" name="role"><option value="user">Usuário comum</option><option value="manager">Gestor — acesso ao Gerencial</option><option value="admin">Administrador do portal</option></select></label><label class="active-check"><input id="active" name="active" type="checkbox" checked><span>Usuário ativo</span></label></div>
+<section class="form-section"><div class="form-section-head"><h3>Aplicativos permitidos</h3><p>O perfil define o teto. Aqui você escolhe o que ficará visível para este usuário.</p></div><div id="appsGrid" class="apps-grid" aria-live="polite"></div></section>
+<section class="form-section crm-section"><div class="form-section-head"><h3>Vínculo com CRM</h3><p>O vínculo faz o usuário aparecer como responsável por atividades e agendas.</p></div><label class="switch-check"><input id="crmLinked" type="checkbox"><span>Vincular este usuário como responsável no CRM</span></label><div id="crmOptions" class="crm-options hide">
+<label class="user-field"><span>Escopo da Agenda</span><select id="crmAgendaScope"><option value="OWN">Somente a própria agenda</option><option value="TEAM">Agenda da equipe</option><option value="ALL">Todas as agendas</option></select></label>
+<div class="permission-grid">
+<label class="mini-check"><input id="crmCanEditClients" type="checkbox"><span>Editar clientes</span></label>
+<label class="mini-check"><input id="crmCanEditProspects" type="checkbox"><span>Editar prospects</span></label>
+<label class="mini-check"><input id="crmCanMoveFunnel" type="checkbox"><span>Mover cards no funil</span></label>
+<label class="mini-check"><input id="crmCanCompleteActivities" type="checkbox"><span>Concluir atividades</span></label>
+<label class="mini-check"><input id="crmCanViewTeam" type="checkbox"><span>Visualizar equipe</span></label>
+<label class="mini-check"><input id="crmCanViewIndicators" type="checkbox"><span>Visualizar indicadores gerais</span></label>
+</div></div></section>
+<button id="saveButton" class="users-button primary" type="submit"><span class="material-symbols-rounded">save</span>Salvar usuário</button><p id="formStatus" class="users-status" aria-live="polite"></p>
+</form>
+<section class="users-panel list-panel"><div class="panel-title"><div><h2>Usuários cadastrados</h2><p id="listMeta">Carregando…</p></div><button id="reloadButton" class="icon-clear" type="button" title="Atualizar lista"><span class="material-symbols-rounded">refresh</span></button></div><div id="usersList" class="users-list"></div></section>
+</section>
+</main>
+<script src="/shared/ui/agf-ui.js?v=ver-senha-v3"></script><script src="/agf/usuarios/usuarios.js?v=ver-senha-v3"></script>
+</body></html>

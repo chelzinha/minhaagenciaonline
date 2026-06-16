@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#00416B">
+<title>Manuais — AGF José Bonifácio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../styles/app-shell.css"/>
+<style>
+:root {
+  --bg:#F5F6FA;
+  --card:#ffffff;
+  --line:#dce3eb;
+  --text:#1a2332;
+  --muted:#5a6d82;
+  --nv:#00416B;
+  --bl:#005A8F;
+  --blp:#f0f7ff;
+  --shadow:0 8px 24px rgba(0,33,66,.08);
+
+  --crm-converter:#dbeafe;
+  --crm-converter-fg:#1d4ed8;
+  --crm-visitar:#ffedd5;
+  --crm-visitar-fg:#b45309;
+  --crm-resgatar:#fee2e2;
+  --crm-resgatar-fg:#b42318;
+  --crm-fidelizar:#dcfce7;
+  --crm-fidelizar-fg:#15803d;
+  --crm-manter:#eef2f7;
+  --crm-manter-fg:#475467;
+  --crm-cancelar:#f3f4f6;
+  --crm-cancelar-fg:#667085;
+
+  --pdf-bg:#fef2f2; --pdf-fg:#dc2626;
+  --impresso-bg:#fff7d6; --impresso-fg:#a16207;
+  --imagem-bg:#faf5ff; --imagem-fg:#a21caf;
+  --checklist-bg:#ecfdf3; --checklist-fg:#15803d;
+  --texto-bg:#eff6ff; --texto-fg:#2563eb;
+  --link-bg:#f1f5f9; --link-fg:#475467;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Source Sans 3',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.pg{max-width:960px;margin:0 auto;padding:16px}
+
+.search-wrap{margin-bottom:14px}
+.search-box{width:100%;height:44px;border:1px solid var(--line);border-radius:12px;padding:0 14px 0 42px;font:inherit;font-size:14px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 -960 960 960' fill='%235a6d82'%3E%3Cpath d='M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z'/%3E%3C/svg%3E") no-repeat 12px center;outline:none}
+.search-box:focus{border-color:rgba(0,102,179,.45);box-shadow:0 0 0 4px rgba(0,102,179,.08)}
+
+.cat{margin-bottom:16px}
+.cat-head{display:flex;align-items:center;gap:8px;padding:10px 0 8px;cursor:pointer;user-select:none}
+.cat-icon{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;background:#eff6ff;color:#2563eb}
+.cat-icon .material-symbols-rounded{font-size:20px}
+.cat-title{font-weight:900;font-size:15px;flex:1}
+.cat-count{font-size:12px;font-weight:800;color:var(--muted);background:#f1f5f9;padding:3px 8px;border-radius:999px}
+.cat-chevron{color:var(--muted);transition:transform .2s ease}
+.cat.closed .cat-chevron{transform:rotate(-90deg)}
+.cat.closed .cat-list{display:none}
+
+.cat-list{display:grid;gap:8px}
+.doc{display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 4px 12px rgba(0,33,66,.04);text-decoration:none;color:inherit;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+.doc:hover{transform:translateY(-1px);border-color:rgba(0,102,179,.25);box-shadow:0 10px 28px rgba(0,33,66,.1)}
+.doc-icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto}
+.doc-icon .material-symbols-rounded{font-size:22px}
+.doc-icon.pdf{background:var(--pdf-bg);color:var(--pdf-fg)}
+.doc-icon.impresso{background:var(--impresso-bg);color:var(--impresso-fg)}
+.doc-icon.imagem{background:var(--imagem-bg);color:var(--imagem-fg)}
+.doc-icon.checklist{background:var(--checklist-bg);color:var(--checklist-fg)}
+.doc-icon.texto{background:var(--texto-bg);color:var(--texto-fg)}
+.doc-icon.link{background:var(--link-bg);color:var(--link-fg)}
+.doc-body{flex:1;min-width:0}
+.doc-name{font-weight:900;font-size:15px;line-height:1.2}
+.doc-desc{font-size:12px;color:var(--muted);font-weight:700;margin-top:4px;line-height:1.35}
+.doc-topline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}
+.doc-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.doc-tag{font-size:10px;font-weight:900;padding:2px 7px;border-radius:999px;background:#f1f5f9;color:var(--muted)}
+.doc-arrow{flex:0 0 auto;color:var(--muted);padding-top:2px}
+.doc-arrow .material-symbols-rounded{font-size:22px}
+
+.chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:900;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.chip.acao-converter{background:var(--crm-converter);color:var(--crm-converter-fg)}
+.chip.acao-visitar{background:var(--crm-visitar);color:var(--crm-visitar-fg)}
+.chip.acao-resgatar{background:var(--crm-resgatar);color:var(--crm-resgatar-fg)}
+.chip.acao-fidelizar{background:var(--crm-fidelizar);color:var(--crm-fidelizar-fg)}
+.chip.acao-manter{background:var(--crm-manter);color:var(--crm-manter-fg)}
+.chip.acao-cancelar{background:var(--crm-cancelar);color:var(--crm-cancelar-fg)}
+.chip.sub{background:#eef2f7;color:#344054}
+
+.cat-op .cat-icon{background:#eff6ff;color:#2563eb}
+.cat-com .cat-icon{background:#ecfdf5;color:#16a34a}
+.cat-fin .cat-icon{background:#fef3c7;color:#d97706}
+.cat-rh .cat-icon{background:#faf5ff;color:#7c3aed}
+.cat-sys .cat-icon{background:#fef2f2;color:#dc2626}
+
+.empty{padding:24px;text-align:center;color:var(--muted);font-weight:700}
+
+@media (max-width:720px){
+  .pg{padding:12px}
+  .doc{padding:12px;gap:10px}
+  .doc-icon{width:38px;height:38px;border-radius:10px}
+  .doc-icon .material-symbols-rounded{font-size:20px}
+}
+</style>
+<link rel="manifest" href="/intra/manifest.webmanifest"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/intra/favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/pwa/intra/favicon-16.png"/>
+<link rel="apple-touch-icon" href="/assets/pwa/intra/apple-touch-icon.png"/>
+<meta name="application-name" content="AGF José Bonifácio"/>
+<meta name="apple-mobile-web-app-title" content="AGF José Bonifácio"/>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/intra/sw.js').catch(function(e){console.warn('SW reg fail',e);});});}</script>
+<link rel="stylesheet" href="/shared/ui/agf-ui.css"/>
+<script src="/shared/auth/agf-auth-config.js"></script>
+<script src="/shared/auth/agf-auth-client.js"></script>
+<script>window.AGF_ACCESS={roles:['admin','manager'],app:'intra'};</script>
+<script src="/shared/auth/agf-route-guard.js"></script>
+</head>
+<body>
+<div class="app-shell">
+<header class="topbar-shell">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo-circle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" aria-hidden="true"><path fill="#fed200" d="M 7.38 11.98 L 16.57 11.98 L 15.85 13.07 L 14.27 15 L 13.07 16.57 L 11.98 18.02 L 12.22 18.51 L 13.91 20.68 L 16.57 24.07 L 16.57 24.32 L 7.62 24.32 L 6.65 23.83 L 5.32 22.14 L 3.99 20.45 L 2.42 18.39 L 2.54 17.66 L 3.87 15.97 L 5.32 14.15 L 6.53 12.58 L 7.14 12.1 Z"/><path fill="#007cc3" d="M 13.67 5.68 L 22.5 5.68 L 23.47 6.05 L 24.43 7.14 L 26.01 9.2 L 27.34 10.89 L 27.82 11.49 L 27.82 12.22 L 26.73 13.67 L 25.4 15.36 L 23.71 17.54 L 22.86 18.02 L 13.79 18.02 L 14.27 17.18 L 15.48 15.73 L 16.7 14.15 L 18.02 12.46 L 18.39 11.86 L 16.93 10.04 L 15.73 8.47 L 14.39 6.77 Z"/><path fill="#003a66" d="M 13.67 5.68 L 21.53 5.68 L 22.14 6.17 L 22.26 7.02 L 21.29 8.35 L 19.96 10.04 L 18.63 11.73 L 18.27 11.73 L 16.7 9.68 L 15.24 7.86 L 13.67 5.8 Z"/><path fill="#d69e00" d="M 11.73 18.14 L 12.34 18.63 L 13.79 20.57 L 15.36 22.5 L 16.57 24.07 L 16.57 24.32 L 8.71 24.32 L 8.11 23.71 L 8.11 22.98 L 8.83 21.89 L 10.28 20.08 Z"/></svg></div>
+      <div class="topbar-title"><h1>Manuais</h1><p>AGF JOSÉ BONIFÁCIO</p></div>
+    </div>
+    <div class="topbar-right">
+      <a class="icon-circle" href="../" aria-label="Home"><span class="mi">home</span></a>
+      <button class="icon-circle" aria-label="Imprimir" onclick="window.print()"><span class="mi">print</span></button>
+      <button class="icon-circle" id="btnRefreshMan" aria-label="Atualizar"><span class="mi">refresh</span></button>
+    </div>
+  </div>
+</header>
+
+<main class="page-body">
+  <div class="pg">
+    <div class="search-wrap">
+      <input class="search-box" id="search" type="text" placeholder="Buscar manual, documento ou link..." inputmode="search" />
+    </div>
+
+    <div id="catContainer"></div>
+    <div class="empty" id="emptyState" style="display:none">Nenhum resultado encontrado.</div>
+  </div>
+</main>
+
+<nav class="bottom-nav" aria-label="Navegação principal"><div class="bottom-nav-inner">
+  <a class="bnav-item" href="../"><div class="bnav-pill"><span class="mi">home</span></div><span class="bnav-label">Home</span></a>
+  <a class="bnav-item" href="/crm/?view=prospects"><div class="bnav-pill"><span class="mi">explore</span></div><span class="bnav-label">Prospects</span></a>
+  <a class="bnav-item" href="/crm/?view=clientes"><div class="bnav-pill"><span class="mi">badge</span></div><span class="bnav-label">CRM</span></a>
+  <a class="bnav-item" href="/crm/?view=agenda"><div class="bnav-pill"><span class="mi">event</span></div><span class="bnav-label">Agenda</span></a>
+  <a class="bnav-item is-active" href="../#mais"><div class="bnav-pill"><span class="mi">more_horiz</span></div><span class="bnav-label">Mais</span></a>
+</div></nav>
+</div><!-- /app-shell -->
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbytPcqQl8Rk62YclOVx0BH-zEgHtYFv0b-aUrTfyR_QKKr0VmjGbJc9GpX19rJ-1YV0OA/exec';
+const STATE = { items: [], publico:'TODOS' };
+const ACTION_META = {
+  CONVERTER:{label:'Converter', icon:'sync_alt', cls:'cat-com', chip:'acao-converter'},
+  RESGATAR:{label:'Resgatar', icon:'phone_in_talk', cls:'cat-rh', chip:'acao-resgatar'},
+  FIDELIZAR:{label:'Fidelizar', icon:'favorite', cls:'cat-com', chip:'acao-fidelizar'},
+  MANTER:{label:'Manter', icon:'task_alt', cls:'cat-sys', chip:'acao-manter'},
+  CANCELAR:{label:'Cancelar', icon:'block', cls:'cat-sys', chip:'acao-cancelar'},
+  SEM_ACAO:{label:'MATERIAIS DE APOIO CLIENTES ATIVOS', icon:'folder', cls:'cat-sys', chip:''}
+};
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+function actionKey(v){ const k=String(v||'').trim().toUpperCase() || 'SEM_ACAO'; return k==='VISITAR'?'FIDELIZAR':k; }
+function groupByAction(items){
+  const map={};
+  items.forEach(it=>{ const k=actionKey(it.acao); if(!map[k]) map[k]=[]; map[k].push(it); });
+  return ['CONVERTER','RESGATAR','FIDELIZAR','MANTER','CANCELAR','SEM_ACAO']
+    .filter(k=>map[k]&&map[k].length)
+    .map(k=>({key:k, items:map[k]}));
+}
+function mediaIconMeta(v){
+  const t=String(v||'').trim().toUpperCase();
+  if(t.includes('PDF')) return {cls:'pdf', icon:'picture_as_pdf'};
+  if(t.includes('IMPRESSO')) return {cls:'impresso', icon:'print'};
+  if(t.includes('IMAGEM')) return {cls:'imagem', icon:'image'};
+  if(t.includes('CHECKLIST')) return {cls:'checklist', icon:'checklist'};
+  if(t.includes('TEXTO')) return {cls:'texto', icon:'sms'};
+  return {cls:'link', icon:'link'};
+}
+function buildCard(m){
+  const icon = mediaIconMeta(m.formato||m.tipo||'');
+  const aMeta = ACTION_META[actionKey(m.acao)] || ACTION_META.SEM_ACAO;
+  const publico = m.publico || 'CLIENTE_ATIVO';
+  const href = m.link || '#';
+  const topLine = [
+    m.acao ? `<span class="chip ${aMeta.chip}">${esc(aMeta.label)}</span>` : '',
+    m.subcategoria ? `<span class="chip sub">${esc(m.subcategoria)}</span>` : ''
+  ].filter(Boolean).join('');
+  const tags = [publico, m.local, m.canal, m.tipoItem].filter(Boolean).map(v=>`<span class="doc-tag">${esc(v)}</span>`).join('');
+  const inner = `
+    <div class="doc-icon ${icon.cls}"><span class="material-symbols-rounded">${icon.icon}</span></div>
+    <div class="doc-body">
+      <div class="doc-name">${esc(m.titulo||m.nome||m.codigo)}</div>
+      ${topLine ? `<div class="doc-topline">${topLine}</div>` : ''}
+      <div class="doc-desc">${esc(m.descricao||m.quandoUsar||'—')}</div>
+      <div class="doc-meta">${tags}</div>
+    </div>
+    <div class="doc-arrow"><span class="material-symbols-rounded">open_in_new</span></div>`;
+  return m.link
+    ? `<a class="doc" href="${esc(href)}" target="_blank" rel="noopener">${inner}</a>`
+    : `<div class="doc">${inner}</div>`;
+}
+function render(){
+  const q=(document.getElementById('search').value||'').trim().toLowerCase();
+  const items=(STATE.items||[]).filter(m=>{
+    if(STATE.publico!=='TODOS'){
+      const p=(m.publico||'CLIENTE_ATIVO').toUpperCase();
+      if(!(p===STATE.publico || p==='AMBOS')) return false;
+    }
+    if(!q) return true;
+    const hay=[m.codigo,m.titulo,m.descricao,m.acao,m.subcategoria,m.publico,m.local,m.canal,m.tipo,m.formato].join(' ').toLowerCase();
+    return hay.includes(q);
+  });
+  const groups=groupByAction(items);
+  const host=document.getElementById('catContainer');
+  const empty=document.getElementById('emptyState');
+  if(!groups.length){ host.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  host.innerHTML=groups.map(g=>{
+    const meta=ACTION_META[g.key]||ACTION_META.SEM_ACAO;
+    return `<section class="cat ${meta.cls}">
+      <div class="cat-head" onclick="this.parentNode.classList.toggle('closed')">
+        <div class="cat-icon"><span class="material-symbols-rounded">${meta.icon}</span></div>
+        <div class="cat-title">${meta.label}</div>
+        <div class="cat-count">${g.items.length}</div>
+        <div class="cat-chevron"><span class="material-symbols-rounded">expand_more</span></div>
+      </div>
+      <div class="cat-list">${g.items.map(buildCard).join('')}</div>
+    </section>`;
+  }).join('');
+}
+async function load(){
+  const url=new URL(API);
+  url.searchParams.set('action','get_midias_catalog');
+  const res=await fetch(url.toString());
+  const j=await res.json();
+  if(!j.ok) throw new Error(j.error||'Erro ao carregar materiais');
+  STATE.items=j.items||[];
+  render();
+}
+document.getElementById('search').addEventListener('input',render);
+document.getElementById('btnRefreshMan').addEventListener('click',()=>load().catch(err=>alert(err.message)));
+load().catch(err=>{
+  document.getElementById('catContainer').innerHTML='';
+  document.getElementById('emptyState').style.display='block';
+  document.getElementById('emptyState').textContent=err.message||'Erro ao carregar materiais.';
+});
+</script>
+<script src="/shared/ui/agf-ui.js"></script>
+</body>
+</html>

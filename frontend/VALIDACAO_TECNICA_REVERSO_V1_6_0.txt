@@ -1,0 +1,19 @@
+VALIDAÇÃO TÉCNICA — REVERSO MÓDULOS v1.6.0
+====================================================
+
+OK   - Portal remove card /reverso-interno
+OK   - Portal tem card reverso-admin
+OK   - Portal tem card reverso-coleta
+OK   - Portal tem card reverso-expedicao
+OK   - Seção LOGÍSTICA REVERSA criada
+OK   - Pasta /reverso-expedicao criada
+OK   - Pasta /reverso-interno removida do pacote
+OK   - Redirect /reverso-expedicao configurado
+OK   - Redirect legado /reverso-interno para /agf
+OK   - Auth client reconhece reverso-expedicao
+OK   - Tela usuários injeta Expedição Reverso
+OK   - Backend AUTH catálogo tem reverso-expedicao
+OK   - Backend AUTH migration V7 disponível
+OK   - Netlify publish preserva raiz
+
+Resultado: APROVADO

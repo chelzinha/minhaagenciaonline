@@ -1,0 +1,6 @@
+/* AGF José Bonifácio — Atendimento — cache enxuto da casca visual. */
+const CACHE='agf-atende-v2';
+const STATIC=['/atende/','/atende/index.html','/atende/manifest.webmanifest','/shared/ui/agf-ui.css','/shared/ui/agf-ui.js','/shared/auth/agf-auth-client.js','/assets/pwa/atende/icon-192.png'];
+self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>Promise.all(STATIC.map(url=>cache.add(url).catch(()=>{})))));});
+self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE&&key.startsWith('agf-atende-')).map(key=>caches.delete(key)))),self.clients.claim()])));
+self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET')return;const url=new URL(req.url);if(url.hostname.includes('script.google.com')||url.hostname.includes('googleusercontent.com'))return;if(url.pathname==='/shared/auth/agf-auth-config.js'){event.respondWith(fetch(req,{cache:'no-store'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req).catch(()=>caches.match('/atende/')));return;}if(url.origin===location.origin){event.respondWith(caches.match(req).then(cached=>cached||fetch(req).then(res=>{if(res&&res.status===200){const copy=res.clone();caches.open(CACHE).then(cache=>cache.put(req,copy)).catch(()=>{});}return res;})));}});

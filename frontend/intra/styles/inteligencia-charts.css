@@ -1,0 +1,9 @@
+.intel-chart-wrap { position:relative; width:100%; min-height:260px; }
+.intel-chart-wrap canvas { width:100% !important; height:260px !important; }
+.intel-funnel { display:grid; gap:8px; }
+.intel-funnel__row { display:grid; grid-template-columns:110px 1fr 52px; gap:8px; align-items:center; }
+.intel-funnel__label { font-size:12px; font-weight:700; color:var(--text-main); }
+.intel-funnel__bar { height:12px; background:var(--primary-soft); border-radius:999px; overflow:hidden; }
+.intel-funnel__fill { height:100%; background:linear-gradient(90deg,var(--primary),var(--primary-mid)); border-radius:999px; }
+.intel-funnel__value { text-align:right; font-weight:800; color:var(--text-secondary); font-size:12px; }
+@media (max-width:719px) { .intel-chart-wrap canvas { height:220px !important; } .intel-table-responsive { overflow-x:auto; -webkit-overflow-scrolling:touch; } .intel-funnel__row { grid-template-columns:88px 1fr 42px; } }

@@ -1,0 +1,811 @@
+/* ============================================================
+ * AGF José Bonifácio — camada visual compartilhada
+ * ------------------------------------------------------------
+ * Complementa os CSS existentes sem reescrever componentes.
+ * Tokens editáveis pelo painel /agf/icones/.
+ * ============================================================ */
+:root {
+  --agf-icon-shipping: #0077b6;
+  --agf-icon-cep: #ee9b00;
+  --agf-icon-home: #006494;
+  --agf-icon-dashboard: #6a4c93;
+  --agf-icon-admin: #9b5de5;
+  --agf-icon-caixa: #2a9d8f;
+  --agf-icon-atendimento: #e76f51;
+  --agf-icon-cloud: #4d908e;
+  --agf-icon-balcao: #f4a261;
+  --agf-icon-sla: #577590;
+  --agf-icon-app: #0077b6;
+  --agf-brand-blue: #00416b;
+  --agf-brand-blue-2: #0077b6;
+  --agf-surface: #ffffff;
+  --agf-bg: #f4f7fb;
+  --agf-border: #dce6ef;
+  --agf-text: #14324a;
+  --agf-muted: #60788d;
+  --agf-radius: 14px;
+  --agf-topbar-height: 56px;
+  --agf-shadow: 0 10px 30px rgba(0, 65, 107, .08);
+}
+
+html, body { max-width: 100%; overflow-x: hidden; }
+body { touch-action: pan-y; }
+html.agf-auth-pending::before {
+  content: "Validando acesso…";
+  position: fixed; inset: 0; z-index: 2147483647;
+  display: grid; place-items: center;
+  padding: 20px;
+  background: #f4f7fb;
+  color: #00416b;
+  font: 700 14px/1.4 Inter, "Source Sans 3", Arial, sans-serif;
+  letter-spacing: .01em;
+}
+html.agf-auth-pending body { visibility: hidden !important; }
+
+.material-symbols-rounded, .mi, [data-agf-icon] {
+  font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+.agf-icon-shipping { color: var(--agf-icon-shipping) !important; }
+.agf-icon-cep { color: var(--agf-icon-cep) !important; }
+.agf-icon-home { color: var(--agf-icon-home) !important; }
+.agf-icon-dashboard { color: var(--agf-icon-dashboard) !important; }
+.agf-icon-admin { color: var(--agf-icon-admin) !important; }
+.agf-icon-caixa { color: var(--agf-icon-caixa) !important; }
+.agf-icon-atendimento { color: var(--agf-icon-atendimento) !important; }
+.agf-icon-cloud { color: var(--agf-icon-cloud) !important; }
+.agf-icon-balcao { color: var(--agf-icon-balcao) !important; }
+.agf-icon-sla { color: var(--agf-icon-sla) !important; }
+.agf-icon-app { color: var(--agf-icon-app) !important; }
+
+.agf-frame-topbar {
+  min-height: var(--agf-topbar-height);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--agf-border);
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 4px 20px rgba(0, 65, 107, .05);
+}
+.agf-frame-brand { min-width: 0; display: flex; align-items: center; gap: 10px; color: var(--agf-text); text-decoration: none; }
+.agf-brand-tile {
+  width: 38px; height: 38px; flex: 0 0 38px;
+  display: grid; place-items: center;
+  border: 1px solid #d8e7f1; border-radius: 12px;
+  background: linear-gradient(145deg, #fff, #edf6fb);
+  color: var(--agf-brand-blue-2);
+  box-shadow: 0 5px 14px rgba(0, 65, 107, .10);
+}
+.agf-brand-tile .material-symbols-rounded { font-size: 21px; }
+.agf-frame-copy { min-width: 0; display: grid; gap: 1px; }
+.agf-frame-copy strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 14px/1.15 Inter, "Source Sans 3", Arial, sans-serif; }
+.agf-frame-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--agf-muted); font: 600 11px/1.15 Inter, "Source Sans 3", Arial, sans-serif; }
+.agf-frame-actions { display: flex; align-items: center; gap: 7px; }
+.agf-icon-button {
+  min-width: 36px; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--agf-border); border-radius: 11px; background: #fff; color: var(--agf-brand-blue);
+  text-decoration: none; cursor: pointer; padding: 7px 9px; font: 700 12px/1 Inter, "Source Sans 3", Arial, sans-serif;
+}
+.agf-icon-button:hover { background: #f1f8fc; }
+.agf-icon-button .material-symbols-rounded { font-size: 18px; }
+.agf-frame-layout { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--agf-bg); }
+.agf-frame-layout iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--agf-bg); }
+
+/* Ajustes compactos e seguros: sem alterar handlers ou grid funcional. */
+.agf-route-intra .topbar { min-height: var(--agf-topbar-height) !important; }
+.agf-route-intra .logo-circle { width: 38px !important; height: 38px !important; border-radius: 12px !important; }
+.agf-route-intra .page-body { padding-top: 12px !important; }
+.agf-route-balcao .topbar-inner,
+.agf-route-cep .cep-header-inner { min-height: var(--agf-topbar-height) !important; }
+.agf-route-balcao .hero { padding-top: 14px !important; padding-bottom: 14px !important; }
+.agf-route-cep .cep-main { padding-top: 14px !important; }
+.agf-route-app .topbar-inner,
+.agf-route-nuvem .topbar-inner,
+.agf-route-superfrete .topbar-inner { min-height: var(--agf-topbar-height) !important; }
+
+@media (max-width: 640px) {
+  .agf-frame-topbar { padding: 7px 10px; }
+  .agf-frame-copy strong { font-size: 13px; }
+  .agf-frame-copy small { font-size: 10.5px; }
+  .agf-icon-button span:last-child:not(.material-symbols-rounded) { display: none; }
+  input, select, textarea, button { max-width: 100%; }
+}
+.agf-portal-shortcut {
+  min-width: 36px; min-height: 36px; display:inline-flex; align-items:center; justify-content:center; gap:5px;
+  padding:6px 8px; border:1px solid var(--agf-border); border-radius:11px; background:#fff;
+  color:var(--agf-brand-blue) !important; text-decoration:none !important; box-shadow:0 4px 12px rgba(0,65,107,.05);
+  font:800 11px/1 Inter, "Source Sans 3", Arial, sans-serif;
+}
+.agf-portal-shortcut:hover { background:#f1f8fc; }
+.agf-portal-shortcut .material-symbols-rounded, .agf-portal-shortcut .mi { font-size:18px; }
+@media(max-width:640px){.agf-portal-shortcut-label{display:none}}
+
+
+/* ============================================================
+ * TOPBAR V2 — padrão único compacto
+ * ------------------------------------------------------------
+ * Visual equivalente ao shell /intra: tile quadrado, duas linhas,
+ * conteúdo alinhado ao body da própria página e ações compactas.
+ * ============================================================ */
+:root {
+  --agf-topbar-height: 56px;
+  --agf-shell-pad: 14px;
+}
+.agf-standard-topbar,
+.portal-topbar {
+  position: sticky; top: 0; z-index: 60; width: 100%;
+  min-height: var(--agf-topbar-height);
+  border-bottom: 1px solid var(--agf-border);
+  background: rgba(255,255,255,.95);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 3px 14px rgba(0,65,107,.045);
+}
+.agf-standard-topbar-inner,
+.portal-topbar-inner {
+  min-height: var(--agf-topbar-height);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin: 0 auto; padding: 0 var(--agf-shell-pad);
+}
+.agf-standard-topbar-inner { width: min(100%, var(--agf-content-width, 1120px)); }
+.portal-topbar-inner { width: min(1180px, calc(100% - 28px)); padding-inline: 0; }
+.agf-standard-brand,
+.portal-brand { min-width: 0; display:flex; align-items:center; gap:10px; color:var(--agf-text); text-decoration:none; }
+.agf-standard-brand-tile,
+.agf-brand-tile,
+.agf-route-intra .logo-circle,
+.agf-route-caixa .logo-circle {
+  width:38px !important; height:38px !important; flex:0 0 38px !important;
+  display:grid !important; place-items:center !important; overflow:hidden;
+  border:1px solid #d8e7f1 !important; border-radius:12px !important;
+  background:linear-gradient(145deg,#fff,#edf6fb) !important;
+  box-shadow:0 4px 12px rgba(0,65,107,.09) !important;
+}
+.agf-standard-brand-tile svg,
+.agf-route-intra .logo-circle svg,
+.agf-route-caixa .logo-circle svg { width:28px !important; height:28px !important; }
+.agf-standard-brand-tile .material-symbols-rounded { font-size:21px; color:var(--agf-brand-blue-2); }
+.agf-standard-copy,
+.portal-brand-copy { min-width:0; display:grid; gap:1px; }
+.agf-standard-copy strong,
+.portal-brand-copy strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:800 14px/1.15 Inter,"Source Sans 3",Arial,sans-serif; color:var(--agf-text); }
+.agf-standard-copy small,
+.portal-brand-copy small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:600 11px/1.15 Inter,"Source Sans 3",Arial,sans-serif; color:var(--agf-muted); }
+.agf-standard-actions,
+.portal-top-actions { display:flex; align-items:center; gap:7px; flex:0 0 auto; }
+.agf-standard-action {
+  min-width:36px; min-height:36px; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  padding:7px 9px; border:1px solid var(--agf-border); border-radius:11px; background:#fff;
+  color:var(--agf-brand-blue); text-decoration:none; cursor:pointer; font:700 12px/1 Inter,"Source Sans 3",Arial,sans-serif;
+}
+.agf-standard-action:hover { background:#f1f8fc; }
+.agf-standard-action .material-symbols-rounded { font-size:18px; }
+:where(.agf-managed-icon) { color: var(--agf-managed-icon-color) !important; }
+.agf-route-intra .topbar-shell > .topbar,
+.agf-route-caixa .topbar-shell > .topbar { height:var(--agf-topbar-height) !important; min-height:var(--agf-topbar-height) !important; }
+.agf-route-intra .page-body,
+.agf-route-caixa .page-body { padding-top:12px !important; }
+.agf-frame-layout.agf-embed-only { grid-template-rows:minmax(0,1fr); }
+@media(max-width:640px){
+  .portal-topbar-inner { width:min(100% - 20px, 620px); }
+  .agf-standard-topbar-inner { padding-inline:10px; }
+  .agf-standard-action span:last-child:not(.material-symbols-rounded) { display:none; }
+}
+
+/* Ajustes finais de consistência entre shells legados */
+.agf-route-caixa .logo-circle{border-radius:12px!important}
+.agf-route-intra .topbar-shell>.topbar,.agf-route-caixa .topbar-shell>.topbar{max-width:1180px;margin:0 auto;padding-inline:14px!important}
+.agf-route-intra .topbar-title p,.agf-route-caixa .topbar-title p{font-size:11px!important;line-height:1.15!important}
+.agf-route-intra .topbar-title h1,.agf-route-caixa .topbar-title h1{font-size:14px!important;line-height:1.15!important}
+@media(max-width:640px){.agf-route-intra .topbar-shell>.topbar,.agf-route-caixa .topbar-shell>.topbar{padding-inline:10px!important}}
+
+
+/* ============================================================
+ * AGF José Bonifácio — CAMADA DE POLIMENTO & ALINHAMENTO
+ * ------------------------------------------------------------
+ * 100% aditiva e CSS-only. Não altera HTML, JS, classes nem
+ * nenhuma regra existente. Endurece consistência, alinhamento e
+ * responsividade mobile SOBRE o que já existe.
+ *
+ * Princípios:
+ *  - Escopo isolado por rota (app, intra, nuvem, balcao, cep,
+ *    superfrete, superfrete-admin, caixa). A landing (agf-route-home)
+ *    NUNCA é afetada.
+ *  - Baixa especificidade via :where() — qualquer regra de componente
+ *    existente sempre vence. Regressão ~zero por construção.
+ *  - Reaproveita os tokens --agf-* já definidos no topo deste arquivo.
+ *  - Rollback trivial: basta restaurar este arquivo.
+ * ============================================================ */
+
+/* Tokens auxiliares do polimento (não conflitam com tokens dos apps) */
+:root {
+  --agf-pol-scrollbar: #c4d5e4;
+  --agf-pol-scrollbar-hover: #9db8d0;
+  --agf-pol-focus: #0077b6;
+  --agf-pol-gutter: clamp(14px, 4vw, 20px);
+}
+
+/* ---- 1. Rede de segurança de layout (caixa, mídia, quebra) ----
+ * box-sizing reforçado para shells legados que possam não tê-lo;
+ * mídia nunca estoura a largura; strings longas (rastreios, e-mails,
+ * URLs) quebram em vez de gerar scroll horizontal no mobile.        */
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa) *,
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa) *::before,
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa) *::after {
+  box-sizing: border-box;
+}
+
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa) body {
+  overflow-wrap: break-word;
+}
+
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa)
+  :where(img, svg, video, canvas, iframe) {
+  max-width: 100%;
+}
+
+/* ---- 2. Tipografia: equilíbrio de quebras (progressive enhancement)
+ * Títulos com text-wrap:balance e parágrafos com pretty deixam as
+ * linhas visualmente equilibradas. Navegadores antigos ignoram.     */
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa)
+  :where(h1, h2, h3, .card-head h2, .modal-title) {
+  text-wrap: balance;
+}
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa)
+  :where(p, .modal-body, .field-hint, .hint) {
+  text-wrap: pretty;
+}
+
+/* ---- 3. Numerais tabulares: alinhamento perfeito de colunas ----
+ * Em tabelas e blocos de valores/KPIs os dígitos passam a ter a mesma
+ * largura, alinhando casas decimais e totais (essencial em caixa,
+ * fretes e dashboards financeiros). Só muda a métrica do dígito.    */
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa)
+  :where(table, .kv-list, .kv-value, [class*="valor"], [class*="total"],
+         [class*="preco"], [class*="price"], [class*="kpi"], [class*="metric"],
+         [class*="stat"], [class*="money"], [class*="amount"], time, .tabular) {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ---- 4. Regiões roláveis: inércia + scrollbar fina de marca ----
+ * Rolagem com inércia no iOS e barras finas/discretas no padrão
+ * Correios, sem alterar dimensões de layout.                        */
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--agf-pol-scrollbar) transparent;
+}
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa)
+  :where([class*="scroll"], [class*="overflow"], .table-wrap, .tabela, pre, textarea) {
+  -webkit-overflow-scrolling: touch;
+}
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa) ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa) ::-webkit-scrollbar-thumb {
+  background: var(--agf-pol-scrollbar);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa) ::-webkit-scrollbar-thumb:hover {
+  background: var(--agf-pol-scrollbar-hover);
+  background-clip: padding-box;
+}
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa) ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---- 5. Foco acessível consistente (fallback, não sobrepõe) ----
+ * Anel de foco de marca para elementos interativos que ainda não
+ * tenham estilo de foco. :where() garante que qualquer foco já
+ * definido pelo app continue vencendo.                              */
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa)
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--agf-pol-focus);
+  outline-offset: 2px;
+}
+
+/* ---- 6. Seleção de texto na cor da marca (cosmético, seguro) ---- */
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa) ::selection {
+  background: rgba(0, 119, 182, 0.20);
+}
+
+/* ---- 7. Toque mais confortável (sem alterar layout) ----
+ * Garante área de clique mínima em elementos sabidamente pequenos,
+ * via min-* (nunca encolhe nada existente).                         */
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa)
+  :where(button, a[role="button"], .icon-btn, .chip, .tab, .pill):where(:not(.btn-sm):not(.btn-link)) {
+  touch-action: manipulation;
+}
+
+/* ---- 8. Acessibilidade: respeitar redução de movimento ----
+ * Quem ativa "reduzir movimento" no SO deixa de receber animações
+ * longas. Boas práticas WCAG; usa !important por ser override de A11y. */
+@media (prefers-reduced-motion: reduce) {
+  :where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+         html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+         html.agf-route-superfrete-admin, html.agf-route-caixa) *,
+  :where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+         html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+         html.agf-route-superfrete-admin, html.agf-route-caixa) *::before,
+  :where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+         html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+         html.agf-route-superfrete-admin, html.agf-route-caixa) *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- 9. Ajustes finos de mobile (≤ 480px) ----
+ * Endurecimentos seguros para telas pequenas: tabelas roláveis não
+ * empurram o layout; campos de formulário ocupam a largura total;
+ * grupos de botões quebram em vez de transbordar.                   */
+@media (max-width: 480px) {
+  :where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+         html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+         html.agf-route-superfrete-admin, html.agf-route-caixa)
+    :where(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+    max-width: 100%;
+  }
+  :where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+         html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+         html.agf-route-superfrete-admin, html.agf-route-caixa)
+    :where(.btn-row, .actions, .toolbar, .filters, [class*="actions"]) {
+    flex-wrap: wrap;
+  }
+}
+
+
+/* ============================================================
+ * TOPBAR V7 — ações compactas e subtítulo institucional
+ * ------------------------------------------------------------
+ * Corrige shells legados internos sem alterar IDs, handlers ou
+ * navegação. Os botões mantêm a mesma função e passam a usar o
+ * mesmo padrão visual das ações modernas do portal.
+ * ============================================================ */
+:root { --agf-action-size: 36px; }
+
+/* Subtítulo institucional: padrão visual único em todos os shells. */
+:where(.topbar-title p, .agf-standard-copy small, .portal-brand-copy small,
+       .crm-brand small, .app-b-sub, .mp-topbar-sub, .agf-topbar-subtitle,
+       .topbar-subtitle) {
+  text-transform: uppercase;
+  letter-spacing: .025em;
+  font-size: 11px !important;
+  line-height: 1.15 !important;
+  font-weight: 700 !important;
+  color: var(--agf-muted, #60788d);
+}
+
+/* /intra e subtelas: converte círculos legados em squircles compactos. */
+.agf-route-intra .topbar-right,
+.agf-route-caixa .topbar-right { gap: 7px !important; }
+.agf-route-intra .topbar-right .icon-circle,
+.agf-route-caixa .topbar-right .icon-circle {
+  width: var(--agf-action-size) !important;
+  height: var(--agf-action-size) !important;
+  min-width: var(--agf-action-size) !important;
+  min-height: var(--agf-action-size) !important;
+  flex: 0 0 var(--agf-action-size) !important;
+  border-radius: 11px !important;
+  border: 1px solid var(--agf-border) !important;
+  background: #fff !important;
+  color: var(--agf-brand-blue) !important;
+  box-shadow: none !important;
+}
+.agf-route-intra .topbar-right .icon-circle:hover,
+.agf-route-caixa .topbar-right .icon-circle:hover { background: #f1f8fc !important; }
+.agf-route-intra .topbar-right .icon-circle :where(.mi, .material-symbols-rounded),
+.agf-route-caixa .topbar-right .icon-circle :where(.mi, .material-symbols-rounded) { font-size: 18px !important; }
+.agf-route-intra .topbar-right .agf-portal-shortcut,
+.agf-route-caixa .topbar-right .agf-portal-shortcut {
+  min-height: var(--agf-action-size) !important;
+  border-radius: 11px !important;
+  box-shadow: none !important;
+  padding: 7px 9px !important;
+}
+
+/* /balcao: pill de versão e ação Portal com a mesma altura. */
+.agf-route-balcao .topbar-actions { gap: 7px !important; }
+.agf-route-balcao .version-pill,
+.agf-route-balcao .agf-standard-action {
+  min-height: var(--agf-action-size) !important;
+  border-radius: 11px !important;
+  padding: 7px 9px !important;
+}
+.agf-route-balcao .version-pill .material-symbols-rounded { font-size: 18px !important; }
+
+/* CRM: ações do topo seguem o mesmo botão compacto, sem afetar ações internas. */
+.agf-route-crm .crm-top-actions .icon-btn {
+  width: var(--agf-action-size) !important;
+  height: var(--agf-action-size) !important;
+  border-radius: 11px !important;
+  border: 1px solid var(--agf-border) !important;
+  background: #fff !important;
+  color: var(--agf-brand-blue) !important;
+}
+.agf-route-crm .crm-top-actions .icon-btn:hover { background: #f1f8fc !important; }
+
+@media(max-width:640px){
+  .agf-route-intra .topbar-right,
+  .agf-route-caixa .topbar-right { gap: 5px !important; }
+}
+
+.agf-topbar-copy{min-width:0;display:grid;gap:1px;line-height:1.1}.agf-topbar-copy .topbar-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+
+/* ============================================================
+ * AGF José Bonifácio — PADRONIZAÇÃO V8 (alinhamento & mobile)
+ * ------------------------------------------------------------
+ * 100% aditiva e CSS-only, no mesmo padrão das camadas anteriores:
+ *  - Escopo isolado pelas classes de rota aplicadas por agf-ui.js.
+ *    A landing (agf-route-home) continua intocada.
+ *  - Especificidade zero via :where(): qualquer regra já escrita
+ *    nos apps SEMPRE vence. Estas regras só preenchem lacunas.
+ *  - Rollback: remover este bloco restaura o comportamento anterior.
+ * ============================================================ */
+
+/* ---- V8.1 Âncoras e títulos nunca somem sob a topbar sticky ----
+ * Navegação por âncora (#secao) e foco por teclado passam a parar
+ * abaixo da topbar fixa, em vez de esconder o título sob ela.      */
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa, html.agf-route-crm,
+       html.agf-route-agf, html.agf-route-sla, html.agf-route-atende,
+       html.agf-route-reverso-admin, html.agf-route-reverso-coleta, html.agf-route-reverso-expedicao,
+       html.agf-route-reverso-interno)
+  :where(h1[id], h2[id], h3[id], section[id], [id^="sec-"], a[name]) {
+  scroll-margin-top: calc(var(--agf-topbar-height, 56px) + 14px);
+}
+
+/* ---- V8.2 Chips, badges e pills nunca estouram o card no mobile ----
+ * Conteúdo longo (nomes de cliente, códigos de rastreio) passa a
+ * truncar com reticências dentro do limite do componente.          */
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa, html.agf-route-crm,
+       html.agf-route-agf, html.agf-route-sla, html.agf-route-atende,
+       html.agf-route-reverso-admin, html.agf-route-reverso-coleta, html.agf-route-reverso-expedicao,
+       html.agf-route-reverso-interno)
+  :where(.chip, .badge, .pill, [class*="-chip"], [class*="-badge"], [class*="-pill"]) {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- V8.3 Selects longos truncam em vez de vazar (gap-filler) ---- */
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa, html.agf-route-crm,
+       html.agf-route-agf, html.agf-route-sla, html.agf-route-atende,
+       html.agf-route-reverso-admin, html.agf-route-reverso-coleta, html.agf-route-reverso-expedicao,
+       html.agf-route-reverso-interno) :where(select) {
+  text-overflow: ellipsis;
+}
+
+/* ---- V8.4 Feedback visual consistente para estados desabilitados ----
+ * Botões desabilitados que hoje parecem clicáveis passam a comunicar
+ * o estado. Apps que já estilizam :disabled continuam vencendo.     */
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa, html.agf-route-crm,
+       html.agf-route-agf, html.agf-route-sla, html.agf-route-atende,
+       html.agf-route-reverso-admin, html.agf-route-reverso-coleta, html.agf-route-reverso-expedicao,
+       html.agf-route-reverso-interno)
+  :where(button:disabled, .btn:disabled, input[type="submit"]:disabled) {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+/* ---- V8.5 Android: sem inflar fonte automaticamente (gap-filler) ---- */
+:where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+       html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+       html.agf-route-superfrete-admin, html.agf-route-caixa, html.agf-route-crm,
+       html.agf-route-agf, html.agf-route-sla, html.agf-route-atende,
+       html.agf-route-reverso-admin, html.agf-route-reverso-coleta, html.agf-route-reverso-expedicao,
+       html.agf-route-reverso-interno) {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* ---- V8.6 Mobile (≤640px, toque): conforto e estabilidade ---- */
+@media (max-width: 640px) and (pointer: coarse) {
+  /* Alvo de toque mínimo recomendado para ações primárias. min-* nunca
+     encolhe nada; apenas eleva botões realmente pequenos demais.     */
+  :where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+         html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+         html.agf-route-superfrete-admin, html.agf-route-caixa, html.agf-route-crm,
+         html.agf-route-agf, html.agf-route-sla, html.agf-route-atende,
+         html.agf-route-reverso-admin, html.agf-route-reverso-coleta, html.agf-route-reverso-expedicao,
+         html.agf-route-reverso-interno)
+    :where(button, .btn, [role="button"], input[type="submit"]):where(
+      :not(.chip):not(.pill):not([class*="mini"]):not([class*="-xs"])) {
+    min-height: 40px;
+  }
+
+  /* iOS: campo de texto com fonte ≥16px não dispara o zoom automático
+     ao receber foco (páginas sem maximum-scale=1). Campos que já
+     definem o próprio font-size continuam exatamente como estão.     */
+  :where(html.agf-route-intra, html.agf-route-caixa, html.agf-route-crm,
+         html.agf-route-agf)
+    :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+           select, textarea) {
+    font-size: max(16px, 1em);
+  }
+}
+
+/* ---- V8.7 Modais nunca maiores que a tela no mobile ----
+ * Painéis de modal ganham teto de altura e rolagem interna quando o
+ * conteúdo excede a tela (formulários longos em telefones).         */
+@media (max-width: 640px) {
+  :where(html.agf-route-app, html.agf-route-intra, html.agf-route-nuvem,
+         html.agf-route-balcao, html.agf-route-cep, html.agf-route-superfrete,
+         html.agf-route-superfrete-admin, html.agf-route-caixa, html.agf-route-crm,
+         html.agf-route-agf, html.agf-route-sla, html.agf-route-atende,
+         html.agf-route-reverso-admin, html.agf-route-reverso-coleta, html.agf-route-reverso-expedicao,
+         html.agf-route-reverso-interno)
+    :where(.modal-card, .modal-panel, .modal-content, .modal-box, dialog) {
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+
+/* ============================================================
+ * AGF José Bonifácio — PADRONIZAÇÃO V8.2 (rotas Reverso)
+ * ------------------------------------------------------------
+ * As três rotas de logística reversa (reverso, reverso-interno,
+ * reverso-admin, reverso-coleta) já possuem base responsiva própria
+ * sólida (box-sizing global, overflow-x:hidden, inputs 16px, dvh,
+ * safe-areas e media queries por tela). Este bloco apenas estende a elas
+ * a MESMA rede de segurança das seções 1–9 (que historicamente listava
+ * só 8 rotas) e corrige um grid que não colapsava no celular.
+ *
+ * 100% aditivo, :where() (especificidade zero — regra do app sempre
+ * vence), escopado por rota. Rollback: remover este bloco.
+ * ============================================================ */
+
+/* ---- V8.2.1 Rede de segurança de mídia e quebra de texto ---- */
+:where(html.agf-route-reverso, html.agf-route-reverso-interno,
+       html.agf-route-reverso-admin, html.agf-route-reverso-coleta) body {
+  overflow-wrap: break-word;
+}
+:where(html.agf-route-reverso, html.agf-route-reverso-interno,
+       html.agf-route-reverso-admin, html.agf-route-reverso-coleta)
+  :where(img, svg, video, canvas, iframe) {
+  max-width: 100%;
+}
+
+/* ---- V8.2.2 Numerais tabulares em KPIs/valores (alinhamento) ---- */
+:where(html.agf-route-reverso, html.agf-route-reverso-interno,
+       html.agf-route-reverso-admin, html.agf-route-reverso-coleta)
+  :where(table, [class*="kpi"], [class*="metric"], [class*="stat"],
+         [class*="valor"], [class*="total"], [class*="occupancy"], time) {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ---- V8.2.3 Regiões roláveis: inércia iOS (tabelas com min-width) ---- */
+:where(html.agf-route-reverso, html.agf-route-reverso-interno,
+       html.agf-route-reverso-admin, html.agf-route-reverso-coleta)
+  :where(.table-wrap, [class*="scroll"], [class*="overflow"], pre, textarea) {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---- V8.2.4 Contenção de overflow horizontal (corrige body > viewport) ----
+ * Causa real (confirmada por auditoria): em telas estreitas o corpo
+ * ultrapassava a largura da viewport. Não era um grid de página (todos
+ * usam fr e colapsam) nem as tabelas (já estão em .table-wrap rolável),
+ * e sim a cadeia clássica "min-width:auto" do CSS Grid/Flex: um item com
+ * conteúdo longo e sem espaço (código de rastreio, e-mail, nome de
+ * unidade) fixava a largura mínima da própria coluna no tamanho do
+ * conteúdo, empurrando linha → card → body. O overflow-x:hidden do body
+ * apenas recorta a pintura; o layout continua mais largo (no iOS isso
+ * aparece como a página "arrastável" para o lado).
+ *
+ * Correção em três frentes, escopada às rotas reverso e usando a classe
+ * de rota como composto real (especificidade > base, sem !important):  */
+
+/* (a) Quebra a cadeia de min-width: contêineres de layout podem encolher
+ *     abaixo do conteúdo, deixando os elementos roláveis (.table-wrap,
+ *     .week-calendar, .admin-tabs) absorverem o excedente com seu próprio
+ *     overflow. Alvos: os contêineres REAIS dessas rotas. */
+html.agf-route-reverso .internal-main, html.agf-route-reverso-interno .internal-main,
+html.agf-route-reverso-admin .internal-main, html.agf-route-reverso-coleta .internal-main,
+html.agf-route-reverso-admin .admin-shell, html.agf-route-reverso-admin .admin-mount,
+html.agf-route-reverso-expedicao .admin-shell, html.agf-route-reverso-expedicao .admin-mount,
+html.agf-route-reverso-coleta .collector-main,
+html.agf-route-reverso .section-head, html.agf-route-reverso-interno .section-head,
+html.agf-route-reverso-admin .section-head, html.agf-route-reverso-coleta .section-head,
+html.agf-route-reverso .card, html.agf-route-reverso-interno .card,
+html.agf-route-reverso-admin .card, html.agf-route-reverso-coleta .card,
+html.agf-route-reverso .card-head, html.agf-route-reverso-interno .card-head,
+html.agf-route-reverso-admin .card-head, html.agf-route-reverso-coleta .card-head,
+html.agf-route-reverso .control-cluster, html.agf-route-reverso-interno .control-cluster,
+html.agf-route-reverso-admin .control-cluster, html.agf-route-reverso-coleta .control-cluster {
+  min-width: 0;
+}
+
+/* (b) Garante que textos longos sem espaço quebrem em vez de empurrar.
+ *     Cobre o .code (que, ao contrário do .preview-code, não tinha
+ *     overflow-wrap) e quaisquer células de código/identificador. */
+html.agf-route-reverso .code, html.agf-route-reverso-interno .code,
+html.agf-route-reverso-admin .code, html.agf-route-reverso-coleta .code,
+html.agf-route-reverso [class*="codigo"], html.agf-route-reverso-interno [class*="codigo"],
+html.agf-route-reverso-admin [class*="codigo"], html.agf-route-reverso-coleta [class*="codigo"],
+html.agf-route-reverso [class*="rastreio"], html.agf-route-reverso-interno [class*="rastreio"],
+html.agf-route-reverso-admin [class*="rastreio"], html.agf-route-reverso-coleta [class*="rastreio"] {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* (c) Trava dura de segurança: o contêiner principal nunca excede a
+ *     viewport. clip preserva o scroll vertical e a topbar sticky (que é
+ *     IRMÃ do main, não filha — então clip aqui não a afeta). */
+@media (max-width: 768px) {
+  html.agf-route-reverso .internal-main, html.agf-route-reverso-interno .internal-main,
+  html.agf-route-reverso-admin .internal-main, html.agf-route-reverso-coleta .internal-main,
+  html.agf-route-reverso-admin .admin-shell, html.agf-route-reverso-coleta .collector-main {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  /* section-head e card-head deixam de ser linha rígida (título à
+   * esquerda + ações/KPI à direita) e passam a empilhar no celular,
+   * eliminando o estouro horizontal desses cabeçalhos. */
+  html.agf-route-reverso .section-head, html.agf-route-reverso-interno .section-head,
+  html.agf-route-reverso-admin .section-head, html.agf-route-reverso-coleta .section-head,
+  html.agf-route-reverso-admin .card-head, html.agf-route-reverso-coleta .card-head,
+  html.agf-route-reverso .card-head, html.agf-route-reverso-interno .card-head {
+    flex-wrap: wrap;
+  }
+}
+
+/* ---- V8.2.5 Mobile estreito (≤480px): grids de stats não comprimem ----
+ * O único grid que permanecia em 4 colunas no celular era o
+ * .collector-stats (coleta), espremendo os rótulos. Passa a 2 colunas.  */
+@media (max-width: 480px) {
+  /* Especificidade acima do seletor base .collector-stats (repeat(4) sem
+   * variante mobile, carregado depois de agf-ui.css): a classe de rota
+   * entra como composto real, sem !important. */
+  html.agf-route-reverso-coleta .collector-stats,
+  html.agf-route-reverso-admin .collector-stats, html.agf-route-reverso-expedicao .collector-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* Grupos de ações/toolbars quebram em vez de transbordar (paridade
+     com a seção 9 das demais rotas). */
+  :where(html.agf-route-reverso, html.agf-route-reverso-interno,
+         html.agf-route-reverso-admin, html.agf-route-reverso-coleta)
+    :where(.btn-row, .actions, .toolbar, .filters, [class*="actions"]) {
+    flex-wrap: wrap;
+  }
+}
+
+
+/* ============================================================
+ * AGF José Bonifácio — CORREÇÃO V8.3 (overflow horizontal Reverso)
+ * ------------------------------------------------------------
+ * Sintoma relatado: o body de /reverso-admin e /reverso-coleta
+ * ultrapassa a largura da tela no mobile (pan horizontal), apesar de
+ * body{overflow-x:hidden} — porque overflow-x:hidden apenas recorta a
+ * pintura; a LARGURA DE LAYOUT continua sendo forçada por um descendente.
+ *
+ * Causa raiz (armadilha clássica de Grid/Flex):
+ *  - Itens de grid/flex têm min-width:auto por padrão, ou seja, NÃO
+ *    encolhem abaixo da largura intrínseca do conteúdo.
+ *  - Em /reverso-admin, .admin-table{min-width:780–930px} dentro de
+ *    .table-wrap propaga essa largura para cima pelos grids
+ *    (.admin-mount, .admin-grid-2, .control-strip, dashboard-*), que não
+ *    tinham min-width:0 nos filhos → estoura .page e o body.
+ *  - Em /reverso-coleta, células de grid sem min-width:0
+ *    (.summary-grid>div, .unit-metrics>div) e conteúdo sem quebra fazem
+ *    o mesmo em telas estreitas.
+ *
+ * Correção canônica e segura: permitir que descendentes de grid/flex
+ * encolham (min-width:0) e conter as áreas roláveis. Aditivo, escopado
+ * por rota, sem !important e sem tocar nas larguras desejadas das
+ * tabelas (continuam roláveis dentro de .table-wrap). Rollback: remover
+ * este bloco.
+ * ============================================================ */
+
+/* ---- V8.3.1 NOTA: deliberadamente NÃO aplicamos overflow-x/clip em
+ * html ou body aqui. Os cabeçalhos usam position:sticky e são filhos
+ * diretos de <body>; tornar body um contêiner de rolagem (overflow!=
+ * visible) quebraria a fixação do topo. A correção ataca a CAUSA do
+ * transbordo (itens de grid que não encolhem), eliminando a necessidade
+ * de recorte. O body já mantém seu overflow-x:hidden original de base. */
+
+/* ---- V8.3.2 Itens de grid/flex podem encolher (corrige a propagação
+ * de min-width:auto que empurra o layout além da viewport). Atinge só
+ * filhos diretos de containers de grid/flex conhecidos das telas.    */
+:where(html.agf-route-reverso-admin, html.agf-route-reverso-expedicao)
+  :where(.admin-mount, .admin-grid-2, .control-strip,
+         .dashboard-attention-grid, .dashboard-map-calendar,
+         .control-cluster-grid, .cluster-health) > * {
+  min-width: 0;
+}
+:where(html.agf-route-reverso-coleta)
+  :where(.collector-page, .execution-page, .summary-grid, .unit-metrics,
+         .collector-stats, .execution-tools, .manual-row, .progress-top,
+         .scan-actions, .unit-card-list, .history-list, .scan-list,
+         .unit-card-head) > * {
+  min-width: 0;
+}
+
+/* ---- V8.3.2b A agenda semanal usa colunas fixas (repeat(5,112px)) e
+ * rola horizontalmente DENTRO do próprio cartão. Garantir que o cartão
+ * (item do grid .collector-page) possa encolher e contenha a rolagem,
+ * para a faixa não empurrar a página inteira no mobile. */
+:where(html.agf-route-reverso-coleta)
+  :where(.collector-calendar-card) {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+:where(html.agf-route-reverso-coleta)
+  :where(.collector-calendar) {
+  max-width: 100%;
+}
+
+/* ---- V8.3.3 Áreas com tabelas largas roláveis ficam contidas na
+ * largura disponível (a tabela rola DENTRO do wrap, não empurra fora). */
+:where(html.agf-route-reverso-admin, html.agf-route-reverso-coleta, html.agf-route-reverso-expedicao,
+       html.agf-route-reverso-interno, html.agf-route-reverso)
+  :where(.table-wrap) {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* ---- V8.3.3b Cards que hospedam tabelas roláveis também precisam poder
+ * encolher: como itens de grid (.admin-mount/.admin-grid-2) herdam
+ * min-width:auto, o card expandia até a largura intrínseca da tabela
+ * (780–930px) e empurrava a página. Garantir min-width:0 nos cards
+ * fecha a cadeia em qualquer profundidade de aninhamento. */
+:where(html.agf-route-reverso-admin, html.agf-route-reverso-coleta, html.agf-route-reverso-expedicao,
+       html.agf-route-reverso-interno, html.agf-route-reverso)
+  :where(.card, .operations-card, .units-summary-card, .admin-card) {
+  min-width: 0;
+}
+
+/* ---- V8.3.4 Conteúdo textual longo quebra em vez de alargar a célula. */
+:where(html.agf-route-reverso-admin, html.agf-route-reverso-coleta, html.agf-route-reverso-expedicao,
+       html.agf-route-reverso-interno, html.agf-route-reverso)
+  :where(.summary-grid, .unit-metrics, .control-metric, .collector-stats) {
+  overflow-wrap: anywhere;
+}

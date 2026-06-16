@@ -1,0 +1,384 @@
+.screen-login{min-height:calc(100vh - 1px);display:grid;place-items:center;padding:max(20px,env(safe-area-inset-top,0) + 16px) 16px max(24px,env(safe-area-inset-bottom,0) + 16px);background:radial-gradient(circle at top right,rgba(255,212,0,.24),transparent 26%),radial-gradient(circle at left bottom,rgba(255,255,255,.16),transparent 24%),linear-gradient(135deg,#0E3E6C 0%,#114978 56%,#17635B 100%)}.login-stage{width:min(100%,1080px)}.login-panel{width:min(100%,460px);margin:0 auto;background:rgba(255,255,255,.98);border:1px solid rgba(255,255,255,.58);border-radius:30px;box-shadow:0 26px 60px rgba(0,20,33,.22);overflow:hidden}.login-panel-modern{width:min(100%,960px);display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr)}.login-hero{padding:34px 24px 18px;text-align:center;background:linear-gradient(180deg,rgba(0,65,107,.06) 0%,rgba(0,65,107,0) 100%)}.login-hero-modern{padding:40px 34px;background:linear-gradient(180deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.02) 100%),linear-gradient(135deg,#0E3E6C 0%,#114978 58%,#17635B 100%);color:#fff;text-align:left;display:flex;flex-direction:column;justify-content:center;gap:18px}.login-brand-block{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.login-logo-wrap{width:112px;height:112px;border-radius:28px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);padding:14px;display:grid;place-items:center;box-shadow:0 18px 35px rgba(0,0,0,.12)}.login-hero-inner{display:flex;flex-direction:column;align-items:center}.login-logo-img{width:64px;height:64px;object-fit:contain;margin-bottom:10px}.login-logo-lg{width:100%;height:100%;margin:0}.login-title{margin:12px 0 8px;color:inherit;font-size:clamp(34px,5vw,56px);line-height:1.02;font-weight:800;letter-spacing:-.02em}.login-subtitle{margin:0;color:inherit;opacity:.92;font-size:17px;max-width:520px}.login-feature-row{display:flex;flex-wrap:wrap;gap:10px}.login-feature-pill{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14);font-size:13px;font-weight:700;backdrop-filter:blur(8px)}.login-feature-pill .material-symbols-rounded{font-size:20px}.login-body{padding:0 18px 18px}.login-body-modern{padding:26px;background:linear-gradient(180deg,#fff 0%,#f7faff 100%);display:flex;align-items:center}.login-form-card{padding:24px;border-radius:28px;box-shadow:0 18px 36px rgba(15,23,42,.08)}.login-footnote{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2);background:#f8fbff;border:1px solid #e3edf7;border-radius:18px;padding:12px 14px}.login-footnote .material-symbols-rounded{color:var(--nv);font-size:20px}.screen-auth{padding-top:max(16px,env(safe-area-inset-top,0) + 8px)}.history-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}.history-title{margin:0;font-size:18px;font-weight:800;color:var(--nv)}.history-meta{font-size:13px;color:var(--muted)}.empty-state{background:#fff;border:1px dashed var(--line-strong);border-radius:22px;padding:28px 20px;text-align:center;color:var(--text-2)}.empty-state .material-symbols-rounded{font-size:42px;color:var(--nv-300);margin-bottom:8px}.result-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px}@media (max-width:860px){.login-panel-modern{grid-template-columns:1fr}.login-hero-modern{padding:28px 24px}.login-title{font-size:clamp(32px,8vw,44px)}.login-subtitle{font-size:16px}.login-logo-wrap{width:92px;height:92px}.login-body-modern{padding:18px}}@media (max-width:560px){.screen-login{padding:16px}.login-panel-modern{border-radius:26px}.login-hero-modern{padding:24px 20px}.login-feature-row{gap:8px}.login-feature-pill{width:100%;justify-content:flex-start}.login-form-card{padding:18px}}
+
+.screen-login-simple{background:linear-gradient(180deg,#f7faff 0%,#eef4fa 100%);padding:max(24px,env(safe-area-inset-top,0) + 20px) 16px max(24px,env(safe-area-inset-bottom,0) + 20px)}
+.login-panel-simple{width:min(100%,460px);margin:0 auto;background:transparent;border:0;box-shadow:none;overflow:visible}
+.login-simple-brand{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:22px}
+.login-logo-clean{width:120px;height:120px;object-fit:contain;margin:0 auto 10px;filter:drop-shadow(0 10px 18px rgba(14,62,108,.08))}
+.login-simple-title{margin:0;color:var(--nv);font-size:38px;line-height:1.05;font-weight:800;letter-spacing:-.02em}
+.login-simple-subtitle{margin:10px 0 0;color:var(--text-2);font-size:16px}
+.login-form-card-simple{padding:22px;border-radius:26px;box-shadow:0 12px 28px rgba(15,23,42,.08)}
+.login-footnote-simple{background:#f8fbff;border-color:#e6edf5}
+.auth-brand-card{padding:18px 20px}
+.auth-brand-logo{width:64px;height:64px;padding:0;background:transparent;box-shadow:none;border-radius:0}
+.auth-brand-title{margin-top:6px}
+.auth-brand-subtitle{margin-top:8px}
+@media (max-width:560px){.login-logo-clean{width:102px;height:102px}.login-simple-title{font-size:34px}.login-form-card-simple{padding:18px}}
+
+.screen-login-ios{position:relative;overflow:hidden;min-height:calc(100vh - 1px);padding:max(28px,env(safe-area-inset-top,0) + 24px) 16px max(28px,env(safe-area-inset-bottom,0) + 24px);background:linear-gradient(180deg,#f7fbff 0%,#eef4fb 46%,#e9f0f8 100%)}
+.ios-bg-orb{position:absolute;border-radius:999px;filter:blur(8px);pointer-events:none}
+.ios-bg-orb-a{width:280px;height:280px;right:-60px;top:-40px;background:radial-gradient(circle,rgba(255,212,0,.28) 0%,rgba(255,212,0,.08) 48%,rgba(255,212,0,0) 72%)}
+.ios-bg-orb-b{width:320px;height:320px;left:-100px;bottom:120px;background:radial-gradient(circle,rgba(0,65,107,.14) 0%,rgba(0,65,107,.05) 45%,rgba(0,65,107,0) 72%)}
+.ios-login-wrap{position:relative;z-index:1;width:min(100%,460px);margin:0 auto}
+.ios-brand-block{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:24px}
+.ios-brand-logo{width:min(100%,520px);height:auto;object-fit:contain;filter:drop-shadow(0 10px 22px rgba(15,23,42,.08))}
+.ios-brand-caption{margin:12px 0 0;color:var(--text-2);font-size:17px;line-height:1.45;max-width:420px}
+.ios-card{background:rgba(255,255,255,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.72);border-radius:32px;box-shadow:0 14px 36px rgba(15,23,42,.09), inset 0 1px 0 rgba(255,255,255,.65);padding:22px 22px 20px}
+.ios-card-head{display:flex;flex-direction:column;gap:6px}
+.ios-card-title{margin:0;color:var(--nv);font-size:clamp(24px,5vw,34px);line-height:1.08;font-weight:800;letter-spacing:-.02em}
+.ios-card-subtitle{margin:0;color:var(--text-2);font-size:16px;line-height:1.5}
+.ios-input-shell{border-radius:22px}
+.ios-input{min-height:58px;border-radius:22px;border:1.2px solid #d7e2ee;background:rgba(255,255,255,.92);box-shadow:inset 0 1px 2px rgba(15,23,42,.03),0 4px 10px rgba(15,23,42,.02)}
+.ios-input::placeholder{color:#95a1b0}
+.ios-primary-btn{min-height:52px;border-radius:22px;font-size:18px;font-weight:800;box-shadow:0 12px 24px rgba(0,65,107,.18)}
+.ios-secondary-btn{min-height:54px;border-radius:20px}
+.ios-note-card{display:flex;align-items:flex-start;gap:12px;padding:16px 16px;border-radius:24px;background:rgba(246,249,253,.92);border:1px solid #dde7f1;color:var(--text-2);font-size:15px;line-height:1.55}
+.ios-note-card .material-symbols-rounded{font-size:22px;color:var(--nv);margin-top:1px}
+.screen-auth-ios{background:linear-gradient(180deg,#f7fbff 0%,#eef4fb 100%);padding-top:max(16px,env(safe-area-inset-top,0) + 8px)}
+.ios-auth-brand-card{display:flex;flex-direction:column;align-items:flex-start;gap:14px;background:rgba(255,255,255,.58);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.7);border-radius:30px;padding:20px 20px 18px;box-shadow:0 12px 30px rgba(15,23,42,.07);margin-bottom:16px}
+.ios-auth-logo{width:min(100%,360px);height:auto;object-fit:contain}
+.ios-auth-copy{display:flex;flex-direction:column;align-items:flex-start}
+.ios-auth-card{border-radius:30px;background:rgba(255,255,255,.9);box-shadow:0 12px 30px rgba(15,23,42,.08)}
+@media (max-width:560px){.ios-brand-logo{max-width:100%}.ios-brand-caption{font-size:16px;margin-top:10px}.ios-card{padding:18px;border-radius:28px}.ios-card-title{font-size:clamp(23px,8vw,30px)}.ios-card-subtitle{font-size:15px}.ios-primary-btn{min-height:52px;font-size:17px}.ios-note-card{padding:14px 14px;border-radius:20px}.ios-auth-brand-card,.ios-auth-card{border-radius:26px}}
+
+/* v4: logo transparente + tela inicial sem scroll */
+html,body{height:100%;overflow-x:hidden}
+body.reverso-app.boot-no-scroll{overflow:hidden}
+.screen-login-ios{min-height:100dvh;height:100dvh;display:flex;align-items:center;justify-content:center;padding:max(14px,env(safe-area-inset-top,0) + 10px) 16px max(14px,env(safe-area-inset-bottom,0) + 10px);overflow:hidden}
+.ios-login-wrap{display:flex;flex-direction:column;justify-content:center;max-width:440px;width:100%;height:100%;max-height:100%;gap:12px}
+.ios-brand-block{margin-bottom:6px;gap:0;flex:0 0 auto}
+.ios-brand-logo{width:min(100%,460px);max-height:118px;margin:0 auto;object-fit:contain}
+.ios-brand-caption{margin:8px 0 0;font-size:15px;line-height:1.35;max-width:420px}
+.ios-card{padding:18px 18px 16px;border-radius:28px;gap:0}
+.ios-card-head{gap:4px}
+.ios-card-title{font-size:clamp(22px,4.8vw,30px)}
+.ios-card-subtitle{font-size:15px;line-height:1.42}
+.ios-input{min-height:54px;border-radius:35px}
+.ios-primary-btn{min-height:52px;border-radius:35px;font-size:17px}
+.ios-note-card{padding:12px 14px;border-radius:20px;font-size:14px;line-height:1.42}
+.ios-note-card .material-symbols-rounded{font-size:20px}
+@media (max-height:820px){
+  .screen-login-ios{padding:max(10px,env(safe-area-inset-top,0) + 8px) 14px max(10px,env(safe-area-inset-bottom,0) + 8px)}
+  .ios-login-wrap{gap:10px}
+  .ios-brand-logo{max-height:96px}
+  .ios-brand-caption{font-size:14px;margin-top:6px}
+  .ios-card{padding:16px 16px 14px;border-radius:24px}
+  .ios-card-title{font-size:clamp(20px,4.4vw,28px)}
+  .ios-card-subtitle{font-size:14px}
+  .field{gap:6px}
+  .field-label{font-size:12px}
+  .ios-input{min-height:50px}
+  .ios-primary-btn{min-height:50px;font-size:16px}
+  .ios-note-card{padding:10px 12px;font-size:13px}
+}
+@media (max-height:720px){
+  .ios-brand-logo{max-height:78px}
+  .ios-brand-caption{display:none}
+  .ios-card-title{font-size:24px}
+  .ios-card-subtitle{font-size:13px;line-height:1.35}
+  .ios-card{padding:14px 14px 12px}
+  .stack-md>*+*{margin-top:12px;margin-bottom:12px}
+}
+@media (max-width:560px){
+  .ios-brand-logo{width:min(100%,420px)}
+}
+
+/* v5 line breaks + subtitle back */
+.ios-brand-caption{display:block;text-align:center}
+.ios-card-subtitle br,.ios-note-card br{display:block;content:""}
+.ios-note-card{align-items:flex-start}
+.ios-note-card span:last-child{display:block}
+
+/* v6: refinamento de espaçamentos e proporção tipográfica */
+.ios-login-wrap{gap:18px}
+.ios-brand-block{margin-bottom:10px}
+.ios-brand-caption{margin:20px 0 0;font-size:16px;line-height:1.4}
+.ios-card{padding:26px 22px 22px;border-radius:30px}
+.ios-card-head{gap:10px;margin-bottom:2px}
+.ios-card-title{font-size:clamp(26px,5.2vw,34px);line-height:1.08;letter-spacing:-.02em;padding-left:14px;padding-right:8px}
+.ios-card-subtitle{font-size:15px;line-height:1.48;padding-left:14px;padding-right:12px;max-width:100%;margin-top:2px}
+.field-label{font-size:15px;line-height:1.25;margin-left:9px}
+.field-with-icon .field-label{padding-left:14px;margin-top:6px;margin-bottom:6px}
+.ios-input-shell{margin-top:4px}
+.ios-input{min-height:52px}
+.ios-primary-btn{margin-top:10px;min-height:56px}
+.ios-note-card{margin-top:12px;padding:16px 16px 16px 18px;gap:14px;font-size:15px;line-height:1.5;border-radius:22px}
+.ios-note-card .material-symbols-rounded{margin-top:2px}
+@media (max-width:560px){
+  .ios-login-wrap{gap:16px}
+  .ios-brand-caption{font-size:15px;margin-top:20px}
+  .ios-card{padding:24px 18px 20px}
+  .ios-card-title{font-size:clamp(24px,6.8vw,31px);padding-left:12px}
+  .ios-card-subtitle{font-size:14px;line-height:1.5;padding-left:12px;padding-right:8px}
+  .field-with-icon .field-label{padding-left:12px;font-size:14px;margin-top:4px}
+  .ios-input{min-height:52px}
+  .ios-primary-btn{min-height:54px;margin-top:8px}
+  .ios-note-card{padding:14px 14px 14px 16px;font-size:14px;line-height:1.48}
+}
+@media (max-height:820px){
+  .ios-login-wrap{gap:14px}
+  .ios-card{padding:20px 18px 18px}
+  .ios-card-head{gap:8px}
+  .ios-card-title{font-size:clamp(24px,4.8vw,30px)}
+  .ios-card-subtitle{font-size:14px}
+  .field-with-icon .field-label{font-size:14px}
+  .ios-note-card{font-size:14px;padding:12px 14px 12px 16px}
+}
+
+/* v7: remover label redundante e corrigir quebra do box inferior */
+.field-with-icon .field-label{display:none}
+.ios-input-shell{margin-top:0}
+.ios-note-card{align-items:flex-start}
+.ios-note-card span:last-child{display:block;flex:1;min-width:0;max-width:none;white-space:normal;word-break:normal;overflow-wrap:break-word;text-wrap:pretty}
+@media (max-width:560px){
+  .ios-note-card span:last-child{font-size:14px;line-height:1.5}
+}
+
+/* v8: reduzir logo da autenticação e remover chip */
+.ios-auth-brand-card{gap:10px;padding:18px 20px 16px}
+.ios-auth-logo{width:min(100%,300px);max-height:79px}
+.auth-brand-title{margin-top:6;font-size:clamp(20px,5.6vw,32px);line-height:1.06}
+.auth-brand-subtitle{margin-top:10px}
+@media (max-width:560px){
+  .ios-auth-logo{width:min(100%,260px);max-height:70px}
+  .ios-auth-brand-card{padding:16px 18px 14px}
+  .auth-brand-title{font-size:clamp(18px,7vw,30px)}
+}
+
+/* v9: placeholders, notice e histórico */
+.history-card .badge{white-space:nowrap}
+.notice-rule div{font-size:15px;line-height:1.45}
+
+/* v10: garantir espaçamento da regra de uso */
+.notice-rule + .actions{margin-top:18px}
+
+/* v11: máscara/placeholder CPF + subtítulo auth em 1 linha */
+.auth-brand-subtitle{white-space:nowrap;font-size:15px;line-height:1.2;max-width:none}
+@media (max-width:560px){
+  .auth-brand-subtitle{font-size:13px;white-space:nowrap;letter-spacing:-0.01em}
+}
+
+
+/* v12: mobile sem zoom no foco + logo menor e centralizada na auth */
+@media (max-width: 768px){
+  input, select, textarea,
+  .input, .ios-input, select.input, .textarea{
+    font-size:16px !important;
+  }
+}
+
+@media (max-width: 560px){
+  .screen-auth-ios .page.page-narrow{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .ios-auth-brand-card{
+    align-items:center;
+    text-align:center;
+    width:100%;
+    padding:14px 16px 12px;
+  }
+  .ios-auth-copy{
+    align-items:center;
+    width:100%;
+  }
+  .ios-auth-logo{
+    width:min(100%,220px);
+    max-height:56px;
+    margin:0 auto;
+  }
+  .auth-brand-title,
+  .auth-brand-subtitle{
+    text-align:center;
+  }
+}
+
+/* v1.6.5 — logos da tela de autenticação na mesma linha */
+.ios-auth-brand-card{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:10px;
+}
+.ios-auth-logos-row{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+}
+.ios-auth-logos-row .ios-auth-logo{
+  flex:0 1 210px;
+  width:min(52%,210px);
+  max-width:210px;
+  max-height:58px;
+  object-fit:contain;
+  object-position:left center;
+  margin:0;
+}
+.ios-auth-logos-row .auth-brand-title{
+  flex:0 1 150px;
+  margin:0 !important;
+  text-align:right;
+  line-height:1.05;
+  min-width:0;
+}
+.ios-auth-logos-row .auth-brand-title.has-unit-logo{
+  display:flex !important;
+  align-items:center;
+  justify-content:flex-end;
+  margin:0 !important;
+  line-height:0 !important;
+}
+.ios-auth-logos-row .unit-logo-title-auth-img{
+  max-width:min(100%,145px) !important;
+  max-height:46px !important;
+  object-fit:contain !important;
+  object-position:right center;
+}
+.ios-auth-brand-card > .auth-brand-subtitle{
+  width:100%;
+  margin:0;
+  text-align:left;
+}
+@media (max-width:560px){
+  .screen-auth-ios .page.page-narrow{
+    align-items:center;
+  }
+  .ios-auth-brand-card{
+    align-items:stretch !important;
+    text-align:left !important;
+    padding:14px 16px 12px;
+  }
+  .ios-auth-logos-row{
+    gap:12px;
+  }
+  .ios-auth-logos-row .ios-auth-logo{
+    flex-basis:168px;
+    width:52%;
+    max-width:168px;
+    max-height:48px;
+  }
+  .ios-auth-logos-row .auth-brand-title{
+    flex-basis:120px;
+    font-size:clamp(16px,5.2vw,24px);
+  }
+  .ios-auth-logos-row .unit-logo-title-auth-img{
+    max-width:min(100%,118px) !important;
+    max-height:40px !important;
+  }
+  .ios-auth-brand-card > .auth-brand-subtitle{
+    text-align:left !important;
+    font-size:13px;
+    white-space:nowrap;
+    letter-spacing:-0.01em;
+  }
+}
+@media (max-width:380px){
+  .ios-auth-logos-row .ios-auth-logo{
+    max-width:154px;
+    max-height:44px;
+  }
+  .ios-auth-logos-row .unit-logo-title-auth-img{
+    max-width:min(100%,104px) !important;
+    max-height:36px !important;
+  }
+  .ios-auth-brand-card > .auth-brand-subtitle{
+    font-size:12.5px;
+  }
+}
+
+
+/* v1.6.6 — auth: logos separadas e texto de apoio dentro do card de acesso */
+.ios-auth-brand-card{
+  margin-bottom:14px;
+  padding:14px 18px;
+}
+.ios-auth-logos-row{
+  min-height:52px;
+}
+.ios-auth-logos-row .ios-auth-logo{
+  flex:0 1 210px;
+  width:min(52%,210px);
+  max-width:210px;
+  max-height:56px;
+}
+.ios-auth-logos-row .auth-brand-title{
+  flex:0 1 150px;
+}
+.ios-auth-logos-row .unit-logo-title-auth-img{
+  max-width:min(100%,150px) !important;
+  max-height:48px !important;
+}
+.ios-auth-brand-card > .auth-brand-subtitle{
+  display:none !important;
+}
+.auth-mode-helper{
+  margin:-6px 2px 16px;
+  color:var(--text-2);
+  font-size:13px;
+  line-height:1.35;
+  text-align:left;
+}
+@media (max-width:560px){
+  .ios-auth-brand-card{
+    padding:14px 16px;
+    margin-bottom:14px;
+  }
+  .ios-auth-logos-row{
+    min-height:44px;
+    gap:12px;
+  }
+  .ios-auth-logos-row .ios-auth-logo{
+    flex:0 1 166px;
+    width:52%;
+    max-width:166px;
+    max-height:46px;
+  }
+  .ios-auth-logos-row .auth-brand-title{
+    flex:0 1 120px;
+    font-size:clamp(16px,5.2vw,24px);
+  }
+  .ios-auth-logos-row .unit-logo-title-auth-img{
+    max-width:min(100%,122px) !important;
+    max-height:40px !important;
+  }
+  .auth-mode-helper{
+    margin:-4px 2px 14px;
+    font-size:12.5px;
+    line-height:1.35;
+  }
+}
+@media (max-width:380px){
+  .ios-auth-logos-row .ios-auth-logo{
+    max-width:152px;
+    max-height:42px;
+  }
+  .ios-auth-logos-row .unit-logo-title-auth-img{
+    max-width:min(100%,106px) !important;
+    max-height:36px !important;
+  }
+}
+
+/* v1.6.7 — auth busca logo antes do login + logo da unidade menor na Home */
+.unit-logo-title-home-img{
+  max-width:min(100%,210px) !important;
+  max-height:54px !important;
+}
+.hero-title.has-unit-logo .unit-logo-title-home-img{
+  object-position:left center !important;
+}
+.hero-title.has-unit-logo{
+  margin-top:8px !important;
+  margin-bottom:10px !important;
+}
+@media(max-width:560px){
+  .unit-logo-title-home-img{
+    max-width:min(100%,180px) !important;
+    max-height:42px !important;
+  }
+  .hero-title.has-unit-logo{
+    margin-top:6px !important;
+    margin-bottom:8px !important;
+  }
+}

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Amostragem DANFE — Minhas Postagens Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/admin.css?v=danfe-audit-v6">
+  <style>
+    body{padding:22px;background:#f4f7fb}.audit-shell{max-width:1500px;margin:0 auto}.audit-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px}.audit-head h1{margin:4px 0 0;color:#01325a}.audit-actions{display:flex;gap:9px;flex-wrap:wrap}.audit-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.audit-card{background:#fff;border:1px solid #d9e2ec;border-radius:16px;padding:15px}.audit-card small{display:block;color:#667789;font-weight:800;text-transform:uppercase;font-size:11px}.audit-card strong{display:block;margin-top:7px;font-size:24px;color:#01325a}.filter-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}.filter-row input,.filter-row select{max-width:320px}.audit-table{min-width:1250px}.audit-table td{vertical-align:top}.audit-table small{display:block;color:#667789;margin-top:3px}.empty{padding:24px;text-align:center;color:#667789}.error-box{padding:14px;border-radius:13px;background:#fef2f2;color:#b42318;margin-bottom:12px}.hidden{display:none!important}@media(max-width:900px){.audit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.audit-head{flex-direction:column}}@media(max-width:540px){body{padding:13px}.audit-grid{grid-template-columns:1fr}}
+  </style>
+<link rel="stylesheet" href="/shared/ui/agf-ui.css"/>
+<script src="/shared/auth/agf-auth-config.js"></script>
+<script src="/shared/auth/agf-auth-client.js"></script>
+<script>window.AGF_ACCESS={roles:['admin','manager','user'],app:'superfrete-admin'};</script>
+<script src="/shared/auth/agf-route-guard.js"></script>
+<link rel="manifest" href="/superfrete-admin/manifest.webmanifest"/>
+<link rel="icon" href="/assets/pwa/superfrete/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/superfrete/favicon-32.png"/>
+<link rel="apple-touch-icon" href="/assets/pwa/superfrete/apple-touch-icon.png"/>
+</head>
+<body>
+  <main class="audit-shell">
+    <header class="audit-head">
+      <div><span class="eyebrow">Minhas Postagens · ambiente administrativo</span><h1>Amostragem DANFE Simplificado</h1><p style="color:#667789;margin:6px 0 0">Acompanhe as prévias 10 × 15 geradas a partir de PDFs e identifique divergências antes do uso operacional.</p></div>
+      <div class="audit-actions"><a class="btn btn-muted" href="./"><span class="material-symbols-rounded">arrow_back</span>Voltar ao painel</a><button id="btnRefreshAudit" class="btn btn-primary" type="button"><span class="material-symbols-rounded">refresh</span>Atualizar</button><a id="auditSheetLink" class="btn btn-muted hidden" target="_blank" rel="noopener"><span class="material-symbols-rounded">table_view</span>Abrir planilha</a></div>
+    </header>
+    <div id="auditError" class="error-box hidden"></div>
+    <section class="audit-grid"><article class="audit-card"><small>Total de amostras</small><strong id="mTotal">0</strong></article><article class="audit-card"><small>Conferidas</small><strong id="mValidated">0</strong></article><article class="audit-card"><small>Com divergência</small><strong id="mDivergence">0</strong></article><article class="audit-card"><small>Pendentes</small><strong id="mPending">0</strong></article></section>
+    <section class="panel"><div class="panel-header"><h3>Registros de amostragem</h3><small>Use os filtros para acompanhar diferentes clientes e modelos de DANFE.</small></div><div class="filter-row"><input id="searchAudit" placeholder="Buscar NF, emitente ou destinatário"><select id="filterStatus"><option value="">Todos os status</option><option value="VALIDADO_MANUALMENTE">Conferidas</option><option value="COM_DIVERGENCIA">Com divergência</option><option value="PENDENTE_REVISAO">Pendentes</option></select></div><div class="table-wrap"><table class="data-table audit-table"><thead><tr><th>Data</th><th>Status</th><th>Origem</th><th>NF-e</th><th>Emitente</th><th>Destinatário</th><th>Validações</th><th>Pendências</th></tr></thead><tbody id="auditBody"></tbody></table></div><div id="auditEmpty" class="empty hidden">Nenhuma amostra registrada ainda.</div></section>
+  </main>
+  <script src="./js/config.js?v=danfe-audit-v6"></script>
+  <script src="./js/danfe-auditoria.js?v=danfe-audit-v6"></script>
+<script src="/shared/ui/agf-ui.js"></script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/superfrete-admin/sw.js').catch(()=>{}));}</script>
+</body>
+</html>

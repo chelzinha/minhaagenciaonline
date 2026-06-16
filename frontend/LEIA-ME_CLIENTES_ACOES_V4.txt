@@ -1,0 +1,24 @@
+CLIENTES/AÇÕES v4 — ajustes pontuais
+
+Alterado somente o módulo do Dashboard relacionado às abas CLIENTES e AÇÕES.
+
+Front:
+- Ajuste visual dos cards da aba AÇÕES.
+- Card "Clientes no período" com fundo amarelo claro e sem filete lateral.
+- Filetes dos demais cards alinhados às ações.
+- CANCELAR agora mostra "Sem etiqueta".
+- Chips MANTER e CANCELAR não têm mais a mesma cor: MANTER ficou lilás.
+- Cabeçalhos da Carteira: Ticket / Qtd / Fat. sem a palavra "período".
+- Filtros locais agora aceitam múltipla seleção também em Última postagem.
+- Criado chip NOVO na linha de Última postagem.
+
+Backend:
+- NOVO agora considera apenas clientes cuja primeira postagem válida não-reverso ocorreu no mês corrente da base.
+- Clientes com primeira postagem no mês anterior não ficam mais como NOVO.
+- Regra de CONVERTER para balcão recorrente recebeu mínimo de relevância para evitar cliente irrelevante marcado como CONVERTER.
+- Cache versionado para evitar reaproveitar resposta antiga.
+
+Não alterado:
+- VISÃO GERAL
+- RESUMO DIÁRIO
+- BALCÃO X CONTRATO

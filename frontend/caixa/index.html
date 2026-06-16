@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#00416B">
+<title>Caixa — AGF José Bonifácio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/intra/styles/app-shell.css"/>
+<style>
+    :root{
+      --bg:#eef3f8;
+      --bg-card:rgba(255,255,255,.96);
+      --text:#0f172a;
+      --muted:#64748b;
+      --line:#d6e0ec;
+      --line-strong:#bfd0e2;
+      --primary:#004a8f;
+      --primary-2:#005A8F;
+      --accent:#4ca7a1;
+      --accent-2:#2f8079;
+      --danger:#b91c1c;
+      --dark-btn:#7a8392;
+      --dark-btn-2:#6d7583;
+      --success:#166534;
+      --success-bg:#ecfdf3;
+      --success-line:#bbf7d0;
+      --danger2:#b91c1c;
+      --danger-bg:#fef2f2;
+      --danger-line:#fecaca;
+      --info:#92400e;
+      --info-bg:#fffbeb;
+      --info-line:#fde68a;
+      --shadow:0 12px 28px rgba(15, 23, 42, 0.08);
+      --shadow-soft:0 4px 12px rgba(15, 23, 42, 0.05);
+      --radius-xl:20px;
+      --radius-lg:14px;
+      --radius-md:12px;
+      --tap:42px;
+      --container:960px;
+      --mobile-max:720px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:"Source Sans 3",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:radial-gradient(circle at top left, #ffffff 0%, #f2f6fb 34%, #e9eff6 100%);
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    .app{
+      width:100%;
+      max-width:100%;
+      margin:0 auto;
+      padding:0;
+    }
+
+    .hero{
+      background:linear-gradient(135deg, #00416B 0%, #005A8F 100%);
+      color:#fff;
+      border-radius:20px;
+      padding:8px 14px;
+      box-shadow:var(--shadow);
+      margin-bottom:8px;
+    }
+
+    .hero-top{
+      min-height:44px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .hero-title{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin:0;
+      font-size:clamp(1rem,1.6vw,1.3rem);
+      font-weight:900;
+      line-height:1.05;
+    }
+
+    .hero-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.08);
+      border-radius:999px;
+      padding:6px 10px;
+      font-weight:800;
+      white-space:nowrap;
+      font-size:.84rem;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:minmax(0, 1.42fr) minmax(330px, .78fr);
+      gap:8px;
+      align-items:start;
+    }
+
+    .card{
+      background:var(--bg-card);
+      border:1px solid rgba(214,224,236,.98);
+      border-radius:var(--radius-xl);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .card-head{
+      padding:10px 14px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+      background:linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(247,250,253,.94) 100%);
+    }
+
+    .card-title{
+      margin:0;
+      font-size:.98rem;
+      font-weight:900;
+      display:flex;
+      align-items:center;
+      gap:7px;
+      line-height:1.1;
+    }
+
+    .card-body{
+      padding:10px 14px;
+    }
+
+    .tabs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:6px;
+      width:100%;
+    }
+
+    .tab-btn{
+      min-height:36px;
+      border:1px solid var(--line-strong);
+      border-radius:12px;
+      background:#fff;
+      color:var(--text);
+      font-weight:900;
+      cursor:pointer;
+      transition:.18s ease;
+      font-size:.84rem;
+    }
+
+    .tab-btn.active{
+      background:linear-gradient(135deg,var(--accent) 0%, #7dbcb7 100%);
+      color:#fff;
+      border-color:transparent;
+    }
+
+    .summary{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:6px;
+    }
+
+    .mini{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:8px 10px;
+      background:linear-gradient(180deg,#fbfdff 0%, #f3f7fb 100%);
+      box-shadow:var(--shadow-soft);
+      min-height:58px;
+    }
+
+    .mini-label{
+      color:var(--muted);
+      font-size:.7rem;
+      margin-bottom:3px;
+      font-weight:800;
+      line-height:1;
+    }
+
+    .mini-value{
+      font-size:.98rem;
+      font-weight:900;
+      line-height:1.02;
+    }
+
+    .summary-block{
+      margin-top:6px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:linear-gradient(180deg,#fbfdff 0%, #f3f7fb 100%);
+      box-shadow:var(--shadow-soft);
+      overflow:hidden;
+    }
+
+    .summary-block-title{
+      padding:7px 10px;
+      border-bottom:1px solid #e7edf5;
+      font-size:.76rem;
+      font-weight:900;
+      background:#f8fbfe;
+    }
+
+    .summary-box-head{
+      padding:6px 10px;
+      border-bottom:1px solid #e6edf5;
+      display:grid;
+      grid-template-columns:1.5fr .8fr 1fr .9fr 1.15fr;
+      gap:6px;
+      font-size:.68rem;
+      font-weight:900;
+      color:var(--muted);
+    }
+
+    .summary-list{
+      max-height:128px;
+      overflow:auto;
+    }
+
+    .summary-row{
+      display:grid;
+      grid-template-columns:1.5fr .8fr 1fr .9fr 1.15fr;
+      gap:6px;
+      padding:6px 10px;
+      border-top:1px solid #edf2f7;
+      font-size:.76rem;
+      align-items:center;
+    }
+
+    .summary-row strong{font-weight:800}
+    .summary-empty{
+      padding:10px;
+      color:var(--muted);
+      font-size:.8rem;
+    }
+
+    .row-actions{
+      display:flex;
+      gap:4px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .mini-btn{
+      min-height:28px;
+      padding:4px 8px;
+      border-radius:10px;
+      border:1px solid var(--line-strong);
+      background:#fff;
+      font:inherit;
+      font-size:.72rem;
+      font-weight:900;
+      cursor:pointer;
+      width:auto;
+    }
+
+    .mini-btn.edit{
+      color:#0f172a;
+    }
+
+    .mini-btn.delete{
+      color:#b91c1c;
+      border-color:#efc7c7;
+      background:#fff7f7;
+    }
+
+    .mini-link-wrap{
+      margin-top:6px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:linear-gradient(180deg,#fbfdff 0%, #f3f7fb 100%);
+      box-shadow:var(--shadow-soft);
+      padding:8px 10px;
+    }
+
+    .mini-link-label{
+      color:var(--muted);
+      font-size:.72rem;
+      margin-bottom:4px;
+      font-weight:800;
+    }
+
+    .mini-link a{
+      color:var(--accent-2);
+      font-weight:900;
+      text-decoration:none;
+      font-size:.82rem;
+    }
+
+    .summary-actions{
+      margin-top:6px;
+    }
+
+    .summary-head-actions{
+      display:flex;
+      width:100%;
+    }
+
+    .summary-head-actions .btn-light{
+      width:100%;
+    }
+
+    .form-grid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:8px 10px;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+    }
+
+    .field.full{grid-column:1 / -1}
+
+    label{
+      font-weight:900;
+      font-size:.86rem;
+      line-height:1.05;
+    }
+
+    .hint{
+      color:var(--muted);
+      font-size:.7rem;
+      line-height:1.15;
+    }
+
+    input, select{
+      width:100%;
+      min-height:var(--tap);
+      border:1px solid var(--line-strong);
+      border-radius:13px;
+      padding:8px 10px;
+      font:inherit;
+      font-size:.88rem;
+      background:#fff;
+      outline:none;
+      appearance:none;
+    }
+
+    select{
+      background-image:
+        linear-gradient(45deg, transparent 50%, #334155 50%),
+        linear-gradient(135deg, #334155 50%, transparent 50%);
+      background-position:
+        calc(100% - 16px) calc(50% - 3px),
+        calc(100% - 10px) calc(50% - 3px);
+      background-size:6px 6px, 6px 6px;
+      background-repeat:no-repeat;
+      padding-right:34px;
+    }
+
+    input:focus, select:focus{
+      border-color:#63c6be;
+      box-shadow:0 0 0 4px rgba(99,198,190,.12);
+    }
+
+    .chip-group{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0,1fr));
+      gap:6px;
+    }
+
+    .chip-option{
+      position:relative;
+      min-width:0;
+    }
+
+    .chip-option input{
+      position:absolute;
+      inset:0;
+      opacity:0;
+      pointer-events:none;
+    }
+
+    .chip{
+      min-height:40px;
+      border:1px solid var(--line-strong);
+      border-radius:12px;
+      background:#fff;
+      padding:6px 8px;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      cursor:pointer;
+      font-weight:800;
+      font-size:.8rem;
+    }
+
+    .chip-indicator{
+      width:15px;
+      height:15px;
+      border-radius:5px;
+      border:2px solid #9fb1c5;
+      background:#fff;
+      flex:0 0 15px;
+    }
+
+    .chip-option input:checked + .chip{
+      border-color:#63c6be;
+      background:linear-gradient(180deg,#f6fffd 0%, #edf9f7 100%);
+      box-shadow:0 0 0 4px rgba(99,198,190,.1);
+    }
+
+    .chip-option input:checked + .chip .chip-indicator{
+      border-color:#3fa79f;
+      background:#3fa79f;
+    }
+
+    .chip-option.expense input:checked + .chip{
+      border-color:#f0a0a0;
+      background:linear-gradient(180deg,#fff7f7 0%, #fff1f1 100%);
+      box-shadow:0 0 0 4px rgba(185,28,28,.07);
+    }
+
+    .chip-option.expense input:checked + .chip .chip-indicator{
+      border-color:#d45757;
+      background:#d45757;
+    }
+
+    .entry-mode-switch{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:6px;
+      margin-bottom:10px;
+    }
+
+    .entry-mode-btn{
+      min-height:36px;
+      border:1px solid var(--line-strong);
+      border-radius:12px;
+      background:#fff;
+      color:var(--text);
+      font-weight:900;
+      cursor:pointer;
+      transition:.18s ease;
+      font-size:.82rem;
+    }
+
+    .entry-mode-btn.active{
+      background:linear-gradient(135deg,var(--primary) 0%, var(--primary-2) 100%);
+      color:#fff;
+      border-color:transparent;
+    }
+
+    .batch-card{
+      margin-top:2px;
+      border:1px dashed var(--line-strong);
+      border-radius:16px;
+      background:linear-gradient(180deg,#fcfeff 0%, #f5f8fc 100%);
+      padding:10px;
+    }
+
+    .batch-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:8px;
+    }
+
+    .batch-title{
+      font-size:.9rem;
+      font-weight:900;
+      line-height:1.1;
+    }
+
+    .batch-hint{
+      color:var(--muted);
+      font-size:.74rem;
+      line-height:1.2;
+    }
+
+    .batch-list{
+      display:grid;
+      gap:8px;
+    }
+
+    .batch-row{
+      display:grid;
+      grid-template-columns:minmax(88px,.32fr) minmax(0,1fr) 42px;
+      gap:8px;
+      align-items:end;
+      padding:8px;
+      border:1px solid #dde7f1;
+      border-radius:14px;
+      background:#fff;
+      box-shadow:var(--shadow-soft);
+    }
+
+    .batch-row .field{
+      gap:4px;
+    }
+
+    .batch-row-number{
+      font-size:.72rem;
+      font-weight:900;
+      color:var(--muted);
+      margin-bottom:2px;
+    }
+
+    .batch-row-remove{
+      min-height:42px;
+      width:42px;
+      padding:0;
+      border-radius:12px;
+      border:1px solid #efc7c7;
+      background:#fff7f7;
+      color:#b91c1c;
+      font-size:1rem;
+      font-weight:900;
+    }
+
+    .batch-footer{
+      display:flex;
+      justify-content:flex-start;
+      margin-top:8px;
+    }
+
+    .actions{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:8px;
+      margin-top:8px;
+    }
+
+    button{
+      min-height:42px;
+      border:none;
+      border-radius:14px;
+      padding:8px 12px;
+      font:inherit;
+      font-weight:900;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      width:100%;
+      font-size:.84rem;
+    }
+
+    .btn-primary{
+      background:linear-gradient(135deg,var(--accent) 0%, #7dbcb7 100%);
+      color:#fff;
+    }
+
+    .btn-danger{
+      background:linear-gradient(135deg,#d66d6d 0%, #c95757 100%);
+      color:#fff;
+    }
+
+    .btn-dark{
+      background:linear-gradient(135deg,var(--dark-btn) 0%, var(--dark-btn-2) 100%);
+      color:#fff;
+    }
+
+    .btn-light{
+      background:#fff;
+      color:var(--text);
+      border:1px solid var(--line);
+      min-height:38px;
+      border-radius:14px;
+      padding:8px 10px;
+      width:100%;
+    }
+
+    .status{
+      margin-top:8px;
+      display:none;
+      border-radius:12px;
+      padding:9px 10px;
+      font-weight:800;
+      line-height:1.2;
+      border:1px solid transparent;
+      font-size:.78rem;
+    }
+
+    .status.show{display:block}
+    .status.success{background:var(--success-bg);color:var(--success);border-color:var(--success-line)}
+    .status.error{background:var(--danger-bg);color:var(--danger2);border-color:var(--danger-line)}
+    .status.info{background:var(--info-bg);color:var(--info);border-color:var(--info-line)}
+
+    .loading-bar{
+      height:3px;
+      width:100%;
+      overflow:hidden;
+      border-radius:999px;
+      background:#e2e8f0;
+      display:none;
+      margin-top:8px;
+    }
+
+    .loading-bar.show{display:block}
+    .loading-bar::after{
+      content:"";
+      display:block;
+      width:38%;
+      height:100%;
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      animation:slide 1s infinite ease-in-out;
+      border-radius:999px;
+    }
+
+    @keyframes slide{
+      0%{transform:translateX(-120%)}
+      100%{transform:translateX(340%)}
+    }
+
+    .sticky-summary{position:sticky;top:6px}
+    .hidden{display:none !important}
+
+    @media (max-width: 860px){
+      .grid{grid-template-columns:1fr}
+      .sticky-summary{position:static}
+      .summary-list{max-height:none}
+    }
+
+    @media (max-width: 720px){
+      .app{max-width:var(--mobile-max);padding:6px 8px 12px}
+      .hero{padding:8px 10px;border-radius:16px}
+      .hero-badge{width:100%;justify-content:center}
+      .form-grid{grid-template-columns:1fr}
+      .summary{grid-template-columns:1fr 1fr 1fr}
+      .chip-group{grid-template-columns:1fr 1fr}
+      .card-head,.card-body{padding:10px 12px}
+    }
+
+    @media (max-width: 520px){
+      .summary{grid-template-columns:1fr}
+      .chip-group{grid-template-columns:1fr}
+      .summary-box-head,.summary-row{grid-template-columns:1fr}
+      .summary-box-head{display:none}
+      .summary-row>div::before{
+        content:attr(data-label);
+        display:block;
+        font-size:.68rem;
+        font-weight:900;
+        color:var(--muted);
+        margin-bottom:1px;
+      }
+      .row-actions{
+        justify-content:flex-start;
+      }
+      .batch-row{
+        grid-template-columns:1fr;
+      }
+      .batch-row-remove{
+        width:100%;
+      }
+    }
+  @media print{@page{size:A4 portrait;margin:12mm 10mm}html,body,.app-shell,.page-body,.card,.mini,.summary-block,.summary-list{background:#fff!important}.topbar-shell,.bottom-nav,.loading-bar,.tabs,#btnRefreshCaixa,.summary-head-actions,.actions{display:none!important}.print-head{display:block!important}.card,.mini,.summary-block{box-shadow:none!important;border-color:#d9dee8!important}}.print-head{display:none;padding:0 0 8px;margin:0 0 12px;border-bottom:2px solid #00416B}.print-head h1{margin:0;font-size:16px;color:#00416B}.print-head p{margin:4px 0 0;color:#5a6d82;font-size:11px;font-weight:700}</style>
+<link rel="manifest" href="/caixa/manifest.webmanifest"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/caixa/favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/pwa/caixa/favicon-16.png"/>
+<link rel="apple-touch-icon" href="/assets/pwa/caixa/apple-touch-icon.png"/>
+<meta name="application-name" content="AGF José Bonifácio"/>
+<meta name="apple-mobile-web-app-title" content="AGF José Bonifácio"/>
+
+
+<link rel="stylesheet" href="/shared/ui/agf-ui.css"/>
+<style>.agf-standalone-caixa .bottom-nav{display:none!important}.agf-standalone-caixa .page-body{padding-bottom:18px!important}.agf-standalone-caixa .topbar-shell{position:sticky;top:0;z-index:50}</style>
+<script src="/shared/auth/agf-auth-config.js"></script><script src="/shared/auth/agf-auth-client.js"></script><script>window.AGF_ACCESS={roles:['admin','manager','user'],app:'caixa'};</script><script src="/shared/auth/agf-route-guard.js"></script>
+<link rel="icon" href="/assets/pwa/caixa/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/caixa/favicon-32.png"/>
+<link rel="apple-touch-icon" href="/assets/pwa/caixa/apple-touch-icon.png"/>
+</head>
+<body class="agf-standalone-caixa">
+<div class="app-shell">
+<header class="topbar-shell">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo-circle agf-standard-brand-tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" aria-hidden="true"><path fill="#fed200" d="M 7.38 11.98 L 16.57 11.98 L 15.85 13.07 L 14.27 15 L 13.07 16.57 L 11.98 18.02 L 12.22 18.51 L 13.91 20.68 L 16.57 24.07 L 16.57 24.32 L 7.62 24.32 L 6.65 23.83 L 5.32 22.14 L 3.99 20.45 L 2.42 18.39 L 2.54 17.66 L 3.87 15.97 L 5.32 14.15 L 6.53 12.58 L 7.14 12.1 Z"/><path fill="#007cc3" d="M 13.67 5.68 L 22.5 5.68 L 23.47 6.05 L 24.43 7.14 L 26.01 9.2 L 27.34 10.89 L 27.82 11.49 L 27.82 12.22 L 26.73 13.67 L 25.4 15.36 L 23.71 17.54 L 22.86 18.02 L 13.79 18.02 L 14.27 17.18 L 15.48 15.73 L 16.7 14.15 L 18.02 12.46 L 18.39 11.86 L 16.93 10.04 L 15.73 8.47 L 14.39 6.77 Z"/><path fill="#003a66" d="M 13.67 5.68 L 21.53 5.68 L 22.14 6.17 L 22.26 7.02 L 21.29 8.35 L 19.96 10.04 L 18.63 11.73 L 18.27 11.73 L 16.7 9.68 L 15.24 7.86 L 13.67 5.8 Z"/><path fill="#d69e00" d="M 11.73 18.14 L 12.34 18.63 L 13.79 20.57 L 15.36 22.5 L 16.57 24.07 L 16.57 24.32 L 8.71 24.32 L 8.11 23.71 L 8.11 22.98 L 8.83 21.89 L 10.28 20.08 Z"/></svg></div>
+      <div class="topbar-title"><h1>Caixa Financeiro</h1><p>AGF JOSÉ BONIFÁCIO</p></div>
+    </div>
+    <div class="topbar-right">
+      <a class="icon-circle" href="/agf/" aria-label="Portal interno" title="Portal interno"><span class="mi">home</span></a>
+      <button class="icon-circle" aria-label="Imprimir" id="btnPrintCaixa"><span class="mi">print</span></button>
+      <button class="icon-circle" id="btnRefreshCaixa" aria-label="Atualizar"><span class="mi">refresh</span></button>
+    </div>
+  </div>
+</header>
+<main class="page-body"><section class="print-head" id="printHeadCaixa"><h1>Caixa Financeiro</h1><p id="printMetaCaixa">—</p></section>
+<div class="app">
+
+
+    <div class="grid">
+      <section class="card">
+        <div class="card-head">
+          <h2 class="card-title">
+            <span class="material-symbols-rounded">edit_note</span>
+            Novo lançamento
+          </h2>
+
+          <div class="tabs">
+            <button type="button" class="tab-btn active" id="tabReceitas">Receitas</button>
+            <button type="button" class="tab-btn" id="tabDespesas">Despesas</button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <form id="cashForm" novalidate>
+            <input type="hidden" id="entryId">
+
+            <div class="entry-mode-switch hidden" id="receitaEntryModeWrap">
+              <button type="button" class="entry-mode-btn active" id="btnSingleEntryMode">Lançamento único</button>
+              <button type="button" class="entry-mode-btn" id="btnBatchEntryMode">Lançamento em lote</button>
+            </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <label for="dateIso">Data</label>
+                <input type="date" id="dateIso" name="dateIso" required>
+                <div class="hint">Vem com a data de hoje, mas pode ser alterada.</div>
+              </div>
+
+              <div id="singleEntryFields" class="full" style="display:contents;">
+                <div class="field">
+                  <label for="value">Valor</label>
+                  <input type="text" id="value" name="value" inputmode="decimal" placeholder="0,00" required>
+                  <div class="hint">Aceita vírgula ou ponto. Ex.: 25,90</div>
+                </div>
+
+                <div class="field full">
+                  <label for="description">Descrição</label>
+                  <input type="text" id="description" name="description" placeholder="Opcional">
+                  <div class="hint" id="descriptionHint">
+                    Se ficar vazio, a receita recebe automaticamente:
+                    <strong>Venda Metro + Forma de Pagamento</strong>.
+                  </div>
+                </div>
+              </div>
+
+              <div class="field full" id="receitasPaymentField">
+                <label>Forma de Pagamento</label>
+                <div class="chip-group" id="paymentGroup"></div>
+              </div>
+
+              <div class="field" id="receitasAccountField">
+                <label for="account">Conta</label>
+                <select id="account" name="account" required></select>
+              </div>
+
+              <div class="field full hidden" id="batchReceitasField">
+                <div class="batch-card">
+                  <div class="batch-head">
+                    <div>
+                      <div class="batch-title">Receitas em lote</div>
+                      <div class="batch-hint">Preencha várias linhas. Cada uma será salva separadamente na planilha com a mesma forma de pagamento e a mesma conta.</div>
+                    </div>
+                  </div>
+
+                  <div class="batch-list" id="batchRows"></div>
+
+                  <div class="batch-footer">
+                    <button type="button" class="btn-light" id="btnAddBatchRow">
+                      <span class="material-symbols-rounded">add</span>
+                      Adicionar linha
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field full hidden" id="despesasCategoryField">
+                <label>Categoria</label>
+                <div class="chip-group" id="expenseCategoryGroup"></div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button type="submit" class="btn-primary" id="btnSave">
+                <span class="material-symbols-rounded">save</span>
+                SALVAR RECEITA
+              </button>
+            </div>
+          </form>
+
+          <div class="loading-bar" id="loadingBar"></div>
+          <div class="status" id="statusBox"></div>
+        </div>
+      </section>
+
+      <aside class="sticky-summary">
+        <section class="card">
+          <div class="card-head">
+            <h2 class="card-title">
+              <span class="material-symbols-rounded">finance_mode</span>
+              Resumo do dia
+            </h2>
+
+            <div class="summary-head-actions">
+              <button type="button" class="btn-light" id="btnRefresh">
+                <span class="material-symbols-rounded">refresh</span>
+                Atualizar resumo
+              </button>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="summary">
+              <div class="mini">
+                <div class="mini-label">Data</div>
+                <div class="mini-value" id="sumDate">--/--/----</div>
+              </div>
+
+              <div class="mini">
+                <div class="mini-label">Receitas</div>
+                <div class="mini-value" id="sumReceitas">R$ 0,00</div>
+              </div>
+
+              <div class="mini">
+                <div class="mini-label">Despesas</div>
+                <div class="mini-value" id="sumDespesas">R$ 0,00</div>
+              </div>
+
+              <div class="mini">
+                <div class="mini-label">Saldo</div>
+                <div class="mini-value" id="sumSaldo">R$ 0,00</div>
+              </div>
+
+              <div class="mini">
+                <div class="mini-label">Qtde Receitas</div>
+                <div class="mini-value" id="sumCountReceitas">0</div>
+              </div>
+
+              <div class="mini">
+                <div class="mini-label">Qtde Despesas</div>
+                <div class="mini-value" id="sumCountDespesas">0</div>
+              </div>
+            </div>
+
+            <div class="summary-block">
+              <div class="summary-block-title">Receitas do dia</div>
+              <div class="summary-box-head">
+                <div>Descrição</div>
+                <div>Valor</div>
+                <div>Pagamento</div>
+                <div>Caixa</div>
+                <div>Ações</div>
+              </div>
+              <div class="summary-list" id="entriesReceitasList">
+                <div class="summary-empty">Ainda não há receitas nesta data.</div>
+              </div>
+            </div>
+
+            <div class="summary-block">
+              <div class="summary-block-title">Despesas do dia</div>
+              <div class="summary-box-head">
+                <div>Descrição</div>
+                <div>Valor</div>
+                <div>Pagamento</div>
+                <div>Caixa</div>
+                <div>Ações</div>
+              </div>
+              <div class="summary-list" id="entriesDespesasList">
+                <div class="summary-empty">Ainda não há despesas nesta data.</div>
+              </div>
+            </div>
+
+            <div class="summary-actions">
+              <button type="button" class="btn-dark" id="btnCloseCash">
+                <span class="material-symbols-rounded">mail</span>
+                FECHAR CAIXA
+              </button>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  </main>
+
+<nav class="bottom-nav" aria-label="Navegação principal"><div class="bottom-nav-inner">
+  <a class="bnav-item" href="/agf/"><div class="bnav-pill"><span class="mi">home</span></div><span class="bnav-label">Home</span></a>
+  <a class="bnav-item" href="/agf/"><div class="bnav-pill"><span class="mi">explore</span></div><span class="bnav-label">Prospects</span></a>
+  <a class="bnav-item" href="/agf/"><div class="bnav-pill"><span class="mi">badge</span></div><span class="bnav-label">CRM</span></a>
+  <a class="bnav-item" href="/agf/"><div class="bnav-pill"><span class="mi">event</span></div><span class="bnav-label">Agenda</span></a>
+  <a class="bnav-item is-active" href="/agf/"><div class="bnav-pill"><span class="mi">more_horiz</span></div><span class="bnav-label">Mais</span></a>
+</div></nav>
+</div><!-- /app-shell -->
+
+<script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMqi53llwnIqIXskGgsVTZtJcRb-ZTWLd8UUhUKDc9ccXIZJwBgcnxKGhbXkVMEWDsVQ/exec';
+
+    const els = {
+      form: document.getElementById('cashForm'),
+      entryId: document.getElementById('entryId'),
+      dateIso: document.getElementById('dateIso'),
+      description: document.getElementById('description'),
+      descriptionHint: document.getElementById('descriptionHint'),
+      value: document.getElementById('value'),
+      account: document.getElementById('account'),
+      paymentGroup: document.getElementById('paymentGroup'),
+      expenseCategoryGroup: document.getElementById('expenseCategoryGroup'),
+      receitasPaymentField: document.getElementById('receitasPaymentField'),
+      receitasAccountField: document.getElementById('receitasAccountField'),
+      despesasCategoryField: document.getElementById('despesasCategoryField'),
+      receitaEntryModeWrap: document.getElementById('receitaEntryModeWrap'),
+      btnSingleEntryMode: document.getElementById('btnSingleEntryMode'),
+      btnBatchEntryMode: document.getElementById('btnBatchEntryMode'),
+      singleEntryFields: document.getElementById('singleEntryFields'),
+      batchReceitasField: document.getElementById('batchReceitasField'),
+      batchRows: document.getElementById('batchRows'),
+      btnAddBatchRow: document.getElementById('btnAddBatchRow'),
+
+      tabReceitas: document.getElementById('tabReceitas'),
+      tabDespesas: document.getElementById('tabDespesas'),
+
+      btnSave: document.getElementById('btnSave'),
+      btnCloseCash: document.getElementById('btnCloseCash'),
+      btnRefresh: document.getElementById('btnRefresh'),
+      statusBox: document.getElementById('statusBox'),
+      loadingBar: document.getElementById('loadingBar'),
+
+      heroDate: document.getElementById('heroDate'),
+      sumDate: document.getElementById('sumDate'),
+      sumReceitas: document.getElementById('sumReceitas'),
+      sumDespesas: document.getElementById('sumDespesas'),
+      sumSaldo: document.getElementById('sumSaldo'),
+      sumCountReceitas: document.getElementById('sumCountReceitas'),
+      sumCountDespesas: document.getElementById('sumCountDespesas'),
+
+      entriesReceitasList: document.getElementById('entriesReceitasList'),
+      entriesDespesasList: document.getElementById('entriesDespesasList')
+    };
+
+    let currentMode = 'receitas';
+    let currentReceitaEntryMode = 'single';
+
+    document.addEventListener('DOMContentLoaded', boot);
+function printCaixa(){ var dt=els.dateIso.value||getLocalTodayIso(); document.getElementById('printMetaCaixa').textContent='Data: '+isoToBr(dt); document.title=(dt+'_Caixa_Financeiro.pdf').replace(/\//g,'-'); setTimeout(()=>window.print(),80);} 
+
+    function getLocalTodayIso() {
+      const now = new Date();
+      const tzOffset = now.getTimezoneOffset() * 60000;
+      return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10);
+    }
+
+    function setHeroDate(value) {
+      if (els.heroDate) {
+        els.heroDate.textContent = value || '--/--/----';
+      }
+    }
+
+    async function api(data) {
+      const tryPost = async () => {
+        const res = await fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data) });
+        if (!res.ok) throw new Error('Falha na comunicação com a API.');
+        return await res.json();
+      };
+      try { return await tryPost(); } catch (e) {
+        const url = new URL(SCRIPT_URL); Object.entries(data||{}).forEach(([k,v])=> url.searchParams.set(k, typeof v==='object'?JSON.stringify(v):v));
+        const res = await fetch(url.toString());
+        if (!res.ok) throw e;
+        return await res.json();
+      }
+    }
+
+    async function boot() {
+      bindEvents();
+
+      els.dateIso.value = getLocalTodayIso();
+      setHeroDate(isoToBr(els.dateIso.value));
+
+      setBusy(true);
+
+      try {
+        const res = await api({ action: 'init' });
+
+        const initOk = !!(res && res.ok);
+        const paymentOptions=((initOk && res.paymentOptions)||['Dinheiro','PIX','Cartão de débito','Cartão de crédito']);
+        const expenseOptions=((initOk && res.expenseCategoryOptions)||['Copa','Escritório','Outros']);
+        const accountOptions=((initOk && res.accountOptions)||['Caixa','InfinitePay','Santander','BTG']);
+        renderChipOptions(els.paymentGroup, paymentOptions, 'paymentMethod');
+        renderChipOptions(els.expenseCategoryGroup, expenseOptions, 'expenseCategory', true);
+        fillSelect(els.account, accountOptions);
+
+        const initialDate = (res && res.today) || getLocalTodayIso();
+        els.dateIso.value = initialDate;
+        setHeroDate(isoToBr(initialDate));
+
+        resetBatchRows();
+        updateModeUI();
+        updateCombinedSummaryUI((res && res.summary) || buildEmptySummary(initialDate));
+        showStatus(initOk ? 'App carregado com sucesso.' : 'App carregado com opções padrão.', initOk ? 'success' : 'warning');
+      } catch (err) {
+        showStatus(err.message || 'Erro ao carregar o app.', 'error');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function bindEvents() {
+      els.form.addEventListener('submit', onSave);
+      els.btnCloseCash.addEventListener('click', onCloseCash);
+      els.btnRefresh.addEventListener('click', refreshSummary);
+
+      els.tabReceitas.addEventListener('click', () => setMode('receitas'));
+      els.tabDespesas.addEventListener('click', () => setMode('despesas'));
+      els.btnSingleEntryMode.addEventListener('click', () => setReceitaEntryMode('single'));
+      els.btnBatchEntryMode.addEventListener('click', () => setReceitaEntryMode('batch'));
+      els.btnAddBatchRow.addEventListener('click', () => addBatchRow());
+
+      els.dateIso.addEventListener('change', async () => {
+        const iso = els.dateIso.value || getLocalTodayIso();
+        setHeroDate(isoToBr(iso));
+        clearEditState(false);
+        await refreshSummary();
+      });
+
+      els.value.addEventListener('blur', normalizeValueInput);
+      els.paymentGroup.addEventListener('change', onSingleChipChange);
+      els.expenseCategoryGroup.addEventListener('change', onSingleChipChange);
+      els.batchRows.addEventListener('click', onBatchRowsClick);
+      els.batchRows.addEventListener('focusout', onBatchRowsFocusOut);
+
+      els.entriesReceitasList.addEventListener('click', onEntriesActionClick);
+      els.entriesDespesasList.addEventListener('click', onEntriesActionClick);
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      if (mode === 'despesas') {
+        currentReceitaEntryMode = 'single';
+      }
+      updateModeUI();
+      clearFormKeepDate();
+    }
+
+    function setReceitaEntryMode(mode) {
+      if (currentMode !== 'receitas') return;
+      if (els.entryId.value && mode === 'batch') return;
+      currentReceitaEntryMode = mode === 'batch' ? 'batch' : 'single';
+      updateModeUI();
+
+      if (currentReceitaEntryMode === 'batch') {
+        resetBatchRows();
+        const firstValue = els.batchRows.querySelector('.batch-value');
+        if (firstValue) firstValue.focus();
+      } else {
+        els.description.focus();
+      }
+    }
+
+    function updateModeUI() {
+      const isReceitas = currentMode === 'receitas';
+      const editing = !!els.entryId.value;
+      const isBatchReceitas = isReceitas && !editing && currentReceitaEntryMode === 'batch';
+
+      if (editing && currentReceitaEntryMode === 'batch') {
+        currentReceitaEntryMode = 'single';
+      }
+
+      els.tabReceitas.classList.toggle('active', isReceitas);
+      els.tabDespesas.classList.toggle('active', !isReceitas);
+
+      els.receitasPaymentField.classList.toggle('hidden', !isReceitas);
+      els.receitasAccountField.classList.toggle('hidden', !isReceitas);
+      els.despesasCategoryField.classList.toggle('hidden', isReceitas);
+      els.receitaEntryModeWrap.classList.toggle('hidden', !isReceitas || editing);
+
+      els.btnSingleEntryMode.classList.toggle('active', !isBatchReceitas);
+      els.btnBatchEntryMode.classList.toggle('active', isBatchReceitas);
+
+      els.singleEntryFields.classList.toggle('hidden', isBatchReceitas);
+      els.batchReceitasField.classList.toggle('hidden', !isBatchReceitas);
+
+      if (isReceitas) {
+        els.btnSave.className = 'btn-primary';
+        els.btnSave.innerHTML = editing
+          ? '<span class="material-symbols-rounded">edit</span>ATUALIZAR RECEITA'
+          : (isBatchReceitas
+            ? '<span class="material-symbols-rounded">playlist_add_check</span>SALVAR LOTE DE RECEITAS'
+            : '<span class="material-symbols-rounded">save</span>SALVAR RECEITA');
+
+        els.descriptionHint.innerHTML =
+          'Se ficar vazio, a receita recebe automaticamente: <strong>Venda Metro + Forma de Pagamento</strong>.';
+      } else {
+        els.btnSave.className = 'btn-danger';
+        els.btnSave.innerHTML = editing
+          ? '<span class="material-symbols-rounded">edit</span>ATUALIZAR DESPESA'
+          : '<span class="material-symbols-rounded">save</span>SALVAR DESPESA';
+
+        els.descriptionHint.innerHTML =
+          'Se ficar vazio, a despesa recebe automaticamente: <strong>Despesa administrativa</strong>.';
+      }
+    }
+
+    function renderChipOptions(container, options, name, isExpense = false) {
+      container.innerHTML = options.map((opt, index) => {
+        const safe = escapeHtml(opt);
+        const id = `${name}_${index}`;
+        return `
+          <label class="chip-option ${isExpense ? 'expense' : ''}" for="${id}">
+            <input type="checkbox" id="${id}" name="${name}" value="${safe}">
+            <span class="chip">
+              <span class="chip-indicator"></span>
+              <span>${safe}</span>
+            </span>
+          </label>
+        `;
+      }).join('');
+    }
+
+    function onSingleChipChange(event) {
+      const target = event.target;
+      if (!target || target.type !== 'checkbox') return;
+
+      const wrapper = target.closest('.field')?.querySelector('.chip-group') || target.closest('.chip-group');
+      if (!wrapper) return;
+
+      wrapper.querySelectorAll('input[type="checkbox"]').forEach(input => {
+        if (input !== target) input.checked = false;
+      });
+    }
+
+    function getCheckedValue(container) {
+      const checked = container.querySelector('input[type="checkbox"]:checked');
+      return checked ? checked.value : '';
+    }
+
+    function setCheckedValue(container, value) {
+      container.querySelectorAll('input[type="checkbox"]').forEach(input => {
+        input.checked = input.value === value;
+      });
+    }
+
+    function fillSelect(selectEl, options) {
+      selectEl.innerHTML =
+        '<option value="">Selecione</option>' +
+        options.map(opt => `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`).join('');
+    }
+
+    async function onSave(event) {
+      event.preventDefault();
+
+      if (currentMode === 'receitas' && !els.entryId.value && currentReceitaEntryMode === 'batch') {
+        await saveBatchReceitas();
+        return;
+      }
+
+      const payload = collectFormData();
+      const validation = validateFormPayload(payload);
+
+      if (!validation.ok) {
+        showStatus(validation.message, 'error');
+        return;
+      }
+
+      setBusy(true);
+
+      try {
+        const res = await api({
+          action: 'save',
+          payload
+        });
+
+        if (!res || !res.ok) {
+          throw new Error(res?.error || 'Falha ao salvar.');
+        }
+
+        updateCombinedSummaryUI(res);
+        clearFormKeepDate();
+        showStatus(payload.entryId
+          ? (currentMode === 'receitas' ? 'Receita atualizada com sucesso.' : 'Despesa atualizada com sucesso.')
+          : (currentMode === 'receitas' ? 'Receita salva com sucesso.' : 'Despesa salva com sucesso.'), 'success');
+      } catch (err) {
+        showStatus(err.message || 'Erro ao salvar.', 'error');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function createBatchRowMarkup(index, data = {}) {
+      return `
+        <div class="batch-row" data-row-index="${index}">
+          <div class="field">
+            <div class="batch-row-number">Linha ${index}</div>
+            <input type="text" class="batch-value" inputmode="decimal" placeholder="0,00" value="${escapeHtml(data.value || '')}">
+          </div>
+          <div class="field">
+            <div class="batch-row-number">Descrição opcional</div>
+            <input type="text" class="batch-description" placeholder="Opcional" value="${escapeHtml(data.description || '')}">
+          </div>
+          <button type="button" class="batch-row-remove" data-action="remove-batch-row" title="Excluir linha">×</button>
+        </div>
+      `;
+    }
+
+    function rebuildBatchRowsNumbering() {
+      els.batchRows.querySelectorAll('.batch-row').forEach((row, idx) => {
+        row.dataset.rowIndex = String(idx + 1);
+        const label = row.querySelector('.batch-row-number');
+        if (label) label.textContent = `Linha ${idx + 1}`;
+      });
+    }
+
+    function addBatchRow(data = {}) {
+      const nextIndex = els.batchRows.querySelectorAll('.batch-row').length + 1;
+      els.batchRows.insertAdjacentHTML('beforeend', createBatchRowMarkup(nextIndex, data));
+      rebuildBatchRowsNumbering();
+    }
+
+    function resetBatchRows() {
+      els.batchRows.innerHTML = '';
+      addBatchRow();
+      addBatchRow();
+    }
+
+    function onBatchRowsClick(event) {
+      const btn = event.target.closest('[data-action="remove-batch-row"]');
+      if (!btn) return;
+
+      const rows = els.batchRows.querySelectorAll('.batch-row');
+      if (rows.length <= 1) {
+        const row = btn.closest('.batch-row');
+        if (!row) return;
+        const value = row.querySelector('.batch-value');
+        const description = row.querySelector('.batch-description');
+        if (value) value.value = '';
+        if (description) description.value = '';
+        if (value) value.focus();
+        return;
+      }
+
+      btn.closest('.batch-row')?.remove();
+      rebuildBatchRowsNumbering();
+    }
+
+    function onBatchRowsFocusOut(event) {
+      if (event.target.classList.contains('batch-value')) {
+        const n = parseBrazilianNumber(event.target.value);
+        event.target.value = n > 0 ? formatMoneyBR(n) : '';
+      }
+    }
+
+    function collectBatchRows() {
+      return Array.from(els.batchRows.querySelectorAll('.batch-row')).map((row, index) => ({
+        rowNumber: index + 1,
+        value: row.querySelector('.batch-value')?.value || '',
+        description: row.querySelector('.batch-description')?.value || ''
+      }));
+    }
+
+    function validateBatchReceitas(commonPayload, rows) {
+      if (!commonPayload.date) return { ok: false, message: 'Informe a data.' };
+      if (!commonPayload.payment) return { ok: false, message: 'Selecione a forma de pagamento.' };
+      if (!commonPayload.account) return { ok: false, message: 'Selecione a conta.' };
+
+      const filledRows = [];
+      for (const row of rows) {
+        const hasValue = !!String(row.value || '').trim();
+        const hasDescription = !!String(row.description || '').trim();
+
+        if (!hasValue && !hasDescription) continue;
+        if (!hasValue) {
+          return { ok: false, message: `Informe o valor da linha ${row.rowNumber}.` };
+        }
+
+        const numberValue = parseBrazilianNumber(row.value);
+        if (numberValue <= 0) {
+          return { ok: false, message: `Informe um valor maior que zero na linha ${row.rowNumber}.` };
+        }
+
+        filledRows.push({
+          description: row.description,
+          value: formatMoneyBR(numberValue)
+        });
+      }
+
+      if (!filledRows.length) {
+        return { ok: false, message: 'Preencha ao menos uma linha no lote.' };
+      }
+
+      return { ok: true, rows: filledRows };
+    }
+
+    async function saveBatchReceitas() {
+      const commonPayload = {
+        mode: 'receitas',
+        date: els.dateIso.value,
+        payment: getCheckedValue(els.paymentGroup),
+        account: els.account.value
+      };
+
+      const validation = validateBatchReceitas(commonPayload, collectBatchRows());
+      if (!validation.ok) {
+        showStatus(validation.message, 'error');
+        return;
+      }
+
+      setBusy(true);
+
+      try {
+        let lastResponse = null;
+
+        for (const row of validation.rows) {
+          const payload = {
+            entryId: '',
+            mode: 'receitas',
+            date: commonPayload.date,
+            description: row.description,
+            value: row.value,
+            payment: commonPayload.payment,
+            account: commonPayload.account,
+            expenseCategory: ''
+          };
+
+          const res = await api({
+            action: 'save',
+            payload
+          });
+
+          if (!res || !res.ok) {
+            throw new Error(res?.error || 'Falha ao salvar o lote.');
+          }
+
+          lastResponse = res;
+        }
+
+        if (lastResponse) {
+          updateCombinedSummaryUI(lastResponse);
+        } else {
+          await refreshSummary();
+        }
+
+        resetBatchRows();
+        showStatus(`${validation.rows.length} receita(s) salvas com sucesso.`, 'success');
+      } catch (err) {
+        showStatus(err.message || 'Erro ao salvar lote.', 'error');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function onCloseCash() {
+      const dateIso = els.dateIso.value;
+
+      if (!dateIso) {
+        showStatus('Selecione uma data válida antes de fechar o caixa.', 'error');
+        return;
+      }
+
+      const confirmed = window.confirm(
+        'Deseja fechar o caixa desta data e enviar as duas planilhas por e-mail?'
+      );
+
+      if (!confirmed) return;
+
+      setBusy(true);
+
+      try {
+        const res = await api({
+          action: 'close',
+          date: dateIso
+        });
+
+        if (!res || !res.ok) {
+          throw new Error(res?.error || 'Falha ao fechar o caixa.');
+        }
+
+        updateCombinedSummaryUI(res);
+        showStatus('Caixa fechado e e-mail enviado com sucesso.', 'success');
+      } catch (err) {
+        showStatus(err.message || 'Erro ao fechar o caixa.', 'error');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function refreshSummary() {
+      const dateIso = els.dateIso.value || getLocalTodayIso();
+
+      setBusy(true);
+
+      try {
+        const res = await api({
+          action: 'summary',
+          date: dateIso
+        });
+
+        if (!res || !res.ok) {
+          throw new Error(res?.error || 'Falha ao atualizar resumo.');
+        }
+
+        updateCombinedSummaryUI(res);
+      } catch (err) {
+        showStatus(err.message || 'Erro ao atualizar resumo.', 'error');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function collectFormData() {
+      return {
+        entryId: els.entryId.value,
+        mode: currentMode,
+        date: els.dateIso.value,
+        description: els.description.value,
+        value: els.value.value,
+        payment: getCheckedValue(els.paymentGroup),
+        account: els.account.value,
+        expenseCategory: getCheckedValue(els.expenseCategoryGroup)
+      };
+    }
+
+    function validateFormPayload(payload) {
+      if (!payload.date) return { ok: false, message: 'Informe a data.' };
+
+      const numberValue = parseBrazilianNumber(payload.value);
+      if (!payload.value || numberValue <= 0) {
+        return { ok: false, message: 'Informe um valor maior que zero.' };
+      }
+
+      if (payload.mode === 'receitas') {
+        if (!payload.payment) return { ok: false, message: 'Selecione a forma de pagamento.' };
+        if (!payload.account) return { ok: false, message: 'Selecione a conta.' };
+      }
+
+      if (payload.mode === 'despesas') {
+        if (!payload.expenseCategory) return { ok: false, message: 'Selecione a categoria da despesa.' };
+      }
+
+      return { ok: true };
+    }
+
+    function clearFormKeepDate() {
+      els.description.value = '';
+      els.value.value = '';
+      els.account.value = '';
+      els.entryId.value = '';
+
+      els.paymentGroup.querySelectorAll('input[type="checkbox"]').forEach(input => input.checked = false);
+      els.expenseCategoryGroup.querySelectorAll('input[type="checkbox"]').forEach(input => input.checked = false);
+      resetBatchRows();
+
+      updateModeUI();
+
+      if (currentMode === 'receitas' && currentReceitaEntryMode === 'batch') {
+        const firstValue = els.batchRows.querySelector('.batch-value');
+        if (firstValue) firstValue.focus();
+        return;
+      }
+
+      els.description.focus();
+    }
+
+    function clearEditState(keepForm = true) {
+      els.entryId.value = '';
+      updateModeUI();
+      if (!keepForm) {
+        clearFormKeepDate();
+      }
+    }
+
+    function normalizeValueInput() {
+      const n = parseBrazilianNumber(els.value.value);
+      if (n > 0) {
+        els.value.value = formatMoneyBR(n);
+      }
+    }
+
+
+    function buildEmptySummary(dateIso) {
+      return {
+        ok: true,
+        date: isoToBr(dateIso || getLocalTodayIso()),
+        saldo: '0,00',
+        receitas: { total: '0,00', count: 0, entries: [] },
+        despesas: { total: '0,00', count: 0, entries: [] }
+      };
+    }
+
+    function updateCombinedSummaryUI(summary) {
+      if (!summary || !summary.ok) return;
+
+      setHeroDate(summary.date || '--/--/----');
+      els.sumDate.textContent = summary.date || '--/--/----';
+
+      els.sumReceitas.textContent = 'R$ ' + (summary.receitas?.total || '0,00');
+      els.sumDespesas.textContent = 'R$ ' + (summary.despesas?.total || '0,00');
+      els.sumSaldo.textContent = 'R$ ' + (summary.saldo || '0,00');
+
+      els.sumCountReceitas.textContent = String(summary.receitas?.count ?? 0);
+      els.sumCountDespesas.textContent = String(summary.despesas?.count ?? 0);
+
+      renderEntries(els.entriesReceitasList, summary.receitas?.entries || []);
+      renderEntries(els.entriesDespesasList, summary.despesas?.entries || []);
+    }
+
+    function renderEntries(container, entries) {
+      if (!Array.isArray(entries) || entries.length === 0) {
+        container.innerHTML = '<div class="summary-empty">Ainda não há lançamentos nesta data.</div>';
+        return;
+      }
+
+      container.innerHTML = entries.map(item => `
+        <div class="summary-row">
+          <div data-label="Descrição"><strong>${escapeHtml(item.description || '')}</strong></div>
+          <div data-label="Valor">R$ ${escapeHtml(item.value || '0,00')}</div>
+          <div data-label="Pagamento">${escapeHtml(item.payment || '')}</div>
+          <div data-label="Caixa">${escapeHtml(item.account || '')}</div>
+          <div data-label="Ações" class="row-actions">
+            <button type="button" class="mini-btn edit"
+            data-action="edit"
+            data-entry-id="${escapeHtml(item.entryId || '')}"
+            data-sheet-row="${escapeHtml(String(item.sheetRow || ''))}"
+            data-mode="${escapeHtml(item.mode || '')}"
+            data-date="${escapeHtml(item.dateIso || '')}"
+            data-description="${escapeHtml(item.description || '')}"
+            data-value="${escapeHtml(item.value || '')}"
+            data-payment="${escapeHtml(item.payment || '')}"
+            data-account="${escapeHtml(item.account || '')}"
+            data-category="${escapeHtml(item.category || '')}">
+            Editar
+          </button>
+          <button type="button" class="mini-btn delete"
+            data-action="delete"
+            data-entry-id="${escapeHtml(item.entryId || '')}"
+            data-sheet-row="${escapeHtml(String(item.sheetRow || ''))}"
+            data-mode="${escapeHtml(item.mode || '')}"
+            data-date="${escapeHtml(item.dateIso || '')}">
+            Excluir
+          </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function onEntriesActionClick(event) {
+      const btn = event.target.closest('button[data-action]');
+      if (!btn) return;
+
+      const action = btn.dataset.action;
+
+      if (action === 'edit') {
+        startEditFromRow(btn.dataset);
+        return;
+      }
+
+      if (action === 'delete') {
+        await deleteEntryFromRow(btn.dataset);
+      }
+    }
+
+    function startEditFromRow(data) {
+      const mode = data.mode || 'receitas';
+      if (mode === 'receitas') {
+        currentReceitaEntryMode = 'single';
+      }
+      setMode(mode);
+
+      els.entryId.value = data.entryId || '';
+      els.dateIso.value = data.date || els.dateIso.value;
+      setHeroDate(isoToBr(els.dateIso.value));
+      els.description.value = data.description || '';
+      els.value.value = normalizeDisplayValueForInput(data.value || '');
+
+      if (mode === 'receitas') {
+        setCheckedValue(els.paymentGroup, data.payment || '');
+        els.account.value = data.account || '';
+      } else {
+        setCheckedValue(els.expenseCategoryGroup, data.category || '');
+      }
+
+      updateModeUI();
+      els.description.focus();
+      showStatus('Modo de edição ativado. Ajuste e salve novamente.', 'info');
+    }
+
+    async function deleteEntryFromRow(data) {
+  const confirmed = window.confirm('Deseja excluir este lançamento?');
+  if (!confirmed) return;
+
+  setBusy(true);
+
+  try {
+    const res = await api({
+      action: 'delete',
+      entryId: data.entryId || '',
+      sheetRow: data.sheetRow || '',
+      mode: data.mode,
+      date: data.date
+    });
+
+    if (!res || !res.ok) {
+      throw new Error(res?.error || 'Falha ao excluir lançamento.');
+    }
+
+    if (els.entryId.value && els.entryId.value === data.entryId) {
+      clearFormKeepDate();
+    }
+
+    updateCombinedSummaryUI(res);
+    showStatus('Lançamento excluído com sucesso.', 'success');
+  } catch (err) {
+    showStatus(err.message || 'Erro ao excluir.', 'error');
+  } finally {
+    setBusy(false);
+  }
+}
+
+    function normalizeDisplayValueForInput(value) {
+      return String(value || '').replace('-', '').trim();
+    }
+
+    function setBusy(isBusy) {
+      els.btnSave.disabled = isBusy;
+      els.btnCloseCash.disabled = isBusy;
+      els.btnRefresh.disabled = isBusy;
+      els.btnAddBatchRow.disabled = isBusy;
+      els.btnSingleEntryMode.disabled = isBusy;
+      els.btnBatchEntryMode.disabled = isBusy;
+      els.loadingBar.classList.toggle('show', !!isBusy);
+    }
+
+    function showStatus(message, type) {
+      els.statusBox.textContent = message || '';
+      els.statusBox.className = 'status show ' + (type || 'info');
+    }
+
+    function parseBrazilianNumber(value) {
+      const str = String(value ?? '')
+        .trim()
+        .replace(/\s/g, '')
+        .replace(/\./g, '')
+        .replace(',', '.')
+        .replace(/[^\d.-]/g, '');
+
+      const n = Number(str);
+      return isNaN(n) ? 0 : n;
+    }
+
+    function formatMoneyBR(value) {
+      return Number(value || 0).toFixed(2).replace('.', ',');
+    }
+
+    function isoToBr(iso) {
+      if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '--/--/----';
+      const [y, m, d] = iso.split('-');
+      return `${d}/${m}/${y}`;
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+  </script>
+
+<script>
+document.getElementById('btnPrintCaixa').addEventListener('click', printCaixa);
+window.addEventListener('beforeprint', ()=>{ var dt=els.dateIso.value||getLocalTodayIso(); document.getElementById('printMetaCaixa').textContent='Data: '+isoToBr(dt); });
+/* Connect topbar refresh to Caixa's native refresh */
+(function(){
+  var topBtn = document.getElementById('btnRefreshCaixa');
+  var origBtn = document.getElementById('btnRefresh');
+  if(topBtn && origBtn){
+    topBtn.addEventListener('click', function(){ origBtn.click(); });
+  }
+})();
+</script>
+<script src="/shared/ui/agf-ui.js"></script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/caixa/sw.js').catch(()=>{}));}</script>
+</body>
+</html>

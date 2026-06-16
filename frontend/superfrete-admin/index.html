@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AGF SuperFrete Admin</title>
+  <meta name="theme-color" content="#00416B" />
+  <link rel="icon" href="/assets/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles/admin.css?v=etapa7d-password-toggle" />
+<link rel="stylesheet" href="/shared/ui/agf-ui.css"/>
+<script src="/shared/auth/agf-auth-config.js"></script>
+<script src="/shared/auth/agf-auth-client.js"></script>
+<script>window.AGF_ACCESS={roles:['admin','manager','user'],app:'superfrete-admin'};</script>
+<script src="/shared/auth/agf-route-guard.js"></script>
+<link rel="manifest" href="/superfrete-admin/manifest.webmanifest"/>
+<link rel="icon" href="/assets/pwa/superfrete/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/superfrete/favicon-32.png"/>
+<link rel="apple-touch-icon" href="/assets/pwa/superfrete/apple-touch-icon.png"/>
+
+<style>
+.agf-admin-topbar-brand{display:flex;align-items:center;gap:10px;min-width:0}.agf-admin-content-topbar{min-height:56px;padding-block:8px}.agf-admin-topbar-brand h2{margin:2px 0 0}.agf-admin-topbar-brand .eyebrow{display:block}
+</style>
+</head>
+<body>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <main id="loginView" class="login-view">
+    <section class="login-card">
+      <div class="brand-row">
+        <img src="/assets/logo-agf-jose-bonifacio.png" alt="AGF José Bonifácio" />
+        <div>
+          <span class="eyebrow">Painel administrativo</span>
+          <h1>AGF SuperFrete</h1>
+        </div>
+      </div>
+
+      <div class="setup-box">
+        <label for="webappUrl">URL do Web App Apps Script</label>
+        <div class="inline-control">
+          <input id="webappUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
+          <button id="btnSaveUrl" class="btn btn-muted" type="button">Salvar URL</button>
+        </div>
+        <small>Use a mesma URL do backend que você testou na Etapa 1.</small>
+      </div>
+
+      <form id="loginForm" class="form-grid one-col">
+        <label>
+          Login
+          <input id="loginInput" autocomplete="username" value="admin" />
+        </label>
+        <div class="form-field">
+          <label for="senhaInput">Senha</label>
+          <span class="admin-password-wrap"><input id="senhaInput" type="password" autocomplete="current-password" /><button class="password-toggle" type="button" data-password-toggle="senhaInput" aria-label="Mostrar senha" aria-pressed="false" title="Mostrar senha"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button></span>
+        </div>
+        <button class="btn btn-primary" type="submit">
+          <span class="material-symbols-rounded" aria-hidden="true">login</span>
+          Entrar no admin
+        </button>
+      </form>
+
+      <button id="btnHealth" class="btn btn-ghost" type="button">Testar conexão</button>
+      <pre id="loginDebug" class="debug-box"></pre>
+    </section>
+  </main>
+
+  <main id="appView" class="app-view hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="/assets/icon-app.svg" alt="" />
+        <div>
+          <strong>AGF SuperFrete</strong>
+          <small id="appVersion">Etapa 2</small>
+        </div>
+      </div>
+
+      <nav class="nav-list" aria-label="Navegação do painel">
+        <button class="nav-item active" data-screen="dashboard"><span class="material-symbols-rounded">dashboard</span>Dashboard</button>
+        <button class="nav-item" data-screen="clientes"><span class="material-symbols-rounded">groups</span>Clientes</button>
+        <button class="nav-item" data-screen="emissao"><span class="material-symbols-rounded">local_shipping</span>Emitir etiqueta</button>
+        <button class="nav-item" data-screen="cadastro"><span class="material-symbols-rounded">person_add</span>Cadastro</button>
+        <button class="nav-item" data-screen="financeiro"><span class="material-symbols-rounded">account_balance_wallet</span>Conta corrente</button>
+        <a class="nav-item" href="./danfe-auditoria.html"><span class="material-symbols-rounded">fact_check</span>Amostragem DANFE</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <small id="userLabel">Admin</small>
+        <button id="btnLogout" class="btn btn-muted full" type="button">Sair</button>
+      </div>
+    </aside>
+
+    <section class="content">
+      <header class="topbar agf-admin-content-topbar">
+        <div class="agf-admin-topbar-brand">
+          <span class="agf-standard-brand-tile"><span class="material-symbols-rounded" data-agf-icon="admin">admin_panel_settings</span></span>
+          <div><span class="eyebrow">AGF José Bonifácio</span><h2 id="screenTitle">Dashboard</h2></div>
+        </div>
+        <div class="topbar-actions">
+          <button id="btnRefresh" class="btn btn-muted" type="button">
+            <span class="material-symbols-rounded">refresh</span>
+            Atualizar
+          </button>
+          <button id="btnNewClientTop" class="btn btn-primary" type="button">
+            <span class="material-symbols-rounded">add</span>
+            Novo cliente
+          </button>
+        </div>
+      </header>
+
+      <section id="screen-dashboard" class="screen active">
+        <div class="cards-grid" id="dashboardCards"></div>
+        <section class="panel">
+          <div class="panel-header">
+            <h3>Clientes próximos do limite</h3>
+            <small>Baseado no disponível para emissão.</small>
+          </div>
+          <div id="dashboardClients" class="compact-list"></div>
+        </section>
+      </section>
+
+      <section id="screen-clientes" class="screen">
+        <section class="panel">
+          <div class="panel-header split">
+            <div>
+              <h3>Clientes cadastrados</h3>
+              <small>Clientes, remetentes e limite interno.</small>
+            </div>
+            <input id="clientSearch" class="search-input" placeholder="Buscar por nome, documento ou e-mail" />
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Status</th>
+                  <th>Remetentes</th>
+                  <th>Limite</th>
+                  <th>Saldo</th>
+                  <th>Disponível</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="clientsTbody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="screen-cadastro" class="screen">
+        <form id="clientForm" class="panel form-panel">
+          <div class="panel-header split">
+            <div>
+              <h3 id="formTitle">Novo cliente</h3>
+              <small>Cadastro comercial, remetente, login e conta interna.</small>
+            </div>
+            <div class="inline-buttons">
+              <button id="btnNewClient" class="btn btn-muted" type="button">Limpar</button>
+              <button class="btn btn-primary" type="submit">Salvar cliente</button>
+            </div>
+          </div>
+
+          <input type="hidden" id="CLIENTE_ID" />
+          <input type="hidden" id="REMETENTE_ID" />
+          <input type="hidden" id="USUARIO_ID" />
+          <input type="hidden" id="LOGO_DRIVE_ID" />
+
+          <h4>Cliente</h4>
+          <div class="form-grid">
+            <label>Status
+              <select id="CLIENTE_STATUS"><option>ATIVO</option><option>BLOQUEADO</option><option>INATIVO</option></select>
+            </label>
+            <label>Nome de exibição
+              <input id="NOME_EXIBICAO" placeholder="Nome que aparece no painel" required />
+            </label>
+            <label>Razão social
+              <input id="CLIENTE_RAZAO_SOCIAL" placeholder="Razão social do cliente" />
+            </label>
+            <label>CPF/CNPJ do cliente
+              <input id="CLIENTE_DOCUMENTO" inputmode="numeric" placeholder="Somente números" />
+            </label>
+            <label>E-mail
+              <input id="CLIENTE_EMAIL" type="email" />
+            </label>
+            <label>Telefone
+              <input id="CLIENTE_TELEFONE" inputmode="numeric" />
+            </label>
+            <div class="wide logo-upload-card">
+              <div class="logo-upload-preview" id="logoPreviewBox">
+                <span id="logoPreviewText">Sem logo</span>
+                <img id="logoPreviewImg" class="hidden" alt="Prévia da logo do cliente" />
+              </div>
+              <div class="logo-upload-controls">
+                <label class="logo-file-label">Logo do cliente
+                  <input id="LOGO_FILE" type="file" accept="image/png,image/jpeg,image/webp" />
+                </label>
+                <div class="logo-upload-actions">
+                  <button id="btnUploadLogo" class="btn btn-muted" type="button">
+                    <span class="material-symbols-rounded">upload</span>
+                    Enviar logo
+                  </button>
+                </div>
+                <input id="LOGO_URL" class="hidden" readonly />
+                <small id="logoUploadStatus" class="field-hint">
+                  Recomendado: PNG transparente, 600 × 240 px. Fundo branco #FFFFFF apenas se não houver transparência. Máx. 1 MB.
+                </small>
+              </div>
+            </div>
+            <label class="wide">Observação interna
+              <textarea id="OBS_INTERNA" rows="2"></textarea>
+            </label>
+          </div>
+
+          <h4>Remetente padrão</h4>
+          <div class="form-grid">
+            <label>Status remetente
+              <select id="REM_STATUS"><option>ATIVO</option><option>BLOQUEADO</option><option>INATIVO</option></select>
+            </label>
+            <label>Nome remetente
+              <input id="NOME_REMETENTE" placeholder="Ex: nome fantasia" required />
+            </label>
+            <label>Razão social do remetente
+              <input id="REM_RAZAO_SOCIAL" placeholder="Controle interno" />
+            </label>
+            <label>CNPJ/CPF do remetente
+              <input id="CNPJ_CPF" inputmode="numeric" placeholder="Somente números" />
+            </label>
+            <label>E-mail remetente
+              <input id="REM_EMAIL" type="email" />
+            </label>
+            <label>Telefone remetente
+              <input id="REM_TELEFONE" inputmode="numeric" />
+            </label>
+            <label>CEP
+              <input id="CEP" inputmode="numeric" maxlength="9" />
+            </label>
+            <label>Endereço
+              <input id="ENDERECO" />
+            </label>
+            <label>Número
+              <input id="NUMERO" />
+            </label>
+            <label>Complemento
+              <input id="COMPLEMENTO" />
+            </label>
+            <label>Bairro
+              <input id="BAIRRO" />
+            </label>
+            <label>Cidade
+              <input id="CIDADE" />
+            </label>
+            <label>UF
+              <input id="UF" maxlength="2" />
+            </label>
+          </div>
+
+          <h4>Login do cliente</h4>
+          <div class="form-grid">
+            <label>Status login
+              <select id="USER_STATUS"><option>ATIVO</option><option>BLOQUEADO</option><option>INATIVO</option></select>
+            </label>
+            <label>Nome do usuário
+              <input id="USER_NOME" />
+            </label>
+            <label>Login do cliente
+              <input id="USER_LOGIN" autocomplete="off" />
+            </label>
+            <div class="form-field">
+              <label for="USER_SENHA">Senha nova</label>
+              <span class="admin-password-wrap"><input id="USER_SENHA" type="password" autocomplete="new-password" placeholder="Obrigatória só no novo cliente" /><button class="password-toggle" type="button" data-password-toggle="USER_SENHA" aria-label="Mostrar senha" aria-pressed="false" title="Mostrar senha"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button></span>
+            </div>
+          </div>
+
+          <h4>Conta corrente interna</h4>
+          <div class="form-grid">
+            <label>Limite de crédito
+              <input id="LIMITE_CREDITO" inputmode="decimal" placeholder="300,00" />
+            </label>
+            <label>Saldo da conta
+              <input id="SALDO_CONTA" inputmode="decimal" placeholder="0,00" />
+            </label>
+            <label>Valor reservado
+              <input id="VALOR_RESERVADO" inputmode="decimal" placeholder="0,00" />
+            </label>
+            <label>Status crédito
+              <select id="STATUS_CREDITO"><option>ATIVO</option><option>BLOQUEADO</option></select>
+            </label>
+            <label>Bloquear emissão
+              <select id="BLOQUEAR_EMISSAO"><option>NAO</option><option>SIM</option></select>
+            </label>
+          </div>
+        </form>
+      </section>
+
+
+      <section id="screen-emissao" class="screen">
+        <section class="panel">
+          <div class="panel-header split">
+            <div>
+              <h3>Nova etiqueta administrativa</h3>
+              <small>Fluxo controlado: cotação real, pedido real, checkout e etiqueta AGF experimental com logo do cliente.</small>
+            </div>
+            <button id="btnReloadEmission" class="btn btn-muted" type="button">
+              <span class="material-symbols-rounded">sync</span>
+              Recarregar dados
+            </button>
+          </div>
+
+          <div class="notice-box">
+            <strong>Etapa 7 — etiqueta AGF experimental:</strong>
+            após o checkout real e atualização do SRO, você pode imprimir uma versão visual da etiqueta com a logo do cliente. O PDF oficial da SuperFrete continua sendo o fallback obrigatório.
+          </div>
+
+          <div class="form-grid">
+            <label>Cliente/remetente
+              <select id="emissionClientSelect"></select>
+            </label>
+            <label>Remetente
+              <select id="emissionRemetenteSelect"></select>
+            </label>
+          </div>
+
+          <div id="emissionCards" class="cards-grid small emission-cards"></div>
+        </section>
+
+        <section class="panel recharge-panel">
+          <div class="panel-header split">
+            <div>
+              <h3>Carteira SuperFrete AGF</h3>
+              <small>Controle espelho do saldo pré-pago da agência.</small>
+            </div>
+          </div>
+          <div class="form-grid adjust-grid">
+            <label>Valor da recarga
+              <input id="rechargeValor" inputmode="decimal" placeholder="1000,00" />
+            </label>
+            <label class="wide">Observação
+              <input id="rechargeMotivo" placeholder="Ex: recarga manual no painel SuperFrete" />
+            </label>
+            <button id="btnRegisterRecharge" class="btn btn-primary" type="button">Registrar recarga</button>
+          </div>
+        </section>
+
+
+        <section class="panel sf-api-panel">
+          <div class="panel-header split">
+            <div>
+              <h3>Integração SuperFrete</h3>
+              <small>Configure o token, cote, crie pedido real e faça checkout controlado quando estiver pronto.</small>
+            </div>
+            <span id="sfApiStatus" class="badge warn">Não verificado</span>
+          </div>
+          <div class="form-grid">
+            <label>Ambiente
+              <select id="sfAmbiente">
+                <option value="SANDBOX">Sandbox</option>
+                <option value="PRODUCAO">Produção</option>
+              </select>
+            </label>
+            <label class="wide">User-Agent
+              <input id="sfUserAgent" placeholder="AGF SuperFrete/0.4 (email@dominio.com.br)" />
+            </label>
+            <div class="form-field wide">
+              <label for="sfTokenSandbox">Token Sandbox</label>
+              <span class="admin-password-wrap"><input id="sfTokenSandbox" type="password" autocomplete="off" placeholder="Cole apenas se quiser criar/atualizar o token Sandbox" /><button class="password-toggle" type="button" data-password-toggle="sfTokenSandbox" aria-label="Mostrar token" aria-pressed="false" title="Mostrar token"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button></span>
+            </div>
+            <div class="form-field wide">
+              <label for="sfTokenProducao">Token Produção</label>
+              <span class="admin-password-wrap"><input id="sfTokenProducao" type="password" autocomplete="off" placeholder="Opcional. Não usar em testes iniciais." /><button class="password-toggle" type="button" data-password-toggle="sfTokenProducao" aria-label="Mostrar token" aria-pressed="false" title="Mostrar token"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button></span>
+            </div>
+          </div>
+          <div class="form-actions inline-actions">
+            <button id="btnSaveSfConfig" class="btn btn-primary" type="button">Salvar configuração</button>
+            <button id="btnLoadSfConfig" class="btn btn-muted" type="button">Verificar status</button>
+          </div>
+        </section>
+
+        <form id="emissionForm" class="panel form-panel">
+          <div class="panel-header split">
+            <div>
+              <h3>Dados da etiqueta</h3>
+              <small>Preencha, envie para o carrinho SuperFrete e depois faça o checkout real para emitir a etiqueta.</small>
+            </div>
+            <div class="inline-buttons">
+              <button id="btnCreateRealCartOrder" class="btn btn-primary" type="button">
+                <span class="material-symbols-rounded">add_shopping_cart</span>
+                1. Enviar para carrinho
+              </button>
+              <button class="btn btn-muted" type="submit">
+                <span class="material-symbols-rounded">science</span>
+                Gerar simulação local
+              </button>
+            </div>
+          </div>
+
+          <h4>Destinatário</h4>
+          <div class="form-grid">
+            <label>Nome destinatário
+              <input id="destNome" required />
+            </label>
+            <label>CPF/CNPJ destinatário
+              <input id="destDocumento" inputmode="numeric" required />
+            </label>
+            <label>CEP
+              <div class="field-action">
+                <input id="destCep" inputmode="numeric" maxlength="9" required placeholder="00000-000" />
+                <button id="btnLookupDestCep" class="btn-icon" type="button" title="Buscar endereço pelo CEP">
+                  <span class="material-symbols-rounded">search</span>
+                </button>
+              </div>
+              <small id="destCepStatus" class="field-hint">Digite o CEP para buscar o endereço.</small>
+            </label>
+            <label>Endereço
+              <input id="destEndereco" required />
+            </label>
+            <label>Número
+              <input id="destNumero" required />
+            </label>
+            <label>Complemento
+              <input id="destComplemento" />
+            </label>
+            <label>Bairro
+              <input id="destBairro" required />
+            </label>
+            <label>Cidade
+              <input id="destCidade" required />
+            </label>
+            <label>UF
+              <input id="destUf" maxlength="2" required />
+            </label>
+          </div>
+
+          <h4>Pacote, serviço e opcionais</h4>
+          <div class="form-grid">
+            <label>Serviço da emissão
+              <select id="emissionServico"><option>SEDEX</option><option>PAC</option><option>MINI ENVIOS</option></select>
+            </label>
+            <label>Serviços para cotação
+              <select id="quoteServicos"><option value="TODOS">PAC + SEDEX + Mini Envios</option><option value="PAC">PAC</option><option value="SEDEX">SEDEX</option><option value="MINI ENVIOS">Mini Envios</option></select>
+            </label>
+            <label>Peso (g)
+              <input id="pkgPeso" inputmode="numeric" placeholder="300" required />
+              <small class="field-hint">Informe em gramas. O sistema converte para kg apenas no envio à SuperFrete.</small>
+            </label>
+            <label>Altura (cm)
+              <input id="pkgAltura" inputmode="decimal" placeholder="4" required />
+            </label>
+            <label>Largura (cm)
+              <input id="pkgLargura" inputmode="decimal" placeholder="16" required />
+            </label>
+            <label>Comprimento (cm)
+              <input id="pkgComprimento" inputmode="decimal" placeholder="24" required />
+            </label>
+            <label>Valor declarado / seguro
+              <input id="valorDeclarado" inputmode="decimal" placeholder="0,00" />
+            </label>
+            <label>AR
+              <select id="optAr"><option value="NAO">Não</option><option value="SIM">Sim</option></select>
+            </label>
+            <label>Mão própria
+              <select id="optMp"><option value="NAO">Não</option><option value="SIM">Sim</option></select>
+            </label>
+          </div>
+          <div class="quote-actions">
+            <button id="btnQuoteSuperFrete" class="btn btn-primary" type="button">
+              <span class="material-symbols-rounded">price_check</span>
+              Cotar na SuperFrete
+            </button>
+            <small>A cotação real preenche o valor cotado. Depois você pode criar pedido real no carrinho Sandbox ou gerar simulação local.</small>
+          </div>
+          <div id="quoteResults" class="quote-results hidden"></div>
+
+          <h4>Valores da simulação</h4>
+          <div class="form-grid">
+            <label>Valor cotado
+              <input id="valorCotado" inputmode="decimal" placeholder="30,00" required />
+            </label>
+            <label>Valor real/final SuperFrete
+              <input id="valorReal" inputmode="decimal" placeholder="32,00" required />
+            </label>
+            <label class="wide">Resumo financeiro
+              <input id="emissionFinancialPreview" disabled />
+            </label>
+          </div>
+
+          <h4>Declaração de conteúdo / DC-e</h4>
+          <div class="items-toolbar">
+            <small>Informe pelo menos um item. O CPF/CNPJ do remetente e do destinatário é obrigatório.</small>
+            <button id="btnAddDceItem" class="btn btn-muted" type="button">Adicionar item</button>
+          </div>
+          <div class="table-wrap dce-items-wrap">
+            <table class="data-table dce-table">
+              <thead>
+                <tr><th>Descrição</th><th>Qtd</th><th>Valor unit.</th><th>Un.</th><th></th></tr>
+              </thead>
+              <tbody id="dceItemsTbody"></tbody>
+            </table>
+          </div>
+        </form>
+
+        <section class="panel">
+          <div class="panel-header split">
+            <div>
+              <h3>Últimas etiquetas</h3>
+              <small>Histórico administrativo do módulo SuperFrete.</small>
+            </div>
+            <button id="btnReloadLabels" class="btn btn-muted" type="button">Atualizar histórico</button>
+          </div>
+          <div id="lastEmissionResult" class="result-box hidden"></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>Data</th><th>Cliente</th><th>Destinatário</th><th>Serviço</th><th>Tracking/ID</th><th>Valor</th><th>Status</th><th>Ações</th></tr>
+              </thead>
+              <tbody id="labelsTbody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="screen-financeiro" class="screen">
+        <section class="panel">
+          <div class="panel-header split">
+            <div>
+              <h3>Conta corrente do cliente</h3>
+              <small>Saldo positivo, saldo negativo, limite e lançamentos.</small>
+            </div>
+            <select id="financeClientSelect" class="select-input"></select>
+          </div>
+          <div id="financeCards" class="cards-grid small"></div>
+          <div class="adjust-box">
+            <h4>Ajuste manual</h4>
+            <div class="form-grid adjust-grid">
+              <label>Tipo
+                <select id="adjustTipo">
+                  <option value="AJUSTE_MANUAL_CREDITO">Crédito manual</option>
+                  <option value="AJUSTE_MANUAL_DEBITO">Débito manual</option>
+                </select>
+              </label>
+              <label>Sinal
+                <select id="adjustSinal"><option value="+">+</option><option value="-">-</option></select>
+              </label>
+              <label>Valor
+                <input id="adjustValor" inputmode="decimal" placeholder="50,00" />
+              </label>
+              <label class="wide">Motivo
+                <input id="adjustMotivo" placeholder="Ex: pagamento recebido fora do Pix / ajuste de conferência" />
+              </label>
+              <button id="btnAdjustBalance" class="btn btn-primary" type="button">Lançar ajuste</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>Data</th><th>Tipo</th><th>Sinal</th><th>Valor</th><th>Antes</th><th>Depois</th><th>Motivo</th></tr>
+              </thead>
+              <tbody id="financeTbody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script src="./js/config.js?v=etapa7c"></script>
+  <script src="./js/api.js?v=etapa7c"></script>
+  <script src="./js/app.js?v=etapa7c"></script>
+<script src="/shared/ui/agf-ui.js"></script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/superfrete-admin/sw.js').catch(()=>{}));}</script>
+</body>
+</html>

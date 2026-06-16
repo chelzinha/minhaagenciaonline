@@ -1,0 +1,118 @@
+/* Portal interno AGF José Bonifácio */
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100dvh; background: #f4f7fb; color: #17354b;
+  font-family: Inter, Arial, sans-serif; -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; }
+button { cursor: pointer; }
+.portal-shell { min-height: 100dvh; }
+.portal-topbar {
+  min-height: 56px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:8px 18px; border-bottom:1px solid #dce6ef; background:rgba(255,255,255,.96);
+  box-shadow:0 4px 16px rgba(0,65,107,.05); position:sticky; top:0; z-index:20;
+}
+.portal-brand { display:flex; align-items:center; gap:10px; min-width:0; text-decoration:none; color:#17354b; }
+.portal-brand-copy { display:grid; gap:1px; min-width:0; }
+.portal-brand-copy strong { font-size:14px; line-height:1.15; font-weight:850; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.portal-brand-copy small { font-size:11px; line-height:1.15; color:#60788d; font-weight:650; }
+.portal-top-actions { display:flex; align-items:center; gap:7px; }
+.portal-main { width:min(1180px, calc(100% - 28px)); margin:0 auto; padding:18px 0 26px; }
+.user-pill { display:inline-flex; align-items:center; gap:7px; padding:7px 10px; border:1px solid #dce6ef; border-radius:999px; background:#fff; color:#37566d; font-size:12px; font-weight:750; white-space:nowrap; }
+.user-pill .material-symbols-rounded { font-size:17px; }
+.app-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:11px; }
+.app-card {
+  position:relative; min-height:142px; display:grid; grid-template-rows:auto 1fr auto; gap:8px;
+  padding:14px; border:1px solid #dde7ef; border-radius:16px; background:#fff; text-decoration:none;
+  color:#17354b; box-shadow:0 7px 20px rgba(0,65,107,.055); transition:transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+}
+.app-card:hover { transform:translateY(-2px); border-color:#b6d8e9; box-shadow:0 12px 26px rgba(0,65,107,.10); }
+.card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.card-icon { width:39px; height:39px; display:grid; place-items:center; border-radius:12px; background:#eff8fc; border:1px solid #d7eaf3; }
+.card-icon .material-symbols-rounded { font-size:21px; }
+.card-badge { padding:4px 7px; border-radius:999px; font-size:9px; line-height:1; font-weight:850; letter-spacing:.04em; text-transform:uppercase; background:#eff6fb; color:#527087; }
+.card-badge.admin { background:#f5efff; color:#7148a4; }
+.card-copy h2 { margin:0; font-size:15px; line-height:1.2; letter-spacing:-.01em; }
+.card-copy p { margin:5px 0 0; color:#6b8192; font-size:11.5px; line-height:1.42; }
+.card-bottom { display:flex; align-items:center; justify-content:space-between; gap:8px; color:#55758c; font-size:10.5px; font-weight:750; }
+.card-bottom .material-symbols-rounded { font-size:16px; }
+.login-layout { min-height:calc(100dvh - 56px); display:grid; place-items:center; padding:20px; }
+.login-card { width:min(420px,100%); padding:20px; border:1px solid #dce6ef; border-radius:19px; background:#fff; box-shadow:0 20px 48px rgba(0,65,107,.12); }
+.login-heading { display:flex; align-items:center; gap:11px; margin-bottom:15px; }
+.login-heading h1 { margin:0; font-size:20px; letter-spacing:-.035em; }
+.login-heading p { margin:4px 0 0; color:#6a8192; font-size:12px; line-height:1.35; }
+.field { display:grid; gap:5px; margin-top:10px; }
+.field > span, .field > label { color:#3c5b71; font-size:11.5px; font-weight:800; }
+.field input { width:100%; min-height:38px; padding:8px 10px; border:1px solid #cfdee9; border-radius:10px; color:#18364d; background:#fff; outline:none; }
+.field input:focus { border-color:#66acd0; box-shadow:0 0 0 3px rgba(0,124,195,.12); }
+.password-input-wrap { position:relative; display:block; width:100%; }
+.password-input-wrap input { padding-right:44px; }
+.password-toggle { position:absolute; top:50%; right:7px; width:31px; height:31px; transform:translateY(-50%); display:grid; place-items:center; border:0; border-radius:8px; background:transparent; color:#527087; padding:0; cursor:pointer; }
+.password-toggle:hover { background:#eef6fb; color:#00416b; }
+.password-toggle:focus-visible { outline:2px solid rgba(0,124,195,.35); outline-offset:2px; }
+.password-toggle .material-symbols-rounded { font-size:19px; line-height:1; }
+.primary-button { width:100%; min-height:39px; display:flex; align-items:center; justify-content:center; gap:7px; margin-top:14px; padding:9px 12px; border:0; border-radius:10px; background:#006ea6; color:#fff; font-size:12.5px; font-weight:850; }
+.primary-button:hover { background:#005f91; }
+.primary-button:disabled { opacity:.62; cursor:wait; }
+.primary-button .material-symbols-rounded { font-size:18px; }
+.login-status { min-height:18px; margin:10px 0 0; color:#b42318; font-size:11.5px; line-height:1.4; }
+.login-note { margin:12px 0 0; padding-top:10px; border-top:1px solid #edf2f6; color:#718596; font-size:10.5px; line-height:1.45; }
+.portal-section-title { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:17px 0 9px; }
+.portal-section-title h2 { margin:0; color:#3c5a70; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+.hide { display:none !important; }
+@media (max-width: 980px) { .app-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media (max-width: 700px) {
+  .portal-topbar { padding:7px 10px; }
+  .portal-main { width:min(100% - 20px, 620px); padding-top:13px; }
+    .app-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+  .app-card { min-height:135px; padding:12px; border-radius:14px; }
+  .card-copy h2 { font-size:14px; }
+  .card-copy p { font-size:10.8px; }
+}
+@media (max-width: 390px) { .app-grid { grid-template-columns:1fr; } .app-card { min-height:116px; } }
+
+.portal-topbar { padding:0; }
+.portal-section-title.first { margin-top:0; }
+.portal-boot { min-height:calc(100dvh - 56px); display:flex; align-items:center; justify-content:center; gap:9px; color:#60788d; font-size:12px; font-weight:800; }
+.portal-boot-spinner { width:18px; height:18px; border:2px solid #dce6ef; border-top-color:#0077b6; border-radius:50%; animation:portalSpin .7s linear infinite; }
+@keyframes portalSpin { to { transform:rotate(360deg); } }
+
+.card-badge.manager{background:#eef7f3;color:#18704f}
+
+
+/* PATCH v3 — ver senha dentro do input
+   Regras com maior especificidade para impedir que CSS em cache/global transforme
+   o olhinho em botão grande abaixo do campo. */
+.login-card .password-field { display: grid; gap: 5px; margin-top: 10px; }
+.login-card .password-field > label { color:#3c5b71; font-size:11.5px; font-weight:800; }
+.login-card .password-field .password-input-wrap { position: relative !important; display: block !important; width: 100% !important; }
+.login-card .password-field .password-input-wrap > input { width: 100% !important; padding-right: 48px !important; }
+.login-card .password-field .password-input-wrap > button.password-toggle {
+  position: absolute !important;
+  top: 50% !important;
+  right: 8px !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: translateY(-50%) !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  color: #527087 !important;
+  box-shadow: none !important;
+  line-height: 1 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+.login-card .password-field .password-input-wrap > button.password-toggle:hover { background: #eef6fb !important; color: #00416b !important; }
+.login-card .password-field .password-input-wrap > button.password-toggle .material-symbols-rounded { font-size: 19px !important; line-height: 1 !important; }

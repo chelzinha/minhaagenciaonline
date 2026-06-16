@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#00416B">
+  <title>Minhas Postagens Nuvemshop</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/screens.css">
+<link rel="stylesheet" href="/shared/ui/agf-ui.css"/>
+<script src="/shared/auth/agf-auth-config.js"></script>
+<script src="/shared/auth/agf-auth-client.js"></script>
+<link rel="icon" href="/assets/pwa/nuvem/favicon.ico" sizes="any"/><link rel="apple-touch-icon" href="/assets/pwa/nuvem/apple-touch-icon.png"/>
+</head>
+<body class="app-booting">
+
+  <div class="loading" id="loading" aria-hidden="true">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <div id="loadingText">Carregando...</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" tabindex="-1">
+      <div class="modal-title" id="modalTitle">Confirmar</div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="modalCancel">Cancelar</button>
+        <button class="btn btn-primary" id="modalConfirm">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <section id="screen-login" class="screen-login">
+    <div class="login-panel">
+      <div class="login-hero">
+        <div class="login-hero-glow"></div>
+        <div class="login-hero-inner">
+		  <img src="assets/correios-logo-2.png" alt="Correios" class="login-logo-img">
+<h1 class="login-title">Minhas Postagens</h1>
+<div class="login-partner-logo">
+  <img src="assets/Nuvemshop-logo.png" alt="Nuvemshop" class="login-partner-logo-img">
+</div>
+        </div>
+      </div>
+      <div class="login-sheet">
+        <div class="login-sheet-head">
+          <h2 class="login-sheet-title">Entre com seu login</h2>
+          <p class="login-sheet-sub">Use o mesmo acesso do APP de Postagens.</p>
+        </div>
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label class="field-label" for="loginUser">Login</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">person</span>
+              <input id="loginUser" type="text" autocomplete="username" required placeholder="Seu login">
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="loginPass">Senha</label>
+            <div class="field-input password-input">
+              <span class="material-symbols-rounded">lock</span>
+              <input id="loginPass" type="password" autocomplete="current-password" required placeholder="••••••••">
+              <button class="password-toggle" type="button" data-password-toggle="loginPass" aria-label="Mostrar senha" aria-pressed="false" title="Mostrar senha"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-block btn-lg login-cta" type="submit">
+            Entrar<span class="material-symbols-rounded">arrow_forward</span>
+          </button>
+        </form>
+        <div class="login-footer">
+          <span class="material-symbols-rounded">support_agent</span>
+          <a id="loginSupportLink" href="#" class="login-support-link" target="_blank" rel="noopener noreferrer">Precisa de ajuda? Fale conosco.</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- APP SHELL -->
+  <div id="screen-app" class="app-shell hidden">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <button class="icon-btn" id="navHome" title="Home">
+          <span class="material-symbols-rounded">home</span>
+        </button>
+        <div class="agf-topbar-copy"><div class="topbar-title" id="topbarTitle">Pedidos</div><div class="agf-topbar-subtitle">AGF JOSÉ BONIFÁCIO</div></div>
+        <div class="topbar-actions">
+          <button class="icon-btn hidden" id="navRefresh" title="Sincronizar Pedidos">
+            <span class="material-symbols-rounded">sync</span>
+          </button>
+          <button class="icon-btn" id="navLogout" title="Sair">
+            <span class="material-symbols-rounded">logout</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="screenMount"></main>
+
+    <nav class="bottom-nav">
+      <a href="#/pedidos" class="bn-item" data-route="/pedidos">
+        <span class="material-symbols-rounded">box</span>
+        <span>Pedidos</span>
+      </a>
+      <a href="#/emitidas" class="bn-item" data-route="/emitidas">
+        <span class="material-symbols-rounded">history</span>
+        <span>Emitidas</span>
+      </a>
+      <a href="#/conta" class="bn-item" data-route="/conta">
+        <span class="material-symbols-rounded">person</span>
+        <span>Conta</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- TEMPLATE: PEDIDOS -->
+  <template id="tpl-pedidos">
+    <section class="screen">
+      <section class="hero">
+        <div class="hero-top">
+          <div class="hero-greet hero-greet-inline">
+            <span class="hero-hi">Olá,</span>
+            <span class="hero-name" id="heroNome">Cliente</span>
+          </div>
+          <span class="hero-status">
+            <span class="material-symbols-rounded">verified</span>
+          </span>
+        </div>
+        <div class="hero-chips">
+          <span class="chip">
+            <span class="material-symbols-rounded">storefront</span>
+            <span>Nuvemshop conectada</span>
+          </span>
+          <span class="chip">
+            <span class="material-symbols-rounded">inventory_2</span>
+            <span>Pedidos prontos para revisar</span>
+          </span>
+        </div>
+      </section>
+
+      <section class="toolbar toolbar-pedidos">
+        <div class="toolbar-row toolbar-row-search">
+          <div class="field tg-busca">
+            <label class="field-label" for="fBusca">Buscar</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">search</span>
+              <input id="fBusca" type="text" placeholder="Pedido, nome, documento">
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-apply" id="btnBuscarPedidos">
+            <span class="material-symbols-rounded">filter_list</span>Aplicar
+          </button>
+        </div>
+        <div class="toolbar-row toolbar-row-main">
+          <div class="toolbar-left-filters">
+            <div class="field">
+              <label class="field-label" for="fBucket">Fila</label>
+              <div class="field-input">
+                <select id="fBucket">
+                  <option value="fila">Precisa gerar</option>
+                  <option value="todos">Todos</option>
+                  <option value="erros">Somente erro</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="fServico">Serviço</label>
+              <div class="field-input">
+                <select id="fServico">
+                  <option value="">Todos</option>
+                  <option value="PAC">PAC</option>
+                  <option value="SEDEX">SEDEX</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="fDoc">Documento</label>
+              <div class="field-input">
+                <select id="fDoc">
+                  <option value="">Todos</option>
+                  <option value="NFE">NF</option>
+                  <option value="DCE">DC-e</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="toolbar-right-format">
+            <label class="field-label">Formato do rótulo</label>
+            <div class="seg seg-2 seg-compact">
+              <label class="seg-item is-selected">
+                <input type="radio" name="bulkFormato" value="ET" checked>
+                <span class="material-symbols-rounded">print</span>
+                <span class="seg-title">Etiqueta 10×15</span>
+              </label>
+              <label class="seg-item">
+                <input type="radio" name="bulkFormato" value="A4">
+                <span class="material-symbols-rounded">description</span>
+                <span class="seg-title">A4</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="bulk-toolbar-line bulk-toolbar-line-pedidos">
+          <div class="bulk-head">
+            <div class="bulk-head-title">Seleção em lote</div>
+            <div class="bulk-head-status">
+              <button class="btn btn-ghost btn-sm" id="btnSelecionarTodos">Todos</button>
+              <button class="btn btn-ghost btn-sm" id="btnLimparSelecao">Limpar</button>
+              <strong id="bulkCount">Nenhum selecionado</strong>
+            </div>
+          </div>
+          <div class="toolbar-actions toolbar-actions-bulk">
+            <button class="btn btn-primary btn-sm" id="btnGerarLote" data-bulk>
+              <span class="material-symbols-rounded">local_shipping</span>Gerar selecionadas
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="pedido-list" id="pedidosList"></section>
+    </section>
+  </template>
+
+  <!-- TEMPLATE: REVISAR -->
+  <template id="tpl-revisar">
+    <section class="screen">
+      <section class="card">
+        <header class="card-head">
+          <span class="material-symbols-rounded">edit_square</span>
+          <h2 id="revOrderTitle">Revisão</h2>
+        </header>
+        <div class="pedido-meta" id="revDest"></div>
+      </section>
+      <section class="card review-grid">
+        <div class="review-split">
+          <div class="field">
+            <label class="field-label" for="servico">Serviço</label>
+            <div class="field-input">
+              <select id="servico"><option value="PAC">PAC</option><option value="SEDEX">SEDEX</option></select>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">Formato do rótulo</label>
+            <div class="seg seg-2 seg-compact">
+              <label class="seg-item is-selected">
+                <input type="radio" name="formatoRotulo" value="ET" checked>
+                <span class="material-symbols-rounded">print_connect</span>
+                <span class="seg-title">Etiqueta 10×15</span>
+              </label>
+              <label class="seg-item">
+                <input type="radio" name="formatoRotulo" value="A4">
+                <span class="material-symbols-rounded">description</span>
+                <span class="seg-title">A4</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="review-split">
+          <div class="field">
+            <label class="field-label" for="tipoObjeto">Tipo do objeto</label>
+            <div class="field-input">
+              <select id="tipoObjeto">
+                <option value="CAIXA">Caixa/Pacote</option>
+                <option value="ENVELOPE">Envelope</option>
+                <option value="ROLO">Rolo</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="valorDeclarado">Valor declarado</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">payments</span>
+              <input id="valorDeclarado" type="number" step="0.01">
+            </div>
+          </div>
+        </div>
+        <div class="review-split">
+          <div class="field">
+            <label class="field-label" for="pesoG">Peso (g)</label>
+            <div class="field-input"><input id="pesoG" type="number"></div>
+          </div>
+          <div class="field">
+            <label class="field-label">Documento fiscal</label>
+            <div class="field-input"><span id="docType">—</span></div>
+          </div>
+        </div>
+        <div class="review-split">
+          <div class="field">
+            <label class="field-label" for="comprimentoCm">Comprimento (cm)</label>
+            <div class="field-input"><input id="comprimentoCm" type="number" step="0.1"></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="larguraCm">Largura (cm)</label>
+            <div class="field-input"><input id="larguraCm" type="number" step="0.1"></div>
+          </div>
+        </div>
+        <div class="review-split">
+          <div class="field">
+            <label class="field-label" for="alturaCm">Altura (cm)</label>
+            <div class="field-input"><input id="alturaCm" type="number" step="0.1"></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="diametroCm">Diâmetro (cm)</label>
+            <div class="field-input"><input id="diametroCm" type="number" step="0.1"></div>
+          </div>
+        </div>
+      </section>
+      <section class="card">
+        <header class="card-head">
+          <span class="material-symbols-rounded">list_alt</span>
+          <h2>Itens do pedido</h2>
+        </header>
+        <ul class="mini-list" id="itemsResumo"></ul>
+      </section>
+      <div class="stack-actions">
+        <button class="btn btn-ghost btn-block" id="btnVoltarPedidos">Voltar</button>
+        <button class="btn btn-ghost btn-block" id="btnSalvarReview">Salvar revisão</button>
+        <button class="btn btn-primary btn-block" id="btnGerarReview">Gerar etiqueta</button>
+      </div>
+    </section>
+  </template>
+
+  <!-- TEMPLATE: EMITIDAS -->
+  <template id="tpl-emitidas">
+    <section class="screen screen-emitidas">
+      <section class="hero hero-emitidas">
+        <div class="hero-top">
+          <div class="hero-greet hero-greet-single">
+            <span class="hero-name hero-name-compact">Etiquetas geradas</span>
+          </div>
+          <span class="hero-status">
+            <span class="material-symbols-rounded">print</span>
+          </span>
+        </div>
+        <div class="hero-chips">
+          <span class="chip">
+            <span class="material-symbols-rounded">sync</span>
+            <span>Sincronizar rastreio</span>
+          </span>
+          <span class="chip">
+            <span class="material-symbols-rounded">print</span>
+            <span>Pedidos prontos para impressão</span>
+          </span>
+        </div>
+      </section>
+      <section class="hist-toolbar-card">
+        <div class="toolbar-row toolbar-row-search">
+          <div class="field" style="flex:1;min-width:180px">
+            <label class="field-label" for="histBusca">Buscar</label>
+            <div class="field-input">
+              <span class="material-symbols-rounded">search</span>
+              <input id="histBusca" type="text" placeholder="Pedido, nome, código SRO">
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-apply" id="btnBuscarHist">
+            <span class="material-symbols-rounded">filter_list</span>Aplicar
+          </button>
+        </div>
+		<div class="toolbar-actions toolbar-actions-bulk">
+          <button class="btn btn-primary btn-sm" id="btnHistEtiqueta" data-hbulk>
+            <span class="material-symbols-rounded">cards_stack</span>Etiquetas
+          </button>
+          <button class="btn btn-ghost btn-sm" id="btnHistDc" data-hbulk>
+            <span class="material-symbols-rounded">description</span>DC-e
+          </button>
+          <button class="btn btn-ghost btn-sm" id="btnHistPlp" data-hbulk>
+            <span class="material-symbols-rounded">list_alt</span>Lista Postagem
+          </button>
+          <button class="btn btn-ghost btn-sm" id="btnHistTracking" data-hbulk>
+            <span class="material-symbols-rounded">sync</span>Sincronizar
+          </button>
+          </div>
+        <div class="bulk-toolbar-line">
+          <div class="bulk-head">
+            <div class="bulk-head-title">Seleção em lote</div>
+            <div class="bulk-head-status">
+              <button class="btn btn-ghost btn-sm" id="btnHistTodos">Todos</button>
+              <button class="btn btn-ghost btn-sm" id="btnHistLimpar">Limpar</button>
+              <strong id="histCount">Nenhum selecionado</strong>
+            </div>
+          </div>
+          </div>
+      </section>
+      <section class="hist-list" id="histList"></section>
+    </section>
+  </template>
+
+  <!-- TEMPLATE: CONTA -->
+  <template id="tpl-conta">
+    <section class="screen">
+      <section class="hero">
+        <div class="hero-top">
+          <div class="hero-greet">
+            <span class="hero-hi">Conta conectada</span>
+            <span class="hero-name" id="contaNome">—</span>
+          </div>
+          <span class="hero-status">
+            <span class="material-symbols-rounded">verified_user</span>
+          </span>
+        </div>
+      </section>
+      <section class="account-grid">
+        <div class="account-item"><span>Login</span><strong id="contaLogin">—</strong></div>
+        <div class="account-item"><span>Loja Nuvemshop</span><strong id="contaStore">—</strong></div>
+        <div class="account-item"><span>ID CRM</span><strong id="contaCrm">—</strong></div>
+        <div class="account-item"><span>Status CWS</span><strong id="contaStatus">—</strong></div>
+      </section>
+    </section>
+  </template>
+
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js" defer></script>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/screens/login.js"></script>
+  <script src="js/screens/pedidos.js"></script>
+  <script src="js/screens/revisar.js"></script>
+  <script src="js/screens/historico.js"></script>
+  <script src="js/screens/config.js"></script>
+  <script src="js/app.js"></script>
+<script src="/shared/ui/agf-ui.js"></script>
+</body>
+</html>

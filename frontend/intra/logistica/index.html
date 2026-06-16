@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#00416B">
+<title>Logística — AGF José Bonifácio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../styles/app-shell.css"/>
+<style>
+    :root{
+      --bg:#F5F6FA; --card:#fff; --card2:#f7f9fc; --line:#dde5ee; --text:#122033; --muted:#5a6d82;
+      --brand:#005A8F; --brand-2:#00416B; --brand-soft:#eaf3ff; --gold:#f2c800; --danger:#d93025;
+      --ok:#1e8e3e; --warn:#e6a700; --radius:18px; --shadow:0 12px 30px rgba(0,33,66,.08);
+      --size1:#dceeff; --size2:#a9d2ff; --size3:#5aa9ff; --size4:#005A8F;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Source Sans 3',system-ui,sans-serif;background:var(--bg);color:var(--text)}
+    .load-bar{position:fixed;top:0;left:0;width:100%;height:3px;z-index:999;background:linear-gradient(90deg,var(--brand),var(--brand-2),var(--brand));background-size:200% 100%;animation:lSlide 1.2s ease infinite;display:none}
+    .load-bar.on{display:block}
+    @keyframes lSlide{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+    .app-hd{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-bottom:1px solid rgba(220,227,235,.9)}
+    .app-hd-in{max-width:960px;min-height:56px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .app-brand{display:flex;align-items:center;gap:10px}
+    .app-badge{width:38px;height:38px;border-radius:12px;background:#fff;box-shadow:0 6px 16px rgba(0,0,0,.1);display:grid;place-items:center;overflow:hidden;flex:0 0 auto}
+    .app-badge svg{width:100%;height:100%;display:block}
+    .app-b-title{font-size:15px;font-weight:900;color:#0f172a;line-height:1.05}
+    .app-b-sub{font-size:11px;font-weight:700;color:var(--muted);margin-top:2px}
+    .app-acts{display:flex;gap:6px;flex-wrap:wrap}
+    .app-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 12px;border:1px solid rgba(196,205,216,.9);border-radius:999px;background:linear-gradient(180deg,#fff,#f7f9fc);color:var(--brand-2);box-shadow:0 3px 10px rgba(0,33,66,.05);font:800 11px/1 'Source Sans 3',sans-serif;text-decoration:none;cursor:pointer;transition:transform .12s}
+    .app-btn:hover{transform:translateY(-1px)}
+    .app-mi{font-family:'Material Symbols Rounded';font-size:18px;line-height:1}
+
+    .page{max-width:960px;margin:0 auto;padding:18px}
+    .hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;background:linear-gradient(135deg,var(--brand-2),var(--brand));color:#fff;padding:20px;border-radius:24px;box-shadow:var(--shadow)}
+    .hero h1{margin:0;font-size:clamp(28px,3.2vw,40px);line-height:1.05}
+    .hero p{margin:8px 0 0;color:rgba(255,255,255,.88);max-width:880px;font-size:17px}
+    .hero .tag{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);border-radius:999px;font-weight:800}
+
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .filters{margin-top:16px;padding:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .filter label{display:block;font-size:12px;font-weight:800;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+    .filter input,.filter select,.filter button{width:100%;height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 12px;font:inherit}
+    .filter button{background:var(--brand);color:#fff;font-weight:800;border:none;cursor:pointer}
+
+    .grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+    .kpi{padding:18px}
+    .kpi .label{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+    .kpi .value{font-size:32px;font-weight:900;line-height:1;margin-top:10px}
+    .kpi .sub{font-size:14px;color:var(--muted);margin-top:8px}
+
+    .section{margin-top:16px;padding:16px}
+    .section-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;margin-bottom:12px}
+    .section h2{margin:0;font-size:18px;line-height:1.1}
+    .section .desc{color:var(--muted);font-size:15px}
+
+    .capacity-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+    .cap-card{background:var(--card2);border:1px solid var(--line);border-radius:16px;padding:10px}
+    .cap-title{font-weight:800;font-size:15px;line-height:1.15}
+    .pill{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;font-size:10px;font-weight:700;margin-top:8px}
+    .pill.low{background:#e9f7ee;color:var(--ok)}
+    .pill.med{background:#fff6df;color:#8a6500}
+    .pill.high{background:#fff0ef;color:var(--danger)}
+    .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin-top:10px}
+    .metric{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px}
+    .metric .a{font-size:12px;color:var(--muted);font-weight:700}
+    .metric .b{font-size:15px;font-weight:700;line-height:1.05;margin-top:3px}
+
+    .panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:16px;gap:12px}
+    .chart-card{padding:12px}
+    .chart-title{font-size:14px;font-weight:900;margin-bottom:8px}
+    .chart-wrap{position:relative;width:100%;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:#fff}
+    .h-sm{height:260px}
+    .h-md{height:320px}
+    .h-lg{height:380px}
+    canvas{display:block !important;width:100% !important;height:100% !important}
+
+    .heat-wrap{display:grid;grid-template-columns:220px repeat(5,minmax(0,1fr));gap:8px;align-items:stretch}
+    .heat-head,.heat-label,.heat-cell{border-radius:12px;padding:10px 12px}
+    .heat-head{background:var(--card2);border:1px solid var(--line);text-align:center;font-weight:900}
+    .heat-label{background:#fff;border:1px solid var(--line);font-weight:900;display:flex;align-items:center}
+    .heat-cell{border:1px solid rgba(0,0,0,.05);min-height:82px;display:flex;flex-direction:column;justify-content:center}
+    .heat-cell .v{font-size:20px;font-weight:900;line-height:1}
+    .heat-cell .s{font-size:12px;opacity:.95;margin-top:4px}
+
+    .tbl-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}
+    table{width:100%;border-collapse:collapse;background:#fff}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+    th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:var(--card2);position:sticky;top:0}
+    td{font-size:14px}
+
+    .notes{display:grid;grid-template-columns:1.3fr 1fr;margin-top:16px;gap:14px}
+    .note-card{padding:16px}
+    .note-card p{margin:8px 0 0;color:var(--muted);font-size:15px}
+    .list{margin:12px 0 0;padding:0;list-style:none}
+    .list li{padding:8px 0;border-top:1px dashed var(--line)}
+    .muted{color:var(--muted)}
+    .strong{font-weight:900}
+
+    .alert{display:none;margin-top:16px;padding:14px;background:#fff7e6;border:1px solid #f4d9a5;border-radius:14px;color:#7a5200;white-space:pre-wrap}
+    .empty{padding:18px;color:var(--muted);text-align:center;border:1px dashed var(--line);border-radius:14px;background:#fff}
+
+    @media (max-width:960px){
+      .filters,.grid-4,.capacity-grid,.panels,.notes{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .heat-wrap{grid-template-columns:180px repeat(5,minmax(120px,1fr))}
+    }
+    @media (max-width:720px){
+      .filters,.grid-4,.capacity-grid,.panels,.notes{grid-template-columns:1fr}
+      .hero{flex-direction:column}
+      .heat-wrap{grid-template-columns:140px repeat(5,minmax(100px,1fr));overflow:auto}
+      .app-hd-in{flex-direction:column;align-items:flex-start;gap:8px}
+    }
+  </style>
+
+<link rel="manifest" href="/intra/manifest.webmanifest"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/intra/favicon-32.png"/>
+<link rel="apple-touch-icon" href="/assets/pwa/intra/apple-touch-icon.png"/>
+<link rel="stylesheet" href="/shared/ui/agf-ui.css"/>
+<script src="/shared/auth/agf-auth-config.js"></script>
+<script src="/shared/auth/agf-auth-client.js"></script>
+<script>window.AGF_ACCESS={roles:['admin','manager'],app:'intra'};</script>
+<script src="/shared/auth/agf-route-guard.js"></script>
+</head>
+<body>
+<header class="app-hd">
+    <div class="app-hd-in">
+      <div class="app-brand">
+        <div class="app-badge">
+          <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><path fill='#fed200' d='M7.38 11.98L16.57 11.98 15.85 13.07 14.27 15 13.07 16.57 11.98 18.02 12.22 18.51 13.91 20.68 16.57 24.07 16.57 24.32 7.62 24.32 6.65 23.83 5.32 22.14 3.99 20.45 2.42 18.39 2.54 17.66 3.87 15.97 5.32 14.15 6.53 12.58 7.14 12.1Z'/><path fill='#007cc3' d='M13.67 5.68L22.5 5.68 23.47 6.05 24.43 7.14 26.01 9.2 27.34 10.89 27.82 11.49 27.82 12.22 26.73 13.67 25.4 15.36 23.71 17.54 22.86 18.02 13.79 18.02 14.27 17.18 15.48 15.73 16.7 14.15 18.02 12.46 18.39 11.86 16.93 10.04 15.73 8.47 14.39 6.77Z'/><path fill='#003a66' d='M13.67 5.68L21.53 5.68 22.14 6.17 22.26 7.02 21.29 8.35 19.96 10.04 18.63 11.73 18.27 11.73 16.7 9.68 15.24 7.86 13.67 5.8Z'/><path fill='#d69e00' d='M11.73 18.14L12.34 18.63 13.79 20.57 15.36 22.5 16.57 24.07 16.57 24.32 8.71 24.32 8.11 23.71 8.11 22.98 8.83 21.89 10.28 20.08Z'/></svg>
+        </div>
+        <div>
+          <div class="app-b-title">Logística Inteligente</div>
+          <div class="app-b-sub">AGF JOSÉ BONIFÁCIO</div>
+        </div>
+      </div>
+      <div class="app-acts">
+        <a class="app-btn" href="/agf/"><span class="app-mi">apps</span>Portal</a>
+        <a class="app-btn" href="../index.html"><span class="app-mi">arrow_back</span>Menu</a>
+        <button class="app-btn" onclick="document.getElementById('btnLoad').click()"><span class="app-mi">refresh</span>Atualizar</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="page">
+
+    <div class="alert card" id="debugBox"></div>
+
+    <section class="card filters">
+      <div class="filter">
+        <label>Semana</label>
+        <select id="weekStart"></select>
+      </div>
+      <div class="filter">
+        <label>Data inicial</label>
+        <input id="startDate" type="date" />
+      </div>
+      <div class="filter">
+        <label>Data final</label>
+        <input id="endDate" type="date" />
+      </div>
+      <div class="filter">
+        <label>Local</label>
+        <select id="local"></select>
+      </div>
+      <div class="filter">
+        <label>Serviço</label>
+        <select id="service"></select>
+      </div>
+      <div class="filter">
+        <label>Remetente</label>
+        <select id="sender"></select>
+      </div>
+      <div class="filter" style="grid-column:1/-1;display:flex;justify-content:flex-end">
+        <button id="btnLoad">Atualizar dashboard</button>
+      </div>
+    </section>
+
+    <section class="grid-4" id="kpis"></section>
+
+    <section class="card section">
+      <div class="section-head">
+        <div>
+          <h2>Capacidade prevista por janela operacional</h2>
+          <div class="desc">SEDEX do Metrô vai para Centro leve. SEDEX do CF vai para CF principal. PAC e Mini Envios são distribuídos entre as demais janelas conforme volume, peso e criticidade por remetente.</div>
+        </div>
+      </div>
+      <div id="capacityGrid" class="capacity-grid"></div>
+    </section>
+
+    <section class="panels" id="variationPanels"></section>
+
+    <section class="card section">
+      <div class="section-head">
+        <div>
+          <h2>Heatmap por janela × dia da semana</h2>
+          <div class="desc">Somente dias úteis. A cor indica o volume médio em litros por dia naquela janela.</div>
+        </div>
+      </div>
+      <div id="heatmap"></div>
+    </section>
+
+    <section class="notes">
+      <article class="card note-card">
+        <h2 style="margin:2px">Leituras operacionais</h2>
+        <p id="insightA"></p>
+        <p id="insightB"></p>
+        <p id="insightC"></p>
+      </article>
+      <article class="card note-card">
+        <h2 style="margin:2px">Principais remetentes por janela crítica</h2>
+        <ul class="list" id="topSendersList"></ul>
+      </article>
+    </section>
+
+    <section class="card section">
+      <div class="section-head">
+        <div>
+          <h2>Dias mais pesados do recorte</h2>
+          <div class="desc">Ordenado pelo volume total do dia para destacar onde a rota fica mais pressionada.</div>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Data</th><th>Objetos</th><th>Volume</th><th>Peso</th><th>% do baú</th><th>Janela dominante</th><th>Remetente dominante</th><th>Risco</th></tr></thead>
+        <tbody id="criticalDaysBody"></tbody>
+      </table></div>
+    </section>
+
+    <section class="card section">
+      <div class="section-head">
+        <div>
+          <h2>Remetentes e janela sugerida</h2>
+          <div class="desc">Base útil para modelar a rota inteligente por cliente.</div>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Remetente</th><th>Local</th><th>Grupo</th><th>Obj/dia</th><th>L/dia</th><th>Kg/dia</th><th>% >15L</th><th>Pico típico</th><th>Pico máx.</th><th>Janela sugerida</th><th>Risco</th></tr></thead>
+        <tbody id="sendersBody"></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  
+<nav class="bottom-nav" aria-label="Navegação principal"><div class="bottom-nav-inner">
+  <a class="bnav-item" href="../"><div class="bnav-pill"><span class="mi">home</span></div><span class="bnav-label">Home</span></a>
+  <a class="bnav-item" href="/crm/?view=prospects"><div class="bnav-pill"><span class="mi">explore</span></div><span class="bnav-label">Prospects</span></a>
+  <a class="bnav-item" href="/crm/?view=clientes"><div class="bnav-pill"><span class="mi">badge</span></div><span class="bnav-label">CRM</span></a>
+  <a class="bnav-item" href="/crm/?view=agenda"><div class="bnav-pill"><span class="mi">event</span></div><span class="bnav-label">Agenda</span></a>
+  <a class="bnav-item is-active" href="../#mais"><div class="bnav-pill"><span class="mi">more_horiz</span></div><span class="bnav-label">Mais</span></a>
+</div></nav>
+</div><!-- /app-shell -->
+
+<script>
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxXdAPEV_EnfR3qzafubx6GKcS24wLd9V4xPslyWUaFsXFDcCYz_y0RWYGmYzz2vjUa/exec';
+    const state = { options:null, data:null, charts:{} };
+    const sizeColors = ['#dceeff','#a9d2ff','#5aa9ff','#005A8F'];
+
+    const $ = id => document.getElementById(id);
+    const fmt = (n,d=0) => new Intl.NumberFormat('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}).format(Number(n||0));
+    const safe = t => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    function capacityClass(label){ return label === 'Folga' ? 'low' : (label === 'Atenção' ? 'med' : 'high'); }
+    function riskTextClass(label){ return label === 'Baixo' ? 'low' : (label === 'Médio' ? 'med' : 'high'); }
+
+    function showLoading(on){
+      const el = $('loadBar');
+      if (el) el.classList.toggle('on', !!on);
+    }
+
+    function showDebug(msg){
+      const el = $('debugBox');
+      if (el){
+        el.style.display = 'block';
+        el.textContent = msg;
+      }
+    }
+
+    function hideDebug(){
+      const el = $('debugBox');
+      if (el){
+        el.style.display = 'none';
+        el.textContent = '';
+      }
+    }
+
+    async function api(params={}){
+      if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('COLE_AQUI')) throw new Error('Defina a constante APPS_SCRIPT_URL no HTML com a URL /exec do Apps Script.');
+      const url = new URL(APPS_SCRIPT_URL);
+      Object.entries(params).forEach(([k,v]) => { if(v !== '' && v != null) url.searchParams.set(k, v); });
+      const res = await fetch(url.toString());
+      if(!res.ok) throw new Error('Falha ao consultar o Apps Script.');
+      const json = await res.json();
+      if(!json.ok) throw new Error(json.error || 'Erro no payload.');
+      return json;
+    }
+
+    function currentFilters(){
+      return {
+        action:'dashboard',
+        weekStart:$('weekStart')?.value || '',
+        startDate:$('startDate')?.value || '',
+        endDate:$('endDate')?.value || '',
+        local:$('local')?.value || 'TODOS',
+        service:$('service')?.value || 'TODOS',
+        sender:$('sender')?.value || 'TODOS'
+      };
+    }
+
+    function fillSelect(el, arr, valueKey='value', labelKey='label'){
+      if (!el) return;
+      el.innerHTML = (arr || []).map(x => {
+        if (typeof x === 'string') return `<option value="${safe(x)}">${safe(x)}</option>`;
+        return `<option value="${safe(x[valueKey])}">${safe(x[labelKey])}</option>`;
+      }).join('');
+    }
+
+    function normalizePayload(data){
+      return !!(data && data.meta && data.summary && data.windowCapacity && data.dailyVariationPanels && data.weekdayHeatmap && data.topSenders && data.criticalDays && data.routeInsights);
+    }
+
+    async function loadOptions(){
+      const data = await api({ action:'options' });
+      state.options = data;
+      fillSelect($('weekStart'), data.weeks || [], 'value', 'label');
+      fillSelect($('local'), data.locals || []);
+      fillSelect($('service'), data.services || []);
+      fillSelect($('sender'), data.senders || []);
+      const last = $('lastUpdated');
+      if (last) last.textContent = `Opções carregadas em ${data.lastUpdated || '-'}`;
+    }
+
+    function renderKpis(){
+      const s = state.data.summary || {};
+      const el = $('kpis');
+      if (!el) return;
+      el.innerHTML = [
+        {label:'Objetos no recorte', value:fmt(s.totalObjects), sub:`${fmt(s.avgObjectsDay,1)} por dia ativo`},
+        {label:'Volume total', value:`${fmt(s.totalVolumeL,1)} L`, sub:`${fmt(s.avgVolumeDayL,1)} L por dia`},
+        {label:'Peso total', value:`${fmt(s.totalWeightKg,1)} kg`, sub:`${fmt(s.avgWeightDayKg,1)} kg por dia`},
+        {label:'Remetentes', value:fmt(s.senderCount), sub:`${fmt(s.activeDays)} dias ativos • ${fmt(s.plannedWindowCount)} janelas`}
+      ].map(card => `<article class="card kpi"><div class="label">${safe(card.label)}</div><div class="value">${safe(card.value)}</div><div class="sub">${safe(card.sub)}</div></article>`).join('');
+    }
+
+    function renderCapacity(){
+      const rows = state.data.windowCapacity || [];
+      const el = $('capacityGrid');
+      if (!el) return;
+      el.innerHTML = rows.length ? rows.map(r => `
+        <article class="cap-card">
+          <div class="cap-title">${safe(r.window)}</div>
+          <span class="pill ${capacityClass(r.capacityLabel)}">${safe(r.capacityLabel)}</span>
+          <div class="metrics">
+            <div class="metric"><div class="a">Média de objetos</div><div class="b">${fmt(r.avgObjects,1)}</div></div>
+            <div class="metric"><div class="a">Média de litros</div><div class="b">${fmt(r.avgVolumeL,1)}L</div></div>
+            <div class="metric"><div class="a">Pico típico</div><div class="b">${fmt(r.typicalPeakVolumeL,1)}L</div></div>
+            <div class="metric"><div class="a">Média clientes</div><div class="b">${fmt(r.avgClients,1)}</div></div>
+            <div class="metric"><div class="a">% média do baú</div><div class="b">${fmt(r.bauAvgPct,1)}%</div></div>
+            <div class="metric"><div class="a">% pico típico</div><div class="b">${fmt(r.bauTypicalPeakPct,1)}%</div></div>
+          </div>
+        </article>`).join('') : '<div class="empty">Sem dados para o recorte.</div>';
+    }
+
+    function destroyCharts(){
+      Object.values(state.charts).forEach(ch => ch && ch.destroy && ch.destroy());
+      state.charts = {};
+    }
+
+    function renderVariationPanels(){
+      destroyCharts();
+      const panels = state.data.dailyVariationPanels || [];
+      const wrap = $('variationPanels');
+      if (!wrap) return;
+      wrap.innerHTML = panels.map((p,i) => `
+        <section class="card chart-card">
+          <div class="chart-title">${safe(p.title)}</div>
+          <div class="chart-wrap h-md"><canvas id="chart_${i}"></canvas></div>
+        </section>`).join('');
+
+      panels.forEach((p,i) => {
+        const ctx = document.getElementById(`chart_${i}`);
+        if (!ctx) return;
+        state.charts[`chart_${i}`] = new Chart(ctx, {
+          type:'bar',
+          data:{
+            labels:p.labels || [],
+            datasets:(p.datasets || []).map((d,idx) => ({
+              label:d.label,
+              data:d.data || [],
+              backgroundColor:sizeColors[idx] || '#005A8F',
+              borderRadius:6,
+              stack:'size'
+            }))
+          },
+          options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            interaction:{mode:'index',intersect:false},
+            plugins:{legend:{position:'bottom'}},
+            scales:{ x:{stacked:true,ticks:{maxRotation:0,autoSkip:true}}, y:{stacked:true,beginAtZero:true} }
+          }
+        });
+      });
+    }
+
+    function renderHeatmap(){
+      const hm = state.data.weekdayHeatmap;
+      const el = $('heatmap');
+      if(!el || !hm || !hm.rows) return;
+      const max = Math.max(1, ...hm.rows.flatMap(r => (r.values || []).map(v => v.intensity || 0)));
+      const head = `<div></div>${(hm.weekdays || []).map(w => `<div class="heat-head">${safe(w)}</div>`).join('')}`;
+      const body = (hm.rows || []).map(r => `
+        <div class="heat-label">${safe(r.label)}</div>
+        ${(r.values || []).map(v => {
+          const alpha = Math.max(.08, ((v.intensity || 0) / max) * .95);
+          const bg = `rgba(0,102,179,${alpha})`;
+          const text = alpha > .55 ? '#fff' : '#0f172a';
+          return `<div class="heat-cell" style="background:${bg};color:${text}"><div class="v">${fmt(v.avgVolumeL,1)}L</div><div class="s" style="color:${text}">${fmt(v.avgObjects,1)} obj/dia</div></div>`;
+        }).join('')}
+      `).join('');
+      el.innerHTML = `<div class="heat-wrap">${head}${body}</div>`;
+    }
+
+    function renderNotes(){
+      const ri = state.data.routeInsights || {};
+      const text = ri.text || {};
+      const highlights = ri.highlights || {};
+      if ($('insightA')) $('insightA').textContent = text.cfMainMessage || '';
+      if ($('insightB')) $('insightB').textContent = text.centerMessage || '';
+      if ($('insightC')) $('insightC').textContent = text.bauMessage || '';
+
+      const items = [];
+      (highlights.topCFMainSenders || []).forEach(s => items.push({window:'CF principal', item:s}));
+      (highlights.topCenterMainSenders || []).forEach(s => items.push({window:'Centro principal', item:s}));
+      const list = $('topSendersList');
+      if (!list) return;
+      list.innerHTML = items.length ? items.slice(0,8).map(({window,item}) => `
+        <li>
+          <div class="strong">${safe(item.sender)}</div>
+          <div class="muted">${safe(window)} • ${safe(item.serviceGroup)} • ${fmt(item.avgVolumeDayL,1)}L/dia • pico típico ${fmt(item.typicalPeakVolumeL,1)}L</div>
+        </li>`).join('') : '<li class="muted">Sem remetentes suficientes neste recorte.</li>';
+    }
+
+    function renderCriticalDays(){
+      const body = $('criticalDaysBody');
+      if (!body) return;
+      body.innerHTML = (state.data.criticalDays || []).slice(0,12).map(r => `
+        <tr>
+          <td>${safe(r.date)}</td>
+          <td>${fmt(r.totalObjects)}</td>
+          <td>${fmt(r.totalVolumeL,1)}L</td>
+          <td>${fmt(r.totalWeightKg,1)}kg</td>
+          <td>${fmt(r.bauPct,1)}%</td>
+          <td>${r.topWindow ? `${safe(r.topWindow.key)}<br><span class="muted">${fmt(r.topWindow.value,1)}L</span>` : '—'}</td>
+          <td>${r.topSender ? `${safe(r.topSender.key)}<br><span class="muted">${fmt(r.topSender.value,1)}L</span>` : '—'}</td>
+          <td><span class="pill ${riskTextClass(r.risk)}">${safe(r.risk)}</span></td>
+        </tr>`).join('') || '<tr><td colspan="8">Sem dados.</td></tr>';
+    }
+
+    function renderSenders(){
+      const body = $('sendersBody');
+      if (!body) return;
+      body.innerHTML = (state.data.topSenders || []).slice(0,24).map(r => `
+        <tr>
+          <td>${safe(r.sender)}</td>
+          <td>${safe(r.local)}</td>
+          <td>${safe(r.serviceGroup)}</td>
+          <td>${fmt(r.avgObjectsDay,2)}</td>
+          <td>${fmt(r.avgVolumeDayL,1)}L</td>
+          <td>${fmt(r.avgWeightDayKg,1)}kg</td>
+          <td>${fmt(r.largePct,1)}%</td>
+          <td>${fmt(r.typicalPeakVolumeL,1)}L</td>
+          <td>${fmt(r.peakVolumeL,1)}L</td>
+          <td>${safe(r.recommendedWindow)}</td>
+          <td><span class="pill ${riskTextClass(r.risk)}">${safe(r.risk)}</span></td>
+        </tr>`).join('') || '<tr><td colspan="11">Sem dados.</td></tr>';
+    }
+
+    async function loadDashboard(){
+      showLoading(true);
+      try{
+        hideDebug();
+        const data = await api(currentFilters());
+        if (!normalizePayload(data)) {
+          showDebug('Payload recebido em formato inesperado:\n\n' + JSON.stringify(data, null, 2));
+          throw new Error('O Apps Script respondeu, mas sem as chaves esperadas do dashboard.');
+        }
+        state.data = data;
+        const last = $('lastUpdated');
+        if (last) last.textContent = `Atualizado em ${data.meta.lastUpdated || '-'} • filtradas ${fmt(data.meta.filteredRows || 0)} linhas • planejadas ${fmt(data.meta.plannedRows || 0)}`;
+        renderKpis();
+        renderCapacity();
+        renderVariationPanels();
+        renderHeatmap();
+        renderNotes();
+        renderCriticalDays();
+        renderSenders();
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function boot(){
+      showLoading(true);
+      try{
+        await loadOptions();
+        await loadDashboard();
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    $('btnLoad')?.addEventListener('click', () => loadDashboard().catch(err => alert(err.message || 'Erro ao montar dashboard.')));
+    $('weekStart')?.addEventListener('change', () => {
+      const value = $('weekStart')?.value || '';
+      const week = (state.options?.weeks || []).find(x => x.value === value);
+      if (week && week.value) {
+        if ($('startDate')) $('startDate').value = week.value;
+        if ($('endDate')) $('endDate').value = week.end || '';
+      }
+    });
+
+    boot().catch(err => {
+      showLoading(false);
+      alert(err.message || 'Erro inicial ao carregar dashboard.');
+    });
+  </script>
+<script src="/shared/ui/agf-ui.js"></script>
+</body>
+</html>

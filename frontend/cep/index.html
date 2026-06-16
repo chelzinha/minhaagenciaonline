@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Consulta CEP | AGF José Bonifácio</title>
+  <meta name="description" content="Busca de CEP e endereços da AGF José Bonifácio" />
+  <meta name="theme-color" content="#00416B" />
+
+  <meta property="og:title" content="Consulta CEP | AGF José Bonifácio" />
+  <meta property="og:description" content="Busca de CEP e Endereços" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://minhaagenciaonline.com.br/cep/" />
+  <meta property="og:image" content="https://minhaagenciaonline.com.br/assets/og-whatsapp-correios-v2.png" />
+
+  <link rel="icon" href="/assets/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png" />
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/shared/address/address-widget.css" />
+  <link rel="stylesheet" href="/cep/cep-page.css" />
+<link rel="stylesheet" href="/shared/ui/agf-ui.css"/>
+<script src="/shared/auth/agf-auth-config.js"></script>
+<script src="/shared/auth/agf-auth-client.js"></script>
+<link rel="manifest" href="/cep/manifest.webmanifest"/>
+<link rel="icon" href="/assets/pwa/cep/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/cep/favicon-32.png"/>
+<link rel="apple-touch-icon" href="/assets/pwa/cep/apple-touch-icon.png"/>
+</head>
+<body>
+  <div class="cep-page">
+    <header class="cep-header agf-standard-topbar">
+      <div class="cep-container cep-header-inner agf-standard-topbar-inner">
+        <a class="cep-brand agf-standard-brand" href="/" aria-label="Voltar para início">
+          <span class="logo-circle agf-standard-brand-tile">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" aria-hidden="true"><path fill="#fed200" d="M 7.38 11.98 L 16.57 11.98 L 15.85 13.07 L 14.27 15 L 13.07 16.57 L 11.98 18.02 L 12.22 18.51 L 13.91 20.68 L 16.57 24.07 L 16.57 24.32 L 7.62 24.32 L 6.65 23.83 L 5.32 22.14 L 3.99 20.45 L 2.42 18.39 L 2.54 17.66 L 3.87 15.97 L 5.32 14.15 L 6.53 12.58 L 7.14 12.1 Z"/><path fill="#007cc3" d="M 13.67 5.68 L 22.5 5.68 L 23.47 6.05 L 24.43 7.14 L 26.01 9.2 L 27.34 10.89 L 27.82 11.49 L 27.82 12.22 L 26.73 13.67 L 25.4 15.36 L 23.71 17.54 L 22.86 18.02 L 13.79 18.02 L 14.27 17.18 L 15.48 15.73 L 16.7 14.15 L 18.02 12.46 L 18.39 11.86 L 16.93 10.04 L 15.73 8.47 L 14.39 6.77 Z"/><path fill="#003a66" d="M 13.67 5.68 L 21.53 5.68 L 22.14 6.17 L 22.26 7.02 L 21.29 8.35 L 19.96 10.04 L 18.63 11.73 L 18.27 11.73 L 16.7 9.68 L 15.24 7.86 L 13.67 5.8 Z"/><path fill="#d69e00" d="M 11.73 18.14 L 12.34 18.63 L 13.79 20.57 L 15.36 22.5 L 16.57 24.07 L 16.57 24.32 L 8.71 24.32 L 8.11 23.71 L 8.11 22.98 L 8.83 21.89 L 10.28 20.08 Z"/></svg>
+          </span>
+          <span class="agf-standard-copy"><strong>Consulta CEP</strong><small>AGF JOSÉ BONIFÁCIO</small></span>
+        </a>
+        <nav class="cep-header-actions agf-standard-actions" aria-label="Ações rápidas">
+          <a class="cep-header-link agf-standard-action" href="/app/" target="_blank" rel="noopener noreferrer"><span class="material-symbols-rounded" aria-hidden="true">sell</span><span>Postagens</span></a>
+          <a class="cep-header-link agf-standard-action" href="/"><span class="material-symbols-rounded" aria-hidden="true">home</span><span>Início</span></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="cep-main">
+      <div class="cep-container">
+        <section class="cep-copy" aria-labelledby="cep-title">
+          <div class="cep-pill">
+            <span class="material-symbols-rounded" aria-hidden="true">bolt</span>
+            Consulta rápida
+          </div>
+
+          <h1 class="cep-title" id="cep-title">Busca de CEP e Endereços</h1>
+
+          <div class="cep-widget-wrap agf-address-widget">
+            <form class="agf-address-search-card" id="cep-form" autocomplete="off">
+              <div class="agf-address-search-row">
+                <label class="agf-address-field" for="cep-query">
+                  <span class="material-symbols-rounded" aria-hidden="true">search</span>
+                  <input
+                    class="agf-address-input"
+                    id="cep-query"
+                    name="q"
+                    type="search"
+                    inputmode="search"
+                    placeholder="Digite CEP ou endereço"
+                    aria-label="Digite CEP ou endereço"
+                  />
+                </label>
+
+                <button class="agf-address-button" id="cep-submit" type="submit">
+                  <span class="material-symbols-rounded" aria-hidden="true">search</span>
+                  Consultar
+                </button>
+              </div>
+
+              <div class="agf-address-status" id="cep-status" role="status" aria-live="polite"></div>
+              <div class="agf-address-results" id="cep-results"></div>
+            </form>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="/shared/address/address-config.js"></script>
+  <script src="/shared/address/address-client.js"></script>
+  <script src="/cep/cep-page.js"></script>
+<script src="/shared/ui/agf-ui.js"></script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/cep/sw.js').catch(()=>{}));}</script>
+</body>
+</html>

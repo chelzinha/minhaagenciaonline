@@ -1,0 +1,35 @@
+{
+  "name": "Minhas Postagens Nuvemshop",
+  "short_name": "Nuvemshop Postagens",
+  "start_url": "/nuvem/",
+  "scope": "/nuvem/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#00416B",
+  "icons": [
+    {
+      "src": "/assets/pwa/nuvem/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/pwa/nuvem/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/pwa/nuvem/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/pwa/nuvem/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

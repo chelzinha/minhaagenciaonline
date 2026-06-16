@@ -1,0 +1,81 @@
+{
+  "name": "AGF José Bonifácio — Gerencial",
+  "short_name": "AGF Gerencial",
+  "description": "Painel gerencial financeiro, operacional e quantitativo da agência.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/intra/?source=pwa",
+  "scope": "/intra/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F5F6FA",
+  "theme_color": "#00416B",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/assets/pwa/intra/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/pwa/intra/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/pwa/intra/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/pwa/intra/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "CRM — Clientes ativos",
+      "short_name": "CRM",
+      "url": "/crm/?view=clientes&source=shortcut",
+      "icons": [
+        {
+          "src": "/intra/icon-crm-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Prospects",
+      "short_name": "Prospects",
+      "url": "/crm/?view=prospects&source=shortcut",
+      "icons": [
+        {
+          "src": "/intra/icon-prospects-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Agenda",
+      "short_name": "Agenda",
+      "url": "/crm/?view=agenda&source=shortcut",
+      "icons": [
+        {
+          "src": "/intra/icon-agenda-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

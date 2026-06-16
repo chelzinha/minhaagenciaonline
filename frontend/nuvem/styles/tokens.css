@@ -1,0 +1,79 @@
+/* =====================================================
+   APP ETIQUETAS — Design Tokens
+   Mantém identidade Correios (navy + amarelo).
+   Espelha o sistema do CRM Metrô para consistência.
+   ===================================================== */
+
+:root {
+  /* Cores Correios */
+  --nv: #00416B;          /* Pantone 540C — navy oficial */
+  --nv-700: #00355A;
+  --nv-600: #044d7c;
+  --nv-300: #6a8aa3;
+  --nv-100: #d4dee8;
+  --nv-50:  #eef3f8;
+  --yl: #FFD400;          /* Pantone 7549C — amarelo oficial */
+  --yl-300: #ffe072;
+  --yl-100: #fff5c2;
+
+  /* Neutrals */
+  --bg: #F4F6F8;
+  --card: #FFFFFF;
+  --line: #E2E8F0;
+  --line-strong: #CBD5E1;
+  --text: #1F2937;
+  --text-2: #4B5563;
+  --muted: #6B7280;
+  --muted-2: #9AA3B0;
+
+  /* Status */
+  --ok: #15803D;
+  --ok-bg: #DCFCE7;
+  --warn: #B45309;
+  --warn-bg: #FEF3C7;
+  --err: #B91C1C;
+  --err-bg: #FEE2E2;
+  --info: var(--nv);
+  --info-bg: var(--nv-50);
+
+  /* Sombra */
+  --sh-sm: 0 2px 6px rgba(16, 24, 40, 0.06);
+  --sh: 0 8px 24px rgba(16, 24, 40, 0.08);
+  --sh-lg: 0 18px 38px rgba(16, 24, 40, 0.14);
+  --sh-nv: 0 14px 28px rgba(0, 65, 107, 0.20);
+
+  /* Raios */
+  --r-sm: 10px;
+  --r: 16px;
+  --r-lg: 22px;
+  --r-pill: 999px;
+
+  /* Tipografia */
+  --ff: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+
+  /* Espaçamento */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+
+  /* Layout */
+  --max-w: 760px;
+  --topbar-h: 56px;
+  --bottomnav-h: 72px;
+
+  /* App-modern tokens (iFood/Netflix-like) */
+  --r-app: 20px;           /* radius padrão dos cartões tipo app */
+  --r-hero: 22px;          /* hero pill */
+  --sh-card: 0 6px 18px rgba(15, 23, 42, 0.06);
+  --sh-float: 0 10px 30px rgba(15, 23, 42, 0.14);
+  --hero-grad: linear-gradient(135deg, #00416B 0%, #00416B 55%, #00416B 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  /* mantemos light apenas — Correios é tradicionalmente light */
+}

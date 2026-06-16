@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /intra/
+Disallow: /balcao/
+Sitemap: https://minhaagenciaonline.com.br/sitemap.xml

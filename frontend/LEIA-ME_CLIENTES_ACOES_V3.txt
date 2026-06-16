@@ -1,0 +1,12 @@
+AJUSTE FRONTEND DASHBOARD — CLIENTES/AÇÕES v3
+
+Arquivo principal alterado:
+- intra/dashboard/index.html
+
+Mudanças:
+1. Filtro local de AÇÃO removeu VISITAR.
+2. Filtro local de PRIORIDADE passou a separar CRÍTICA de ALTA.
+3. Cards da Carteira Inteligente removeram VISITAR.
+4. Carteira mostra Ticket período, Qtd período e Fat. período.
+5. Ticket agora é calculado como faturamento do período / quantidade do período.
+6. Não há fallback para faturamento histórico na coluna Fat. período.

@@ -1,0 +1,44 @@
+/* ============ Importação de NF-e em PDF ============ */
+.nfe-import-card {
+  border-color: rgba(0, 65, 107, .14);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+.nfe-import-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+.nfe-import-box .field { margin-bottom: 0; }
+.nfe-import-actions { display: flex; gap: 10px; align-items: center; }
+.nfe-import-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted, #64748b);
+  line-height: 1.35;
+}
+.nfe-import-note .material-symbols-rounded { font-size: 18px; color: #00416B; }
+.nfe-status {
+  margin-top: 12px;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  border: 1px solid rgba(0, 65, 107, .14);
+  background: #f8fafc;
+  color: #334155;
+}
+.nfe-status.success { background: #ecfdf5; border-color: #bbf7d0; color: #047857; }
+.nfe-status.error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+.nfe-status.loading { background: #eff6ff; border-color: #bfdbfe; color: #075985; }
+@media (max-width: 720px) {
+  .nfe-import-box { grid-template-columns: 1fr; }
+  .nfe-import-actions .btn { width: 100%; justify-content: center; }
+}
+.nfe-preview-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+.btn-danfe-preview { border-color:#f59e0b !important; color:#805b00 !important; background:#fff9dd !important; }
+.nfe-test-tag { display:inline-flex; align-items:center; border-radius:999px; padding:5px 9px; font-size:11px; font-weight:800; color:#9a6700; background:#fff3bf; border:1px solid #ffe08a; }
