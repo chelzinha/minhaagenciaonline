@@ -117,3 +117,37 @@ Observacao: nao registrar URL completa, token, segredo ou identificador privado 
 - Cruzar chamadas com apps-script/logistica.
 - Cruzar autenticacao com apps-script/autenticacao.
 - Confirmar gargalos de performance antes de qualquer alteracao.
+
+## 11. Segunda varredura - config.js e services/api.js
+
+Branch usada na auditoria:
+- audit/reverso-api
+
+Arquivos analisados:
+- frontend/reverso/js/config.js
+- frontend/reverso/services/api.js
+
+Achados:
+- config.js possui export de configuracao.
+- config.js possui configuracao de API_BASE.
+- config.js possui configuracao de API_TIMEOUT.
+- config.js possui chaves de escopo como UNIT, USER e FLOW.
+- services/api.js possui funcao async para chamada ao backend.
+- services/api.js valida se a URL/configuracao do backend existe antes da chamada.
+- services/api.js usa timeout/controle de tempo de resposta.
+- services/api.js monta body de requisicao.
+- services/api.js trata resposta do backend.
+- services/api.js exporta objeto ou funcoes de API do modulo.
+
+Linhas identificadas:
+- config.js: linhas 1, 2, 5, 8, 9 e 10.
+- services/api.js: linhas 4, 18, 19, 23, 26, 29, 30, 33, 41, 45, 52 e 79.
+
+Atenção sensível:
+- Nao registrar URL completa do Web App.
+- Nao registrar token, senha, chave ou identificador privado.
+- Se houver endpoint publico de Apps Script, registrar apenas o modulo relacionado e o tipo de chamada.
+
+Conclusao parcial:
+- O frontend do Reverso esta centralizado corretamente em uma camada de configuracao e uma camada de servico de API.
+- Proxima etapa: identificar os nomes das chamadas exportadas em services/api.js e cruzar com apps-script/logistica e apps-script/autenticacao.
