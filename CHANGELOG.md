@@ -18,3 +18,10 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Antes desta migracao, o site era publicado por deploy manual no Netlify.
 - A partir desta etapa, o repositorio GitHub passa a ser a fonte viva do frontend.
 - O site www.minhaagenciaonline.com.br foi validado visualmente apos o deploy inicial pelo GitHub.
+
+## 2026-06-16 - Apps Script do projeto
+
+- Adicionados ao repositorio os Apps Script vinculados ao projeto minhaagenciaonline.
+- Criado .gitignore para impedir versionamento de arquivos .clasp.json.
+- Realizada verificacao inicial para evitar envio de segredos reais.
+- Commit relacionado: badf763.
