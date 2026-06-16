@@ -100,3 +100,32 @@
   .scan-corners{inset:4% !important;border-radius:20px !important;}
   .scan-line{left:5% !important;right:5% !important;}
 }
+
+/* v1. UX mobile review - Reverso */
+@media (max-width: 640px) {
+  .btn {
+    min-height: 48px;
+    width: 100%;
+    justify-content: center;
+    font-size: 1rem;
+  }
+
+  .loading-card {
+    width: min(92vw, 360px);
+    padding: 22px 18px;
+    text-align: center;
+  }
+
+  .toast {
+    left: 16px;
+    right: 16px;
+    bottom: 18px;
+    max-width: none;
+    line-height: 1.35;
+  }
+
+  .empty-state {
+    padding: 18px;
+    line-height: 1.45;
+  }
+}
