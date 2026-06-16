@@ -182,3 +182,40 @@ Pontos de performance:
 
 Proxima etapa:
 - Cruzar estas chamadas com as funcoes existentes em apps-script/logistica e apps-script/autenticacao.
+
+## 13. Cruzamento frontend x Apps Script
+
+Fluxo identificado:
+
+- frontend/reverso/js/screens/*.js chama frontend/reverso/services/api.js.
+- frontend/reverso/services/api.js envia action para o Web App.
+- apps-script/logistica/04_Api.gs recebe doGet/doPost e roteia por action.
+- apps-script/logistica/03_Core.gs contem funcoes de regra de negocio do Reverso.
+
+| Chamada no frontend | Rota/action em 04_Api.gs | Funcao backend identificada | Observacao |
+|---|---|---|---|
+| Api.getUnitBySlug() | getUnitBySlug | apiGetUnitBySlug_() | Usada em auth.js e boot.js para localizar unidade por slug |
+| Api.registerOrLoginUser() | registerOrLoginUser | apiRegisterOrLoginUser_() | Usada no login/cadastro de usuario |
+| Api.readEtiqueta() | readEtiqueta | apiReadEtiqueta_() -> reversaReadEtiqueta() | Valida/le etiqueta; regra principal em 03_Core.gs |
+| Api.confirmDropoff() | confirmDropoff | apiConfirmDropoff_() -> reversaConfirmDropoff() | Confirma drop-off; regra principal em 03_Core.gs |
+| Api.getUserHistory() | getUserHistory | apiGetUserHistory_() | Historico do usuario |
+| Api.getDashboard() | getDashboard | apiGetDashboard_() | Resumo/painel operacional |
+| Api.getUnitStatus() | getUnitStatus | apiGetUnitStatus_() | Status da unidade |
+
+Arquivos backend confirmados:
+- apps-script/logistica/04_Api.gs: entrada HTTP, roteamento por action e funcoes api*.
+- apps-script/logistica/03_Core.gs: funcoes centrais reversaReadEtiqueta() e reversaConfirmDropoff().
+- apps-script/autenticacao/99_ROUTER.js: possui doGet/doPost/action, mas nao foi confirmado como backend direto do fluxo Reverso nesta etapa.
+
+Atenção sensível:
+- O roteamento usa actions publicas recebidas pelo Web App.
+- Validar se cada action confere permissao, unidade, usuario e payload antes de consultar ou gravar dados.
+- Nao registrar URLs completas, IDs de planilhas, tokens, chaves ou dados reais nos documentos.
+
+Pontos de performance:
+- getDashboard e getUserHistory devem ser avaliados com atencao, pois podem consultar volume maior de dados.
+- getUnitBySlug e getUnitStatus sao candidatos a cache curto.
+- readEtiqueta e confirmDropoff precisam priorizar operacoes objetivas e evitar leitura ampla de planilha.
+
+Proxima etapa:
+- Auditar dados e planilhas usados por readEtiqueta, confirmDropoff, getUserHistory, getDashboard e getUnitStatus.
