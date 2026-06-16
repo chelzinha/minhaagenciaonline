@@ -1,0 +1,58 @@
+PAINEL ATENDE — AGF JOSÉ BONIFÁCIO
+VERSÃO v18 — DETECÇÃO ROBUSTA DE PAYLOAD
+
+ARQUIVOS DO PACOTE
+- Code.gs                 Backend Apps Script completo
+- Index.html              Frontend completo
+- appsscript.json          Manifesto Apps Script
+- .clasp.json              Configuração clasp preservada
+- LEIA-ME.txt              Este roteiro
+
+OBJETIVO DA VERSÃO
+Corrigir a regressão que gerava mensagens como:
+- Chave "itens" ou "objetos" não encontrada.
+- Chave "itens" não encontrada no JSON de atendimento.
+
+CAUSA
+Algumas rotinas ainda dependiam de um caminho fixo, como root.body.itens.
+O JSON pode chegar com envelopes diferentes: array, objeto direto, body direto,
+wrapper adicional ou mais de um bloco completo colado em sequência.
+
+CORREÇÃO
+- O backend percorre a estrutura recebida e identifica listas compatíveis.
+- JSON de postagem e JSON de atendimento são diferenciados pela estrutura real.
+- Se o JSON for colado no campo errado, o sistema exibe uma mensagem específica.
+- O parser continua aceitando JSON tradicional e também tolera BOM, bloco markdown
+  e múltiplos documentos JSON concatenados.
+
+MAPEAMENTO PRESERVADO
+- Tipo Postagem       <- JSON de postagem
+- tipo                <- exclusivamente at.tipo do JSON de atendimento
+- formaPagamento      <- at.pagamentos[0].formaPagamento
+- codigo              <- at.itens[].codigo
+- descricao           <- at.itens[].descricao
+- vínculo             <- at.itens[].codigoObjeto = coluna Objeto
+
+COMO INSTALAR
+1. No projeto Apps Script, substitua integralmente Code.gs.
+2. Substitua integralmente Index.html.
+3. Preserve appsscript.json, salvo se desejar atualizar o manifesto pelo arquivo incluso.
+4. Salve o projeto.
+5. Faça uma nova implantação do Web App.
+6. Abra o painel publicado em aba anônima.
+
+CHECKLIST DE TESTE
+1. Abra o painel e valide o carregamento da tabela.
+2. Cole o JSON de postagem no campo JSON de postagem e clique Processar.
+3. Cole o JSON de atendimento no campo JSON de atendimento e clique Enriquecer.
+4. Confirme que tipo recebe valores como AFATURAR, AFATURAR_REVERSO ou PRE_ATENDIMENTO.
+5. Confirme que formaPagamento recebe valores como CARTAO_POSTAGEM ou PIX.
+6. Confirme que codigo e descricao são preenchidos pelo item do atendimento.
+7. Reimporte um JSON de postagem já processado e confirme que não há duplicidade.
+8. Ordene Data e valide a ordem cronológica.
+9. Teste filtros rápidos, paginação e resize.
+10. Cole propositalmente um JSON de atendimento no campo de postagem e confira a mensagem orientativa.
+
+REVERSÃO
+Se houver qualquer comportamento inesperado, volte à implantação anterior do Web App.
+A versão v18 não remove dados nem altera a estrutura canônica já aprovada.

@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 7px;
+      color: #1f2937;
+      background: #f8fafc;
+    }
+
+    h2 {
+      font-size: 15px;
+      margin: 0 0 6px;
+      color: #00416B;
+    }
+
+    .box {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 9px;
+      padding: 8px;
+      margin: 0;
+      overflow: visible;
+    }
+
+    label.title {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      margin: 0 0 3px;
+      color: #374151;
+    }
+
+    .status {
+      font-size: 11px;
+      line-height: 1.25;
+      padding: 5px 7px;
+      border-radius: 7px;
+      margin-bottom: 6px;
+      background: #eef2ff;
+      color: #374151;
+      white-space: pre-wrap;
+    }
+
+    .status.erro {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .status.ok {
+      background: #ecfdf5;
+      color: #065f46;
+    }
+
+    .multi {
+      position: relative;
+      margin-bottom: 6px;
+    }
+
+    .multi-btn {
+      width: 100%;
+      min-height: 30px;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      padding: 5px 28px 5px 8px;
+      font-size: 13px;
+      background: #fff;
+      color: #111827;
+      cursor: pointer;
+      text-align: left;
+      position: relative;
+    }
+
+    .multi-btn::after {
+      content: "▾";
+      position: absolute;
+      right: 9px;
+      top: 5px;
+      color: #4b5563;
+      font-size: 13px;
+    }
+
+    .dropdown {
+      display: none;
+      position: absolute;
+      z-index: 9999;
+      left: 0;
+      right: 0;
+      top: 34px;
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 9px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+      padding: 6px;
+      max-height: 185px;
+      overflow: auto;
+    }
+
+    .dropdown.open {
+      display: block;
+    }
+
+    .mini-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-bottom: 5px;
+    }
+
+    .mini-actions button {
+      border: 0;
+      border-radius: 7px;
+      padding: 5px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mark {
+      background: #e0f2fe;
+      color: #075985;
+    }
+
+    .clear {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 5px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .check-row:hover {
+      background: #f3f4f6;
+    }
+
+    .check-row.master {
+      font-weight: 700;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 3px;
+      padding-bottom: 5px;
+      color: #00416B;
+    }
+
+    .check-row input {
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+
+    .empty {
+      font-size: 11px;
+      color: #6b7280;
+      padding: 6px 5px;
+    }
+
+    .main-btn {
+      width: 100%;
+      border: 0;
+      border-radius: 8px;
+      padding: 7px 9px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+
+    .main-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .primary {
+      background: #00416B;
+      color: white;
+    }
+
+    .ghost {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .outline {
+      background: #ffffff;
+      color: #00416B;
+      border: 1px solid #00416B;
+    }
+
+    .total-box {
+      margin-top: 7px;
+      padding: 8px;
+      border-radius: 9px;
+      background: #f8fafc;
+      border: 1px solid #dbeafe;
+    }
+
+    .total-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 2px;
+    }
+
+    .total-value {
+      font-size: 17px;
+      font-weight: 800;
+      color: #00416B;
+      line-height: 1.1;
+    }
+
+    .total-lines {
+      margin-top: 2px;
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    .mini-total-btn {
+      width: 100%;
+      border: 1px solid #bfdbfe;
+      background: #ffffff;
+      color: #00416B;
+      border-radius: 7px;
+      padding: 5px 7px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>🔎 Filtro por data</h2>
+
+  <div class="box">
+    <div id="status" class="status">Carregando opções...</div>
+
+    <label class="title">Ano</label>
+    <div class="multi" data-key="ano">
+      <button type="button" id="btn-ano" class="multi-btn" onclick="toggleDropdown('ano')">Carregando...</button>
+      <div id="drop-ano" class="dropdown">
+        <div class="mini-actions">
+          <button type="button" class="mark" onclick="selecionarTodos('ano')">Marcar todos</button>
+          <button type="button" class="clear" onclick="limparTodos('ano')">Limpar todos</button>
+        </div>
+        <label class="check-row master">
+          <input type="checkbox" id="all-ano" onchange="alternarTodosPeloCheckbox('ano')">
+          <span>Todos</span>
+        </label>
+        <div id="list-ano"></div>
+      </div>
+    </div>
+
+    <label class="title">Mês</label>
+    <div class="multi" data-key="mes">
+      <button type="button" id="btn-mes" class="multi-btn" onclick="toggleDropdown('mes')">Carregando...</button>
+      <div id="drop-mes" class="dropdown">
+        <div class="mini-actions">
+          <button type="button" class="mark" onclick="selecionarTodos('mes')">Marcar todos</button>
+          <button type="button" class="clear" onclick="limparTodos('mes')">Limpar todos</button>
+        </div>
+        <label class="check-row master">
+          <input type="checkbox" id="all-mes" onchange="alternarTodosPeloCheckbox('mes')">
+          <span>Todos</span>
+        </label>
+        <div id="list-mes"></div>
+      </div>
+    </div>
+
+    <label class="title">Dia</label>
+    <div class="multi" data-key="dia">
+      <button type="button" id="btn-dia" class="multi-btn" onclick="toggleDropdown('dia')">Carregando...</button>
+      <div id="drop-dia" class="dropdown">
+        <div class="mini-actions">
+          <button type="button" class="mark" onclick="selecionarTodos('dia')">Marcar todos</button>
+          <button type="button" class="clear" onclick="limparTodos('dia')">Limpar todos</button>
+        </div>
+        <label class="check-row master">
+          <input type="checkbox" id="all-dia" onchange="alternarTodosPeloCheckbox('dia')">
+          <span>Todos</span>
+        </label>
+        <div id="list-dia"></div>
+      </div>
+    </div>
+
+    <button id="btnAplicar" class="main-btn primary" onclick="aplicar()">Aplicar filtro</button>
+    <button id="btnLimpar" class="main-btn ghost" onclick="limparCampos()">Limpar filtro de data</button>
+    <button id="btnAtualizar" class="main-btn outline" onclick="carregarOpcoes()">Atualizar opções</button>
+
+    <div class="total-box">
+      <div class="total-label">Total da coluna VALOR</div>
+      <div id="totalValor" class="total-value">R$ 0,00</div>
+      <div id="totalLinhas" class="total-lines">Linhas consideradas: 0</div>
+      <button id="btnTotalVisivel" class="mini-total-btn" onclick="atualizarTotalVisivel(false)">
+        Atualizar total visível
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const NOMES_MESES = {
+      1: 'Janeiro',
+      2: 'Fevereiro',
+      3: 'Março',
+      4: 'Abril',
+      5: 'Maio',
+      6: 'Junho',
+      7: 'Julho',
+      8: 'Agosto',
+      9: 'Setembro',
+      10: 'Outubro',
+      11: 'Novembro',
+      12: 'Dezembro'
+    };
+
+    const KEYS = ['ano', 'mes', 'dia'];
+
+    let combosData = [];
+
+    let state = {
+      options: {
+        ano: [],
+        mes: [],
+        dia: []
+      },
+      selected: {
+        ano: new Set(),
+        mes: new Set(),
+        dia: new Set()
+      }
+    };
+
+    window.addEventListener('load', carregarOpcoes);
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.multi')) {
+        fecharDropdowns();
+      }
+    });
+
+    function carregarOpcoes() {
+      setLoading(true);
+      setStatus('Carregando opções...', 'normal');
+      setBotoesDropdownCarregando();
+
+      google.script.run
+        .withSuccessHandler(function(data) {
+          combosData = data && data.combos ? data.combos : [];
+
+          inicializarSelecoes();
+
+          if (!combosData.length) {
+            setStatus(
+              'Nenhuma data encontrada.\nConfira se existem colunas ANO, MÊS e DIA preenchidas.',
+              'erro'
+            );
+          } else {
+            setStatus('Linhas encontradas: ' + (data.linhasEncontradas || 0), 'ok');
+          }
+
+          setLoading(false);
+        })
+        .withFailureHandler(function(err) {
+          const msg = err && err.message ? err.message : String(err);
+          setStatus('Erro ao carregar opções:\n\n' + msg, 'erro');
+          setBotoesDropdownErro();
+          setLoading(false);
+        })
+        .obterOpcoesFiltroData();
+    }
+
+    function inicializarSelecoes() {
+      recalcularOpcoes();
+
+      KEYS.forEach(key => {
+        state.selected[key] = new Set(state.options[key]);
+      });
+
+      recalcularOpcoes();
+      renderizarTudo();
+    }
+
+    function recalcularOpcoes() {
+      const prevAll = {
+        ano: estaTudoSelecionado('ano'),
+        mes: estaTudoSelecionado('mes'),
+        dia: estaTudoSelecionado('dia')
+      };
+
+      const anosSelecionados = state.selected.ano;
+      const mesesSelecionados = state.selected.mes;
+
+      state.options.ano = unicos(combosData.map(item => item.ano));
+
+      const combosPorAno = anosSelecionados.size
+        ? combosData.filter(item => anosSelecionados.has(item.ano))
+        : [];
+
+      state.options.mes = unicos(combosPorAno.map(item => item.mes));
+
+      const combosPorMes = mesesSelecionados.size
+        ? combosPorAno.filter(item => mesesSelecionados.has(item.mes))
+        : [];
+
+      state.options.dia = unicos(combosPorMes.map(item => item.dia));
+
+      KEYS.forEach(key => {
+        if (prevAll[key]) {
+          state.selected[key] = new Set(state.options[key]);
+        } else {
+          state.selected[key] = new Set(
+            Array.from(state.selected[key]).filter(v => state.options[key].includes(v))
+          );
+        }
+      });
+    }
+
+    function renderizarTudo() {
+      renderizarDropdown('ano');
+      renderizarDropdown('mes');
+      renderizarDropdown('dia');
+      atualizarTotalizadorSelecionado();
+    }
+
+    function renderizarDropdown(key) {
+      const list = document.getElementById('list-' + key);
+      const btn = document.getElementById('btn-' + key);
+      const master = document.getElementById('all-' + key);
+
+      const options = state.options[key];
+      const selected = state.selected[key];
+
+      list.innerHTML = '';
+
+      if (!options.length) {
+        list.innerHTML = '<div class="empty">Sem opções disponíveis</div>';
+      } else {
+        options.forEach(valor => {
+          const row = document.createElement('label');
+          row.className = 'check-row';
+
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.checked = selected.has(valor);
+
+          input.addEventListener('change', function() {
+            if (input.checked) {
+              state.selected[key].add(valor);
+            } else {
+              state.selected[key].delete(valor);
+            }
+
+            recalcularOpcoes();
+            renderizarTudo();
+          });
+
+          const span = document.createElement('span');
+          span.textContent = labelValor(key, valor);
+
+          row.appendChild(input);
+          row.appendChild(span);
+          list.appendChild(row);
+        });
+      }
+
+      btn.textContent = textoBotao(key);
+
+      if (master) {
+        master.checked = options.length > 0 && selected.size === options.length;
+        master.indeterminate = selected.size > 0 && selected.size < options.length;
+      }
+    }
+
+    function selecionarTodos(key) {
+      state.selected[key] = new Set(state.options[key]);
+      recalcularOpcoes();
+      renderizarTudo();
+    }
+
+    function limparTodos(key) {
+      state.selected[key] = new Set();
+      recalcularOpcoes();
+      renderizarTudo();
+    }
+
+    function alternarTodosPeloCheckbox(key) {
+      const master = document.getElementById('all-' + key);
+
+      if (master.checked) {
+        selecionarTodos(key);
+      } else {
+        limparTodos(key);
+      }
+    }
+
+    function toggleDropdown(key) {
+      const drop = document.getElementById('drop-' + key);
+      const isOpen = drop.classList.contains('open');
+
+      fecharDropdowns();
+
+      if (!isOpen) {
+        drop.classList.add('open');
+      }
+    }
+
+    function fecharDropdowns() {
+      KEYS.forEach(key => {
+        const drop = document.getElementById('drop-' + key);
+        if (drop) drop.classList.remove('open');
+      });
+    }
+
+    function aplicar() {
+      const payload = montarPayload();
+
+      setLoading(true);
+      setStatus('Aplicando filtro...', 'normal');
+
+      google.script.run
+        .withSuccessHandler(function(data) {
+          if (data && typeof data.totalValor !== 'undefined') {
+            atualizarBoxTotal(
+              data.totalValor || 0,
+              'Linhas visíveis: ' + (data.linhasVisiveis || 0)
+            );
+          }
+
+          setStatus('Filtro aplicado.', 'ok');
+          setLoading(false);
+        })
+        .withFailureHandler(function(err) {
+          const msg = err && err.message ? err.message : String(err);
+          setStatus('Erro ao aplicar filtro:\n\n' + msg, 'erro');
+          setLoading(false);
+        })
+        .aplicarFiltroData(payload);
+    }
+
+    function montarPayload() {
+      return {
+        anos: valorParaPayload('ano'),
+        meses: valorParaPayload('mes'),
+        dias: valorParaPayload('dia')
+      };
+    }
+
+    function valorParaPayload(key) {
+      const options = state.options[key];
+      const selected = Array.from(state.selected[key]).sort((a, b) => a - b);
+
+      if (options.length > 0 && selected.length === options.length) {
+        return null;
+      }
+
+      return selected;
+    }
+
+    function limparCampos() {
+      KEYS.forEach(key => {
+        state.selected[key] = new Set(state.options[key]);
+      });
+
+      recalcularOpcoes();
+      renderizarTudo();
+
+      setLoading(true);
+      setStatus('Limpando filtro de data...', 'normal');
+
+      google.script.run
+        .withSuccessHandler(function(data) {
+          if (data && typeof data.totalValor !== 'undefined') {
+            atualizarBoxTotal(
+              data.totalValor || 0,
+              'Linhas visíveis: ' + (data.linhasVisiveis || 0)
+            );
+          }
+
+          setStatus('Filtro de data limpo.', 'ok');
+          setLoading(false);
+        })
+        .withFailureHandler(function(err) {
+          const msg = err && err.message ? err.message : String(err);
+          setStatus('Erro ao limpar filtro:\n\n' + msg, 'erro');
+          setLoading(false);
+        })
+        .MENU_LIMPAR_FILTRO_DATA();
+    }
+
+    function atualizarTotalVisivel(silencioso) {
+      const btn = document.getElementById('btnTotalVisivel');
+      const textoOriginal = btn ? btn.textContent : '';
+
+      if (btn) {
+        btn.textContent = 'Atualizando...';
+      }
+
+      if (!silencioso) {
+        setStatus('Atualizando total visível...', 'normal');
+      }
+
+      google.script.run
+        .withSuccessHandler(function(data) {
+          atualizarBoxTotal(
+            data && data.totalValor ? data.totalValor : 0,
+            'Linhas visíveis: ' + (data && data.linhasVisiveis ? data.linhasVisiveis : 0)
+          );
+
+          if (!silencioso) {
+            setStatus('Total visível atualizado.', 'ok');
+          }
+
+          if (btn) {
+            btn.textContent = textoOriginal || 'Atualizar total visível';
+          }
+        })
+        .withFailureHandler(function(err) {
+          const msg = err && err.message ? err.message : String(err);
+          setStatus('Erro ao atualizar total visível:\n\n' + msg, 'erro');
+
+          if (btn) {
+            btn.textContent = textoOriginal || 'Atualizar total visível';
+          }
+        })
+        .obterTotalValorLinhasVisiveis();
+    }
+
+    function atualizarTotalizadorSelecionado() {
+      let totalValor = 0;
+      let totalLinhas = 0;
+
+      const anosSelecionados = state.selected.ano;
+      const mesesSelecionados = state.selected.mes;
+      const diasSelecionados = state.selected.dia;
+
+      combosData.forEach(item => {
+        if (!anosSelecionados.has(item.ano)) return;
+        if (!mesesSelecionados.has(item.mes)) return;
+        if (!diasSelecionados.has(item.dia)) return;
+
+        totalValor += Number(item.totalValor || 0);
+        totalLinhas += Number(item.linhas || 0);
+      });
+
+      atualizarBoxTotal(totalValor, 'Prévia do painel: ' + totalLinhas + ' linhas');
+    }
+
+    function atualizarBoxTotal(valor, textoLinhas) {
+      const elValor = document.getElementById('totalValor');
+      const elLinhas = document.getElementById('totalLinhas');
+
+      if (elValor) {
+        elValor.textContent = formatarMoedaBR(valor);
+      }
+
+      if (elLinhas) {
+        elLinhas.textContent = textoLinhas;
+      }
+    }
+
+    function estaTudoSelecionado(key) {
+      const options = state.options[key] || [];
+      const selected = state.selected[key] || new Set();
+
+      return options.length > 0 && selected.size === options.length;
+    }
+
+    function textoBotao(key) {
+      const options = state.options[key] || [];
+      const selected = Array.from(state.selected[key] || []);
+
+      if (!options.length) return 'Sem opções';
+      if (selected.length === options.length) return 'Todos';
+      if (!selected.length) return 'Nenhum selecionado';
+
+      if (selected.length === 1) {
+        return labelValor(key, selected[0]);
+      }
+
+      return selected.length + ' selecionados';
+    }
+
+    function labelValor(key, valor) {
+      if (key === 'mes') {
+        return String(valor).padStart(2, '0') + ' - ' + NOMES_MESES[valor];
+      }
+
+      if (key === 'dia') {
+        return String(valor).padStart(2, '0');
+      }
+
+      return String(valor);
+    }
+
+    function unicos(lista) {
+      return Array.from(new Set(lista))
+        .filter(valor => valor !== null && valor !== undefined && valor !== '')
+        .sort((a, b) => Number(a) - Number(b));
+    }
+
+    function formatarMoedaBR(valor) {
+      return Number(valor || 0).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
+    }
+
+    function setStatus(texto, tipo) {
+      const el = document.getElementById('status');
+      if (!el) return;
+
+      el.textContent = texto;
+
+      if (tipo === 'erro') {
+        el.className = 'status erro';
+      } else if (tipo === 'ok') {
+        el.className = 'status ok';
+      } else {
+        el.className = 'status';
+      }
+    }
+
+    function setLoading(isLoading) {
+      ['btnAplicar', 'btnLimpar', 'btnAtualizar'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = isLoading;
+      });
+    }
+
+    function setBotoesDropdownCarregando() {
+      KEYS.forEach(key => {
+        const btn = document.getElementById('btn-' + key);
+        const list = document.getElementById('list-' + key);
+
+        if (btn) btn.textContent = 'Carregando...';
+        if (list) list.innerHTML = '<div class="empty">Carregando...</div>';
+      });
+    }
+
+    function setBotoesDropdownErro() {
+      KEYS.forEach(key => {
+        const btn = document.getElementById('btn-' + key);
+        const list = document.getElementById('list-' + key);
+
+        if (btn) btn.textContent = 'Erro';
+        if (list) list.innerHTML = '<div class="empty">Erro ao carregar</div>';
+      });
+    }
+  </script>
+</body>
+</html>

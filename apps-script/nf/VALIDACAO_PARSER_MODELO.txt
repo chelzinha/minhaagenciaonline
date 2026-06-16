@@ -1,0 +1,137 @@
+
+FILE /mnt/data/nfe_plain.txt
+{
+  "nota": {
+    "numero": "000001607",
+    "serie": "1",
+    "dataEmissao": "26/05/2026",
+    "chaveAcesso": "23260550144817000101550010000016071000016087",
+    "valorTotal": 685,
+    "protocoloAutorizacao": "223260053992204",
+    "protocoloCodigoBarras": "231501448170001016850022260099",
+    "tipoOperacao": "SAÍDA",
+    "naturezaOperacao": "VENDAS PROD.DO ESTAB. DESTIN. A NAO CONTRIBUINTE (CRT: 3)"
+  },
+  "emitente": {
+    "nomeRazaoSocial": "ISIS PIJAMAS",
+    "cnpj": "50.144.817/0001-01",
+    "inscricaoEstadual": "071283200",
+    "uf": "CE"
+  },
+  "destinatario": {
+    "nomeRazaoSocial": "ANDREA DOS SANTOS IGREJA",
+    "cpfCnpj": "014.694.997-89",
+    "cep": "21931-420",
+    "logradouro": "RUA SARGENTO JOÃO LÓPES",
+    "numero": "790",
+    "bairro": "JARDIM CARIOCA",
+    "municipio": "RIO DE JANEIRO",
+    "uf": "RJ",
+    "telefone": "(21) 97937-6633"
+  },
+  "danfe": {
+    "nota": {
+      "numero": "000001607",
+      "serie": "1",
+      "dataEmissao": "26/05/2026",
+      "tipoOperacao": "SAÍDA",
+      "naturezaOperacao": "VENDAS PROD.DO ESTAB. DESTIN. A NAO CONTRIBUINTE (CRT: 3)",
+      "chaveAcesso": "23260550144817000101550010000016071000016087",
+      "protocoloAutorizacao": "223260053992204",
+      "protocoloCodigoBarras": "231501448170001016850022260099",
+      "valorTotal": 685
+    },
+    "emitente": {
+      "nomeRazaoSocial": "ISIS PIJAMAS",
+      "cnpj": "50.144.817/0001-01",
+      "inscricaoEstadual": "071283200",
+      "uf": "CE"
+    },
+    "destinatario": {
+      "nomeRazaoSocial": "ANDREA DOS SANTOS IGREJA",
+      "cpfCnpj": "014.694.997-89",
+      "cep": "21931-420",
+      "logradouro": "RUA SARGENTO JOÃO LÓPES",
+      "numero": "790",
+      "bairro": "JARDIM CARIOCA",
+      "municipio": "RIO DE JANEIRO",
+      "uf": "RJ",
+      "telefone": "(21) 97937-6633"
+    },
+    "summary": {
+      "errors": 0,
+      "warnings": 1,
+      "ok": 14
+    }
+  },
+  "warnings": [
+    "Nenhum produto foi identificado automaticamente."
+  ]
+}
+
+FILE /mnt/data/nfe_layout.txt
+{
+  "nota": {
+    "numero": "000001607",
+    "serie": "1",
+    "dataEmissao": "26/05/2026",
+    "chaveAcesso": "23260550144817000101550010000016071000016087",
+    "valorTotal": 685,
+    "protocoloAutorizacao": "223260053992204",
+    "protocoloCodigoBarras": "231501448170001016850022260099",
+    "tipoOperacao": "SAÍDA",
+    "naturezaOperacao": "VENDAS PROD.DO ESTAB. DESTIN. A NAO CONTRIBUINTE (CRT: 3)"
+  },
+  "emitente": {
+    "nomeRazaoSocial": "ISIS PIJAMAS",
+    "cnpj": "50.144.817/0001-01",
+    "inscricaoEstadual": "071283200",
+    "uf": "CE"
+  },
+  "destinatario": {
+    "nomeRazaoSocial": "ANDREA DOS SANTOS IGREJA",
+    "cpfCnpj": "014.694.997-89",
+    "cep": "21931-420",
+    "logradouro": "RUA SARGENTO JOÃO LÓPES",
+    "numero": "790",
+    "bairro": "JARDIM CARIOCA",
+    "municipio": "RIO DE JANEIRO",
+    "uf": "RJ",
+    "telefone": "(21) 97937-6633"
+  },
+  "danfe": {
+    "nota": {
+      "numero": "000001607",
+      "serie": "1",
+      "dataEmissao": "26/05/2026",
+      "tipoOperacao": "SAÍDA",
+      "naturezaOperacao": "VENDAS PROD.DO ESTAB. DESTIN. A NAO CONTRIBUINTE (CRT: 3)",
+      "chaveAcesso": "23260550144817000101550010000016071000016087",
+      "protocoloAutorizacao": "223260053992204",
+      "protocoloCodigoBarras": "231501448170001016850022260099",
+      "valorTotal": 685
+    },
+    "emitente": {
+      "nomeRazaoSocial": "ISIS PIJAMAS",
+      "cnpj": "50.144.817/0001-01",
+      "inscricaoEstadual": "071283200",
+      "uf": "CE"
+    },
+    "destinatario": {
+      "nomeRazaoSocial": "ANDREA DOS SANTOS IGREJA",
+      "cpfCnpj": "014.694.997-89",
+      "cep": "21931-420",
+      "logradouro": "RUA SARGENTO JOÃO LÓPES",
+      "numero": "790",
+      "bairro": "JARDIM CARIOCA",
+      "municipio": "RIO DE JANEIRO",
+      "uf": "RJ",
+      "telefone": "(21) 97937-6633"
+    },
+    "summary": {
+      "errors": 0,
+      "warnings": 1,
+      "ok": 14
+    }
+  }
+}

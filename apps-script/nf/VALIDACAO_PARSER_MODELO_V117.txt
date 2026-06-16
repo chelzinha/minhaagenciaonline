@@ -1,0 +1,19 @@
+VALIDAÇÃO LOCAL — DANFE 10x15 v1.1.7
+
+NF modelo: 23260550144817000101550010000016071000016087-procNFe.pdf
+
+Teste 1 — texto normal com IE preservada:
+IE emitente: 071283200
+OCR complementar necessário: NÃO
+
+Teste 2 — simulação da conversão Google Docs perdendo a IE do emitente:
+IE emitente no texto principal: vazio
+OCR complementar necessário: SIM
+IE emitente no texto OCR suplementar: 071283200
+IE emitente depois do merge: 071283200
+Validação DANFE depois do merge: 0 erros
+
+Regra anti-regressão:
+- conversão normal continua prioritária;
+- OCR suplementar só roda se a IE do emitente estiver ausente;
+- merge preenche apenas lacunas e não sobrescreve campos confiáveis.

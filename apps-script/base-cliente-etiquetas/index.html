@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>APP Etiquetas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+    <style>
+      :root{
+        --correios-blue:#00416B;
+        --correios-yellow:#FFD400;
+        --bg:#F4F6F8;
+        --card:#FFFFFF;
+        --text:#1F2937;
+        --muted:#6B7280;
+        --line:#D9E2EC;
+        --shadow:0 10px 24px rgba(16,24,40,.08);
+        --radius:20px;
+      }
+      *{box-sizing:border-box}
+      html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif}
+      .material-symbols-rounded{font-variation-settings:'FILL' 0,'wght' 500,'GRAD' 0,'opsz' 24;vertical-align:middle;line-height:1}
+      .hidden{display:none!important}
+      .app-shell{max-width:760px;margin:0 auto;min-height:100vh;background:var(--bg)}
+      .screen{padding:20px 16px 28px}
+      .topbar{position:sticky;top:0;z-index:20;background:rgba(244,246,248,.92);backdrop-filter:blur(10px);border-bottom:1px solid rgba(0,65,107,.12)}
+      .topbar-inner{max-width:760px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;min-height:72px;padding:8px 16px}
+      .topbar-title{font-size:20px;font-weight:800;color:var(--correios-blue)}
+      .icon-btn{width:44px;height:44px;border:none;border-radius:14px;background:#fff;color:var(--correios-blue);display:grid;place-items:center;box-shadow:var(--shadow);cursor:pointer}
+      .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:radial-gradient(circle at top right, rgba(255,212,0,.22), transparent 24%),radial-gradient(circle at top left, rgba(0,65,107,.09), transparent 30%),var(--bg)}
+      .login-card{width:100%;max-width:420px;background:var(--card);border-radius:28px;box-shadow:var(--shadow);padding:28px 22px 22px;border:1px solid rgba(0,65,107,.08)}
+      .brand{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+      .brand-badge{width:52px;height:52px;border-radius:18px;background:var(--correios-blue);color:#fff;display:grid;place-items:center;box-shadow:0 12px 26px rgba(0,65,107,.22)}
+      .brand-title{font-size:22px;font-weight:800;color:var(--correios-blue)}
+      .brand-sub{font-size:13px;color:var(--muted)}
+      .login-title{font-size:28px;line-height:1.05;font-weight:800;margin:14px 0 8px}
+      .login-desc{font-size:14px;color:var(--muted);margin:0 0 18px}
+      .field{margin-bottom:14px}
+      .label{display:block;font-size:12px;font-weight:700;letter-spacing:.3px;color:var(--correios-blue);margin-bottom:8px;text-transform:uppercase}
+      .input-wrap{position:relative}
+      .input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--correios-blue);opacity:.9;font-size:20px}
+      .input{width:100%;border:1px solid #D0D5DD;background:#fff;color:var(--text);border-radius:16px;padding:14px 14px 14px 44px;font-size:15px;outline:none;transition:.2s border-color,.2s box-shadow}
+      .input:focus{border-color:rgba(0,65,107,.45);box-shadow:0 0 0 4px rgba(0,65,107,.10)}
+      .inline-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+      .inline-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+      .inline-cep{display:grid;grid-template-columns:1fr auto;gap:10px}
+      .btn{appearance:none;border:none;border-radius:18px;min-height:52px;padding:0 18px;font-size:15px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.18s transform,.18s opacity,.18s box-shadow}
+      .btn-primary{background:var(--correios-blue);color:#fff;box-shadow:0 14px 28px rgba(0,65,107,.24)}
+      .btn-primary[disabled]{opacity:.55;cursor:not-allowed;box-shadow:none}
+      .btn-secondary{background:#fff;color:var(--correios-blue);border:1px solid rgba(0,65,107,.16)}
+      .btn-full{width:100%}
+      .btn-sm{min-height:44px;border-radius:14px;padding:0 14px;font-size:14px}
+      .section{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 16px;margin-bottom:16px;border:1px solid rgba(0,65,107,.08)}
+      .section.remetente{border-left:4px solid var(--correios-blue)}
+      .section.destinatario{border-left:4px solid #E45757}
+      .section-title{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:800;margin:0 0 14px;color:#2B2F38}
+      .section-title .material-symbols-rounded{color:var(--correios-blue);font-size:28px}
+      .section-sub{font-size:13px;color:var(--muted);margin:-4px 0 14px}
+      .hero-card{background:linear-gradient(135deg, rgba(0,65,107,.96), rgba(0,65,107,.88));color:#fff;border-radius:24px;padding:18px 18px 16px;margin-bottom:16px;box-shadow:0 18px 34px rgba(0,65,107,.20)}
+      .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+      .hero-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14);padding:8px 10px;border-radius:999px;font-size:12px;font-weight:700}
+      .hero-name{font-size:22px;font-weight:800;margin:12px 0 4px}
+      .hero-meta{font-size:13px;color:rgba(255,255,255,.86);line-height:1.45}
+      .hero-chipbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+      .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:8px 10px;font-size:12px;font-weight:700}
+      .chip.light{background:rgba(255,255,255,.14);color:#fff}
+      .chip.warn{background:rgba(255,212,0,.18);color:#FFE072;border:1px solid rgba(255,212,0,.18)}
+      .remetente-box{border:1px dashed rgba(0,65,107,.18);background:#F8FBFD;border-radius:18px;padding:14px}
+      .remetente-name{font-size:18px;font-weight:800;margin-bottom:6px}
+      .remetente-line{font-size:14px;color:#4B5563;line-height:1.5}
+      .radio-grid,.segmented{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+      .option-card{position:relative;border:1.5px solid #D0D5DD;border-radius:18px;background:#fff;padding:14px 12px;cursor:pointer;transition:.18s border-color,.18s transform,.18s box-shadow}
+      .option-card input{position:absolute;opacity:0;pointer-events:none}
+      .option-card .opt-icon{width:42px;height:42px;border-radius:14px;background:#F0F4F8;color:var(--correios-blue);display:grid;place-items:center;margin-bottom:10px}
+      .option-card .opt-title{font-size:14px;font-weight:800}
+      .option-card .opt-sub{font-size:12px;color:var(--muted);margin-top:4px}
+      .option-card.selected{border-color:var(--correios-blue);box-shadow:0 0 0 4px rgba(0,65,107,.10)}
+      .sticky-action{position:sticky;bottom:0;z-index:15;padding:14px 0 0;background:linear-gradient(to top, var(--bg) 72%, rgba(244,246,248,0))}
+      .loading{position:fixed;inset:0;background:rgba(17,24,39,.36);display:none;align-items:center;justify-content:center;z-index:200}
+      .loading.show{display:flex}
+      .loading-card{background:#fff;border-radius:22px;padding:18px 20px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);min-width:220px}
+      .spinner{width:22px;height:22px;border:3px solid rgba(0,65,107,.15);border-top-color:var(--correios-blue);border-radius:50%;animation:spin .8s linear infinite}
+      @keyframes spin{to{transform:rotate(360deg)}}
+      .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#111827;color:#fff;padding:12px 16px;border-radius:14px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.22s;z-index:220;max-width:min(92vw,520px);font-size:14px}
+      .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+      @media (max-width:540px){.inline-2,.inline-3,.radio-grid,.segmented{grid-template-columns:1fr}.topbar-title{font-size:18px}.section-title{font-size:20px}}
+    </style>
+  </head>
+  <body>
+    <div class="loading" id="loading"><div class="loading-card"><div class="spinner"></div><div id="loadingText">Processando...</div></div></div>
+    <div class="toast" id="toast"></div>
+
+    <section id="loginScreen" class="login-wrap">
+      <div class="login-card">
+        <div class="brand">
+          <div class="brand-badge"><span class="material-symbols-rounded">local_shipping</span></div>
+          <div><div class="brand-title">APP Etiquetas</div><div class="brand-sub">Emissão simples para seus clientes</div></div>
+        </div>
+        <div class="login-title">Entrar</div>
+        <p class="login-desc">Use o login e a senha cadastrados para o seu acesso.</p>
+        <div class="field"><label class="label" for="loginApp">Login</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">person</span><input id="loginApp" class="input" type="text" placeholder="Seu login" autocomplete="username" /></div></div>
+        <div class="field"><label class="label" for="senhaApp">Senha</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">lock</span><input id="senhaApp" class="input" type="password" placeholder="Sua senha" autocomplete="current-password" /></div></div>
+        <button class="btn btn-primary btn-full" id="btnEntrar"><span class="material-symbols-rounded">login</span>Entrar</button>
+      </div>
+    </section>
+
+    <div id="appScreen" class="app-shell hidden">
+      <div class="topbar">
+        <div class="topbar-inner">
+          <button class="icon-btn" id="btnLogout" title="Sair"><span class="material-symbols-rounded">arrow_back</span></button>
+          <div class="topbar-title">Nova Postagem</div>
+          <button class="icon-btn" id="btnResetForm" title="Limpar"><span class="material-symbols-rounded">delete_sweep</span></button>
+        </div>
+      </div>
+      <main class="screen">
+        <section class="hero-card">
+          <div class="hero-top">
+            <div class="hero-tag"><span class="material-symbols-rounded">verified_user</span>Cliente autenticado</div>
+            <div class="hero-tag"><span class="material-symbols-rounded">print</span>Etiquetas A4 e 10x15</div>
+          </div>
+          <div class="hero-name" id="heroNomeFantasia">Cliente</div>
+          <div class="hero-meta" id="heroRazaoSocial">Remetente carregado</div>
+          <div class="hero-chipbar">
+            <span class="chip light"><span class="material-symbols-rounded">badge</span><span id="chipContrato">Contrato —</span></span>
+            <span class="chip light"><span class="material-symbols-rounded">credit_card</span><span id="chipCartao">Cartão —</span></span>
+            <span class="chip warn"><span class="material-symbols-rounded">developer_mode</span><span id="chipAmbiente">CWS —</span></span>
+          </div>
+        </section>
+
+        <form id="shipmentForm">
+          <section class="section remetente">
+            <h2 class="section-title"><span class="material-symbols-rounded">location_on</span>Remetente</h2>
+            <div class="remetente-box">
+              <div class="remetente-name" id="remNome"></div>
+              <div class="remetente-line" id="remLinha1"></div>
+              <div class="remetente-line" id="remLinha2"></div>
+              <div class="remetente-line" id="remLinha3"></div>
+            </div>
+          </section>
+
+          <section class="section destinatario">
+            <h2 class="section-title"><span class="material-symbols-rounded">place_item</span>Destinatário</h2>
+            <div class="section-sub">Preencha os dados do destinatário. O CEP pode carregar o endereço automaticamente.</div>
+            <div class="field"><label class="label" for="destinatarioNome">Nome do destinatário</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">person</span><input id="destinatarioNome" class="input" type="text" required placeholder="Nome completo" /></div></div>
+            <div class="inline-2">
+              <div class="field"><label class="label" for="destinatarioCpfCnpj">CPF/CNPJ</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">badge</span><input id="destinatarioCpfCnpj" class="input" type="text" placeholder="Opcional" /></div></div>
+              <div class="field"><label class="label" for="destinatarioCelular">Celular</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">call</span><input id="destinatarioCelular" class="input" type="text" placeholder="Opcional" /></div></div>
+            </div>
+            <div class="field"><label class="label" for="destinatarioEmail">E-mail</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">mail</span><input id="destinatarioEmail" class="input" type="email" placeholder="Opcional" /></div></div>
+            <div class="field"><label class="label" for="destinatarioCep">CEP</label><div class="inline-cep"><div class="input-wrap"><span class="material-symbols-rounded input-icon">markunread_mailbox</span><input id="destinatarioCep" class="input" type="text" maxlength="9" placeholder="00000-000" required /></div><button class="btn btn-secondary btn-sm" type="button" id="btnBuscarCep"><span class="material-symbols-rounded">search</span>Buscar CEP</button></div></div>
+            <div class="field"><label class="label" for="destinatarioEndereco">Logradouro</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">home_pin</span><input id="destinatarioEndereco" class="input" type="text" required placeholder="Rua, avenida, etc." /></div></div>
+            <div class="inline-2">
+              <div class="field"><label class="label" for="destinatarioNumero">Número</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">tag</span><input id="destinatarioNumero" class="input" type="text" required placeholder="Número" /></div></div>
+              <div class="field"><label class="label" for="destinatarioComplemento">Complemento</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">add_home</span><input id="destinatarioComplemento" class="input" type="text" placeholder="Apto, sala, bloco..." /></div></div>
+            </div>
+            <div class="inline-2">
+              <div class="field"><label class="label" for="destinatarioBairro">Bairro</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">apartment</span><input id="destinatarioBairro" class="input" type="text" required placeholder="Bairro" /></div></div>
+              <div class="field"><label class="label" for="destinatarioCidade">Cidade</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">location_city</span><input id="destinatarioCidade" class="input" type="text" required placeholder="Cidade" /></div></div>
+            </div>
+            <div class="field"><label class="label" for="destinatarioUf">UF</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">map</span><input id="destinatarioUf" class="input" type="text" maxlength="2" required placeholder="UF" /></div></div>
+          </section>
+
+          <section class="section"><h2 class="section-title"><span class="material-symbols-rounded">local_shipping</span>Selecione o serviço</h2><div class="segmented">
+            <label class="option-card selected"><input type="radio" name="servico" value="PAC" checked /><div class="opt-icon"><span class="material-symbols-rounded">inventory_2</span></div><div class="opt-title">PAC</div><div class="opt-sub">Mais econômico</div></label>
+            <label class="option-card"><input type="radio" name="servico" value="SEDEX" /><div class="opt-icon"><span class="material-symbols-rounded">bolt</span></div><div class="opt-title">SEDEX</div><div class="opt-sub">Mais rápido</div></label>
+          </div></section>
+
+          <section class="section"><h2 class="section-title"><span class="material-symbols-rounded">deployed_code</span>Tipo do objeto</h2><div class="radio-grid">
+            <label class="option-card selected"><input type="radio" name="tipoObjeto" value="CAIXA" checked /><div class="opt-icon"><span class="material-symbols-rounded">deployed_code</span></div><div class="opt-title">Caixa</div></label>
+            <label class="option-card"><input type="radio" name="tipoObjeto" value="PACOTE" /><div class="opt-icon"><span class="material-symbols-rounded">package_2</span></div><div class="opt-title">Pacote</div></label>
+            <label class="option-card"><input type="radio" name="tipoObjeto" value="ENVELOPE" /><div class="opt-icon"><span class="material-symbols-rounded">mail</span></div><div class="opt-title">Envelope</div></label>
+            <label class="option-card"><input type="radio" name="tipoObjeto" value="ROLO" /><div class="opt-icon"><span class="material-symbols-rounded">database</span></div><div class="opt-title">Rolo</div></label>
+          </div></section>
+
+          <section class="section"><h2 class="section-title"><span class="material-symbols-rounded">straighten</span>Dados do objeto</h2>
+            <div class="inline-2">
+              <div class="field"><label class="label" for="pesoG">Peso (g)</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">weight</span><input id="pesoG" class="input" type="number" min="1" step="1" required placeholder="Ex.: 500" /></div></div>
+              <div class="field"><label class="label" for="diametroCm">Diâmetro (cm)</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">lens_blur</span><input id="diametroCm" class="input" type="number" min="0" step="0.1" placeholder="Opcional" /></div></div>
+            </div>
+            <div class="inline-3">
+              <div class="field"><label class="label" for="comprimentoCm">Comprimento</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">straighten</span><input id="comprimentoCm" class="input" type="number" min="0" step="0.1" required placeholder="cm" /></div></div>
+              <div class="field"><label class="label" for="larguraCm">Largura</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">straighten</span><input id="larguraCm" class="input" type="number" min="0" step="0.1" required placeholder="cm" /></div></div>
+              <div class="field"><label class="label" for="alturaCm">Altura</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">straighten</span><input id="alturaCm" class="input" type="number" min="0" step="0.1" required placeholder="cm" /></div></div>
+            </div>
+          </section>
+
+          <section class="section"><h2 class="section-title"><span class="material-symbols-rounded">attach_money</span>Dados adicionais</h2>
+            <div class="inline-2">
+              <div class="field"><label class="label" for="valorDeclarado">Valor declarado</label><div class="input-wrap"><span class="material-symbols-rounded input-icon">paid</span><input id="valorDeclarado" class="input" type="number" min="0" step="0.01" placeholder="0,00" /></div></div>
+              <div class="field"><label class="label">AR</label><div class="segmented">
+                <label class="option-card selected"><input type="radio" name="ar" value="NAO" checked /><div class="opt-icon"><span class="material-symbols-rounded">do_not_disturb_on</span></div><div class="opt-title">Sem AR</div></label>
+                <label class="option-card"><input type="radio" name="ar" value="SIM" /><div class="opt-icon"><span class="material-symbols-rounded">mark_email_read</span></div><div class="opt-title">Com AR</div></label>
+              </div></div>
+            </div>
+          </section>
+
+          <section class="section"><h2 class="section-title"><span class="material-symbols-rounded">print</span>Formato da etiqueta</h2><div class="segmented">
+            <label class="option-card selected"><input type="radio" name="formatoEtiqueta" value="A4" checked /><div class="opt-icon"><span class="material-symbols-rounded">description</span></div><div class="opt-title">A4</div><div class="opt-sub">Folha padrão</div></label>
+            <label class="option-card"><input type="radio" name="formatoEtiqueta" value="10X15" /><div class="opt-icon"><span class="material-symbols-rounded">print_connect</span></div><div class="opt-title">10x15</div><div class="opt-sub">Etiqueta térmica</div></label>
+          </div></section>
+
+          <div class="sticky-action"><button class="btn btn-primary btn-full" type="submit" id="btnGerar"><span class="material-symbols-rounded">print</span>Salvar PDF / Imprimir</button></div>
+        </form>
+      </main>
+    </div>
+
+    <script>
+      const GAS_FN = {
+        login: 'loginClienteApp',
+        me: 'getClienteLogado',
+        logout: 'logoutClienteApp',
+        buscarCep: 'buscarCep',
+        gerarEtiqueta: 'salvarEtiqueta'
+      };
+
+      let currentClient = null;
+
+      document.addEventListener('DOMContentLoaded', initApp);
+
+      function initApp() {
+        bindEvents();
+        initOptionCards();
+        tentarRestaurarSessao();
+      }
+
+      function bindEvents() {
+        document.getElementById('btnEntrar').addEventListener('click', onLogin);
+        document.getElementById('btnLogout').addEventListener('click', onLogout);
+        document.getElementById('btnResetForm').addEventListener('click', resetForm);
+        document.getElementById('shipmentForm').addEventListener('submit', onSubmit);
+
+        const cepInput = document.getElementById('destinatarioCep');
+        const btnBuscarCep = document.getElementById('btnBuscarCep');
+
+        cepInput.addEventListener('input', function () {
+          this.value = formatCep(this.value);
+        });
+
+        cepInput.addEventListener('blur', function () {
+          const cep = digitsOnly(this.value);
+          if (cep.length === 8) consultarCepDestino();
+        });
+
+        btnBuscarCep.addEventListener('click', consultarCepDestino);
+
+        document.getElementById('senhaApp').addEventListener('keydown', function(e){
+          if (e.key === 'Enter') onLogin();
+        });
+      }
+
+      function initOptionCards() {
+        document.querySelectorAll('.option-card input[type="radio"]').forEach(input => {
+          input.addEventListener('change', refreshOptionStates);
+        });
+        refreshOptionStates();
+      }
+
+      function refreshOptionStates() {
+        document.querySelectorAll('.option-card').forEach(card => {
+          const input = card.querySelector('input[type="radio"]');
+          card.classList.toggle('selected', !!(input && input.checked));
+        });
+      }
+
+      async function tentarRestaurarSessao() {
+        try {
+          const me = await gasCall(GAS_FN.me);
+          if (me && (me.LOGIN_APP || me.NOME_REMETENTE)) {
+            currentClient = normalizeClient(me);
+            preencherClienteNaTela(currentClient);
+            showApp();
+          } else {
+            showLogin();
+          }
+        } catch (e) {
+          showLogin();
+        }
+      }
+
+      async function onLogin() {
+        const login = document.getElementById('loginApp').value.trim();
+        const senha = document.getElementById('senhaApp').value.trim();
+        if (!login || !senha) return toast('Preencha login e senha.');
+
+        try {
+          setLoading(true, 'Entrando...');
+          const resp = await gasCall(GAS_FN.login, login, senha);
+          const cliente = resp && (resp.cliente || resp.client || resp.data || resp);
+          if (!cliente) throw new Error('Resposta de login inválida.');
+          currentClient = normalizeClient(cliente);
+          preencherClienteNaTela(currentClient);
+          showApp();
+          toast('Login realizado com sucesso.');
+        } catch (err) {
+          toast(getErrorMessage(err) || 'Não foi possível entrar.');
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      async function onLogout() {
+        try {
+          setLoading(true, 'Saindo...');
+          await gasCall(GAS_FN.logout);
+        } catch (e) {
+        } finally {
+          currentClient = null;
+          document.getElementById('loginApp').value = '';
+          document.getElementById('senhaApp').value = '';
+          resetForm();
+          showLogin();
+          setLoading(false);
+        }
+      }
+
+      function preencherClienteNaTela(cliente) {
+        const fantasia = cliente.NOME_FANTASIA || cliente.NOME_REMETENTE || 'Cliente';
+        const razao = cliente.NOME_REMETENTE || 'Cliente';
+        document.getElementById('heroNomeFantasia').textContent = fantasia;
+        document.getElementById('heroRazaoSocial').textContent = razao;
+        document.getElementById('chipContrato').textContent = 'Contrato ' + (cliente.NUM_CONTRATO || '—');
+        document.getElementById('chipCartao').textContent = 'Cartão ' + (cliente.CARTAO_POSTAGEM || '—');
+        document.getElementById('chipAmbiente').textContent = 'CWS ' + (cliente.AMBIENTE_CWS || '—');
+        document.getElementById('remNome').textContent = razao;
+        document.getElementById('remLinha1').textContent = joinAddressLine(cliente.ENDERECO, cliente.NUMERO, cliente.BAIRRO) || 'Endereço não informado';
+        document.getElementById('remLinha2').textContent = [cliente.CIDADE_REMETENTE || 'FORTALEZA', cliente.UF_REMETENTE || 'CE'].filter(Boolean).join(' - ');
+        document.getElementById('remLinha3').textContent = formatCep(cliente.CEP || '');
+      }
+
+      function normalizeClient(c) {
+        return {
+          ID_CRM: c.ID_CRM || '',
+          LOGIN_APP: c.LOGIN_APP || '',
+          NOME_REMETENTE: c.NOME_REMETENTE || '',
+          NOME_FANTASIA: c.NOME_FANTASIA || '',
+          CNPJ_CPF: c.CNPJ_CPF || '',
+          ENDERECO: c.ENDERECO || '',
+          NUMERO: c.NUMERO || '',
+          BAIRRO: c.BAIRRO || '',
+          CEP: c.CEP || '',
+          CIDADE_REMETENTE: c.CIDADE_REMETENTE || 'FORTALEZA',
+          UF_REMETENTE: c.UF_REMETENTE || 'CE',
+          NUM_CONTRATO: c.NUM_CONTRATO || '',
+          CARTAO_POSTAGEM: c.CARTAO_POSTAGEM || '',
+          AMBIENTE_CWS: c.AMBIENTE_CWS || ''
+        };
+      }
+
+      async function consultarCepDestino() {
+        const cepInput = document.getElementById('destinatarioCep');
+        const btn = document.getElementById('btnBuscarCep');
+        const cep = digitsOnly(cepInput.value);
+        if (cep.length !== 8) return toast('Informe um CEP com 8 dígitos.');
+
+        try {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="material-symbols-rounded">hourglass_top</span>Buscando...';
+          const data = await gasCall(GAS_FN.buscarCep, cep);
+          preencherEnderecoPorCep(data);
+        } catch (err) {
+          toast(getErrorMessage(err) || 'Erro ao buscar CEP.');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<span class="material-symbols-rounded">search</span>Buscar CEP';
+        }
+      }
+
+      function preencherEnderecoPorCep(data) {
+        document.getElementById('destinatarioCep').value = formatCep(data.cep || '');
+        if (!document.getElementById('destinatarioEndereco').value) document.getElementById('destinatarioEndereco').value = data.logradouro || '';
+        if (!document.getElementById('destinatarioBairro').value) document.getElementById('destinatarioBairro').value = data.bairro || '';
+        document.getElementById('destinatarioCidade').value = data.cidade || '';
+        document.getElementById('destinatarioUf').value = (data.uf || '').toUpperCase();
+        if (!document.getElementById('destinatarioComplemento').value && data.complemento) document.getElementById('destinatarioComplemento').value = data.complemento || '';
+        document.getElementById('destinatarioNumero').focus();
+      }
+
+      async function onSubmit(e) {
+        e.preventDefault();
+        if (!currentClient) {
+          toast('Sessão inválida. Faça login novamente.');
+          showLogin();
+          return;
+        }
+
+        const payload = collectPayload();
+
+        try {
+          setLoading(true, 'Gerando etiqueta...');
+          const result = await gasCall(GAS_FN.gerarEtiqueta, payload);
+          if (result && result.pdfBase64) {
+            downloadBase64Pdf(result.pdfBase64, result.fileName || 'etiqueta.pdf');
+          } else if (result && result.pdfUrl) {
+            window.open(result.pdfUrl, '_blank');
+          }
+          toast((result && result.message) || 'Etiqueta gerada com sucesso.');
+        } catch (err) {
+          toast(getErrorMessage(err) || 'Erro ao gerar etiqueta.');
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      function collectPayload() {
+        return {
+          destinatarioNome: v('destinatarioNome'),
+          destinatarioCpfCnpj: digitsOnly(v('destinatarioCpfCnpj')),
+          destinatarioCelular: digitsOnly(v('destinatarioCelular')),
+          destinatarioEmail: v('destinatarioEmail'),
+          destinatarioCep: digitsOnly(v('destinatarioCep')),
+          destinatarioEndereco: v('destinatarioEndereco'),
+          destinatarioNumero: v('destinatarioNumero'),
+          destinatarioComplemento: v('destinatarioComplemento'),
+          destinatarioBairro: v('destinatarioBairro'),
+          destinatarioCidade: v('destinatarioCidade'),
+          destinatarioUf: v('destinatarioUf').toUpperCase(),
+          servico: getCheckedValue('servico'),
+          tipoObjeto: getCheckedValue('tipoObjeto'),
+          pesoG: v('pesoG'),
+          comprimentoCm: v('comprimentoCm'),
+          larguraCm: v('larguraCm'),
+          alturaCm: v('alturaCm'),
+          diametroCm: v('diametroCm'),
+          valorDeclarado: v('valorDeclarado') || '0',
+          ar: getCheckedValue('ar'),
+          formatoEtiqueta: getCheckedValue('formatoEtiqueta')
+        };
+      }
+
+      function resetForm() {
+        document.getElementById('shipmentForm').reset();
+        document.querySelector('input[name="servico"][value="PAC"]').checked = true;
+        document.querySelector('input[name="tipoObjeto"][value="CAIXA"]').checked = true;
+        document.querySelector('input[name="ar"][value="NAO"]').checked = true;
+        document.querySelector('input[name="formatoEtiqueta"][value="A4"]').checked = true;
+        refreshOptionStates();
+      }
+
+      function showLogin() {
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('appScreen').classList.add('hidden');
+      }
+
+      function showApp() {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('appScreen').classList.remove('hidden');
+      }
+
+      function setLoading(on, text) {
+        if (text) document.getElementById('loadingText').textContent = text;
+        document.getElementById('loading').classList.toggle('show', !!on);
+      }
+
+      function toast(message) {
+        const el = document.getElementById('toast');
+        el.textContent = message || '';
+        el.classList.add('show');
+        clearTimeout(el._timer);
+        el._timer = setTimeout(() => el.classList.remove('show'), 3000);
+      }
+
+      function gasCall(functionName, ...args) {
+        return new Promise((resolve, reject) => {
+          const runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+          if (typeof runner[functionName] !== 'function') {
+            reject(new Error('Função GAS não encontrada: ' + functionName));
+            return;
+          }
+          runner[functionName](...args);
+        });
+      }
+
+      function downloadBase64Pdf(base64, filename) {
+        const link = document.createElement('a');
+        link.href = 'data:application/pdf;base64,' + base64;
+        link.download = filename || 'etiqueta.pdf';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+
+      function v(id) { return (document.getElementById(id)?.value || '').trim(); }
+      function digitsOnly(value) { return String(value || '').replace(/\D/g, ''); }
+      function formatCep(value) { const d = digitsOnly(value).slice(0, 8); return d.length <= 5 ? d : d.slice(0,5) + '-' + d.slice(5); }
+      function getCheckedValue(name) { return document.querySelector('input[name="' + name + '"]:checked')?.value || ''; }
+      function joinAddressLine(endereco, numero, bairro) { return [endereco, numero ? 'n. ' + numero : '', bairro].filter(Boolean).join(', '); }
+      function getErrorMessage(err) { return err?.message || String(err || 'Erro inesperado.'); }
+    </script>
+  </body>
+</html>

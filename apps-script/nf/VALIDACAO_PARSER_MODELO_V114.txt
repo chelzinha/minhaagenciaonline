@@ -1,0 +1,32 @@
+VALIDAÇÃO LOCAL — DANFE SIMPLIFICADO 10x15 v1.1.4
+NF modelo: 23260550144817000101550010000016071000016087-procNFe.pdf
+
+Resultado esperado e validado nos textos plain/layout:
+- Tipo de operação: SAÍDA
+- NF-e: 000001607
+- Série: 1
+- Emissão: 26/05/2026
+- Chave: 23260550144817000101550010000016071000016087
+- Protocolo de autorização: 223260053992204
+- Barcode do protocolo: 231501448170001016850022260099
+- Emitente: ISIS PIJAMAS
+- CNPJ emitente: 50.144.817/0001-01
+- IE emitente: 071283200
+- UF emitente: CE
+- Destinatário: ANDREA DOS SANTOS IGREJA
+- CPF destinatário: 014.694.997-89
+- IE destinatário: vazio
+- UF destinatário: RJ
+
+Teste anti-regressão adicional:
+Entrada ruim simulada:
+- emitente CNPJ: 22.326.005/3992-20
+- emitente IE: vazio
+- destinatário CPF/CNPJ: 50.144.817/0001-01
+- destinatário IE: 15:27:28 INFORMAÇÕES DE PAGAMENTO
+
+Saída reparada:
+- emitente CNPJ: 50.144.817/0001-01
+- emitente IE: 071283200
+- destinatário CPF/CNPJ: 014.694.997-89
+- destinatário IE: vazio

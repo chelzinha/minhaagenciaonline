@@ -1,0 +1,16 @@
+CLIENTES/AÇÕES v4 — backend
+
+Arquivos principais alterados:
+- 00_CLIENTES_MASTER_FINAL.js
+- DASHBOARD_GERENCIAL.js
+
+Resumo:
+- NOVO = primeira postagem válida não-reverso no mês corrente da base.
+- CONVERTER de balcão recorrente agora exige relevância mínima.
+- Cache do dashboard e do master versionado.
+
+Após subir:
+1. Salvar Apps Script.
+2. Atualizar implantação do Web App.
+3. Rodar reconstrução/atualização do CLIENTES_MASTER.
+4. Abrir dashboard em aba anônima.

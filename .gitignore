@@ -1,0 +1,19 @@
+﻿# Git ignore - Minha Agencia Online
+
+# Apps Script local
+**/.clasp.json
+
+# Segredos e variaveis locais
+.env
+.env.*
+*.secret
+*.key
+*.pem
+credentials.json
+token.json
+
+# Temporarios
+*.tmp
+*.log
+.DS_Store
+Thumbs.db

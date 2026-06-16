@@ -1,0 +1,21 @@
+AJUSTE CLIENTES/AÇÕES — v3
+
+Arquivos principais alterados:
+- 00_CLIENTES_MASTER_FINAL.js
+- DASHBOARD_GERENCIAL.js
+
+Escopo preservado:
+- Não foi alterado o objetivo das abas VISÃO GERAL, RESUMO DIÁRIO e BALCÃO X CONTRATO.
+- As mudanças novas foram concentradas no motor do CLIENTES_MASTER e no consumo das abas CLIENTES/AÇÕES.
+
+Resumo técnico:
+1. CLIENTES_MASTER agora usa AÇÃO dinâmica do motor em ACAO/ACAO_ENGINE.
+2. ACAO_ATUAL manual é preservada, mas não trava mais o motor automático.
+3. VISITAR deixa de ser ação principal e passa a ser canal sugerido/proxima abordagem.
+4. FIDELIZAR CRÍTICA representa cliente estratégico que merece visita/presença.
+5. VR mantém a regra: ou CONVERTER ou CANCELAR.
+6. RESGATAR passa a começar com 30+ dias sem postar para não-VR com histórico relevante.
+7. RESGATAR com 60+ dias e histórico relevante vira CRÍTICA.
+8. Assinatura da BASE_TOTAL foi fortalecida para detectar alterações de conteúdo, não só tamanho da aba.
+9. DASHBOARD_GERENCIAL usa cache v10v8/ds10v8 e lê CLIENTES_MASTER com cache dependente do build do master.
+10. Filtros TIPO/INTERMEDIÁRIO/SEGMENTO nas abas CLIENTES/AÇÕES agora restringem os clientes pela movimentação filtrada.

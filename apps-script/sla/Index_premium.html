@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Desempenho de Entregas | AGF José Bonifácio</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap');
+    :root{--bg:#F5F7FA;--sf:#FFF;--ink:#0A2540;--ink2:#425466;--ink3:#8492A6;--cb:#0063B0;--cbd:#00416B;--cy:#FFD400;--gr:#0B8457;--gs:#ECF7F1;--gm:#C8E6D5;--rd:#C43535;--rs:#FEF0F0;--rm:#FADCDC;--ln:#E3E8EF;--rad:12px;--rads:8px;--sh:0 1px 2px rgba(10,37,64,.04),0 2px 8px rgba(10,37,64,.04);--f:'DM Sans',system-ui,sans-serif}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{font-size:14px}
+    body{font-family:var(--f);color:var(--ink);background:var(--bg);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+    /* TOOLBAR */
+    .tb{position:sticky;top:0;z-index:100;min-height:56px;background:rgba(255,255,255,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--ln);padding:6px 14px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;box-shadow:0 3px 14px rgba(0,65,107,.045)}
+    .tb-brand{display:flex;align-items:center;gap:10px;min-width:0;margin-right:3px}
+    .tb .logo-s{width:38px;height:38px;display:grid;place-items:center;border:1px solid #d8e7f1;border-radius:12px;background:linear-gradient(145deg,#fff,#edf6fb);box-shadow:0 4px 12px rgba(0,65,107,.09);color:#577590;flex:0 0 38px}
+    .tb .logo-s .material-symbols-rounded{font-size:21px}
+    .tb-copy{display:grid;gap:1px;min-width:0}
+    .tb-copy strong{font-size:14px;line-height:1.15;color:#14324a;font-weight:800}
+    .tb-copy small{font-size:11px;line-height:1.15;color:#60788d;font-weight:600}
+    .material-symbols-rounded{font-family:'Material Symbols Rounded';font-size:17px;line-height:1;font-weight:500;font-style:normal;font-variation-settings:'FILL' 0,'wght' 500,'GRAD' 0,'opsz' 24;vertical-align:middle}
+    .fld{display:flex;align-items:center;gap:5px;border:1px solid var(--ln);border-radius:6px;padding:6px 10px;background:#fff}
+    .fld label{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;white-space:nowrap}
+    .fld input{border:0;outline:0;background:0;font:inherit;font-size:12px;font-weight:600;color:var(--ink);width:130px}
+    .fld input::placeholder{color:#B0BEC5}
+    .sp{flex:1}
+    .bt{appearance:none;border:1px solid transparent;cursor:pointer;border-radius:9px;padding:7px 10px;font:inherit;font-size:11px;font-weight:700;white-space:nowrap;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:34px}
+    .bt:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 3px 8px rgba(10,37,64,.1)}
+    .bt:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .bt.p{background:linear-gradient(135deg,#0063B0,#004D8C);color:#fff}
+    .bt.s{background:#fff;border-color:var(--ln);color:var(--ink)}
+    .bt.y{background:linear-gradient(135deg,#FFD400,#FFC20E);color:var(--cbd);font-weight:800}
+    .bt.g{background:0;border-color:var(--ln);color:var(--ink2)}
+    .hi{display:none}
+
+    /* IMPORT */
+    .imp{max-width:880px;margin:0 auto;padding:16px 20px 0}
+    .imp-c{background:var(--sf);border:1px solid var(--ln);border-radius:var(--rad);padding:16px 20px;box-shadow:var(--sh)}
+    .imp-c h3{font-size:14px;font-weight:700;margin-bottom:3px}
+    .imp-c p{font-size:11px;color:var(--ink3);margin-bottom:10px;line-height:1.45}
+    .imp-c textarea{width:100%;min-height:140px;border:1px solid var(--ln);border-radius:8px;padding:10px 12px;resize:vertical;font-family:'DM Sans',monospace;font-size:11px;color:var(--ink);background:#FAFBFD;outline:0;line-height:1.5}
+    .imp-c textarea:focus{border-color:var(--cb);box-shadow:0 0 0 2px rgba(0,99,176,.1)}
+    .imp-st{margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}
+    .imp-st .ms{padding:6px 10px;border-radius:6px;border:1px solid var(--ln);background:var(--bg);font-weight:600;color:var(--ink2);flex:1}
+    .imp-st .ct{padding:6px 10px;border-radius:6px;font-weight:700;background:linear-gradient(135deg,rgba(0,99,176,.05),rgba(255,212,0,.05));border:1px solid rgba(0,99,176,.08);white-space:nowrap}
+
+    /* PAGE */
+    .pg{max-width:880px;margin:0 auto;padding:16px 20px}
+
+    /* HEADER — compact */
+    .hdr{background:linear-gradient(135deg,#00416B 0%,#0063B0 60%,#0078D4 100%);border-radius:var(--rad);padding:18px 22px;color:#fff;position:relative;overflow:hidden;margin-bottom:14px;display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+    .hdr::before{content:"";position:absolute;top:-50%;right:-10%;width:50%;height:200%;background:linear-gradient(52deg,transparent 0%,rgba(255,212,0,.1) 40%,rgba(255,230,0,.15) 60%,transparent 100%);transform:rotate(-18deg);pointer-events:none}
+    .hdr::after{content:"";position:absolute;bottom:0;left:0;right:0;height:4px;background:var(--cy)}
+    .hdr-logo{width:44px;height:44px;background:#fff;border-radius:10px;display:grid;place-items:center;overflow:hidden;position:relative;z-index:1;flex-shrink:0}
+    .hdr-logo img{width:36px;height:36px;object-fit:cover;border-radius:6px}
+    .hdr-body{position:relative;z-index:1;min-width:0}
+    .hdr-lbl{font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,.5)}
+    .hdr-ttl{font-size:18px;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-top:2px}
+    .hdr-sub{font-size:11px;line-height:1.5;color:rgba(255,255,255,.65);margin-top:4px;max-width:580px}
+    .hdr-meta{margin-top:6px;display:flex;gap:14px;font-size:10px;font-weight:600;color:rgba(255,255,255,.5);flex-wrap:wrap}
+
+    /* HIGHLIGHT */
+    .hlr{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+    .hlc{background:var(--sf);border:1px solid var(--ln);border-radius:var(--rad);padding:16px 20px;box-shadow:var(--sh)}
+    .hlc.pos{background:linear-gradient(135deg,#F0FAF4,#E5F6EC);border-color:var(--gm)}
+    .hlc.neg{background:var(--rs);border-color:var(--rm)}
+    .hlc .lb{font-size:9px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--ink3);margin-bottom:4px}
+    .hlc .vl{font-size:36px;font-weight:800;letter-spacing:-.04em;line-height:1}
+    .hlc.pos .vl{color:var(--gr)}
+    .hlc.neg .vl{color:var(--rd)}
+    .hlc .ds{margin-top:5px;font-size:11px;line-height:1.45;color:var(--ink2)}
+
+    /* KPIs */
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+    .kpi{background:var(--sf);border:1px solid var(--ln);border-radius:var(--rads);padding:10px 12px;box-shadow:var(--sh)}
+    .kpi .k{font-size:9px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--ink3);margin-bottom:4px}
+    .kpi .v{font-size:20px;font-weight:800;letter-spacing:-.03em;line-height:1}
+    .kpi .m{margin-top:3px;font-size:10px;color:var(--ink3)}
+
+    /* CARD */
+    .cd{background:var(--sf);border:1px solid var(--ln);border-radius:var(--rad);padding:16px 20px;box-shadow:var(--sh);margin-bottom:12px;break-inside:avoid;page-break-inside:avoid}
+    .ct{font-size:14px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
+    .cs{font-size:10px;color:var(--ink3);margin-bottom:10px;line-height:1.4}
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+
+    /* STACKED BAR */
+    .sb{height:28px;border-radius:999px;overflow:hidden;display:flex;background:#F0F2F5;margin-bottom:10px;border:1px solid var(--ln)}
+    .sb .sg{height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;overflow:hidden}
+    .sb .sg.e{background:var(--gr)}.sb .sg.o{background:var(--cb)}.sb .sg.l{background:var(--rd)}
+    .lr{display:flex;gap:16px;flex-wrap:wrap}
+    .li{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:500;color:var(--ink2)}
+    .ld{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+    /* SVC CARDS */
+    .svc{background:var(--sf);border:1px solid var(--ln);border-radius:var(--rad);padding:14px 18px;box-shadow:var(--sh)}
+    .svc-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .svc-n{font-size:13px;font-weight:700}
+    .svc-b{font-size:9px;font-weight:700;letter-spacing:.05em;padding:3px 8px;border-radius:999px;text-transform:uppercase}
+    .svc-b.sx{background:rgba(255,212,0,.18);color:#8B6914;border:1px solid rgba(255,212,0,.3)}
+    .svc-b.pc{background:#EBF4FF;color:var(--cb);border:1px solid rgba(0,99,176,.15)}
+    .svc-mr{display:flex;gap:8px;margin-bottom:10px}
+    .svc-m{flex:1;padding:8px 10px;border-radius:var(--rads);text-align:center}
+    .svc-m.g{background:var(--gs);border:1px solid var(--gm)}
+    .svc-m.r{background:var(--rs);border:1px solid var(--rm)}
+    .svc-m .sv{font-size:20px;font-weight:800;letter-spacing:-.02em}
+    .svc-m.g .sv{color:var(--gr)}.svc-m.r .sv{color:var(--rd)}
+    .svc-m .sl{font-size:9px;color:var(--ink3);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+    .sb-sm{height:6px;border-radius:999px;overflow:hidden;display:flex;background:#F0F2F5}
+    .sb-sm .sg{height:100%}
+
+    /* BUCKETS */
+    .bkl{display:grid;gap:4px}
+    .bkr{display:grid;grid-template-columns:160px 1fr 70px;gap:10px;align-items:center;padding:5px 0}
+    .bkr+.bkr{border-top:1px solid rgba(0,0,0,.03)}
+    .bkr .bl{font-size:11px;font-weight:600}
+    .bkt{height:6px;background:#F0F2F5;border-radius:999px;overflow:hidden}
+    .bkf{height:100%;border-radius:999px}
+    .bkv{text-align:right;font-size:11px;font-weight:700}
+    .bkv small{color:var(--ink3);font-weight:400}
+
+    /* INSIGHT */
+    .inb{background:linear-gradient(135deg,#00416B,#0063B0);border-radius:var(--rad);padding:14px 20px;color:#fff;display:flex;align-items:center;gap:14px;margin-bottom:12px;position:relative;overflow:hidden}
+    .inb::after{content:"";position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--cy)}
+    .ini{width:36px;height:36px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);border-radius:8px;display:grid;place-items:center;font-size:16px;flex-shrink:0}
+    .inb strong{display:block;font-size:12px;font-weight:700;margin-bottom:2px}
+    .inb .it{font-size:10px;color:rgba(255,255,255,.7);line-height:1.4}
+
+    /* SVG */
+    .svw{width:100%;overflow-x:auto;overflow-y:hidden;border-radius:8px;background:#fff;border:1px solid var(--ln);padding:4px}
+    .svw svg{width:auto;height:auto;display:block;min-width:100%}
+
+    /* CITY VIEW */
+    .cv{display:grid;gap:12px}
+    .cv-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .cv-kpi{background:#fff;border:1px solid var(--ln);border-radius:8px;padding:10px 12px}
+    .cv-kpi .ck{font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+    .cv-kpi .cvl{margin-top:4px;font-size:20px;font-weight:800;letter-spacing:-.03em;line-height:1}
+    .cv-kpi .cvm{margin-top:4px;font-size:10px;color:var(--ink2);line-height:1.4}
+    .cv-kpi.good .cvl{color:var(--gr)}
+    .cv-kpi.bad .cvl{color:var(--rd)}
+    .cv-split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .cv-box{border:1px solid var(--ln);border-radius:8px;padding:12px;background:#fff}
+    .cv-box h4{font-size:11px;font-weight:700;margin-bottom:2px}
+    .cv-box p{font-size:9px;color:var(--ink3);margin-bottom:8px}
+    .cv-list{display:grid;gap:6px}
+    .cv-row{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(110px,1fr) 56px;gap:10px;align-items:center;padding:8px 0}
+    .cv-row+.cv-row{border-top:1px solid rgba(0,0,0,.04)}
+    .cv-city b{display:block;font-size:11px;line-height:1.25}
+    .cv-city span{font-size:10px;color:var(--ink3)}
+    .cv-m{font-size:9px;color:var(--ink3);margin-bottom:4px}
+    .cv-bar{height:7px;background:#EEF2F6;border-radius:999px;overflow:hidden}
+    .cv-fill{height:100%;border-radius:999px}
+    .cv-val{font-size:11px;font-weight:800;text-align:right}
+    .cv-val.good{color:var(--gr)}
+    .cv-val.bad{color:var(--rd)}
+    .tblw{overflow:auto;border:1px solid var(--ln);border-radius:8px;background:#fff}
+    .ctb{width:100%;border-collapse:collapse;min-width:720px}
+    .ctb th,.ctb td{padding:8px 10px;border-bottom:1px solid rgba(0,0,0,.05);text-align:left}
+    .ctb th{font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;background:#F8FAFC;position:sticky;top:0}
+    .ctb td{font-size:10px;color:var(--ink)}
+    .ctb tr:last-child td{border-bottom:0}
+    .ctb td.num{text-align:right;font-variant-numeric:tabular-nums}
+    .pct-good{color:var(--gr);font-weight:800}
+    .pct-bad{color:var(--rd);font-weight:800}
+    .muted{color:var(--ink3)}
+
+    /* INSIGHTS LIST */
+    .insl{display:grid;gap:6px}
+    .insi{display:grid;grid-template-columns:32px 1fr;gap:10px;align-items:start;border:1px solid var(--ln);border-radius:8px;padding:10px 12px;background:#fff}
+    .insb{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(0,99,176,.07),rgba(255,212,0,.07));border:1px solid rgba(0,99,176,.08);color:var(--cb);font-size:14px;font-weight:800}
+    .insi b{font-size:11px;margin-bottom:1px;display:block}.insi .is{font-size:10px;color:var(--ink2);line-height:1.4}
+
+    /* FOOTER */
+    .ft{text-align:center;padding:10px 0 4px;font-size:9px;color:var(--ink3)}
+    .ft strong{color:var(--ink2)}
+
+    /* NOTE */
+    .nc{background:linear-gradient(135deg,#F8FAFC,#F0F4F8);border-color:#D1D9E3}
+
+    /* RESPONSIVE */
+    @media(max-width:700px){.hlr,.g2,.kpis,.cv-kpis,.cv-split{grid-template-columns:1fr}.hdr{grid-template-columns:1fr}.bkr{grid-template-columns:120px 1fr 55px}.cv-row{grid-template-columns:minmax(0,1fr) 92px 48px}}
+
+    /* PRINT */
+    @page{size:A4 portrait;margin:10mm 12mm}
+    body.pm{background:#fff}
+    body.pm .tb,body.pm .imp{display:none!important}
+    body.pm .pg{padding:0;max-width:100%}
+    body.pm .hdr,.pm .hlc,.pm .cd,.pm .svc,.pm .kpi,.pm .inb,.pm .insi,.pm .cv-box,.pm .cv-kpi{box-shadow:none;break-inside:avoid;page-break-inside:avoid}
+    body.pm .hdr{background:linear-gradient(135deg,#00416B,#0063B0)!important;color:#fff!important;padding:14px 18px}
+    body.pm .hdr-ttl{font-size:15px!important}
+    body.pm .hlc .vl{font-size:28px!important}
+    body.pm .kpi .v{font-size:16px!important}
+    body.pm .kpi{padding:8px 10px!important}
+    body.pm .cd{padding:12px 16px!important;margin-bottom:8px!important}
+    body.pm .hlr,.pm .g2{gap:8px!important;margin-bottom:8px!important}
+    body.pm .kpis{gap:6px!important;margin-bottom:8px!important}
+    body.pm .inb{padding:10px 16px!important;margin-bottom:8px!important}
+    body.pm .sb{height:22px!important}
+    body.pm #stateCard{padding:8px 12px!important;margin-bottom:6px!important}
+    body.pm #stateCard .ct{font-size:12px!important}
+    body.pm #stateCard .cs{font-size:8.5px!important;line-height:1.25!important;margin-bottom:4px!important}
+    body.pm #stateCard .svw{padding:2px!important}
+    body.pm #cityCard{break-inside:auto!important;page-break-inside:auto!important;padding:10px 14px!important}
+    body.pm #cityCard .ct{font-size:12px!important}
+    body.pm #cityCard .cs{font-size:9px!important;line-height:1.3!important;margin-bottom:6px!important}
+    body.pm #cityCard .cv{break-inside:auto!important;page-break-inside:auto!important}
+    body.pm #cityCard .cv-kpis{gap:6px!important;margin-bottom:6px!important}
+    body.pm #cityCard .cv-kpi{padding:8px 10px!important}
+    body.pm #cityCard .cv-kpi .ck{font-size:7px!important}
+    body.pm #cityCard .cv-kpi .cvl{font-size:16px!important}
+    body.pm #cityCard .cv-kpi .cvm{font-size:8.5px!important;line-height:1.25!important}
+    body.pm #cityCard .cv-split{gap:8px!important;margin-bottom:6px!important}
+    body.pm #cityCard .cv-box{padding:8px 10px!important;break-inside:auto!important;page-break-inside:auto!important}
+    body.pm #cityCard .cv-box h4{font-size:10px!important;margin-bottom:1px!important}
+    body.pm #cityCard .cv-box p{font-size:8px!important;line-height:1.25!important;margin-bottom:5px!important}
+    body.pm #cityCard .cv-list{gap:4px!important}
+    body.pm #cityCard .cv-row{padding:5px 0!important;gap:8px!important}
+    body.pm #cityCard .cv-city b{font-size:10px!important}
+    body.pm #cityCard .cv-city span{font-size:8px!important}
+    body.pm #cityCard .cv-m{font-size:8px!important;margin-bottom:3px!important}
+    body.pm #cityCard .cv-bar{height:6px!important}
+    body.pm #cityCard .cv-val{font-size:9px!important}
+    body.pm #cityCard .tblw{overflow:visible!important}
+    body.pm #cityCard .ctb{min-width:100%!important}
+    body.pm #cityCard .ctb th,
+    body.pm #cityCard .ctb td{padding:5px 6px!important;font-size:8.5px!important}
+    body.pm #cityCard .ctb th{position:static!important}
+    @media print{
+      html,body{background:#fff!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .tb,.imp{display:none!important}
+      .pg{padding:0!important;max-width:100%!important}
+      .hdr,.hlc,.cd,.svc,.kpi,.inb,.insi,.cv-box,.cv-kpi{box-shadow:none!important;break-inside:avoid;page-break-inside:avoid}
+      .hdr{background:linear-gradient(135deg,#00416B,#0063B0)!important;color:#fff!important;padding:14px 18px!important}
+      .hdr-ttl{font-size:15px!important}
+      .hlc .vl{font-size:28px!important}
+      .kpi .v{font-size:16px!important}
+      .kpi{padding:8px 10px!important}
+      .cd{padding:12px 16px!important;margin-bottom:8px!important}
+      .hlr,.g2{gap:8px!important;margin-bottom:8px!important}
+      .kpis{gap:6px!important;margin-bottom:8px!important;grid-template-columns:repeat(4,1fr)!important}
+      .inb{padding:10px 16px!important;margin-bottom:8px!important}
+      .sb{height:22px!important}
+      #stateCard{padding:8px 12px!important;margin-bottom:6px!important}
+      #stateCard .ct{font-size:12px!important}
+      #stateCard .cs{font-size:8.5px!important;line-height:1.25!important;margin-bottom:4px!important}
+      #stateCard .svw{padding:2px!important}
+      #cityCard{break-inside:auto!important;page-break-inside:auto!important;padding:10px 14px!important}
+      #cityCard .ct{font-size:12px!important}
+      #cityCard .cs{font-size:9px!important;line-height:1.3!important;margin-bottom:6px!important}
+      #cityCard .cv{break-inside:auto!important;page-break-inside:auto!important}
+      #cityCard .cv-kpis{gap:6px!important;margin-bottom:6px!important}
+      #cityCard .cv-kpi{padding:8px 10px!important}
+      #cityCard .cv-kpi .ck{font-size:7px!important}
+      #cityCard .cv-kpi .cvl{font-size:16px!important}
+      #cityCard .cv-kpi .cvm{font-size:8.5px!important;line-height:1.25!important}
+      #cityCard .cv-split{gap:8px!important;margin-bottom:6px!important}
+      #cityCard .cv-box{padding:8px 10px!important;break-inside:auto!important;page-break-inside:auto!important}
+      #cityCard .cv-box h4{font-size:10px!important;margin-bottom:1px!important}
+      #cityCard .cv-box p{font-size:8px!important;line-height:1.25!important;margin-bottom:5px!important}
+      #cityCard .cv-list{gap:4px!important}
+      #cityCard .cv-row{padding:5px 0!important;gap:8px!important}
+      #cityCard .cv-city b{font-size:10px!important}
+      #cityCard .cv-city span{font-size:8px!important}
+      #cityCard .cv-m{font-size:8px!important;margin-bottom:3px!important}
+      #cityCard .cv-bar{height:6px!important}
+      #cityCard .cv-val{font-size:9px!important}
+      #cityCard .tblw{overflow:visible!important}
+      #cityCard .ctb{min-width:100%!important}
+      #cityCard .ctb th,
+      #cityCard .ctb td{padding:5px 6px!important;font-size:8.5px!important}
+      #cityCard .ctb th{position:static!important}
+    }
+  </style>
+</head>
+<body>
+  <header class="tb" id="toolbar">
+    <div class="tb-brand">
+      <div class="logo-s"><span class="material-symbols-rounded" data-agf-icon="sla">query_stats</span></div>
+      <div class="tb-copy"><strong>SLA</strong><small>AGF José Bonifácio</small></div>
+    </div>
+    <div class="fld"><label>Cliente</label><input id="clientName" type="text" placeholder="Nome do cliente"></div>
+    <div class="sp"></div>
+    <button class="bt p" id="btnImport"><span class="material-symbols-rounded" data-agf-icon="upload_file">upload_file</span>Importar</button>
+    <button class="bt s" id="btnFile"><span class="material-symbols-rounded" data-agf-icon="folder_open">folder_open</span>Arquivo</button>
+    <button class="bt y" id="btnPdf"><span class="material-symbols-rounded" data-agf-icon="picture_as_pdf">picture_as_pdf</span>PDF</button>
+    <button class="bt g" id="btnPng"><span class="material-symbols-rounded" data-agf-icon="image">image</span>PNG</button>
+    <input id="fileInput" class="hi" type="file" accept=".json,.txt,.csv">
+  </header>
+
+  <div class="imp" id="importPanel">
+    <div class="imp-c">
+      <h3>Entrada de dados</h3>
+      <p>Cole o JSON bruto dos Correios ou o CSV exportado. Aceita .json, .txt e .csv. Objetos com SITUAÇÃO vazia são ignorados no app.</p>
+      <textarea id="rawInput" placeholder="Cole aqui o JSON ou CSV dos Correios..."></textarea>
+      <div class="imp-st"><div class="ms" id="statusMsg">Pronto para importar.</div><div class="ct" id="rowCounter">0 objetos</div></div>
+    </div>
+  </div>
+
+  <div class="pg" id="dashboard" style="display:none">
+    <div class="hdr" id="hdrCard">
+      <div class="logo-s"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" aria-hidden="true"><path fill="#fed200" d="M 7.38 11.98 L 16.57 11.98 L 15.85 13.07 L 14.27 15 L 13.07 16.57 L 11.98 18.02 L 12.22 18.51 L 13.91 20.68 L 16.57 24.07 L 16.57 24.32 L 7.62 24.32 L 6.65 23.83 L 5.32 22.14 L 3.99 20.45 L 2.42 18.39 L 2.54 17.66 L 3.87 15.97 L 5.32 14.15 L 6.53 12.58 L 7.14 12.1 Z"/><path fill="#007cc3" d="M 13.67 5.68 L 22.5 5.68 L 23.47 6.05 L 24.43 7.14 L 26.01 9.2 L 27.34 10.89 L 27.82 11.49 L 27.82 12.22 L 26.73 13.67 L 25.4 15.36 L 23.71 17.54 L 22.86 18.02 L 13.79 18.02 L 14.27 17.18 L 15.48 15.73 L 16.7 14.15 L 18.02 12.46 L 18.39 11.86 L 16.93 10.04 L 15.73 8.47 L 14.39 6.77 Z"/><path fill="#003a66" d="M 13.67 5.68 L 21.53 5.68 L 22.14 6.17 L 22.26 7.02 L 21.29 8.35 L 19.96 10.04 L 18.63 11.73 L 18.27 11.73 L 16.7 9.68 L 15.24 7.86 L 13.67 5.8 Z"/><path fill="#d69e00" d="M 11.73 18.14 L 12.34 18.63 L 13.79 20.57 L 15.36 22.5 L 16.57 24.07 L 16.57 24.32 L 8.71 24.32 L 8.11 23.71 L 8.11 22.98 L 8.83 21.89 L 10.28 20.08 Z"/></svg></div>
+      <div class="hdr-body">
+        <div class="hdr-lbl">AGF José Bonifácio • Desempenho de Entregas</div>
+        <div class="hdr-ttl" id="hdrTitle">Relatório de entregas</div>
+        <div class="hdr-sub" id="hdrSub"></div>
+        <div class="hdr-meta" id="hdrMeta"></div>
+      </div>
+    </div>
+    <div class="hlr" id="hlRow"></div>
+    <div class="kpis" id="kpiGrid"></div>
+    <div class="cd" id="slaBarCard"></div>
+    <div id="insight1"></div>
+    <div class="g2" id="svcGrid"></div>
+    <div class="cd" id="bucketCard"></div>
+    <div id="insight2"></div>
+    <div class="cd" id="stateCard"></div>
+    <div class="cd" id="cityCard"></div>
+    <div class="cd" id="insightsCard"></div>
+    <div class="cd nc" id="noteCard"></div>
+    <div class="ft"><strong>AGF José Bonifácio</strong> • Relatório gerado automaticamente • Dados extraídos do sistema de rastreamento dos Correios</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+  var state={rows:[],clientName:'',isBusy:false};
+  var $=function(id){return document.getElementById(id)};
+  var E={cn:$('clientName'),ri:$('rawInput'),sm:$('statusMsg'),rc:$('rowCounter'),bi:$('btnImport'),bf:$('btnFile'),bp:$('btnPdf'),bn:$('btnPng'),fi:$('fileInput'),db:$('dashboard'),ip:$('importPanel'),ht:$('hdrTitle'),hs:$('hdrSub'),hm:$('hdrMeta'),hr:$('hlRow'),kg:$('kpiGrid'),sl:$('slaBarCard'),i1:$('insight1'),i2:$('insight2'),sg:$('svcGrid'),bk:$('bucketCard'),sc:$('stateCard'),cc:$('cityCard'),ic:$('insightsCard'),nc:$('noteCard')};
+
+  E.bi.addEventListener('click',doImp);
+  E.bf.addEventListener('click',function(){E.fi.click()});
+  E.fi.addEventListener('change',handleFile);
+  E.bp.addEventListener('click',expPdf);
+  E.bn.addEventListener('click',expPng);
+  E.ri.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();doImp()}});
+
+  function doImp(){
+    var r=E.ri.value.trim();
+    if(!r){ss('Cole o conteúdo antes de importar.','e');return}
+    try{
+      var rows=parseInput(r);
+      if(!rows.length)throw new Error('Nenhum objeto encontrado.');
+      state.rows=rows;
+      state.clientName=E.cn.value.trim();
+      render();
+      E.db.style.display='';
+      ss('Importação concluída — '+rows.length+' objetos.','s');
+      E.rc.textContent=rows.length+' objetos';
+      setTimeout(function(){E.db.scrollIntoView({behavior:'smooth'})},200);
+    }catch(e){ss(e.message||'Erro ao processar.','e')}
+  }
+
+  function handleFile(ev){
+    var f=ev.target.files&&ev.target.files[0];
+    if(!f)return;
+    ss('Lendo arquivo...','n');
+    var r=new FileReader();
+    r.onload=function(){E.ri.value=String(r.result||'');doImp()};
+    r.onerror=function(){ss('Erro ao ler.','e')};
+    r.readAsText(f,'utf-8');
+    ev.target.value='';
+  }
+
+  function ss(m,t){E.sm.textContent=m;E.sm.style.color=t==='e'?'#C43535':t==='s'?'#0B8457':'#425466'}
+
+  function parseInput(raw){
+    raw=raw.replace(/^\uFEFF/,'').trim();
+    var rows=lkCsv(raw)?parseCsv(raw):parseJson(raw);
+    return rows.filter(hasVisibleStatus_);
+  }
+  function lkCsv(r){var fl=r.split(/\r?\n/,1)[0]||'';return /OBJETO[;\t,]/i.test(fl)&&/SITUACAO/i.test(fl)}
+  function hasVisibleStatus_(row){return !!String((row&&row.raw_description)||'').trim()}
+
+  function parseCsv(raw){
+    var lines=raw.split(/\r?\n/);
+    var d=(lines[0].match(/;/g)||[]).length>=(lines[0].match(/,/g)||[]).length?';':',';
+    var hdrs=lines[0].split(d).map(function(h){return h.replace(/^\uFEFF/,'').replace(/"/g,'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,'_').replace(/^_|_$/g,'')});
+    var hm={};
+    hdrs.forEach(function(h,i){if(hm[h]==null)hm[h]=i});
+    var rows=[];
+    for(var i=1;i<lines.length;i++){
+      var c=lines[i].split(d).map(function(x){return x.replace(/"/g,'').trim()});
+      if(!c.join(''))continue;
+      var code=cv(c,hm,'OBJETO');
+      if(!code)continue;
+      var svc=cv(c,hm,'SERVICO')||'OUTRO';
+      var desc=cv(c,hm,'SITUACAO')||'';
+      var pred=pbd(cv(c,hm,'PRAZO_ESTIMADO'));
+      var act=pbd(cv(c,hm,'PRAZO_REAL'));
+      var evd=pbd(cv(c,hm,'DATA_SITUACAO'))||act||pred;
+      var sg=cls(desc);
+      var ref=slaRef(sg,act,evd);
+      var dd=(pred&&ref)?ddf(ref,pred):null;
+      rows.push({
+        code:code,
+        service:svc,
+        status_group:sg,
+        predicted_date:pred,
+        actual_date:sg==='delivered'?act:'',
+        event_date:evd,
+        delta_days_num:dd,
+        city:cv(c,hm,'CIDADE')||'',
+        uf:cv(c,hm,'UF')||'',
+        raw_description:desc,
+        tracking_url:'https://rastreamento.correios.com.br/app/index.php?objetos='+encodeURIComponent(code)
+      });
+    }
+    return dedup(rows);
+  }
+
+  function parseJson(raw){
+    var objs=[];
+    try{
+      var p=JSON.parse(raw);
+      if(p&&Array.isArray(p.objetos))objs=p.objetos;
+      else if(Array.isArray(p))objs=p;
+    }catch(e){
+      ejb(raw).forEach(function(b){if(b&&Array.isArray(b.objetos))objs=objs.concat(b.objetos)});
+    }
+    if(!objs.length)throw new Error('Nenhum objeto encontrado no JSON.');
+    return dedup(objs.map(fjo));
+  }
+
+  function fjo(o){
+    o=o||{};
+    var ev=(o.eventos&&o.eventos[0])||{};
+    var d=String(ev.descricao||'');
+    var sg=cls(d);
+    var pred=fdo(o.dtPrevista);
+    var evd=fdo(ev.dtHrCriado);
+    var act=sg==='delivered'?fdo(ev.dtHrCriado):'';
+    var ref=slaRef(sg,act,evd);
+    var dd=(pred&&ref)?ddf(ref,pred):null;
+    var ad=(ev.unidade&&ev.unidade.endereco)||{};
+    var du=(ev.unidadeDestino&&ev.unidadeDestino.endereco)||{};
+    var svc='OUTRO';
+    if(o.tipoPostal){
+      var si=String(o.tipoPostal.sigla||''),ca=String(o.tipoPostal.categoria||'');
+      if(si==='QN'||/PAC/i.test(ca))svc='PAC';
+      else if(si==='OY'||/SEDEX/i.test(ca))svc='SEDEX';
+      else svc=si||ca||'OUTRO';
+    }
+    return{
+      code:String(o.codObjeto||''),
+      service:svc,
+      status_group:sg,
+      predicted_date:pred,
+      actual_date:act,
+      event_date:fdt(ev.dtHrCriado),
+      delta_days_num:dd,
+      city:String((sg==='in_transfer'&&du.cidade)?du.cidade:(ad.cidade||du.cidade||'')),
+      uf:String((sg==='in_transfer'&&du.uf)?du.uf:(ad.uf||du.uf||'')),
+      raw_description:d,
+      tracking_url:'https://rastreamento.correios.com.br/app/index.php?objetos='+encodeURIComponent(o.codObjeto||'')
+    };
+  }
+
+  function cv(c,h,k){var i=h[k];return i!=null?(c[i]||'').trim():''}
+  function pbd(v){var m=String(v||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?m[3]+'-'+m[2]+'-'+m[1]:(String(v||'').match(/^\d{4}-\d{2}-\d{2}/)?String(v).slice(0,10):'')}
+  function fdo(v){return v?String(v).slice(0,10):''}
+  function fdt(v){return v?String(v).replace('T',' ').slice(0,19):''}
+  function ddf(a,b){return Math.round((new Date(String(a).slice(0,10)+'T00:00:00')-new Date(String(b).slice(0,10)+'T00:00:00'))/864e5)}
+  function cls(d){
+    d=String(d||'').toLowerCase();
+    if(/objeto entregue ao remetente/.test(d))return'attempt';
+    if(/objeto entregue ao destinat/.test(d))return'delivered';
+    if(/objeto n[aã]o entregue/.test(d))return'attempt';
+    if(/saiu para entrega/.test(d))return'out_for_delivery';
+    if(/aguardando retirada/.test(d))return'awaiting_pickup';
+    if(/em transfer/.test(d))return'in_transfer';
+    return'other_open';
+  }
+  function slaRef(sg,act,evd){if(sg==='delivered')return act||String(evd||'').slice(0,10);if(sg==='in_transfer')return String(evd||'').slice(0,10);return''}
+  function isSlaMeasuredRow(r){return !!r&&!!r.predicted_date&&(r.status_group==='delivered'||r.status_group==='in_transfer')&&r.delta_days_num!==null&&r.delta_days_num!==''&&!isNaN(r.delta_days_num)}
+  function dedup(rows){var m={},o=[];rows.forEach(function(r){if(!r.code)return;if(!m[r.code])o.push(r.code);m[r.code]=r});return o.map(function(c){return m[c]})}
+  function ejb(t){var bl=[],dp=0,st=-1,is=false,ec=false;for(var i=0;i<t.length;i++){var c=t[i];if(is){if(ec)ec=false;else if(c==='\\')ec=true;else if(c==='"')is=false;continue}if(c==='"'){is=true;continue}if(c==='{'){if(dp===0)st=i;dp++}else if(c==='}'){dp--;if(dp===0&&st>-1){try{bl.push(JSON.parse(t.slice(st,i+1)))}catch(e){}st=-1}}}return bl}
+  function pct(p,t){return t?(p/t*100):0}
+  function fp(v){return Number(v).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'}
+  function fn(v,d){return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})}
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+  function avg(a){return a.length?a.reduce(function(s,v){return s+Number(v||0)},0)/a.length:0}
+  function gb(a,f){return a.reduce(function(r,i){var k=f(i);if(!r[k])r[k]=[];r[k].push(i);return r},{})}
+
+  function render(){
+    var rows=state.rows,nm=E.cn.value.trim()||state.clientName||'Cliente';
+    var delivered=rows.filter(function(r){return r.status_group==='delivered'});
+    var transferMeasured=rows.filter(function(r){return r.status_group==='in_transfer'&&isSlaMeasuredRow(r)});
+    var slaRows=rows.filter(isSlaMeasuredRow);
+    var ea=slaRows.filter(function(r){return(r.delta_days_num||0)<0});
+    var ot=slaRows.filter(function(r){return(r.delta_days_num||0)===0});
+    var la=slaRows.filter(function(r){return(r.delta_days_num||0)>0});
+    var bs=slaRows.length||1;
+    var ep=pct(ea.length,bs),op=pct(ot.length,bs),lp=pct(la.length,bs);
+    var okp=pct(ea.length+ot.length,bs),okc=ea.length+ot.length;
+    var mE=ea.length?Math.abs(avg(ea.map(function(r){return r.delta_days_num}))):0;
+    var mL=la.length?avg(la.map(function(r){return r.delta_days_num})):0;
+
+    var sm=gb(rows.filter(function(r){return r.service}),function(r){return r.service});
+    var svcs=Object.keys(sm).sort().map(function(s){
+      var l=sm[s];
+      var d=l.filter(isSlaMeasuredRow);
+      var sE=d.filter(function(r){return r.delta_days_num<0}),sO=d.filter(function(r){return r.delta_days_num===0}),sL=d.filter(function(r){return r.delta_days_num>0});
+      var sb=d.length||1;
+      return{name:s,total:l.length,eval:d.length,early:sE.length,ontime:sO.length,late:sL.length,okP:pct(sE.length+sO.length,sb),lP:pct(sL.length,sb),eP:pct(sE.length,sb),oP:pct(sO.length,sb)};
+    });
+
+    var bk={e3:ea.filter(function(r){return r.delta_days_num<=-3}).length,e1:ea.filter(function(r){return r.delta_days_num>-3}).length,ot:ot.length,l1:la.filter(function(r){return r.delta_days_num<=2}).length,l3:la.filter(function(r){return r.delta_days_num>=3}).length};
+
+    var stM={};
+    slaRows.forEach(function(r){var u=(r.uf||'').trim();if(!u)return;if(!stM[u])stM[u]={uf:u,c:0,g:[]};stM[u].c++;stM[u].g.push(Math.abs(r.delta_days_num||0))});
+    var stI=Object.values(stM).map(function(s){return{uf:s.uf,count:s.c,mg:avg(s.g)}}).sort(function(a,b){return b.count-a.count});
+    var oM=stI.length?avg(stI.map(function(s){return s.mg})):0;
+
+    var cM=gb(rows.filter(function(r){return r.city}),function(r){return r.city+'|'+r.uf});
+    var cityStats=Object.keys(cM).map(function(k){
+      var l=cM[k];
+      var s=l.filter(isSlaMeasuredRow);
+      var cE=s.filter(function(r){return r.delta_days_num<0}).length;
+      var cO=s.filter(function(r){return r.delta_days_num===0}).length;
+      var cL=s.filter(function(r){return r.delta_days_num>0}).length;
+      var avgDelay=s.length?avg(s.map(function(r){return Math.abs(r.delta_days_num||0)})):0;
+      return{city:l[0].city,uf:l[0].uf,total:l.length,eval:s.length,early:cE,ontime:cO,late:cL,okP:s.length?pct(cE+cO,s.length):0,avgDelay:avgDelay};
+    });
+    var cTopVolume=cityStats.slice().sort(function(a,b){return (b.eval-a.eval)||(b.total-a.total)||(a.city>b.city?1:-1)}).slice(0,5);
+    var cTopRisk=cityStats.filter(function(c){return c.late>0}).sort(function(a,b){return (b.late-a.late)||((a.okP||0)-(b.okP||0))||(b.eval-a.eval)||(a.city>b.city?1:-1)}).slice(0,5);
+    var cAll=cityStats.slice().sort(function(a,b){return (b.eval-a.eval)||(b.total-a.total)||(a.city>b.city?1:-1)});
+    var cLead=cTopVolume[0]||null;
+    var cWorst=cTopRisk[0]||null;
+
+    var att=rows.filter(function(r){return r.status_group==='attempt'});
+
+    E.ht.textContent='Desempenho de entregas | '+nm;
+    E.hs.textContent='Visão consolidada da performance logística com foco no cumprimento de prazos e antecipações, incluindo objetos em transferência avaliados pela data da última situação.';
+    E.hm.innerHTML='<span><span class="material-symbols-rounded" data-agf-icon="inventory_2">inventory_2</span> '+rows.length+' objetos</span>'+(delivered.length?'<span><span class="material-symbols-rounded" data-agf-icon="task_alt">task_alt</span> '+delivered.length+' entregas concluídas</span>':'')+(transferMeasured.length?'<span><span class="material-symbols-rounded" data-agf-icon="swap_horiz">swap_horiz</span> '+transferMeasured.length+' em transferência avaliados no SLA</span>':'')+(slaRows.length?'<span><span class="material-symbols-rounded" data-agf-icon="schedule">schedule</span> '+slaRows.length+' objetos considerados no SLA</span>':'');
+
+    E.hr.innerHTML='<div class="hlc pos"><div class="lb">Dentro do prazo ou adiantadas</div><div class="vl">'+fp(okp)+'</div><div class="ds">'+okc+' de '+slaRows.length+' objetos avaliados no SLA foram classificados <strong>no prazo ou antes</strong> da data prevista.</div></div><div class="hlc neg"><div class="lb">Após o prazo</div><div class="vl">'+fp(lp)+'</div><div class="ds">'+la.length+' objeto(s) avaliados após o prazo estimado. Em transferências, o cálculo usa a <strong>data da situação</strong> como referência.</div></div>';
+
+    E.kg.innerHTML='<div class="kpi"><div class="k">Total de objetos</div><div class="v">'+rows.length+'</div><div class="m">'+delivered.length+' entregue(s)</div></div><div class="kpi"><div class="k">Adiantadas</div><div class="v">'+ea.length+'</div><div class="m">'+fp(ep)+'</div></div><div class="kpi"><div class="k">No prazo exato</div><div class="v">'+ot.length+'</div><div class="m">'+fp(op)+'</div></div><div class="kpi"><div class="k">Após o prazo</div><div class="v">'+la.length+'</div><div class="m">'+fp(lp)+'</div></div>';
+
+    E.sl.innerHTML='<div class="ct">Distribuição geral do desempenho</div><div class="cs">Verde = adiantado · Azul = no prazo · Vermelho = após o prazo.</div><div class="sb"><div class="sg e" style="width:'+ep+'%">'+(ep>=10?fp(ep):'')+'</div><div class="sg o" style="width:'+op+'%">'+(op>=10?fp(op):'')+'</div><div class="sg l" style="width:'+lp+'%">'+(lp>=10?fp(lp):'')+'</div></div><div class="lr"><div class="li"><div class="ld" style="background:var(--gr)"></div>Adiantadas — '+ea.length+' ('+fp(ep)+')</div><div class="li"><div class="ld" style="background:var(--cb)"></div>No prazo — '+ot.length+' ('+fp(op)+')</div><div class="li"><div class="ld" style="background:var(--rd)"></div>Após — '+la.length+' ('+fp(lp)+')</div></div>';
+
+    var gap=ep-lp;
+    E.i1.innerHTML='<div class="inb"><div class="ini"><span class="material-symbols-rounded" data-agf-icon="task_alt">task_alt</span></div><div><strong>Os objetos adiantados superam os atrasos em '+fn(Math.abs(gap),1)+' pontos percentuais</strong><div class="it">Foram '+ea.length+' objetos antes do prazo contra '+la.length+' após o prazo — relação de '+(la.length?fn(ea.length/la.length,1):'∞')+' para 1 a favor do cumprimento.</div></div></div>';
+
+    E.sg.innerHTML=svcs.map(function(s){var c=s.name.toUpperCase()==='SEDEX'?'sx':'pc';return'<div class="svc"><div class="svc-h"><div class="svc-n">'+esc(s.name)+'</div><div class="svc-b '+c+'">'+s.total+' obj.</div></div><div class="svc-mr"><div class="svc-m g"><div class="sv">'+fp(s.okP)+'</div><div class="sl">No prazo ou antes</div></div><div class="svc-m r"><div class="sv">'+fp(s.lP)+'</div><div class="sl">Após o prazo</div></div></div><div class="sb-sm"><div class="sg" style="width:'+s.eP+'%;background:var(--gr)"></div><div class="sg" style="width:'+s.oP+'%;background:var(--cb)"></div><div class="sg" style="width:'+s.lP+'%;background:var(--rd)"></div></div><div class="lr" style="margin-top:6px"><div class="li"><div class="ld" style="background:var(--gr);width:6px;height:6px"></div>'+s.early+' adiant.</div><div class="li"><div class="ld" style="background:var(--cb);width:6px;height:6px"></div>'+s.ontime+' prazo</div><div class="li"><div class="ld" style="background:var(--rd);width:6px;height:6px"></div>'+s.late+' após</div></div></div>'}).join('');
+
+    var ba=[{l:'Adiantadas 3+ dias',c:bk.e3,cl:'var(--gr)'},{l:'Adiantadas 1–2 dias',c:bk.e1,cl:'#2AAD6E'},{l:'No prazo exato',c:bk.ot,cl:'var(--cb)'},{l:'Após 1–2 dias',c:bk.l1,cl:'#E0853A'},{l:'Após 3+ dias',c:bk.l3,cl:'var(--rd)'}];
+    E.bk.innerHTML='<div class="ct">Faixas de desvio de prazo</div><div class="cs">Distribuição por faixa de dias entre os objetos considerados no SLA.</div><div class="bkl">'+ba.map(function(i){var p=pct(i.c,bs);return'<div class="bkr"><div class="bl" style="color:'+i.cl+'">'+i.l+'</div><div class="bkt"><div class="bkf" style="width:'+p+'%;background:'+i.cl+'"></div></div><div class="bkv" style="color:'+i.cl+'">'+i.c+' <small>('+fp(p)+')</small></div></div>'}).join('')+'</div>';
+
+    var bS=svcs.reduce(function(b,s){return s.okP>b.okP?s:b},svcs[0]||{name:'—',okP:0,late:0,total:0});
+    E.i2.innerHTML='<div class="inb"><div class="ini"><span class="material-symbols-rounded" data-agf-icon="bar_chart">bar_chart</span></div><div><strong>'+esc(bS.name)+': '+fp(bS.okP)+' de sucesso — apenas '+bS.late+' atraso(s) em '+bS.total+' envios</strong><div class="it">A média geral de antecipação ficou em '+fn(mE,1)+' dia(s) de folga.</div></div></div>';
+
+    rSC(stI,oM);
+    rCR(cAll,cTopVolume,cTopRisk,cLead,cWorst);
+    rIns(slaRows,ea,ot,la,okc,att,cAll,mE,mL,transferMeasured.length);
+
+    E.nc.innerHTML='<div class="ct">Nota metodológica</div><div class="cs" style="margin-bottom:0;max-width:100%">Os percentuais consideram <strong>entregas concluídas com prazo estimado</strong> e também <strong>objetos em transferência</strong> quando a situação for usada como referência. Nesses casos, o sistema compara a <strong>DATA_SITUACAO</strong> com o <strong>PRAZO_ESTIMADO</strong>. O cálculo de dias segue o mesmo padrão já usado no projeto.</div>';
+  }
+
+  function rSC(items,oM){
+    if(!items.length){E.sc.innerHTML='<div class="ct">Média de desvio por estado</div><div class="cs">Sem dados.</div>';return}
+    var isPrint=document.body.classList.contains('pm');
+    var minStep=isPrint?46:52;
+    var W=Math.max(700,items.length*minStep+80),H=isPrint?180:240,pL=40,pR=40,pT=isPrint?18:24,pB=isPrint?30:38,pW=W-pL-pR,pH=H-pT-pB;
+    var axisFont=isPrint?8:9;
+    var labelFont=isPrint?9:10;
+    var mQ=Math.max.apply(null,items.map(function(i){return i.count}).concat([1]));
+    var mD=Math.max.apply(null,items.map(function(i){return i.mg}).concat([oM||0,1]));
+    var sl=pW/items.length,bW=Math.min(isPrint?20:24,Math.max(isPrint?12:14,sl*.28));
+    var bY=pT+pH;
+    var gr=[0,.25,.5,.75,1].map(function(p){var y=pT+(pH-pH*p);return'<line x1="'+pL+'" y1="'+y.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+y.toFixed(1)+'" stroke="#e7eef6" stroke-width="1"/><text x="'+(pL-6)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end" font-size="'+axisFont+'" font-weight="700" fill="#8492A6">'+fn(mD*p,1)+'</text><text x="'+(W-pR+6)+'" y="'+(y+3).toFixed(1)+'" text-anchor="start" font-size="'+axisFont+'" font-weight="700" fill="#8492A6">'+Math.round(mQ*p)+'</text>'}).join('');
+    var oY=pT+(pH-(oM/mD)*pH);
+    var bars=items.map(function(it,ix){var cx=pL+ix*sl+sl/2;var qH=(it.count/mQ)*pH,dH=(it.mg/mD)*pH;return'<g><rect x="'+(cx-bW-2).toFixed(1)+'" y="'+(bY-qH).toFixed(1)+'" width="'+bW.toFixed(1)+'" height="'+qH.toFixed(1)+'" rx="5" fill="#0063B0"/><rect x="'+(cx+2).toFixed(1)+'" y="'+(bY-dH).toFixed(1)+'" width="'+bW.toFixed(1)+'" height="'+dH.toFixed(1)+'" rx="5" fill="#0B8457"/><text x="'+cx.toFixed(1)+'" y="'+(H-(isPrint?10:14)).toFixed(1)+'" text-anchor="middle" font-size="'+labelFont+'" font-weight="800" fill="#0A2540">'+esc(it.uf)+'</text></g>'}).join('');
+    var dots=items.map(function(it,ix){return'<circle cx="'+(pL+ix*sl+sl/2).toFixed(1)+'" cy="'+oY.toFixed(1)+'" r="'+(isPrint?2.4:3)+'" fill="#5b5fa6"/>'}).join('');
+    var legendY=isPrint?10:12;
+    var svg='<svg viewBox="0 0 '+W+' '+H+'"><rect width="'+W+'" height="'+H+'" fill="#fff"/>'+gr+'<line x1="'+pL+'" y1="'+bY+'" x2="'+(W-pR)+'" y2="'+bY+'" stroke="#cfd9e4" stroke-width="1"/><line x1="'+pL+'" y1="'+oY.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+oY.toFixed(1)+'" stroke="#5b5fa6" stroke-width="2"/>'+dots+bars+'<text x="'+pL+'" y="'+legendY+'" font-size="'+axisFont+'" font-weight="700" fill="#0063B0">Azul: qtd avaliada</text><text x="'+(pL+118)+'" y="'+legendY+'" font-size="'+axisFont+'" font-weight="700" fill="#0B8457">Verde: média desvio (dias)</text><text x="'+(pL+272)+'" y="'+legendY+'" font-size="'+axisFont+'" font-weight="700" fill="#5b5fa6">Roxa: média geral ('+fn(oM,1)+'d)</text></svg>';
+    E.sc.innerHTML='<div class="ct">Média de desvio por estado</div><div class="cs">Agora o gráfico mostra todas as UFs com volume avaliado no SLA. Se houver muitas, ele rola horizontalmente.</div><div class="svw">'+svg+'</div>';
+  }
+
+  function cityRowHtml(item,mode){
+    var pctClass=item.okP>=80?'good':'bad';
+    var fillColor=mode==='risk'?'var(--rd)':(item.okP>=80?'var(--gr)':'#E0853A');
+    var barValue=mode==='risk'?(item.eval?pct(item.late,item.eval):0):item.okP;
+    var rightLabel=mode==='risk'?(item.late+' atraso'+(item.late===1?'':'s')):fp(item.okP);
+    return'<div class="cv-row"><div class="cv-city"><b>'+esc(item.city)+(item.uf?' / '+esc(item.uf):'')+'</b><span>'+item.eval+' objeto(s)</span></div><div><div class="cv-m">'+(mode==='risk'?'Pressão de atraso':'% no prazo ou antes')+'</div><div class="cv-bar"><div class="cv-fill" style="width:'+barValue+'%;background:'+fillColor+'"></div></div></div><div class="cv-val '+pctClass+'">'+rightLabel+'</div></div>';
+  }
+
+  function rCR(cAll,cTopVolume,cTopRisk,cLead,cWorst){
+    if(!cAll.length){E.cc.innerHTML='<div class="ct">Leitura por cidades</div><div class="cs">Sem dados.</div>';return}
+    var totalCities=cAll.length;
+    var bestText=cLead?(esc(cLead.city)+(cLead.uf?' / '+esc(cLead.uf):'')):'—';
+    var worstText=cWorst?(esc(cWorst.city)+(cWorst.uf?' / '+esc(cWorst.uf):'')):'Nenhuma cidade com atraso';
+    var topVolumeHtml=cTopVolume.length?cTopVolume.map(function(i){return cityRowHtml(i,'volume')}).join(''):'<div class="muted">Sem dados suficientes.</div>';
+    var topRiskHtml=cTopRisk.length?cTopRisk.map(function(i){return cityRowHtml(i,'risk')}).join(''):'<div class="muted">Nenhuma cidade com atraso no período.</div>';
+    var tableRows=cAll.map(function(i){
+      var pctClass=i.okP>=80?'pct-good':(i.late>0?'pct-bad':'');
+      return'<tr><td><strong>'+esc(i.city)+(i.uf?' / '+esc(i.uf):'')+'</strong></td><td class="num">'+i.eval+'</td><td class="num">'+i.early+'</td><td class="num">'+i.ontime+'</td><td class="num">'+i.late+'</td><td class="num '+pctClass+'">'+fp(i.okP)+'</td><td class="num">'+fn(i.avgDelay,1)+'</td></tr>';
+    }).join('');
+    E.cc.innerHTML='<div class="ct">Leitura por cidades</div><div class="cs">Separação entre volume e risco para facilitar a leitura. O bloco abaixo já considera também objetos em transferência avaliados por DATA_SITUACAO versus PRAZO_ESTIMADO e mostra a lista completa com todas as cidades.</div><div class="cv"><div class="cv-kpis"><div class="cv-kpi"><div class="ck">Cidades avaliadas</div><div class="cvl">'+totalCities+'</div><div class="cvm">Quantidade total de cidades com objetos considerados no SLA, incluindo transferências medidas pela data da situação.</div></div><div class="cv-kpi good"><div class="ck">Maior volume</div><div class="cvl">'+(cLead?cLead.eval:0)+'</div><div class="cvm">'+bestText+'</div></div><div class="cv-kpi bad"><div class="ck">Maior pressão de atraso</div><div class="cvl">'+(cWorst?cWorst.late:0)+'</div><div class="cvm">'+worstText+'</div></div></div><div class="cv-split"><div class="cv-box"><h4>Top cidades por volume</h4><p>Prioriza onde há mais objetos efetivamente avaliados no SLA, inclusive em transferência quando a DATA_SITUACAO entra na medição.</p><div class="cv-list">'+topVolumeHtml+'</div></div><div class="cv-box"><h4>Top cidades com mais atraso</h4><p>Mostra primeiro onde existe maior concentração de ocorrências fora do prazo, incluindo objetos em transferência avaliados pela DATA_SITUACAO.</p><div class="cv-list">'+topRiskHtml+'</div></div></div><div class="cv-box"><h4>Todas as cidades</h4><p>Visão analítica completa do período, ordenada por volume avaliado.</p><div class="tblw"><table class="ctb"><thead><tr><th>Cidade / UF</th><th class="num">Avaliados</th><th class="num">Adiant.</th><th class="num">Prazo</th><th class="num">Atrasos</th><th class="num">% no prazo ou antes</th><th class="num">Média desvio</th></tr></thead><tbody>'+tableRows+'</tbody></table></div></div></div>';
+  }
+
+  function rIns(slaRows,ea,ot,la,okc,att,cR,mE,mL,transferCount){
+    var ins=[];
+    if(slaRows.length){
+      ins.push({i:'task_alt',t:'Predominância de objetos no prazo ou antes',x:okc+' de '+slaRows.length+' objetos avaliados no SLA ficaram dentro do prazo ou adiantados ('+fp(pct(okc,slaRows.length))+').'});
+      if(ea.length)ins.push({i:'trending_up',t:'Destaque positivo: adiantamentos',x:ea.length+' objetos ficaram antes do previsto, com média de '+fn(mE,1)+' dia(s) de antecipação.'});
+      if(transferCount)ins.push({i:'swap_horiz',t:'Objetos em transferência passaram a entrar no SLA',x:transferCount+' objeto(s) em transferência foram avaliados usando a data da situação como referência frente ao prazo estimado.'});
+    }
+    if(cR.length){var tp=cR[0];ins.push({i:'location_on',t:'Cidade com maior volume',x:tp.city+(tp.uf?'/'+tp.uf:'')+' concentra '+tp.total+' objeto(s), com '+tp.eval+' avaliado(s) e '+fp(tp.okP)+' no prazo.'})}
+    if(att.length)ins.push({i:'restart_alt',t:'Ocorrências de não entrega',x:att.length+' ocorrência(s) de tentativa não concluída.'});
+    if(la.length)ins.push({i:'schedule',t:'Perfil dos atrasos',x:'Média de '+fn(mL,1)+' dia(s) entre os '+la.length+' objeto(s) após o prazo.'});
+    ins=ins.slice(0,5);
+    E.ic.innerHTML='<div class="ct">Destaques automáticos</div><div class="cs">Leitura direta do período.</div><div class="insl">'+ins.map(function(i){return'<div class="insi"><div class="insb"><span class="material-symbols-rounded" data-agf-icon="'+i.i+'">'+i.i+'</span></div><div><b>'+esc(i.t)+'</b><div class="is">'+esc(i.x)+'</div></div></div>'}).join('')+'</div>';
+  }
+
+  function expPdf(){if(!state.rows.length){ss('Importe dados antes.','e');return}var n=(E.cn.value.trim()||'cliente').replace(/[\/:*?"<>|]+/g,' ').trim();var ot=document.title;document.title='Desempenho Entregas - '+n+' - AGF José Bonifácio';document.body.classList.add('pm');window.print();setTimeout(function(){document.body.classList.remove('pm');document.title=ot},600)}
+  function expPng(){if(!state.rows.length){ss('Importe dados antes.','e');return}if(typeof html2canvas!=='function'){ss('Biblioteca não carregou.','e');return}var n=(E.cn.value.trim()||'cliente').replace(/[\/:*?"<>|]+/g,' ').trim();document.body.classList.add('pm');html2canvas(document.querySelector('.pg'),{backgroundColor:'#ffffff',scale:2,useCORS:true,windowWidth:960}).then(function(c){document.body.classList.remove('pm');var l=document.createElement('a');l.href=c.toDataURL('image/png');l.download='Desempenho Entregas - '+n+' - AGF José Bonifácio.png';l.click()}).catch(function(){document.body.classList.remove('pm');ss('Erro ao gerar imagem.','e')})}
+  </script>
+
+<script>
+(function(){
+  var current={};
+  function contains(list,key){return Array.isArray(list)&&list.indexOf(key)>=0}
+  function applyNode(node){
+    if(!node||!node.getAttribute)return;
+    var key=node.getAttribute('data-agf-icon');if(!key)return;
+    var icons=current.icons||{},colors=current.colors||{},custom=current.customized||{},semantic={atendimento:1,sla:1};
+    if(icons[key])node.textContent=icons[key];
+    if(colors[key]&&(semantic[key]||contains(custom.colors,key)))node.style.color=colors[key];
+  }
+  function applyAgfUi(config){current=config||{};document.querySelectorAll('[data-agf-icon]').forEach(applyNode)}
+  if(window.MutationObserver){new MutationObserver(function(changes){changes.forEach(function(change){change.addedNodes.forEach(function(node){if(!node||node.nodeType!==1)return;if(node.matches&&node.matches('[data-agf-icon]'))applyNode(node);if(node.querySelectorAll)node.querySelectorAll('[data-agf-icon]').forEach(applyNode)})})}).observe(document.documentElement,{childList:true,subtree:true})}
+  window.addEventListener('message',function(event){var d=event.data||{};if(d.type==='agf:ui-config')applyAgfUi(d.config)});
+  try{window.parent.postMessage({type:'agf:ui-ready'},'*')}catch(e){}
+})();
+</script>
+</body>
+</html>
