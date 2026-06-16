@@ -270,3 +270,85 @@ Conclusao parcial:
 
 Proxima etapa:
 - Auditar com mais detalhe quais abas e cabecalhos sao usados por reversaReadEtiqueta(), reversaConfirmDropoff(), apiGetUserHistory_(), apiGetDashboard_() e apiGetUnitStatus_(), sem expor dados reais.
+
+## 15. Riscos e melhorias seguras identificadas
+
+Objetivo desta etapa:
+- Consolidar riscos e oportunidades encontrados durante a auditoria inicial do modulo Reverso.
+- Organizar uma ordem segura para futuras melhorias, sem alterar codigo nesta etapa.
+
+Resumo tecnico do fluxo atual:
+- O frontend do Reverso usa telas em frontend/reverso/js/screens.
+- As telas chamam frontend/reverso/services/api.js.
+- A camada API envia actions para o Web App configurado em frontend/reverso/js/config.js.
+- O Apps Script principal identificado esta em apps-script/logistica/04_Api.gs.
+- As regras principais de etiqueta e drop-off estao em apps-script/logistica/03_Core.gs.
+- O Google Sheets funciona como base operacional do modulo.
+
+Riscos de seguranca e dados:
+- O endpoint do Web App fica referenciado no frontend, portanto deve ser tratado como publico/operacional.
+- As actions recebidas pelo backend precisam validar payload, usuario, unidade e permissao.
+- Planilhas podem conter dados pessoais, historico operacional e dados de rastreio.
+- Logs futuros nao devem registrar CPF completo, telefone, e-mail, payload completo ou dados de cliente sem necessidade.
+- Documentos tecnicos nao devem registrar URL completa, ID de planilha, token, senha, chave ou dado real.
+
+Riscos de performance:
+- getDashboard pode ficar pesado se ler muitas linhas para montar resumo operacional.
+- getUserHistory pode crescer com o tempo e precisa considerar limite, filtro ou paginacao.
+- readEtiqueta e confirmDropoff devem evitar varredura ampla de planilha sempre que possivel.
+- getDataRange().getValues() exige atencao quando usado em abas grandes.
+- Chamadas frequentes como getUnitBySlug e getUnitStatus podem se beneficiar de cache curto.
+
+Pontos positivos encontrados:
+- A arquitetura esta relativamente centralizada: telas -> Api -> Apps Script.
+- O backend usa roteamento por action, facilitando mapeamento e manutencao.
+- Ha uso de LockService em pontos de escrita/concorrencia.
+- Ha uso de setValues e escrita em lote em alguns fluxos.
+- A separacao entre 04_Api.gs e 03_Core.gs ajuda a separar entrada HTTP de regra de negocio.
+
+Melhorias seguras recomendadas, em ordem:
+
+1. Documentar abas e cabecalhos reais usados pelo Reverso
+- Objetivo: saber exatamente quais abas e colunas nao podem mudar sem impacto.
+- Tipo: documentacao/dados.
+- Risco: medio, por envolver estrutura de planilha.
+
+2. Revisar validacoes das actions no backend
+- Objetivo: confirmar se cada action valida usuario, unidade, payload e permissao.
+- Tipo: seguranca/backend.
+- Risco: alto se houver dados pessoais ou operacionais expostos.
+
+3. Criar estrategia de cache curto para unidade/status
+- Objetivo: reduzir chamadas repetidas de getUnitBySlug e getUnitStatus.
+- Tipo: performance.
+- Risco: baixo a medio, desde que o cache tenha expiracao curta.
+
+4. Avaliar paginacao ou limite em historico
+- Objetivo: evitar carregar historico completo quando crescer.
+- Tipo: performance/frontend/backend.
+- Risco: medio, pois pode alterar retorno esperado pelo front.
+
+5. Avaliar resumo pre-processado para dashboard
+- Objetivo: acelerar painel operacional.
+- Tipo: performance/dados.
+- Risco: medio, pois pode exigir aba-resumo ou CacheService.
+
+6. Revisar mensagens de erro do fluxo Reverso
+- Objetivo: garantir mensagens humanas, claras e acionaveis para usuario final.
+- Tipo: UX/UI.
+- Risco: baixo, se nao mudar regra de negocio.
+
+Checklist antes de mexer em codigo:
+- Confirmar branch nova para cada melhoria.
+- Confirmar tela ou funcao afetada.
+- Confirmar abas e colunas envolvidas.
+- Confirmar se ha dado sensivel.
+- Atualizar docs/PLANILHAS_E_DADOS.md quando houver dados/abas/colunas.
+- Atualizar docs/PERFORMANCE.md quando houver cache, paginacao ou otimizacao.
+- Atualizar docs/SEGURANCA_E_DADOS.md se envolver permissao, payload, logs ou dados pessoais.
+- Criar commit claro e PR separado.
+
+Conclusao da auditoria inicial:
+- O modulo Reverso esta mapeado o suficiente para permitir melhorias futuras com menor risco.
+- A prioridade tecnica deve ser seguranca de actions, mapeamento de abas/cabecalhos e performance de historico/dashboard.
+- Ainda nao e recomendado reescrever o modulo; o caminho seguro e melhorar por partes pequenas e documentadas.
