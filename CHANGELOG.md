@@ -57,3 +57,10 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Adicionado checklist manual para validar o modulo /reverso.
 - Checklist cobre carregamento inicial, unidade, login, etiqueta, camera, drop-off, historico, painel AGF, mobile e seguranca visual.
 - Nenhuma alteracao funcional aplicada.
+
+## Documentacao - Modulo /app Minhas Postagens
+
+- Documentado o modulo /app como SPA/PWA publica de Minhas Postagens.
+- Mapeados frontend, rotas internas, actions, Apps Script, planilhas, dados sensiveis, riscos e pontos de performance.
+- Registrados cuidados para nao expor URLs completas de Web App, IDs de planilha, IDs de Drive, tokens ou dados reais.
+- Nenhuma alteracao funcional aplicada.

@@ -60,3 +60,63 @@ Checklist visual:
 - Conferir toast de erro/sucesso.
 - Conferir estados vazios.
 - Conferir se desktop nao perdeu alinhamento.
+
+## Modulo /app - Minhas Postagens
+
+Tipo de modulo:
+- SPA publica de Minhas Postagens.
+- PWA com manifest, icones e service worker proprios.
+- Portal operacional do cliente para cotacao, emissao de etiquetas, historico, destinatarios e configuracao.
+
+Entrada principal:
+- frontend/app/index.html
+
+Arquivos principais:
+- frontend/app/js/config.js: configuracao do frontend, nome do app, versao, URLs de Web Apps e chaves locais.
+- frontend/app/js/api.js: cliente HTTP para Apps Script.
+- frontend/app/js/app.js: bootstrap, login, sessao, logout e registro PWA.
+- frontend/app/js/router.js: hash router da SPA.
+- frontend/app/js/ui.js: loading, toast, modal, formatadores e utilitarios de PDF.
+- frontend/app/js/nfe-import.js: importacao de NF-e/DANFE em PDF.
+- frontend/app/js/screens/*.js: telas internas do modulo.
+- frontend/app/styles/*.css: tokens, base, componentes, telas e importacao de NF-e.
+- frontend/app/manifest.webmanifest: configuracao PWA.
+- frontend/app/service-worker.js: cache do shell do app.
+- frontend/app/modelos/modelo_importacao_destinatarios.csv: modelo de importacao de destinatarios.
+
+Rotas internas:
+- /app/#/nova: cotacao e emissao de etiqueta.
+- /app/#/etiqueta: etiqueta direta.
+- /app/#/sucesso: resultado, preview, download e compartilhamento de PDF.
+- /app/#/historico: historico, reimpressao, cancelamento e rastreio.
+- /app/#/destinatarios: cadastro, busca e importacao de destinatarios.
+- /app/#/config: dados da conta, teste de conexao e diagnostico.
+
+Fluxo resumido:
+- Usuario acessa /app/.
+- O frontend tenta validar sessao salva.
+- Sem sessao valida, exibe login.
+- Com sessao valida, monta a SPA e navega pelas rotas hash.
+- As telas chamam Api.*, que envia actions para o Web App Apps Script.
+
+Integracoes de frontend:
+- Apps Script principal de etiquetas via Web App.
+- Web App separado para leitura de NF-e/DANFE em PDF.
+- Biblioteca externa de PDF carregada sob demanda para unir PDFs quando necessario.
+- Portal publico raiz aponta para /app como acesso principal de postagens.
+- Portal interno lista /app como "Minhas Postagens", mas o modulo usa login proprio.
+
+Cuidados de UX/UI:
+- Manter fluxo mobile-first.
+- Preservar fontes de 16px em inputs para evitar zoom indesejado no celular.
+- Testar bottom nav, topbar, loading, toast e modal em telas pequenas.
+- Em importacao de NF-e, manter mensagem clara para revisar os dados antes de gerar etiqueta.
+- Em historico, garantir que cancelar, reimprimir, rastrear e compartilhar fiquem claros e seguros para toque.
+
+O que nao deve ser alterado sem mapeamento:
+- Nomes de rotas hash.
+- IDs de templates no index.html.
+- IDs de campos usados pelos scripts de tela.
+- Ordem de carregamento dos scripts.
+- Chaves de localStorage.
+- Nomes de actions consumidas em frontend/app/js/api.js.
