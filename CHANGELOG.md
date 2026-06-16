@@ -38,3 +38,8 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Ajustadas mensagens de loading e erro no frontend do modulo Reverso.
 - Melhoradas mensagens de autenticacao, validacao de etiqueta, servidor e carregamento de unidade.
 - Nenhuma regra de negocio, endpoint, planilha ou Apps Script foi alterado.
+
+## Melhoria UI - mobile Reverso
+
+- Ajustados botoes, loading, toast e estado vazio no frontend do modulo Reverso.
+- Melhoria restrita a CSS, sem alteracao de backend, API, planilhas ou regras de negocio.
