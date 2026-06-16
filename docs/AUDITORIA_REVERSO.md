@@ -151,3 +151,34 @@ Atenção sensível:
 Conclusao parcial:
 - O frontend do Reverso esta centralizado corretamente em uma camada de configuracao e uma camada de servico de API.
 - Proxima etapa: identificar os nomes das chamadas exportadas em services/api.js e cruzar com apps-script/logistica e apps-script/autenticacao.
+
+## 12. Mapa inicial de telas x API
+
+Arquivos de tela que usam a camada Api:
+
+| Tela/arquivo | Chamadas identificadas | Observacao |
+|---|---|---|
+| agfDashboard.js | Api.getDashboard() | Painel AGF / resumo operacional |
+| auth.js | Api.getUnitBySlug(), Api.getUnitStatus(), Api.registerOrLoginUser() | Login, unidade e primeiro acesso |
+| boot.js | Api.getUnitBySlug() | Inicializacao por unidade/slug |
+| confirm.js | Api.confirmDropoff() | Confirmacao de entrega/drop-off |
+| historico.js | Api.getUserHistory() | Historico do usuario |
+| home.js | Api.getUnitStatus() | Status da unidade na tela inicial |
+| nova.js | Api.readEtiqueta() | Validacao/leitura de etiqueta |
+| coletor.js | confirmar chamadas internas | Acoes de coleta manual, leitura e fechamento |
+
+Arquivo de configuracao:
+- frontend/reverso/js/config.js possui API_BASE_URL e API_TIMEOUT_MS.
+
+Atenção sensível:
+- A URL completa do Web App nao deve ser registrada neste documento.
+- O endpoint esta no frontend e deve ser tratado como informacao publica/operacional, nao como segredo.
+- Validar no futuro se o backend aplica permissao, validacao de payload e resposta minima.
+
+Pontos de performance:
+- getDashboard pode carregar resumo operacional e deve ser verificado quanto a cache.
+- getUserHistory pode crescer com o tempo e deve considerar paginacao ou filtro.
+- getUnitStatus e getUnitBySlug podem ser candidatos a cache curto.
+
+Proxima etapa:
+- Cruzar estas chamadas com as funcoes existentes em apps-script/logistica e apps-script/autenticacao.
