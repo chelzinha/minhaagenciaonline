@@ -119,3 +119,34 @@ Cuidados tecnicos:
 - Evitar logs com CPF, CNPJ, telefone, e-mail, endereco, payload de NF-e ou PDF.
 - Operacoes de emissao, cancelamento, reimpressao e importacao devem validar sessao, cliente e payload.
 - Alteracoes em Apps Script devem considerar limites de tempo, CacheService, LockService e chamadas externas dos Correios.
+
+### Checklist tecnico de validacao segura - /app
+
+Este checklist orienta revisoes futuras no Apps Script do /app sem alterar comportamento por engano.
+
+Pontos criticos:
+- Confirmar que PUBLIC_ACTIONS contem apenas actions realmente publicas.
+- Confirmar que actions privadas exigem sessionToken antes de acessar planilha, Drive ou Correios/CWS.
+- Confirmar que diagnostico retorna somente informacoes seguras, mascaradas ou booleanas.
+- Confirmar que o Web App de NF-e valida sessao do /app em producao.
+
+Pontos altos:
+- Conferir se historico, reimpressao, cancelamento e detalhes filtram pelo cliente da sessao.
+- Conferir se logs usam truncamento e nao persistem payload completo.
+- Conferir se PDFs no Drive sao recuperados sem expor link ou arquivo para usuario indevido.
+- Conferir se credenciais Correios/CWS nao saem do backend.
+
+Pontos medios:
+- Conferir se payloads de CEP, cotacao, etiqueta, destinatario e importacao CSV sao validados antes de escrita.
+- Conferir se operacoes de escrita usam protecao contra concorrencia quando houver risco de duplicidade.
+- Conferir se importacoes em lote respeitam limites do Apps Script.
+- Conferir se falhas externas dos Correios/CWS geram erro claro, sem stack trace sensivel.
+
+Pontos baixos:
+- Conferir se comentarios e documentacao tecnica nao copiam URLs, IDs, tokens ou dados reais.
+- Conferir se qualquer nova action e registrada tambem na documentacao de frontend, dados e seguranca quando aplicavel.
+
+Atencao sensivel:
+- Nao usar exemplos reais de cliente, etiqueta, NF-e, PDF, rastreio ou destinatario em testes documentados.
+- Nao colar resposta completa de Web App em issue, changelog ou documentacao.
+- Se um teste encontrar dado sensivel exposto, remover o dado antes de registrar a evidencia.

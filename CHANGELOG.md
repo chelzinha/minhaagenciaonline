@@ -64,3 +64,10 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Mapeados frontend, rotas internas, actions, Apps Script, planilhas, dados sensiveis, riscos e pontos de performance.
 - Registrados cuidados para nao expor URLs completas de Web App, IDs de planilha, IDs de Drive, tokens ou dados reais.
 - Nenhuma alteracao funcional aplicada.
+
+## Documentacao - checklist de seguranca /app
+
+- Criado checklist de seguranca do modulo /app por prioridade: critica, alta, media e baixa.
+- Documentadas validacoes esperadas para sessao, Web Apps, actions, payloads, logs, diagnostico, NF-e/DANFE, PDFs, Drive, planilhas e Correios/CWS.
+- Registradas orientacoes de teste seguro para Rachel, sem expor URLs completas, IDs reais, tokens, credenciais ou dados reais.
+- Nenhuma alteracao funcional aplicada.
