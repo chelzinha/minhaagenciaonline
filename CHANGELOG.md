@@ -2,6 +2,14 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## Setup Codex do projeto
+
+* Adicionada estrutura local `.codex/` para apoio ao uso do Codex no projeto.
+* Criado arquivo `.codex/config.toml` com regras locais seguras, sem credenciais.
+* Criado prompt padrão em `.codex/prompts/trabalho-local-seguro.md`.
+* Criado documento `docs/ROTINA_CODEX.md` com o fluxo recomendado de uso do Codex.
+* Nenhuma alteração funcional aplicada.
+
 ## 2026-06-16
 
 ### Criado
