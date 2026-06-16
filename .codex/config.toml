@@ -1,0 +1,22 @@
+# Configuracao local do Codex para o projeto minhaagenciaonline
+
+# Este arquivo complementa o config.toml global da Rachel.
+
+# Nao colocar tokens, caminhos locais, senhas ou credenciais aqui.
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+# Regras praticas:
+
+# - Trabalhar localmente primeiro.
+
+# - Mostrar diff antes de commit.
+
+# - Nao fazer push sem autorizacao.
+
+# - Nao publicar Netlify sem autorizacao.
+
+# - Nao alterar Apps Script, planilhas, endpoints ou actions sem pedido explicito.
+
+# - Nunca registrar tokens, senhas, URLs completas de Web App, IDs de planilha ou dados reais.

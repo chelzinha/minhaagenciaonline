@@ -2,6 +2,14 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## Setup Codex do projeto
+
+* Adicionada estrutura local `.codex/` para apoio ao uso do Codex no projeto.
+* Criado arquivo `.codex/config.toml` com regras locais seguras, sem credenciais.
+* Criado prompt padrão em `.codex/prompts/trabalho-local-seguro.md`.
+* Criado documento `docs/ROTINA_CODEX.md` com o fluxo recomendado de uso do Codex.
+* Nenhuma alteração funcional aplicada.
+
 ## 2026-06-16
 
 ### Criado
@@ -48,4 +56,25 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 
 - Adicionado checklist manual para validar o modulo /reverso.
 - Checklist cobre carregamento inicial, unidade, login, etiqueta, camera, drop-off, historico, painel AGF, mobile e seguranca visual.
+- Nenhuma alteracao funcional aplicada.
+
+## Documentacao - Modulo /app Minhas Postagens
+
+- Documentado o modulo /app como SPA/PWA publica de Minhas Postagens.
+- Mapeados frontend, rotas internas, actions, Apps Script, planilhas, dados sensiveis, riscos e pontos de performance.
+- Registrados cuidados para nao expor URLs completas de Web App, IDs de planilha, IDs de Drive, tokens ou dados reais.
+- Nenhuma alteracao funcional aplicada.
+
+## Documentacao - checklist de seguranca /app
+
+- Criado checklist de seguranca do modulo /app por prioridade: critica, alta, media e baixa.
+- Documentadas validacoes esperadas para sessao, Web Apps, actions, payloads, logs, diagnostico, NF-e/DANFE, PDFs, Drive, planilhas e Correios/CWS.
+- Registradas orientacoes de teste seguro para Rachel, sem expor URLs completas, IDs reais, tokens, credenciais ou dados reais.
+- Nenhuma alteracao funcional aplicada.
+
+## Documentacao - mapa de actions e payloads /app
+
+- Mapeadas actions consumidas pelo frontend do /app, suas origens, funcoes Apps Script relacionadas, payloads resumidos e respostas esperadas.
+- Registrados dados sensiveis envolvidos e riscos de regressao por action.
+- Adicionada relacao entre actions, planilhas, dados e pontos de seguranca.
 - Nenhuma alteracao funcional aplicada.
