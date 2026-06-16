@@ -71,3 +71,10 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Documentadas validacoes esperadas para sessao, Web Apps, actions, payloads, logs, diagnostico, NF-e/DANFE, PDFs, Drive, planilhas e Correios/CWS.
 - Registradas orientacoes de teste seguro para Rachel, sem expor URLs completas, IDs reais, tokens, credenciais ou dados reais.
 - Nenhuma alteracao funcional aplicada.
+
+## Documentacao - mapa de actions e payloads /app
+
+- Mapeadas actions consumidas pelo frontend do /app, suas origens, funcoes Apps Script relacionadas, payloads resumidos e respostas esperadas.
+- Registrados dados sensiveis envolvidos e riscos de regressao por action.
+- Adicionada relacao entre actions, planilhas, dados e pontos de seguranca.
+- Nenhuma alteracao funcional aplicada.

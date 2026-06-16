@@ -150,3 +150,46 @@ Atencao sensivel:
 - Nao usar exemplos reais de cliente, etiqueta, NF-e, PDF, rastreio ou destinatario em testes documentados.
 - Nao colar resposta completa de Web App em issue, changelog ou documentacao.
 - Se um teste encontrar dado sensivel exposto, remover o dado antes de registrar a evidencia.
+
+### Mapa de actions e payloads - /app
+
+Escopo:
+- Actions consumidas pelo frontend em frontend/app/js/api.js e frontend/app/js/nfe-import.js.
+- Payloads descritos de forma resumida e sem dados reais.
+- Respostas descritas por tipo de informacao esperada, sem exemplo real.
+
+Observacoes:
+- Todas as actions privadas recebem sessionToken injetado por frontend/app/js/api.js.
+- Nao registrar sessionToken, URL completa de Web App, IDs de planilha/Drive, tokens CWS ou dados reais em testes.
+- A action parseNfePdf pertence ao Web App separado de NF-e, nao ao roteador principal de etiquetas.
+
+| Action | Origem frontend | Funcao Apps Script relacionada | Payload resumido | Resposta esperada | Dados sensiveis | Risco de regressao |
+| --- | --- | --- | --- | --- | --- | --- |
+| ping | frontend/app/js/api.js; health check tecnico | apps-script/etiquetas/99_ROUTER.js: action_ping_ | Sem payload relevante | Status do servico, versao e horario | Baixo | Baixo: usado para diagnostico basico |
+| login | frontend/app/js/app.js; tela de login | apps-script/etiquetas/03_AUTH_APP.js: action_login_ | login, senha | sessionToken e client resumido | Alto: credencial, sessao, dados do cliente | Critico: quebra acesso ao app |
+| me | frontend/app/js/app.js; bootstrap de sessao | apps-script/etiquetas/03_AUTH_APP.js: action_me_ | sessionToken | client da sessao | Alto: sessao e dados do cliente | Critico: quebra persistencia de login |
+| logout | frontend/app/js/app.js; botao sair | apps-script/etiquetas/03_AUTH_APP.js: action_logout_ | sessionToken | ok true | Medio: sessao | Medio: pode deixar sessao ativa indevida |
+| cep | telas nova, etiqueta e destinatarios | apps-script/etiquetas/08_CWS_CEP.js: action_cep_ | cep | logradouro, bairro, cidade, uf e dados normalizados | Medio: endereco | Alto: afeta preenchimento de enderecos |
+| cotar | frontend/app/js/api.js; uso legado/pontual | apps-script/etiquetas/09_CWS_PRECO.js: action_cotar_ | payload de destino, peso, dimensoes, servico e opcionais | preco/prazo de uma modalidade | Medio: CEP e parametros de envio | Alto: afeta cotacao individual |
+| cotarTodos | frontend/app/js/screens/nova.js | apps-script/etiquetas/09_CWS_PRECO.js: action_cotarTodos_ | destinatarioCep, tipoObjeto, pesoG, dimensoes, valorDeclarado, ar, maoPropria | opcoes PAC/SEDEX, preco, prazo, status por opcao | Medio: CEP e parametros de envio | Alto: afeta etapa 1 de cotacao |
+| criarEtiqueta | frontend/app/js/screens/nova.js | apps-script/etiquetas/12_ETIQUETAS.js: action_criarEtiqueta_ | servico, codigoServico, destinatario, dimensoes, documento, NF/DC, opcionais e cotacao | etiqueta gerada, PDFs/base64 ou links controlados, historico, declaracao quando houver | Alto: destinatario, CPF/CNPJ, endereco, NF-e, PDF | Critico: afeta emissao oficial |
+| criarEtiquetaDireta | frontend/app/js/screens/etiqueta.js | apps-script/etiquetas/12_ETIQUETAS.js: action_criarEtiquetaDireta_ | servico, destinatario, documento, NF/DC, opcionais; dimensoes default no backend | etiqueta gerada e dados para tela de sucesso | Alto: destinatario, CPF/CNPJ, endereco, NF-e, PDF | Critico: afeta emissao direta |
+| cancelarEtiqueta | frontend/app/js/screens/historico.js | apps-script/etiquetas/12_ETIQUETAS.js: action_cancelarEtiqueta_ | idRegistro | ok/status de cancelamento | Alto: etiqueta e permissao do cliente | Critico: pode cancelar etiqueta errada |
+| reimprimirEtiqueta | frontend/app/js/screens/historico.js | apps-script/etiquetas/12_ETIQUETAS.js: action_reimprimirEtiqueta_ | idRegistro | PDF principal e declaracao, base64/link controlado, metadados | Alto: PDF, etiqueta, Drive | Alto: afeta recuperacao de documentos |
+| listarHistorico | frontend/app/js/screens/historico.js | apps-script/etiquetas/10_HISTORICO.js: action_listarHistorico_ | filtros: mes, status, uf, busca, limit | resumo, ufs e items do cliente logado | Alto: historico, destinatario, rastreio, PDF | Alto: pode expor registros ou degradar performance |
+| detalheEtiqueta | frontend/app/js/api.js; action disponivel para detalhe | apps-script/etiquetas/10_HISTORICO.js: action_detalheEtiqueta_ | idRegistro | registro completo autorizado | Alto: historico e etiqueta | Alto: risco se nao filtrar por cliente |
+| rastrearObjeto | frontend/app/js/screens/historico.js | apps-script/etiquetas/14B_RASTRO_SERVICE.js: action_rastrearObjeto_ | codigoObjeto | status atual e eventos normalizados | Medio: codigo de rastreio e eventos | Medio: afeta rastreio no historico |
+| buscarDestinatarios | telas nova e etiqueta | apps-script/etiquetas/11_DESTINATARIOS.js: action_buscarDestinatarios_ | q, limit, uf opcional | lista limitada para autocomplete | Alto: destinatarios, CPF/CNPJ parcial, CEP | Alto: pode expor destinatarios indevidos |
+| listarDestinatarios | frontend/app/js/screens/destinatarios.js | apps-script/etiquetas/11_DESTINATARIOS.js: action_listarDestinatarios_ | filtros: busca, uf, limit | total, ufs e items do cliente logado | Alto: destinatarios completos | Alto: pode pesar ou expor base de outro cliente |
+| salvarDestinatario | destinatarios.js e nfe-import.js | apps-script/etiquetas/11_DESTINATARIOS.js: action_salvarDestinatario_ | dados do destinatario e origemCadastro | ok e item salvo | Alto: CPF/CNPJ, telefone, e-mail, endereco | Alto: upsert errado altera cadastro |
+| excluirDestinatario | frontend/app/js/screens/destinatarios.js | apps-script/etiquetas/11_DESTINATARIOS.js: action_excluirDestinatario_ | idDestinatario | ok e id removido | Alto: destinatario e permissao | Alto: pode remover cadastro indevido |
+| importarDestinatariosCsv | frontend/app/js/screens/destinatarios.js | apps-script/etiquetas/11_DESTINATARIOS.js: action_importarDestinatariosCsv_ | items do CSV normalizados | recebidos, importados, criados, atualizados, erros | Alto: lista de destinatarios | Alto: lote pode atualizar registros errados |
+| testarTokenCws | frontend/app/js/screens/config.js | apps-script/etiquetas/04_CWS_TOKEN.js: action_testarTokenCws_ | sessionToken | status de token e autorizacoes sem segredo | Alto: CWS, contrato, cartao | Alto: nao pode vazar credencial |
+| diagnostico | frontend/app/js/screens/config.js | apps-script/etiquetas/99_ROUTER.js: action_diagnostico_ | sessionToken | relatorio tecnico seguro e resumido | Alto: cadastro, CWS, configuracoes | Alto: nao pode retornar segredo |
+| parseNfePdf | frontend/app/js/nfe-import.js | apps-script/nf/05_NFE_ROUTER.js: nfeActionParseNfePdf_ | portal, sessionToken, sessionAction, fileName, pdfBase64 | dados extraidos da NF-e, appPayloadPatch, warnings, confidence | Critico: PDF fiscal, NF-e, CPF/CNPJ, endereco | Critico: exige auth e revisao manual |
+
+Regras de manutencao:
+- Se uma action mudar, revisar frontend/app/js/api.js, tela de origem, funcao Apps Script, planilhas afetadas e docs.
+- Se um campo de payload mudar, revisar mascaras, validacoes, historico, destinatarios e emissao.
+- Se uma resposta mudar, revisar renderizacao da tela, mensagens de erro, tela de sucesso e logs.
+- Se a action manipula PDF, NF-e, Drive, CWS ou dados pessoais, tratar como Atencao sensivel.

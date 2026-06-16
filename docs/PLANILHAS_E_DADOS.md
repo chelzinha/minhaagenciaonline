@@ -71,3 +71,32 @@ Cuidados recomendados:
 - Preferir operacoes em lote em Apps Script.
 - Usar exemplos anonimizados e sem dados reais.
 - Documentar qualquer nova aba, coluna, status ou payload antes da alteracao funcional.
+
+## Modulo /app - relacao actions x dados
+
+Actions com impacto direto em planilhas:
+- login, me e logout usam CLIENTES_APP e cache de sessao.
+- listarHistorico, detalheEtiqueta, reimprimirEtiqueta e cancelarEtiqueta dependem de HISTORICO_ETIQUETAS.
+- criarEtiqueta e criarEtiquetaDireta gravam/atualizam HISTORICO_ETIQUETAS e podem salvar PDFs no Drive.
+- buscarDestinatarios, listarDestinatarios, salvarDestinatario, excluirDestinatario e importarDestinatariosCsv dependem de DESTINATARIOS.
+- testarTokenCws e diagnostico consultam cadastro/configuracoes do cliente e dados Correios/CWS.
+- cotar, cotarTodos, cep e rastrearObjeto usam dados do cliente para chamadas Correios/CWS e nao devem gravar dados operacionais sem necessidade.
+- parseNfePdf usa PDF externo e pode alimentar payload de destinatario, NF-e e declaracao antes de salvar ou emitir.
+
+Dados sensiveis por grupo de action:
+- Autenticacao: login, senha, sessionToken e client.
+- Cotacao/CEP: CEP, dimensoes, peso, valor declarado e opcionais.
+- Emissao: destinatario, CPF/CNPJ, endereco, NF-e, declaracao, etiqueta, PDF, Drive e rastreio.
+- Historico: idRegistro, status, codigoObjeto, PDFs, destinatario, valores e erros.
+- Destinatarios: nome, CPF/CNPJ, telefone/celular, e-mail, CEP e endereco.
+- Configuracao/CWS: contrato, cartao, credenciais, autorizacoes e diagnostico.
+
+Riscos se payload ou resposta mudar:
+- Campos de destinatario quebram autocomplete, importacao CSV, NF-e e emissao.
+- Campos de historico quebram reimpressao, cancelamento, rastreio e tela de sucesso.
+- Campos de PDF/Drive quebram download, preview e recuperacao de documentos.
+- Campos de CWS quebram cotacao, emissao e diagnostico.
+- Mudanca em criterio de upsert pode atualizar ou excluir destinatarios incorretos.
+
+Regra de documentacao:
+- Qualquer mudanca futura em action, payload, resposta, aba ou cabecalho deve atualizar este documento e o mapa de actions em docs/APPS_SCRIPT.md.

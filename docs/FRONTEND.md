@@ -120,3 +120,47 @@ O que nao deve ser alterado sem mapeamento:
 - Ordem de carregamento dos scripts.
 - Chaves de localStorage.
 - Nomes de actions consumidas em frontend/app/js/api.js.
+
+### Mapa de origem das actions - /app
+
+Arquivo central:
+- frontend/app/js/api.js define os atalhos Api.* para o Web App principal de etiquetas.
+
+Origens por tela:
+- frontend/app/js/app.js: login, me e logout.
+- frontend/app/js/screens/nova.js: cep, cotarTodos, buscarDestinatarios e criarEtiqueta.
+- frontend/app/js/screens/etiqueta.js: cep, buscarDestinatarios e criarEtiquetaDireta.
+- frontend/app/js/screens/historico.js: listarHistorico, reimprimirEtiqueta, cancelarEtiqueta e rastrearObjeto.
+- frontend/app/js/screens/destinatarios.js: cep, listarDestinatarios, salvarDestinatario, excluirDestinatario e importarDestinatariosCsv.
+- frontend/app/js/screens/config.js: testarTokenCws e diagnostico.
+- frontend/app/js/nfe-import.js: parseNfePdf no Web App externo de NF-e e salvarDestinatario como apoio ao cadastro importado.
+
+Actions disponiveis no cliente:
+- ping
+- login
+- me
+- logout
+- cep
+- cotar
+- cotarTodos
+- criarEtiqueta
+- criarEtiquetaDireta
+- cancelarEtiqueta
+- reimprimirEtiqueta
+- listarHistorico
+- detalheEtiqueta
+- rastrearObjeto
+- buscarDestinatarios
+- listarDestinatarios
+- salvarDestinatario
+- excluirDestinatario
+- importarDestinatariosCsv
+- testarTokenCws
+- diagnostico
+- parseNfePdf no Web App externo de NF-e
+
+Cuidados de regressao no frontend:
+- Nao renomear Api.* sem revisar todas as telas.
+- Nao trocar IDs de inputs/templates sem revisar os scripts de tela.
+- Nao mudar a estrutura da resposta sem revisar renderizacao, toasts, loading, tela de sucesso e historico.
+- Nao alterar o fluxo de NF-e sem manter a orientacao de revisar dados antes de gerar etiqueta.

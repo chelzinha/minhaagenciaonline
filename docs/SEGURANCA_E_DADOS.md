@@ -179,3 +179,28 @@ Objetivo:
   - Risco: tela publica revelar informacao operacional desnecessaria.
   - Como testar com seguranca: revisar telas publicas e mensagens sem usar conta real.
   - Nao registrar: dados internos ou detalhes de configuracao.
+
+## Mapa de sensibilidade das actions - /app
+
+Critico:
+- criarEtiqueta, criarEtiquetaDireta e parseNfePdf.
+- Motivo: envolvem emissao, NF-e/DANFE, PDF, dados fiscais, destinatario, Drive e Correios/CWS.
+
+Alto:
+- login, me, cancelarEtiqueta, reimprimirEtiqueta, listarHistorico, detalheEtiqueta, buscarDestinatarios, listarDestinatarios, salvarDestinatario, excluirDestinatario, importarDestinatariosCsv, testarTokenCws e diagnostico.
+- Motivo: envolvem sessao, credenciais, dados pessoais, historico, PDFs, CWS ou permissao do cliente.
+
+Medio:
+- cep, cotar, cotarTodos e rastrearObjeto.
+- Motivo: envolvem endereco, parametros de envio, rastreio e chamadas externas.
+
+Baixo:
+- ping.
+- Motivo: deve retornar apenas saude do servico, sem dados pessoais ou credenciais.
+
+Cuidados obrigatorios no mapa de payloads:
+- Usar somente nomes genericos de campos.
+- Nao colar payload bruto de navegador, Apps Script ou planilha.
+- Nao colar resposta integral de Web App.
+- Nao registrar URL completa, ID real, token, senha, credencial, PDF, NF-e ou dado pessoal.
+- Ao revisar logs ou diagnostico, copiar apenas conclusoes anonimas.
