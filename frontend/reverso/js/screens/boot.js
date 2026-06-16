@@ -1,4 +1,4 @@
-import { Router } from '../router.js';
+﻿import { Router } from '../router.js';
 import { Api } from '../../services/api.js';
 import { Store } from '../../state/store.js';
 import { UI } from '../ui.js';
@@ -21,9 +21,9 @@ export async function mount() {
 
   async function submitBoot() {
     const slug = input?.value.trim();
-    if (!slug) return UI.toast('Informe o slug da unidade.', 'error');
+    if (!slug) return UI.toast('Informe o código da unidade para continuar.', 'error');
     try {
-      UI.showLoading('Buscando unidade...');
+      UI.showLoading('Buscando os dados da unidade...');
       const data = await Api.getUnitBySlug(slug);
       Store.setUnit(data.unidade, data.agenda_disponibilidade || []);
       Router.go('/auth');
@@ -39,3 +39,4 @@ export async function mount() {
     submitBoot();
   });
 }
+

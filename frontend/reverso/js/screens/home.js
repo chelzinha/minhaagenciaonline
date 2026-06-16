@@ -1,4 +1,4 @@
-import { Store } from '../../state/store.js';
+﻿import { Store } from '../../state/store.js';
 import { Router } from '../router.js';
 import { Api } from '../../services/api.js';
 import { UI } from '../ui.js';
@@ -13,7 +13,7 @@ export async function mount() {
   document.getElementById('homeSubtitle').textContent = `Coleta em até ${state.unit.prazo_coleta_dias_uteis} dias úteis.`;
 
   try {
-    UI.showLoading('Atualizando disponibilidade...');
+    UI.showLoading('Atualizando a disponibilidade da unidade...');
     const data = await Api.getUnitStatus({ unidade_id: state.unit.unidade_id });
     Store.setUnit(data.unidade, data.agenda_disponibilidade || []);
     renderUnitBrandTitle(document.getElementById('homeTitle'), data.unidade, { imgClass: 'unit-logo-title-home-img' });
@@ -34,3 +34,4 @@ export async function mount() {
     window.location.assign(`${location.pathname}${location.search}#/auth`);
   });
 }
+

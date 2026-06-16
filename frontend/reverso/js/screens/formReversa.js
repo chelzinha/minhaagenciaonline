@@ -1,4 +1,4 @@
-import { Store } from '../../state/store.js';
+﻿import { Store } from '../../state/store.js';
 import { Router } from '../router.js';
 import { UI } from '../ui.js';
 export function mount(){
@@ -11,7 +11,8 @@ export function mount(){
   document.getElementById('reversaForm')?.addEventListener('submit', e=>{
     e.preventDefault();
     const formData={codigo_autorizacao:document.getElementById('codigoAutorizacao').value.trim(),janela_coleta:document.getElementById('janelaColeta').value,comprimento_cm:document.getElementById('comprimentoCm').value.trim(),largura_cm:document.getElementById('larguraCm').value.trim(),altura_cm:document.getElementById('alturaCm').value.trim(),observacao_usuario:document.getElementById('observacaoUsuario').value.trim()};
-    if(!formData.codigo_autorizacao) return UI.toast('Informe o código de autorização.','error');
+    if(!formData.codigo_autorizacao) return UI.toast('Informe o código de autorização para continuar.','error');
     Store.setForm(formData); Router.go('/confirm');
   });
 }
+

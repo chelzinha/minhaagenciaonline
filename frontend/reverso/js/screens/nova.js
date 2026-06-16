@@ -1,4 +1,4 @@
-import { Store } from '../../state/store.js';
+﻿import { Store } from '../../state/store.js';
 import { Router } from '../router.js';
 import { Api } from '../../services/api.js';
 import { UI } from '../ui.js';
@@ -240,8 +240,9 @@ export function mount(){
   document.getElementById('btnManualEtiqueta')?.addEventListener('click',()=>{ document.getElementById('etiquetaManualForm')?.classList.remove('hidden'); document.getElementById('manualEtiquetaInput')?.focus(); });
   document.getElementById('etiquetaManualForm')?.addEventListener('submit', async e=>{
     e.preventDefault(); const codigo=document.getElementById('manualEtiquetaInput').value.trim(); if(!codigo) return UI.toast('Digite o código da etiqueta.','error');
-    try{ UI.showLoading('Validando etiqueta...'); const data=await Api.readEtiqueta({usuario_id:state.user.usuario_id,codigo_etiqueta:codigo}); Store.setEtiqueta(data.etiqueta); sessionStorage.removeItem('reverso_pending_etiqueta'); const res=document.getElementById('etiquetaResult'); res.classList.remove('hidden'); res.innerHTML=`<div class="result-card stack-sm"><div><strong>Etiqueta reconhecida</strong></div><div class="history-meta">${data.etiqueta.codigo_etiqueta}</div><button class="btn btn-primary btn-block" id="btnUseEtiqueta">Continuar com esta etiqueta</button></div>`; document.getElementById('btnUseEtiqueta')?.addEventListener('click',()=>Router.go('/form-reversa')); }
-    catch(err){ UI.toast(err.message || 'Não foi possível validar a etiqueta.','error'); }
+    try{ UI.showLoading('Validando a etiqueta...'); const data=await Api.readEtiqueta({usuario_id:state.user.usuario_id,codigo_etiqueta:codigo}); Store.setEtiqueta(data.etiqueta); sessionStorage.removeItem('reverso_pending_etiqueta'); const res=document.getElementById('etiquetaResult'); res.classList.remove('hidden'); res.innerHTML=`<div class="result-card stack-sm"><div><strong>Etiqueta reconhecida</strong></div><div class="history-meta">${data.etiqueta.codigo_etiqueta}</div><button class="btn btn-primary btn-block" id="btnUseEtiqueta">Continuar com esta etiqueta</button></div>`; document.getElementById('btnUseEtiqueta')?.addEventListener('click',()=>Router.go('/form-reversa')); }
+    catch(err){ UI.toast(err.message || 'Não foi possível validar a etiqueta. Confira o código e tente novamente.','error'); }
     finally{ UI.hideLoading(); }
   });
 }
+

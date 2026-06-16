@@ -1,4 +1,4 @@
-import { Store } from '../../state/store.js';
+﻿import { Store } from '../../state/store.js';
 import { Router } from '../router.js';
 import { Api } from '../../services/api.js';
 import { UI } from '../ui.js';
@@ -70,7 +70,7 @@ export async function mount() {
     const slug = readUnitSlugCandidate({});
     if (slug) {
       try {
-        UI.showLoading('Carregando unidade...');
+        UI.showLoading('Carregando os dados da unidade...');
         const data = await Api.getUnitBySlug(slug);
         if (data?.unidade) {
           Store.setUnit(data.unidade, data.agenda_disponibilidade || []);
@@ -147,15 +147,16 @@ export async function mount() {
     }
 
     try {
-      UI.showLoading(mode === 'login' ? 'Entrando...' : 'Cadastrando...');
+      UI.showLoading(mode === 'login' ? 'Entrando com segurança...' : 'Finalizando seu cadastro...');
       const data = await Api.registerOrLoginUser(payload);
       Store.setUser(data.usuario);
       Store.setUnit(data.unidade || currentUnit, Store.getState().availability);
       Router.go(sessionStorage.getItem('reverso_pending_etiqueta') ? '/nova' : '/home');
     } catch (err) {
-      UI.toast(err.message || 'Falha ao autenticar.', 'error');
+      UI.toast(err.message || 'Não foi possível entrar. Confira os dados e tente novamente.', 'error');
     } finally {
       UI.hideLoading();
     }
   });
 }
+
