@@ -43,3 +43,9 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 
 - Ajustados botoes, loading, toast e estado vazio no frontend do modulo Reverso.
 - Melhoria restrita a CSS, sem alteracao de backend, API, planilhas ou regras de negocio.
+
+## Documentacao - checklist de testes Reverso
+
+- Adicionado checklist manual para validar o modulo /reverso.
+- Checklist cobre carregamento inicial, unidade, login, etiqueta, camera, drop-off, historico, painel AGF, mobile e seguranca visual.
+- Nenhuma alteracao funcional aplicada.
