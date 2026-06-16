@@ -1,18 +1,10 @@
 # Rotina Codex - Projeto minhaagenciaonline
 
-
-
 ## Objetivo
-
-
 
 Definir como Rachel deve usar o Codex neste repositorio para trabalhar de forma mais dinamica, com menos comandos manuais e menor risco de regressao.
 
-
-
 ## Fluxo recomendado
-
-
 
 Codex local no VS Code
 
@@ -28,23 +20,13 @@ Codex local no VS Code
 
 -> push apenas depois da aprovacao
 
-
-
 ## Modos de uso
-
-
 
 ### 1. Analise sem alterar
 
-
-
 Usar quando Rachel quiser entender uma tela, modulo, bug ou fluxo.
 
-
-
 Regras:
-
-
 
 * Nao editar arquivos.
 
@@ -54,19 +36,11 @@ Regras:
 
 * Entregar resumo, riscos e plano.
 
-
-
 ### 2. Edicao local segura
-
-
 
 Usar para ajustes pequenos em frontend, documentacao, UX ou textos.
 
-
-
 Regras:
-
-
 
 * Criar mudancas pequenas.
 
@@ -76,19 +50,11 @@ Regras:
 
 * Nao fazer push sem autorizacao.
 
-
-
 ### 3. Preparar commit
-
-
 
 Usar depois que Rachel revisar o diff.
 
-
-
 Regras:
-
-
 
 * Conferir git status.
 
@@ -98,19 +64,11 @@ Regras:
 
 * Criar commit claro.
 
-
-
 ### 4. Enviar para GitHub
-
-
 
 Usar apenas quando Rachel autorizar.
 
-
-
 Regras:
-
-
 
 * Push somente da branch atual.
 
@@ -118,11 +76,7 @@ Regras:
 
 * Nao fazer merge automaticamente.
 
-
-
 ## Proibido sem autorizacao explicita
-
-
 
 * Alterar Apps Script.
 
@@ -142,15 +96,9 @@ Regras:
 
 * Registrar token, senha, chave, URL completa de Web App, ID de planilha ou dado real.
 
-
-
 ## Documentacao obrigatoria
 
-
-
 Quando houver alteracao:
-
-
 
 * Atualizar CHANGELOG.md.
 
@@ -166,11 +114,7 @@ Quando houver alteracao:
 
 * Atualizar docs/SEGURANCA_E_DADOS.md se envolver dados sensiveis, permissao, payload, logs ou credenciais.
 
-
-
 ## Checklist antes de finalizar
-
-
 
 * git status --short revisado.
 
@@ -187,6 +131,3 @@ Quando houver alteracao:
 * Documentacao atualizada.
 
 * Checklist de teste informado.
-
-
-

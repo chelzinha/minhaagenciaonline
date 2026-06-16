@@ -1,22 +1,12 @@
 # Prompt padrao - trabalho local seguro
 
-
-
 Use este prompt no Codex quando quiser trabalhar no repositorio local sem publicar nada.
-
-
 
 TEXTO PARA COLAR NO CODEX:
 
-
-
 Voce esta trabalhando localmente no repositorio minhaagenciaonline.
 
-
-
 Antes de alterar qualquer arquivo:
-
-
 
 1. Leia AGENTS.md.
 
@@ -28,11 +18,7 @@ Antes de alterar qualquer arquivo:
 
 5. Preserve o que ja funciona.
 
-
-
 Regras desta tarefa:
-
-
 
 * Trabalhe apenas localmente.
 
@@ -50,11 +36,7 @@ Regras desta tarefa:
 
 * Nunca registre tokens, senhas, URLs completas de Web App, IDs de planilha ou dados reais.
 
-
-
 Ao final, mostre:
-
-
 
 1. arquivos analisados;
 
@@ -72,11 +54,6 @@ Ao final, mostre:
 
 8. sugestao de commit.
 
-
-
 Tarefa:
 
 [descrever aqui a tarefa]
-
-
-
