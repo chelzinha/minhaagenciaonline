@@ -2,6 +2,51 @@
 
 Documento tecnico em preparacao.
 
+## Planilha APP Total CF + Metro - CRM, agenda e manuais
+
+Documento principal:
+- `docs/PLANILHA_APP_TOTAL_CF_METRO.md`
+
+Resumo:
+- A planilha APP Total CF + Metro deve ser tratada como fonte viva das regras operacionais do CRM, agenda, visitas, materiais e manuais.
+- O codigo deve ler, validar, cachear e executar regras vindas da planilha sempre que elas forem parametrizaveis.
+- O Codex nao deve substituir regra parametrizada por valor fixo sem justificativa documentada.
+
+Abas principais ja identificadas pelo codigo ou pela Rachel:
+- BASE_TOTAL
+- CLIENTES_MASTER
+- CLIENTES_ALIAS
+- AGENDA_BLOCOS
+- AGENDA_EXECUCAO
+- CRM_INTERACOES
+- MIDIAS_CRM
+- Manuais
+- PROSPECTS
+- CRM_VISITA_CHECKLIST
+- CLIENTES_CADASTRO
+- CLIENTES_ACESSOS_APP
+- CLIENTES_CREDENCIAIS_CWS
+- CRM_TRATATIVAS
+- CRM_FUNIS
+- CRM_FUNIL_ETAPAS
+- CRM_TIPOS_ATIVIDADE
+- CRM_RESULTADOS_ATIVIDADE
+- CRM_EVENTOS
+- CRM_RESPONSAVEIS
+- CRM_TRANSICOES
+- CRM_SEGMENTOS
+- CRM_LOCAIS
+
+Regra para a aba Manuais:
+- A tela `/intra/manuais/` deve ser alimentada pela aba `Manuais` da planilha APP Total CF + Metro.
+- A estrutura esperada usa `ID`, `CATEGORIA`, `ORDEM_C`, `ICONE_CATEGORIA`, `TITULO`, `DESCRICAO`, `FORMATO`, `LINK` e coluna de ordem do item quando existir.
+- Para vincular conteudos a acao/filtro de cliente, usar colunas opcionais como `ACAO_CRM`, `SUB_ACAO`, `PUBLICO`, `FILTRO_CLIENTE`, `CURVA`, `STATUS_ATIVIDADE`, `PERFIL_COMERCIAL`, `BUCKET_NEGOCIO`, `RECORRENCIA_NIVEL`, `TENDENCIA`, `NIVEL_ALERTA`, `PORTE_OPERACIONAL`, `TEM_CONTRATO` e `CANAL_SUGERIDO`.
+
+Cuidados:
+- Nao documentar IDs completos de planilha, links privados reais, tokens ou dados de clientes.
+- Antes de alterar cabecalhos, revisar Apps Script, frontend, cache e endpoints afetados.
+- Alteracoes nesta planilha podem impactar CRM, agenda, visitas, diagnostico, manuais e recomendacao de materiais.
+
 ## Modulo Reverso - dados e planilhas
 
 Base operacional:
@@ -86,7 +131,7 @@ Actions com impacto direto em planilhas:
 Dados sensiveis por grupo de action:
 - Autenticacao: login, senha, sessionToken e client.
 - Cotacao/CEP: CEP, dimensoes, peso, valor declarado e opcionais.
-- Emissao: destinatario, CPF/CNPJ, endereco, NF-e, declaracao, etiqueta, PDF, Drive e rastreio.
+- Emissao: destinatario, CPF/CNPJ, endereco, NF-e, declaracao, etiqueta, PDF e rastreio.
 - Historico: idRegistro, status, codigoObjeto, PDFs, destinatario, valores e erros.
 - Destinatarios: nome, CPF/CNPJ, telefone/celular, e-mail, CEP e endereco.
 - Configuracao/CWS: contrato, cartao, credenciais, autorizacoes e diagnostico.
