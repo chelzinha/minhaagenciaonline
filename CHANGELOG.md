@@ -2,6 +2,14 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## Documentacao - mapa inicial APP Total CF + Metro
+
+- Criado `docs/PLANILHA_APP_TOTAL_CF_METRO.md` para registrar a planilha APP Total CF + Metro como fonte viva das regras de CRM, agenda, visitas, materiais e manuais.
+- Registrado o achado inicial de que `/intra/manuais/` deve ser alimentado pela aba `Manuais`, nao pela estrutura fixa de acoes/midias do CRM.
+- Proposta estrutura de colunas opcionais para vincular cada manual a `ACAO_CRM`, `FILTRO_CLIENTE`, publico, curva, status, tendencia, contrato e outros filtros comerciais.
+- Atualizado `docs/PLANILHAS_E_DADOS.md` com referencia ao novo mapa e regra de manutencao.
+- Nenhuma alteracao funcional aplicada nesta etapa.
+
 ## Setup Codex do projeto
 
 * Adicionada estrutura local `.codex/` para apoio ao uso do Codex no projeto.
