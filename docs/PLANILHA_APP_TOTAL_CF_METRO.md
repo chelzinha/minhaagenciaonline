@@ -27,29 +27,53 @@ Antes de alterar CRM, agenda, visitas, materiais ou manuais, verificar:
 6. Se a mudanca exige cache, invalidacao ou migracao.
 7. Se existem dados pessoais, comerciais ou credenciais envolvidas.
 
+## Distincao correta entre MIDIAS_CRM e Manuais
+
+A distincao correta definida pela Rachel e:
+
+```text
+MIDIAS_CRM = conteudos estrategicos usados para alimentar as acoes do CRM.
+Manuais = biblioteca mais ampla de consulta, que pode incluir conteudos de MIDIAS_CRM e outros materiais operacionais.
+```
+
+Portanto, `Manuais` nao substitui `MIDIAS_CRM`.
+
+Tambem nao e correto tratar `Manuais` como apenas uma versao visual de `MIDIAS_CRM`.
+
+O desenho correto e:
+
+1. `MIDIAS_CRM` continua sendo fonte de recomendacao de conteudos para acoes comerciais.
+2. `Manuais` pode exibir materiais proprios e tambem materiais que tenham origem ou equivalencia em `MIDIAS_CRM`.
+3. A tela `/intra/manuais/` deve ser uma biblioteca navegavel e organizada por categorias.
+4. O CRM pode continuar usando `MIDIAS_CRM` para recomendacao contextual.
+5. Quando fizer sentido, uma linha de `Manuais` pode apontar para um item de `MIDIAS_CRM` por codigo ou referencia.
+
 ## Achado inicial - 2026-06-18
 
-A tela `/intra/manuais/` esta usando o fluxo de midias do CRM, mas a regra correta informada pela Rachel e usar a aba `Manuais` da planilha APP Total CF + Metro.
+A tela `/intra/manuais/` precisa ser organizada a partir da aba `Manuais` da planilha APP Total CF + Metro, mas isso nao elimina o papel da aba `MIDIAS_CRM`.
 
 Situacao atual identificada no codigo:
 
 1. Frontend atual chama `action=get_midias_catalog`.
 2. Backend atual responde com dados de `MIDIAS_CRM`.
-3. A aba correta para a tela de manuais e `Manuais`.
-4. A tela deve agrupar por `CATEGORIA`, ordenar por `ORDEM_C` e usar `ICONE_CATEGORIA`.
+3. Isso pode ter funcionado como atalho inicial, mas nao representa todo o escopo da biblioteca `Manuais`.
+4. A aba `Manuais` deve organizar a biblioteca por `CATEGORIA`, `ORDEM_C`, `ICONE_CATEGORIA`, `TITULO`, `DESCRICAO`, `FORMATO` e `LINK`.
+5. A aba `Manuais` pode incluir conteudos equivalentes ou vinculados a `MIDIAS_CRM`.
 
 Impacto:
 
-1. A tela de manuais pode exibir agrupamento errado.
-2. A organizacao visual pode nao refletir a planilha viva.
-3. Conteudos planejados para acao/filtro de cliente nao ficam rastreaveis.
+1. Se `/intra/manuais/` ler apenas `MIDIAS_CRM`, materiais gerais podem ficar fora da tela.
+2. Se `/intra/manuais/` ignorar `MIDIAS_CRM`, conteudos comerciais importantes podem ficar duplicados ou desconectados das acoes.
+3. O modelo precisa permitir relacionamento entre biblioteca ampla e midias estrategicas do CRM.
 
 Decisao tecnica recomendada:
 
-1. Preservar `MIDIAS_CRM` para o CRM se ainda for usada.
-2. Criar endpoint especifico `get_manuais_catalog`.
-3. Criar leitura especifica `op_readManuais_()`.
-4. Nao misturar a regra de manuais com a regra de midias do CRM sem decisao documentada.
+1. Preservar `MIDIAS_CRM` como fonte estrategica das acoes do CRM.
+2. Usar `Manuais` como fonte da tela `/intra/manuais/`.
+3. Adicionar, se necessario, uma coluna de vinculo em `Manuais`, como `MIDIA_CRM_ID`, `ORIGEM_CONTEUDO` ou `ACAO_CRM`.
+4. Criar endpoint especifico `get_manuais_catalog` para a tela de manuais.
+5. O endpoint pode retornar dados da aba `Manuais` e, quando houver vinculo, enriquecer com informacoes de `MIDIAS_CRM` sem duplicar regra.
+6. Nao fundir as duas abas sem decisao documentada.
 
 ## Abas mapeadas inicialmente pelo codigo
 
@@ -61,8 +85,8 @@ Decisao tecnica recomendada:
 | `AGENDA_BLOCOS` | Blocos de agenda e janelas de atendimento | Identificada em `OP_CFG`, `CRM2_CFG` e `CRM3_CFG` | Alto: afeta agendamento e visitas |
 | `AGENDA_EXECUCAO` | Agenda comercial e atividades executadas | Identificada em `OP_CFG`, `CRM2_CFG` e `CRM3_CFG` | Critico: afeta visitas, tarefas e historico operacional |
 | `CRM_INTERACOES` | Historico/interacoes comerciais | Identificada em `OP_CFG` e `CRM3_CFG` | Alto: afeta rastreabilidade do CRM |
-| `MIDIAS_CRM` | Materiais recomendados/relacionados ao CRM | Identificada em `OP_CFG` e `CRM3_CFG` | Alto: afeta recomendacao de material no CRM |
-| `Manuais` | Tela `/intra/manuais/` e biblioteca operacional | Informada pela Rachel; precisa entrar no codigo | Alto: afeta consulta e organizacao de materiais |
+| `MIDIAS_CRM` | Conteudos estrategicos/recomendados pelas acoes do CRM | Identificada em `OP_CFG` e `CRM3_CFG` | Alto: afeta recomendacao de material no CRM |
+| `Manuais` | Biblioteca ampla da tela `/intra/manuais/`, podendo incluir conteudos de `MIDIAS_CRM` e outros materiais | Informada pela Rachel; precisa ser mapeada no codigo | Alto: afeta consulta e organizacao de materiais |
 | `PROSPECTS` | Cadastro e funil de prospects | Identificada em `OP_CFG`, `CRM2_CFG` e `CRM3_CFG` | Alto: afeta funil de prospects |
 | `CRM_VISITA_CHECKLIST` | Checklists de visita/atividade | Identificada em `OP_CFG` e `CRM2_CFG` | Alto: afeta roteiro de visita e evidencia operacional |
 | `CLIENTES_CADASTRO` | Cadastro canonico/manual de clientes | Identificada em `OP_CFG`, `CRM2_CFG` e `CRM3_CFG` | Critico: contem dados cadastrais |
@@ -85,7 +109,7 @@ Colunas identificadas pela imagem enviada pela Rachel:
 
 | Coluna | Uso esperado | Obrigatoria? |
 | --- | --- | --- |
-| `ID` | Identificador unico do material | Sim |
+| `ID` | Identificador unico do material na biblioteca de manuais | Sim |
 | `CATEGORIA` | Grupo visual da tela | Sim |
 | `ORDEM_C` | Ordem da categoria | Sim |
 | `ICONE_CATEGORIA` | Icone Material Symbols da categoria | Sim |
@@ -98,7 +122,7 @@ Colunas identificadas pela imagem enviada pela Rachel:
 
 Observacao: se a coluna de ordem final ja existir com outro nome, preservar o nome real da planilha e mapear no Apps Script com fallback.
 
-## Proposta para vincular Manuais a acao e filtro de cliente
+## Colunas opcionais para relacionar Manuais com MIDIAS_CRM e filtros
 
 Para Rachel conseguir alimentar conteudos e liga-los a uma acao ou filtro de cliente, a aba `Manuais` pode receber colunas adicionais, sem remover as atuais.
 
@@ -106,6 +130,8 @@ Colunas recomendadas:
 
 | Coluna | Finalidade |
 | --- | --- |
+| `ORIGEM_CONTEUDO` | MANUAL, MIDIAS_CRM, DRIVE, WHATSAPP, CHECKLIST, APP etc. |
+| `MIDIA_CRM_ID` | Codigo do item correspondente em `MIDIAS_CRM`, quando houver |
 | `ACAO_CRM` | Acao comercial relacionada: CONVERTER, RESGATAR, FIDELIZAR, MANTER, CANCELAR ou APOIO |
 | `SUB_ACAO` | Subacao ou situacao especifica do cliente |
 | `PUBLICO` | CLIENTE_ATIVO, PROSPECT, AMBOS, INTERNO, EQUIPE |
@@ -127,24 +153,25 @@ Regra:
 
 1. As colunas novas devem ser opcionais.
 2. Uma linha sem filtro deve aparecer como material geral da categoria.
-3. Uma linha com `ACAO_CRM` deve poder aparecer em filtros especificos da tela.
-4. Uma linha com `FILTRO_CLIENTE` deve poder ser recomendada no diagnostico ou no CRM.
-5. O frontend nao deve calcular regras pesadas; o Apps Script deve entregar JSON pronto.
+3. Uma linha com `MIDIA_CRM_ID` deve poder ser conectada ao catalogo estrategico do CRM.
+4. Uma linha com `ACAO_CRM` deve poder aparecer em filtros especificos da tela.
+5. Uma linha com `FILTRO_CLIENTE` deve poder ser recomendada no diagnostico ou no CRM.
+6. O frontend nao deve calcular regras pesadas; o Apps Script deve entregar JSON pronto.
 
 ## Exemplos iniciais de vinculo
 
-| ID | Categoria | Acao CRM sugerida | Filtro cliente sugerido | Observacao |
-| --- | --- | --- | --- | --- |
-| `PDF_CONTRATO` | Comercial | CONVERTER | SEM_CONTRATO | Material comercial para apresentar contrato |
-| `COMPARATIVO_CONTRATO` | Comercial | CONVERTER | SEM_CONTRATO | Comparativo para conversa de potencial |
-| `IMAGEM_COMPARATIVO_WHATS` | Comercial | CONVERTER | SEM_CONTRATO | Visual curto para WhatsApp |
-| `APRESENTACAO_RESGATE` | Comercial | RESGATAR | INATIVO_30D ou INATIVO_60D | Material para recuperar cliente inativo |
-| `CHECKLIST_VISITA` | CRM Checklists | FIDELIZAR | VISITA_CLIENTE | Roteiro de visita comercial |
-| `CHECKLIST_QUEDA_REAL` | CRM Checklists | RESGATAR | QUEDA_REAL | Roteiro para perda de frequencia/mudanca operacional |
-| `FOLDER_RELACIONAMENTO` | Relacionamento e fidelizacao | FIDELIZAR | CLIENTE_ATIVO | Reforco de relacionamento |
-| `MANUAL_BOAS_VINDAS` | Relacionamento e fidelizacao | FIDELIZAR | NOVO_CLIENTE | Onboarding de cliente |
-| `WHATSAPP_CANCELAMENTO_VR` | Mensagens Rapidas WhatsApp | CANCELAR | VR_SEM_POTENCIAL | Mensagem final para fim de foco comercial |
-| `MANUAL_SUPERFRETE_10X15` | Aplicativos | APOIO | MARKETPLACE | Manual operacional |
+| ID | Categoria | Origem | Midia CRM ID | Acao CRM sugerida | Filtro cliente sugerido | Observacao |
+| --- | --- | --- | --- | --- | --- | --- |
+| `PDF_CONTRATO` | Comercial | MIDIAS_CRM ou MANUAL | A definir | CONVERTER | SEM_CONTRATO | Material comercial para apresentar contrato |
+| `COMPARATIVO_CONTRATO` | Comercial | MIDIAS_CRM ou MANUAL | A definir | CONVERTER | SEM_CONTRATO | Comparativo para conversa de potencial |
+| `IMAGEM_COMPARATIVO_WHATS` | Comercial | MIDIAS_CRM ou MANUAL | A definir | CONVERTER | SEM_CONTRATO | Visual curto para WhatsApp |
+| `APRESENTACAO_RESGATE` | Comercial | MIDIAS_CRM ou MANUAL | A definir | RESGATAR | INATIVO_30D ou INATIVO_60D | Material para recuperar cliente inativo |
+| `CHECKLIST_VISITA` | CRM Checklists | MANUAL | vazio | FIDELIZAR | VISITA_CLIENTE | Roteiro de visita comercial |
+| `CHECKLIST_QUEDA_REAL` | CRM Checklists | MANUAL | vazio | RESGATAR | QUEDA_REAL | Roteiro para perda de frequencia/mudanca operacional |
+| `FOLDER_RELACIONAMENTO` | Relacionamento e fidelizacao | MIDIAS_CRM ou MANUAL | A definir | FIDELIZAR | CLIENTE_ATIVO | Reforco de relacionamento |
+| `MANUAL_BOAS_VINDAS` | Relacionamento e fidelizacao | MANUAL | vazio | FIDELIZAR | NOVO_CLIENTE | Onboarding de cliente |
+| `WHATSAPP_CANCELAMENTO_VR` | Mensagens Rapidas WhatsApp | MIDIAS_CRM ou MANUAL | A definir | CANCELAR | VR_SEM_POTENCIAL | Mensagem final para fim de foco comercial |
+| `MANUAL_SUPERFRETE_10X15` | Aplicativos | MANUAL | vazio | APOIO | MARKETPLACE | Manual operacional |
 
 ## Regra de tela para `/intra/manuais/`
 
@@ -156,8 +183,8 @@ A tela deve:
 4. Ordenar categorias por `ordemCategoria`.
 5. Ordenar cards por `ordemItem`, depois titulo.
 6. Usar `iconeCategoria` como icone do grupo.
-7. Permitir busca por titulo, descricao, categoria, formato, ID, acao e filtro.
-8. Permitir filtro rapido por categoria, formato e acao CRM.
+7. Permitir busca por titulo, descricao, categoria, formato, ID, acao, filtro e origem.
+8. Permitir filtro rapido por categoria, formato, acao CRM e origem do conteudo.
 9. Exibir apenas linhas ativas por padrao.
 10. Mostrar estado de erro claro se a API falhar.
 
@@ -184,6 +211,8 @@ Resposta sugerida:
       "formato": "PDF",
       "link": "...",
       "ordemItem": 10,
+      "origemConteudo": "MIDIAS_CRM",
+      "midiaCrmId": "...",
       "acaoCrm": "CONVERTER",
       "filtroCliente": "SEM_CONTRATO",
       "ativo": true
@@ -199,10 +228,11 @@ Nao registrar URLs reais em exemplos publicos. Usar `...` ou links anonimizados.
 Cuidados:
 
 1. Ler a aba `Manuais` com `getValues()` em lote.
-2. Cachear resposta por tempo curto/medio.
-3. Invalidar cache quando houver alteracao manual importante.
-4. Retornar JSON enxuto.
-5. Nao carregar arquivos do Drive, apenas metadados e links.
+2. Ler `MIDIAS_CRM` separadamente apenas quando houver necessidade de enriquecer ou validar vinculos.
+3. Cachear resposta por tempo curto/medio.
+4. Invalidar cache quando houver alteracao manual importante.
+5. Retornar JSON enxuto.
+6. Nao carregar arquivos do Drive, apenas metadados e links.
 
 ## Atencao sensivel
 
@@ -219,8 +249,10 @@ Cuidados:
 ## Proximos passos
 
 1. Confirmar cabecalhos reais da aba `Manuais`.
-2. Criar endpoint `get_manuais_catalog`.
-3. Ajustar `/intra/manuais/` para consumir a aba correta.
-4. Adicionar colunas opcionais de vinculo com acao/filtro de cliente.
-5. Criar checklist de teste da tela de manuais.
-6. Atualizar documentacao apos a implementacao funcional.
+2. Confirmar se sera usada coluna `MIDIA_CRM_ID`, `ORIGEM_CONTEUDO` ou ambas.
+3. Mapear os codigos atuais de `MIDIAS_CRM`.
+4. Criar endpoint `get_manuais_catalog`.
+5. Ajustar `/intra/manuais/` para consumir a aba correta.
+6. Adicionar colunas opcionais de vinculo com acao/filtro de cliente.
+7. Criar checklist de teste da tela de manuais.
+8. Atualizar documentacao apos a implementacao funcional.
