@@ -2,6 +2,13 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## Documentacao - correcao conceitual MIDIAS_CRM x Manuais
+
+- Corrigida a documentacao para registrar que `MIDIAS_CRM` e a biblioteca estrategica de conteudos usados pelas acoes do CRM.
+- Corrigida a documentacao para registrar que `Manuais` e uma biblioteca mais ampla da tela `/intra/manuais/`, podendo incluir conteudos proprios e tambem conteudos vinculados ou equivalentes a `MIDIAS_CRM`.
+- Adicionada proposta de colunas `ORIGEM_CONTEUDO` e `MIDIA_CRM_ID` para permitir relacao entre as duas estruturas sem fundir as abas.
+- Nenhuma alteracao funcional aplicada nesta etapa.
+
 ## Documentacao - mapa inicial APP Total CF + Metro
 
 - Criado `docs/PLANILHA_APP_TOTAL_CF_METRO.md` para registrar a planilha APP Total CF + Metro como fonte viva das regras de CRM, agenda, visitas, materiais e manuais.
