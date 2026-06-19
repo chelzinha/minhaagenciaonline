@@ -1,7 +1,18 @@
 // ============================================================
 //  ATENDE - PATCH DE PERFORMANCE DO PAINEL MODULAR
-//  Otimiza buscarDados/buscarDadosPorData_ lendo primeiro a coluna Data.
+//  Otimiza buscarDados/buscarDadosPorData_ usando indice auxiliar de datas.
 // ============================================================
+
+var ATENDE_INDEX_SHEET_NAME = 'IDX_POSTAGENS_DATAS';
+var ATENDE_INDEX_HEADERS = [
+  'DataKey',
+  'Data',
+  'PrimeiraLinha',
+  'UltimaLinha',
+  'Total',
+  'TotalLinhasPostagens',
+  'AtualizadoEm'
+];
 
 function buscarDados(params) {
   try {
@@ -58,7 +69,7 @@ function buscarDadosPayloadRapido_(params) {
   }
 
   var version = PropertiesService.getScriptProperties().getProperty('ATENDE_CACHE_VERSION') || '0';
-  var cacheKey = ['atende:postagens-fast-v2', version, inicioKey || 'ini', fimKey || 'fim'].join(':');
+  var cacheKey = ['atende:postagens-fast-v3', version, inicioKey || 'ini', fimKey || 'fim'].join(':');
 
   if (temFiltroData) {
     var cached = CacheService.getScriptCache().get(cacheKey);
@@ -83,7 +94,7 @@ function buscarDadosPayloadRapido_(params) {
 
   var tRead = Date.now();
   var matrix = temFiltroData
-    ? readPostagensByDateRangeRapido_(sheet, inicioKey, fimKey)
+    ? readPostagensByDateRangeRapido_(spreadsheet, sheet, inicioKey, fimKey)
     : readSheetMatrix_(sheet);
   marks.tempoLerPlanilhaMs = Date.now() - tRead;
 
@@ -114,13 +125,16 @@ function buscarDadosPayloadRapido_(params) {
       totalRetornado: rows.length,
       linhasCorrespondentes: metaLeitura.linhasCorrespondentes || rows.length,
       blocosLidos: metaLeitura.blocosLidos || 0,
-      modoLeitura: metaLeitura.modoLeitura || (temFiltroData ? 'por_coluna_data_e_blocos' : 'matriz_completa'),
+      indiceReconstruido: !!metaLeitura.indiceReconstruido,
+      modoLeitura: metaLeitura.modoLeitura || (temFiltroData ? 'por_indice_datas' : 'matriz_completa'),
       cacheHit: false,
       tempoCacheMs: marks.tempoCacheMs,
       tempoAbrirPlanilhaMs: marks.tempoAbrirPlanilhaMs,
       tempoLerPlanilhaMs: marks.tempoLerPlanilhaMs,
+      tempoLerIndiceMs: metaLeitura.tempoLerIndiceMs || 0,
+      tempoReconstruirIndiceMs: metaLeitura.tempoReconstruirIndiceMs || 0,
       tempoLerDatasMs: metaLeitura.tempoLerDatasMs || 0,
-      tempoFiltrarDatasMs: metaLeitura.tempoFiltrarDatasMs || 0,
+      tempoFiltrarIndiceMs: metaLeitura.tempoFiltrarIndiceMs || 0,
       tempoLerBlocosMs: metaLeitura.tempoLerBlocosMs || 0,
       tempoFormatarLinhasMs: marks.tempoFormatarLinhasMs,
       tempoMontarColunasMs: marks.tempoMontarColunasMs,
@@ -132,51 +146,239 @@ function buscarDadosPayloadRapido_(params) {
   return payload;
 }
 
-function readPostagensByDateRangeRapido_(sheet, inicioKey, fimKey) {
+function readPostagensByDateRangeRapido_(spreadsheet, sheet, inicioKey, fimKey) {
   var startMs = Date.now();
-  var lastRow = sheet.getLastRow();
-  var lastCol = sheet.getLastColumn();
-  var headers = lastCol
-    ? sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(safe_)
+  var headers = sheet.getLastColumn()
+    ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(safe_)
     : [];
 
-  var indexByHeader = {};
-  headers.forEach(function(header, index) {
-    indexByHeader[header] = index;
-  });
+  if (sheet.getLastRow() < 2 || !headers.length) {
+    return emptyPostagensMatrix_(headers, 'planilha_vazia', Date.now() - startMs);
+  }
 
-  if (lastRow < 2 || !headers.length) {
+  try {
+    return readPostagensByDateIndex_(spreadsheet, sheet, headers, inicioKey, fimKey, startMs);
+  } catch (err) {
+    return readPostagensByDateColumnFallback_(sheet, headers, inicioKey, fimKey, startMs, err);
+  }
+}
+
+function readPostagensByDateIndex_(spreadsheet, sheet, headers, inicioKey, fimKey, startMs) {
+  var totalRows = sheet.getLastRow() - 1;
+  var tIndex = Date.now();
+  var indexSheet = getOrCreatePostagensDateIndexSheet_(spreadsheet);
+  var indexState = readPostagensDateIndexState_(indexSheet, totalRows);
+  var tempoLerIndiceMs = Date.now() - tIndex;
+
+  var indiceReconstruido = false;
+  var tempoReconstruirIndiceMs = 0;
+
+  if (!indexState.ok) {
+    var tRebuild = Date.now();
+    rebuildPostagensDateIndex_(spreadsheet, sheet);
+    tempoReconstruirIndiceMs = Date.now() - tRebuild;
+    indiceReconstruido = true;
+
+    tIndex = Date.now();
+    indexState = readPostagensDateIndexState_(indexSheet, totalRows);
+    tempoLerIndiceMs += Date.now() - tIndex;
+  }
+
+  if (!indexState.ok) {
+    throw new Error('Indice de datas indisponivel: ' + indexState.reason);
+  }
+
+  var tFilter = Date.now();
+  var matchedBlocks = [];
+  indexState.rows.forEach(function(item) {
+    if (inicioKey && item.dataKey < inicioKey) return;
+    if (fimKey && item.dataKey > fimKey) return;
+    matchedBlocks.push([item.primeiraLinha, item.ultimaLinha, item.total]);
+  });
+  var tempoFiltrarIndiceMs = Date.now() - tFilter;
+
+  if (!matchedBlocks.length) {
     return {
       headers: headers,
       rows: [],
-      indexByHeader: indexByHeader,
+      indexByHeader: buildIndexByHeaderAtende_(headers),
       meta: {
-        totalPlanilha: 0,
+        totalPlanilha: totalRows,
         linhasCorrespondentes: 0,
         blocosLidos: 0,
-        modoLeitura: 'planilha_vazia',
-        tempoLerDatasMs: 0,
-        tempoFiltrarDatasMs: 0,
+        indiceReconstruido: indiceReconstruido,
+        modoLeitura: 'por_indice_sem_resultado',
+        tempoLerIndiceMs: tempoLerIndiceMs,
+        tempoReconstruirIndiceMs: tempoReconstruirIndiceMs,
+        tempoFiltrarIndiceMs: tempoFiltrarIndiceMs,
         tempoLerBlocosMs: 0,
         tempoLeituraTotalMs: Date.now() - startMs
       }
     };
   }
 
-  var dataIndex = indexByHeader['Data'];
-  if (dataIndex == null) {
+  var blocks = mergePostagensLineBlocks_(matchedBlocks);
+  var tBlocks = Date.now();
+  var rows = [];
+  blocks.forEach(function(block) {
+    var firstLine = block[0];
+    var lastLine = block[1];
+    var numRows = lastLine - firstLine + 1;
+    rows = rows.concat(sheet.getRange(firstLine, 1, numRows, headers.length).getValues());
+  });
+  var tempoLerBlocosMs = Date.now() - tBlocks;
+
+  return {
+    headers: headers,
+    rows: rows,
+    indexByHeader: buildIndexByHeaderAtende_(headers),
+    meta: {
+      totalPlanilha: totalRows,
+      linhasCorrespondentes: rows.length,
+      blocosLidos: blocks.length,
+      indiceReconstruido: indiceReconstruido,
+      modoLeitura: 'por_indice_datas',
+      tempoLerIndiceMs: tempoLerIndiceMs,
+      tempoReconstruirIndiceMs: tempoReconstruirIndiceMs,
+      tempoFiltrarIndiceMs: tempoFiltrarIndiceMs,
+      tempoLerBlocosMs: tempoLerBlocosMs,
+      tempoLeituraTotalMs: Date.now() - startMs
+    }
+  };
+}
+
+function getOrCreatePostagensDateIndexSheet_(spreadsheet) {
+  var sheet = spreadsheet.getSheetByName(ATENDE_INDEX_SHEET_NAME);
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(ATENDE_INDEX_SHEET_NAME);
+    sheet.getRange(1, 1, 1, ATENDE_INDEX_HEADERS.length).setValues([ATENDE_INDEX_HEADERS]);
+    try { sheet.hideSheet(); } catch (_) {}
+  }
+  return sheet;
+}
+
+function readPostagensDateIndexState_(indexSheet, totalRows) {
+  var lastRow = indexSheet.getLastRow();
+  if (lastRow < 2) return { ok: false, reason: 'indice_vazio', rows: [] };
+
+  var headers = indexSheet.getRange(1, 1, 1, Math.max(indexSheet.getLastColumn(), ATENDE_INDEX_HEADERS.length)).getValues()[0].map(safe_);
+  if (headers.slice(0, ATENDE_INDEX_HEADERS.length).join('|') !== ATENDE_INDEX_HEADERS.join('|')) {
+    return { ok: false, reason: 'cabecalho_invalido', rows: [] };
+  }
+
+  var values = indexSheet.getRange(2, 1, lastRow - 1, ATENDE_INDEX_HEADERS.length).getValues();
+  var rows = [];
+  var indexedTotalRows = null;
+
+  values.forEach(function(row) {
+    var dataKey = safe_(row[0]).trim();
+    var primeiraLinha = Number(row[2]);
+    var ultimaLinha = Number(row[3]);
+    var total = Number(row[4]);
+    var totalLinhasPostagens = Number(row[5]);
+
+    if (!dataKey || !primeiraLinha || !ultimaLinha || !total) return;
+    if (indexedTotalRows === null) indexedTotalRows = totalLinhasPostagens;
+
+    rows.push({
+      dataKey: dataKey,
+      primeiraLinha: primeiraLinha,
+      ultimaLinha: ultimaLinha,
+      total: total
+    });
+  });
+
+  if (!rows.length) return { ok: false, reason: 'indice_sem_linhas_validas', rows: [] };
+  if (indexedTotalRows !== totalRows) return { ok: false, reason: 'indice_desatualizado', rows: [] };
+
+  return { ok: true, reason: '', rows: rows };
+}
+
+function rebuildPostagensDateIndex_(spreadsheet, postagensSheet) {
+  var indexSheet = getOrCreatePostagensDateIndexSheet_(spreadsheet);
+  var totalRows = Math.max(postagensSheet.getLastRow() - 1, 0);
+  var lastCol = Math.max(indexSheet.getLastColumn(), ATENDE_INDEX_HEADERS.length);
+  indexSheet.clearContents();
+  indexSheet.getRange(1, 1, 1, ATENDE_INDEX_HEADERS.length).setValues([ATENDE_INDEX_HEADERS]);
+
+  if (!totalRows) return { ok: true, totalBlocos: 0, totalLinhasPostagens: 0 };
+
+  var headers = postagensSheet.getRange(1, 1, 1, postagensSheet.getLastColumn()).getValues()[0].map(safe_);
+  var dataIndex = headers.indexOf('Data');
+  if (dataIndex < 0) throw new Error('Coluna Data nao encontrada para criar indice.');
+
+  var dataValues = postagensSheet.getRange(2, dataIndex + 1, totalRows, 1).getValues();
+  var blocks = [];
+  var current = null;
+
+  dataValues.forEach(function(row, index) {
+    var dataKey = fastDateKeyAtende_(row[0]);
+    if (!dataKey) return;
+
+    var sheetLine = index + 2;
+    if (current && current.dataKey === dataKey && sheetLine === current.ultimaLinha + 1) {
+      current.ultimaLinha = sheetLine;
+      current.total++;
+      return;
+    }
+
+    current = {
+      dataKey: dataKey,
+      data: isoFromDateKeyAtende_(dataKey),
+      primeiraLinha: sheetLine,
+      ultimaLinha: sheetLine,
+      total: 1
+    };
+    blocks.push(current);
+  });
+
+  if (blocks.length) {
+    var now = new Date();
+    var rows = blocks.map(function(block) {
+      return [
+        block.dataKey,
+        block.data,
+        block.primeiraLinha,
+        block.ultimaLinha,
+        block.total,
+        totalRows,
+        now
+      ];
+    });
+    indexSheet.getRange(2, 1, rows.length, ATENDE_INDEX_HEADERS.length).setValues(rows);
+  }
+
+  try { indexSheet.hideSheet(); } catch (_) {}
+  SpreadsheetApp.flush();
+  return { ok: true, totalBlocos: blocks.length, totalLinhasPostagens: totalRows };
+}
+
+function ADMIN_reconstruirIndicePostagensAtende() {
+  var start = Date.now();
+  var spreadsheet = getAtendeSpreadsheet_();
+  var sheet = spreadsheet.getSheetByName(ATENDE_CONFIG.SHEETS.POSTAGENS);
+  if (!sheet) throw new Error('Aba Postagens nao encontrada.');
+  var result = rebuildPostagensDateIndex_(spreadsheet, sheet);
+  result.tempoMs = Date.now() - start;
+  return result;
+}
+
+function readPostagensByDateColumnFallback_(sheet, headers, inicioKey, fimKey, startMs, originalErr) {
+  var totalRows = sheet.getLastRow() - 1;
+  var dataIndex = headers.indexOf('Data');
+  if (dataIndex < 0) {
     var full = readSheetMatrix_(sheet);
     full.meta = {
       totalPlanilha: full.rows.length,
       linhasCorrespondentes: full.rows.length,
       blocosLidos: 1,
       modoLeitura: 'fallback_sem_coluna_data',
+      erroIndice: originalErr ? String(originalErr.message || originalErr) : '',
       tempoLeituraTotalMs: Date.now() - startMs
     };
     return full;
   }
 
-  var totalRows = lastRow - 1;
   var tDates = Date.now();
   var dataValues = sheet.getRange(2, dataIndex + 1, totalRows, 1).getValues();
   var tempoLerDatasMs = Date.now() - tDates;
@@ -196,12 +398,13 @@ function readPostagensByDateRangeRapido_(sheet, inicioKey, fimKey) {
     return {
       headers: headers,
       rows: [],
-      indexByHeader: indexByHeader,
+      indexByHeader: buildIndexByHeaderAtende_(headers),
       meta: {
         totalPlanilha: totalRows,
         linhasCorrespondentes: 0,
         blocosLidos: 0,
-        modoLeitura: 'por_coluna_data_sem_resultado',
+        modoLeitura: 'fallback_coluna_data_sem_resultado',
+        erroIndice: originalErr ? String(originalErr.message || originalErr) : '',
         tempoLerDatasMs: tempoLerDatasMs,
         tempoFiltrarDatasMs: tempoFiltrarDatasMs,
         tempoLerBlocosMs: 0,
@@ -213,67 +416,86 @@ function readPostagensByDateRangeRapido_(sheet, inicioKey, fimKey) {
   var blocks = [];
   var start = matched[0];
   var previous = matched[0];
-
   for (var i = 1; i < matched.length; i++) {
     var current = matched[i];
     if (current === previous + 1) {
       previous = current;
       continue;
     }
-    blocks.push([start, previous]);
+    blocks.push([start + 2, previous + 2]);
     start = current;
     previous = current;
   }
-  blocks.push([start, previous]);
-
-  if (blocks.length > 120) {
-    var fullMatrix = readSheetMatrix_(sheet);
-    var filteredRows = fullMatrix.rows.filter(function(row) {
-      var rowKey = fastDateKeyAtende_(row[dataIndex]);
-      if (!rowKey) return false;
-      if (inicioKey && rowKey < inicioKey) return false;
-      if (fimKey && rowKey > fimKey) return false;
-      return true;
-    });
-    fullMatrix.rows = filteredRows;
-    fullMatrix.meta = {
-      totalPlanilha: totalRows,
-      linhasCorrespondentes: filteredRows.length,
-      blocosLidos: blocks.length,
-      modoLeitura: 'fallback_muitos_blocos',
-      tempoLerDatasMs: tempoLerDatasMs,
-      tempoFiltrarDatasMs: tempoFiltrarDatasMs,
-      tempoLerBlocosMs: Date.now() - startMs - tempoLerDatasMs - tempoFiltrarDatasMs,
-      tempoLeituraTotalMs: Date.now() - startMs
-    };
-    return fullMatrix;
-  }
+  blocks.push([start + 2, previous + 2]);
 
   var tBlocks = Date.now();
   var rows = [];
   blocks.forEach(function(block) {
-    var rowStart = block[0];
-    var rowEnd = block[1];
-    var numRows = rowEnd - rowStart + 1;
-    rows = rows.concat(sheet.getRange(rowStart + 2, 1, numRows, headers.length).getValues());
+    var firstLine = block[0];
+    var lastLine = block[1];
+    var numRows = lastLine - firstLine + 1;
+    rows = rows.concat(sheet.getRange(firstLine, 1, numRows, headers.length).getValues());
   });
-  var tempoLerBlocosMs = Date.now() - tBlocks;
 
   return {
     headers: headers,
     rows: rows,
-    indexByHeader: indexByHeader,
+    indexByHeader: buildIndexByHeaderAtende_(headers),
     meta: {
       totalPlanilha: totalRows,
-      linhasCorrespondentes: matched.length,
+      linhasCorrespondentes: rows.length,
       blocosLidos: blocks.length,
-      modoLeitura: 'por_coluna_data_e_blocos',
+      modoLeitura: 'fallback_coluna_data',
+      erroIndice: originalErr ? String(originalErr.message || originalErr) : '',
       tempoLerDatasMs: tempoLerDatasMs,
       tempoFiltrarDatasMs: tempoFiltrarDatasMs,
-      tempoLerBlocosMs: tempoLerBlocosMs,
+      tempoLerBlocosMs: Date.now() - tBlocks,
       tempoLeituraTotalMs: Date.now() - startMs
     }
   };
+}
+
+function mergePostagensLineBlocks_(blocks) {
+  var sorted = blocks.slice().sort(function(a, b) { return a[0] - b[0]; });
+  var merged = [];
+
+  sorted.forEach(function(block) {
+    if (!merged.length) {
+      merged.push([block[0], block[1]]);
+      return;
+    }
+    var last = merged[merged.length - 1];
+    if (block[0] <= last[1] + 1) {
+      last[1] = Math.max(last[1], block[1]);
+      return;
+    }
+    merged.push([block[0], block[1]]);
+  });
+
+  return merged;
+}
+
+function emptyPostagensMatrix_(headers, mode, timeMs) {
+  return {
+    headers: headers,
+    rows: [],
+    indexByHeader: buildIndexByHeaderAtende_(headers),
+    meta: {
+      totalPlanilha: 0,
+      linhasCorrespondentes: 0,
+      blocosLidos: 0,
+      modoLeitura: mode,
+      tempoLeituraTotalMs: timeMs
+    }
+  };
+}
+
+function buildIndexByHeaderAtende_(headers) {
+  var index = {};
+  headers.forEach(function(header, position) {
+    index[header] = position;
+  });
+  return index;
 }
 
 function fastDateKeyAtende_(value) {
@@ -298,6 +520,12 @@ function fastDateKeyAtende_(value) {
   }
 
   return '';
+}
+
+function isoFromDateKeyAtende_(dateKey) {
+  var text = safe_(dateKey).trim();
+  if (!text || text.length !== 8) return '';
+  return text.substring(0, 4) + '-' + text.substring(4, 6) + '-' + text.substring(6, 8);
 }
 
 function pad2Atende_(value) {
