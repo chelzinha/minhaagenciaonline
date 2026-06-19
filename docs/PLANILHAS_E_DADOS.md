@@ -2,7 +2,7 @@
 
 Documento tecnico em preparacao.
 
-## Planilha APP Total CF + Metro - CRM, agenda e manuais
+## Planilha APP Total CF + Metro - CRM, agenda, midias e manuais
 
 Documento principal:
 - `docs/PLANILHA_APP_TOTAL_CF_METRO.md`
@@ -11,6 +11,12 @@ Resumo:
 - A planilha APP Total CF + Metro deve ser tratada como fonte viva das regras operacionais do CRM, agenda, visitas, materiais e manuais.
 - O codigo deve ler, validar, cachear e executar regras vindas da planilha sempre que elas forem parametrizaveis.
 - O Codex nao deve substituir regra parametrizada por valor fixo sem justificativa documentada.
+
+Distincao importante:
+- `MIDIAS_CRM` e a biblioteca estrategica de conteudos usados pelas acoes do CRM.
+- `Manuais` e a biblioteca ampla da tela `/intra/manuais/`.
+- `Manuais` pode incluir conteudos proprios e tambem conteudos vinculados ou equivalentes a `MIDIAS_CRM`.
+- `Manuais` nao substitui `MIDIAS_CRM`, e `MIDIAS_CRM` nao representa todo o escopo de `Manuais`.
 
 Abas principais ja identificadas pelo codigo ou pela Rachel:
 - BASE_TOTAL
@@ -40,7 +46,7 @@ Abas principais ja identificadas pelo codigo ou pela Rachel:
 Regra para a aba Manuais:
 - A tela `/intra/manuais/` deve ser alimentada pela aba `Manuais` da planilha APP Total CF + Metro.
 - A estrutura esperada usa `ID`, `CATEGORIA`, `ORDEM_C`, `ICONE_CATEGORIA`, `TITULO`, `DESCRICAO`, `FORMATO`, `LINK` e coluna de ordem do item quando existir.
-- Para vincular conteudos a acao/filtro de cliente, usar colunas opcionais como `ACAO_CRM`, `SUB_ACAO`, `PUBLICO`, `FILTRO_CLIENTE`, `CURVA`, `STATUS_ATIVIDADE`, `PERFIL_COMERCIAL`, `BUCKET_NEGOCIO`, `RECORRENCIA_NIVEL`, `TENDENCIA`, `NIVEL_ALERTA`, `PORTE_OPERACIONAL`, `TEM_CONTRATO` e `CANAL_SUGERIDO`.
+- Para vincular conteudos a acao/filtro de cliente, usar colunas opcionais como `ORIGEM_CONTEUDO`, `MIDIA_CRM_ID`, `ACAO_CRM`, `SUB_ACAO`, `PUBLICO`, `FILTRO_CLIENTE`, `CURVA`, `STATUS_ATIVIDADE`, `PERFIL_COMERCIAL`, `BUCKET_NEGOCIO`, `RECORRENCIA_NIVEL`, `TENDENCIA`, `NIVEL_ALERTA`, `PORTE_OPERACIONAL`, `TEM_CONTRATO` e `CANAL_SUGERIDO`.
 
 Cuidados:
 - Nao documentar IDs completos de planilha, links privados reais, tokens ou dados de clientes.
