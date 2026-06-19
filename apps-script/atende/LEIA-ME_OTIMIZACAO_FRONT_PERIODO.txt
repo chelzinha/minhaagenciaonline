@@ -1,0 +1,29 @@
+Correção/otimização aplicada no Atende
+
+Objetivo:
+- Remover a área manual de importação de JSONs do painel.
+- Manter o painel, a tabela, os filtros e todas as colunas atuais.
+- Reduzir peso inicial carregando dados por período no Apps Script.
+
+Arquivos alterados:
+- Index.html
+- ApiAtende.js
+- Config.js
+- CHANGELOG.md
+
+Como usar no painel:
+1. Abra o /atende normalmente.
+2. O painel carrega inicialmente os últimos 7 dias.
+3. Para consultar outro período, ajuste Data inicial e Data final no painel lateral.
+4. Clique em Carregar.
+5. Os filtros rápidos continuam funcionando localmente sobre o período carregado.
+
+Observações:
+- A aba Postagens continua com todas as colunas atuais.
+- A importação manual pelo front foi removida da interface.
+- As funções antigas de importação foram mantidas no backend para compatibilidade técnica.
+- O ID da planilha e o INGEST_TOKEN devem ficar nas Propriedades do script, não em Config.js.
+
+Atenção sensível:
+- Este projeto lida com dados pessoais, objetos postais e tokens de integração.
+- Não subir .env, tokens, JSONs reais ou dados brutos para GitHub.

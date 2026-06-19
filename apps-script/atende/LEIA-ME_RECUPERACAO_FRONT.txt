@@ -1,0 +1,14 @@
+Correção de recuperação do Atende
+
+Este pacote parte da última versão estável do painel por período e aplica somente a correção visual dos chips de período.
+
+A alteração experimental de autoajuste automático de colunas foi removida para evitar quebra do front.
+
+Como aplicar:
+1. Substitua os arquivos no Apps Script.
+2. Salve.
+3. Abra o /exec em janela anônima ou com cache limpo.
+4. Teste últimos 7 dias e período manual.
+
+Observação:
+As colunas continuam com ajuste manual por arraste no cabeçalho. O autoajuste completo será tratado depois, em uma etapa separada e testada com mais cuidado.

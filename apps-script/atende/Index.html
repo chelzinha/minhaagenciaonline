@@ -50,6 +50,13 @@ textarea:focus,.field input:focus,.field select:focus{border-color:var(--nv);box
 .ss-side{display:block;color:var(--nv);font-size:10px;font-weight:700;text-decoration:underline;margin:1px 1px 13px;cursor:pointer}
 .msg{display:none;margin-top:7px;border-radius:8px;padding:7px 8px;font-size:10px;font-weight:700;white-space:pre-line;line-height:1.4}
 .msg.ok{display:block;background:var(--ok-bg);color:var(--ok)}.msg.err{display:block;background:var(--err-bg);color:var(--err)}.msg.warn{display:block;background:var(--warn-bg);color:var(--warn)}
+.period-summary{display:grid;gap:6px}
+.period-summary-title{font-size:10px;font-weight:900;letter-spacing:.2px}
+.period-summary-meta{display:grid;gap:5px}
+.period-chip{display:grid;grid-template-columns:54px minmax(0,1fr);align-items:center;gap:6px;border-radius:9px;padding:5px 7px;background:rgba(255,255,255,.58);border:1px solid rgba(0,0,0,.06);font-size:9px;font-weight:900;white-space:normal;line-height:1.22;min-width:0}
+.period-chip span{font-weight:900;opacity:.78;text-transform:uppercase;font-size:8px;letter-spacing:.18px}
+.period-chip b{min-width:0;overflow-wrap:anywhere;font-weight:900}
+
 .main{min-width:0;min-height:0;display:grid;grid-template-rows:1fr;overflow:hidden;padding:10px}
 .table-card{min-height:0;background:var(--card);border:1px solid rgba(0,65,107,.10);border-radius:var(--r);box-shadow:var(--sh);display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}
 .table-top{display:flex;align-items:center;gap:10px;min-height:42px;padding:7px 10px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fff,#FBFDFF)}
@@ -105,25 +112,27 @@ body.resizing,body.resizing *{cursor:col-resize!important;user-select:none!impor
   <section class="shell">
     <aside class="sidebar">
       <div class="panel">
-        <h2><span class="material-symbols-rounded" data-agf-icon="upload_file">upload_file</span> JSON de postagem</h2>
-        <p class="panel-note">Dados do objeto, remetente e destinatário</p>
-        <textarea id="jsonPost" placeholder="Cole o JSON de postagem aqui..."></textarea>
-        <div class="action-row">
-          <button class="btn btn-primary" id="btnPost" onclick="processarPost()"><span class="material-symbols-rounded" data-agf-icon="bolt">bolt</span>Processar</button>
-          <button class="btn btn-icon" onclick="limpar('jsonPost','msgPost')" title="Limpar JSON"><span class="material-symbols-rounded" data-agf-icon="close">close</span></button>
+        <h2><span class="material-symbols-rounded" data-agf-icon="sync">sync</span> Dados do painel</h2>
+        <div class="field">
+          <label>Data inicial</label>
+          <input id="srvInicio" type="date" onchange="marcarPeriodoAlterado()">
         </div>
-        <div class="msg" id="msgPost"></div>
-      </div>
-
-      <div class="panel">
-        <h2><span class="material-symbols-rounded" data-agf-icon="receipt_long">receipt_long</span> JSON de atendimento</h2>
-        <p class="panel-note">Valor, pagamento e atendente</p>
-        <textarea id="jsonAt" placeholder="Cole o JSON de atendimento aqui..."></textarea>
-        <div class="action-row">
-          <button class="btn btn-yellow" id="btnAt" onclick="processarAt()"><span class="material-symbols-rounded" data-agf-icon="swap_horiz">swap_horiz</span>Enriquecer</button>
-          <button class="btn btn-icon" onclick="limpar('jsonAt','msgAt')" title="Limpar JSON"><span class="material-symbols-rounded" data-agf-icon="close">close</span></button>
+        <div class="field">
+          <label>Data final</label>
+          <input id="srvFim" type="date" onchange="marcarPeriodoAlterado()">
         </div>
-        <div class="msg" id="msgAt"></div>
+        <div class="action-row">
+          <button class="btn btn-primary" style="flex:1" onclick="recarregar()"><span class="material-symbols-rounded" data-agf-icon="search">search</span>Carregar</button>
+          <button class="btn btn-icon" onclick="periodoUltimosDias(7);recarregar()" title="Últimos 7 dias"><span class="material-symbols-rounded" data-agf-icon="date_range">date_range</span></button>
+        </div>
+        <div class="msg warn" id="msgPeriodo">
+          <div class="period-summary">
+            <div class="period-summary-title">Período inicial</div>
+            <div class="period-summary-meta">
+              <span class="period-chip"><span>Status</span> últimos 7 dias</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <a class="ss-side" id="ssLinkSide" style="display:none" onclick="abrirSS()"><span class="material-symbols-rounded" data-agf-icon="open_in_new">open_in_new</span> Abrir planilha de dados</a>
@@ -135,7 +144,7 @@ body.resizing,body.resizing *{cursor:col-resize!important;user-select:none!impor
           <input id="fQ" placeholder="Código, remetente, destinatário..." oninput="scheduleFilter()">
         </div>
         <div id="quickFilters"></div>
-        <button class="btn" style="width:100%;margin-top:6px" onclick="resetFiltros()"><span class="material-symbols-rounded" data-agf-icon="filter_alt_off">filter_alt_off</span>Limpar filtros</button>
+        <button class="btn" style="width:100%;margin-top:6px" onclick="resetFiltros()"><span class="material-symbols-rounded" data-agf-icon="filter_alt_off">filter_alt_off</span>Limpar filtros locais</button>
       </div>
     </aside>
 
@@ -152,7 +161,7 @@ body.resizing,body.resizing *{cursor:col-resize!important;user-select:none!impor
           </div>
         </div>
         <div class="table-wrap">
-          <div class="empty" id="empt"><div><strong>Nenhum dado encontrado</strong><p>Cole um JSON ou ajuste os filtros.</p></div></div>
+          <div class="empty" id="empt"><div><strong>Nenhum dado encontrado</strong><p>Ajuste o período ou os filtros locais.</p></div></div>
           <table class="data-table" id="tbl" style="display:none">
             <colgroup id="colgroup"></colgroup>
             <thead id="thead"></thead>
@@ -182,17 +191,68 @@ var STATUS_CLASSES={'Entregue':'b-ok','Postado':'b-warn','Em Trânsito':'b-info'
 var PAGE=1,PAGE_SIZE=100,FILTER_TIMER=null;
 
 function boot(){
+  periodoUltimosDias(7);
   recarregar();
   google.script.run.withSuccessHandler(function(r){if(r.ok)setSS(r.url)}).getSpreadsheetUrl();
 }
 window.onload=boot;
 
 function recarregar(){
+  var params=periodoServidor();
+  if(params.dataInicio&&params.dataFim&&params.dataInicio>params.dataFim){
+    return showMsg('msgPeriodo','Data inicial maior que data final.','err');
+  }
   spin(true,'Carregando dados...');
+  showPeriodo('warn','Carregando dados',[['Período',labelPeriodoBR(params)],['Status','aguarde']]);
   google.script.run
-    .withSuccessHandler(function(res){spin(false);if(res.ok)carregar(res);else showMsg('msgPost','Erro ao carregar: '+res.error,'err')})
-    .withFailureHandler(function(e){spin(false);showMsg('msgPost','Falha de conexão: '+(e.message||e),'err')})
-    .buscarDados();
+    .withSuccessHandler(function(res){
+      spin(false);
+      if(res.ok){carregar(res);showPeriodo('ok','Dados carregados',[['Período',labelPeriodoBR(params)],['Registros',((res.rows||[]).length).toLocaleString('pt-BR')]])}
+      else showMsg('msgPeriodo','Erro ao carregar: '+res.error,'err')
+    })
+    .withFailureHandler(function(e){spin(false);showMsg('msgPeriodo','Falha de conexão: '+(e.message||e),'err')})
+    .buscarDados(params);
+}
+
+function periodoServidor(){
+  return{dataInicio:val('srvInicio'),dataFim:val('srvFim')};
+}
+
+function labelPeriodo(params){
+  params=params||periodoServidor();
+  var ini=params.dataInicio||'início';
+  var fim=params.dataFim||'fim';
+  return ini+' até '+fim;
+}
+
+function labelPeriodoBR(params){
+  params=params||periodoServidor();
+  var ini=params.dataInicio?formatIsoDateBR(params.dataInicio):'início';
+  var fim=params.dataFim?formatIsoDateBR(params.dataFim):'fim';
+  return ini+' até '+fim;
+}
+
+function formatIsoDateBR(value){
+  var m=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m?m[3]+'/'+m[2]+'/'+m[1]:String(value||'');
+}
+
+function periodoUltimosDias(dias){
+  var fim=new Date();
+  fim.setHours(12,0,0,0);
+  var ini=new Date(fim);
+  ini.setDate(ini.getDate()-(Math.max(1,+dias||7)-1));
+  setVal('srvInicio',isoDate(ini));
+  setVal('srvFim',isoDate(fim));
+}
+
+function isoDate(date){
+  var y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+d;
+}
+
+function marcarPeriodoAlterado(){
+  showPeriodo('warn','Período alterado',[['Período',labelPeriodoBR()],['Ação','clique em Carregar']]);
 }
 
 function carregar(res){
@@ -204,33 +264,6 @@ function carregar(res){
   buildTableStructure();
   buildQuickFilters();
   filtrar();
-}
-
-function processarPost(){
-  var txt=val('jsonPost').trim();
-  if(!txt)return showMsg('msgPost','Cole um JSON antes de processar.','err');
-  btn('btnPost',true);spin(true,'Processando postagens...');
-  google.script.run
-    .withSuccessHandler(function(res){btn('btnPost',false);spin(false);if(res.ok){showMsg('msgPost',res.added+' novo(s) adicionado(s). '+res.skipped+' duplicata(s) ignorada(s).'+(res.backfilledExisting?' '+res.backfilledExisting+' objeto(s) existente(s) atualizado(s) com codigo/descricao.':''),'ok');carregar(res)}else showMsg('msgPost',res.error,'err')})
-    .withFailureHandler(function(e){btn('btnPost',false);spin(false);showMsg('msgPost',(e.message||e),'err')})
-    .processarEBuscar(txt);
-}
-
-function processarAt(){
-  var txt=val('jsonAt').trim();
-  if(!txt)return showMsg('msgAt','Cole o JSON de atendimento.','err');
-  btn('btnAt',true);spin(true,'Cruzando atendimentos...');
-  google.script.run
-    .withSuccessHandler(function(res){
-      btn('btnAt',false);spin(false);
-      if(res.ok){
-        var m='✅ '+res.updated+' objeto(s) enriquecido(s).';
-        if(res.notFound>0)m+='\n⚠️ '+res.notFound+' código(s) não encontrados: '+(res.notFoundList||[]).slice(0,5).join(', ')+(res.notFound>5?' ...':'');
-        showMsg('msgAt',m,res.notFound>0?'warn':'ok');carregar(res);
-      }else showMsg('msgAt',res.error,'err');
-    })
-    .withFailureHandler(function(e){btn('btnAt',false);spin(false);showMsg('msgAt',(e.message||e),'err')})
-    .processarAtendimentos(txt);
 }
 
 function norm(r){
@@ -440,6 +473,13 @@ function applyTableWidth(){var total=Array.from(document.querySelectorAll('#colg
 
 function limpar(textareaId,msgId){setVal(textareaId,'');var msg=document.getElementById(msgId);msg.className='msg';msg.textContent=''}
 function spin(on,msg){document.getElementById('ov').classList.toggle('on',on);if(msg)set('ovMsg',msg)}
+function showPeriodo(type,title,items){
+  var msg=document.getElementById('msgPeriodo');
+  if(!msg)return;
+  var chips=(items||[]).map(function(item){return '<span class="period-chip"><span>'+esc(item[0])+'</span><b>'+esc(item[1])+'</b></span>'}).join('');
+  msg.innerHTML='<div class="period-summary"><div class="period-summary-title">'+esc(title)+'</div><div class="period-summary-meta">'+chips+'</div></div>';
+  msg.className='msg '+type;
+}
 function showMsg(id,text,type){var msg=document.getElementById(id);msg.textContent=text;msg.className='msg '+type}
 function setSS(url){SS_URL=url;document.getElementById('lnkSS').style.display='inline-flex';document.getElementById('ssLinkSide').style.display='block'}
 function abrirSS(){if(SS_URL)window.open(SS_URL,'_blank')}

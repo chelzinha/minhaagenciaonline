@@ -29,3 +29,22 @@ Validacoes recomendadas:
 - Cada action deve validar usuario e unidade quando aplicavel.
 - Operacoes de escrita devem validar permissao e estado atual do registro.
 - Respostas ao frontend devem retornar apenas os dados necessarios.
+
+## Modulo Atende - ATENCAO SENSIVEL
+
+Tipo de atencao:
+- Importacao de JSONs do Correios Atende.
+- Dados pessoais de remetentes e destinatarios.
+- Dados operacionais de objetos postais, atendimentos, contratos e cartao de postagem.
+
+Controles aplicados:
+- `SPREADSHEET_ID` e `INGEST_TOKEN` devem ficar em `PropertiesService`.
+- `doPost` exige token de ingestao.
+- Logs de importacao nao gravam payload completo.
+- Erros usam sanitizacao para mascarar CPF, CNPJ, telefone e termos sensiveis.
+- JSONs brutos sao salvos somente nas abas RAW da planilha operacional.
+
+Pontos que nao devem ser feitos:
+- Nao salvar senha, cookie, token, header `Authorization` ou segredo em codigo.
+- Nao copiar payload completo para `LOG_IMPORTACOES` ou `ERROS`.
+- Nao documentar IDs reais de planilha nem URL completa de Web App em arquivos publicos.

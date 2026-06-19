@@ -49,3 +49,23 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Adicionado checklist manual para validar o modulo /reverso.
 - Checklist cobre carregamento inicial, unidade, login, etiqueta, camera, drop-off, historico, painel AGF, mobile e seguranca visual.
 - Nenhuma alteracao funcional aplicada.
+
+## 2026-06-16 - Atende Correios Atende
+
+- Criada estrutura modular do backend Apps Script do `/atende`.
+- Adicionado `setupInicial()` para criar planilha, abas e cabecalhos automaticamente.
+- Preparada importacao dos dois JSONs do Correios Atende: atendimentos/resumo e objetos captados.
+- Mantida a aba principal `Postagens` com os campos usados pelo front atual.
+- Adicionadas abas RAW, eventos, logs de importacao e erros.
+- Preparados `doGet` de consulta por data e `doPost` protegido por `INGEST_TOKEN`.
+- Mudanca marcada como ATENCAO SENSIVEL por processar dados pessoais de remetente/destinatario.
+
+## 2026-06-16 - Fix performance Atende
+
+- Corrigido erro "Argument too large: value" apos importacoes do `/atende`.
+- `buildImportResponse_` deixou de retornar a tabela completa apos cada importacao.
+- Importacoes agora retornam apenas resumo pequeno com criados, atualizados e ignorados.
+- `buscarDadosPorData_` passou a usar `CacheService` somente quando houver filtro de data.
+- Payloads maiores que 90 KB nao sao salvos no cache.
+- Cache do Atende e invalidado apos importacoes.
+- O front do Apps Script passou a recarregar a tabela em chamada separada apos uma importacao bem-sucedida.

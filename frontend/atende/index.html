@@ -12,8 +12,20 @@
 </head>
 <body>
   <div class="agf-frame-layout agf-embed-only">
-    <iframe data-agf-frame-src="https://script.google.com/macros/s/AKfycbwCBAG4gBVHMHh7cHgnIG215RL8m8CbymvsAaHcs4bXhp0RCyPeP_cr6IA5iZtsch_m1g/exec" title="Atendimento" loading="eager" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+    <iframe id="atendeFrame" src="https://script.google.com/macros/s/AKfycbwCBAG4gBVHMHh7cHgnIG215RL8m8CbymvsAaHcs4bXhp0RCyPeP_cr6IA5iZtsch_m1g/exec" data-agf-frame-src="https://script.google.com/macros/s/AKfycbwCBAG4gBVHMHh7cHgnIG215RL8m8CbymvsAaHcs4bXhp0RCyPeP_cr6IA5iZtsch_m1g/exec" title="Atendimento" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="clipboard-read; clipboard-write"></iframe>
   </div>
+
+  <script>
+    (function(){
+      var frame=document.getElementById('atendeFrame');
+      if(!frame)return;
+      var target=frame.getAttribute('data-agf-frame-src');
+      if(target && !frame.getAttribute('src')) frame.setAttribute('src',target);
+      setTimeout(function(){
+        if(target && frame && !frame.getAttribute('src')) frame.setAttribute('src',target);
+      },600);
+    })();
+  </script>
   <script src="/shared/ui/agf-ui.js"></script>
   <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/atende/sw.js').catch(()=>{}));}</script>
 </body>

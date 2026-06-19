@@ -1,5 +1,5 @@
 /* AGF José Bonifácio — Atendimento — cache enxuto da casca visual. */
-const CACHE='agf-atende-v2';
+const CACHE='agf-atende-v4';
 const STATIC=['/atende/','/atende/index.html','/atende/manifest.webmanifest','/shared/ui/agf-ui.css','/shared/ui/agf-ui.js','/shared/auth/agf-auth-client.js','/assets/pwa/atende/icon-192.png'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>Promise.all(STATIC.map(url=>cache.add(url).catch(()=>{})))));});
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE&&key.startsWith('agf-atende-')).map(key=>caches.delete(key)))),self.clients.claim()])));

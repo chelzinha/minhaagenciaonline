@@ -22,3 +22,9 @@ Organizar os modulos digitais da AGF, incluindo frontends, Apps Script, document
 Este repositorio e a fonte viva do codigo tecnico.
 
 Toda alteracao relevante deve atualizar documentacao, changelog e gerar commit.
+
+## Modulo Atende
+
+O backend Apps Script do `/atende` fica em `apps-script/atende/`.
+
+Ele importa JSONs do Correios Atende, cruza atendimentos e objetos captados por codigo de objeto postal e alimenta a aba `Postagens`, que e consumida pelo painel atual.

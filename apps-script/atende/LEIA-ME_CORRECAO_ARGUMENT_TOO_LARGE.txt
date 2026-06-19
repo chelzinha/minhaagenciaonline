@@ -1,0 +1,34 @@
+CORRECAO APLICADA - ATENDE / ARGUMENT TOO LARGE
+
+Data: 2026-06-17
+
+O que foi corrigido:
+1. buildImportResponse_ deixou de chamar buscarDados() depois de importar JSON.
+   Antes, a importacao tentava devolver toda a aba Postagens para o front.
+
+2. buscarDadosPorData_ deixou de cachear consultas sem filtro de data.
+   Payloads grandes nao devem ir para CacheService.
+
+3. Foi criado salvarCacheSeguro_ para salvar no CacheService somente quando:
+   - houver filtro de data;
+   - o JSON serializado tiver ate ATENDE_CONFIG.CACHE_MAX_CHARS.
+
+4. salvarRawJson_ deixou de gravar o JSON completo nas abas RAW.
+   Agora grava hash, resumo e tamanho do payload.
+   Isso reduz risco de erro de tamanho e exposicao de dados sensiveis.
+
+5. O Index.html foi ajustado para, apos importar, recarregar os dados pelo fluxo normal,
+   em vez de esperar que a resposta da importacao traga todas as linhas.
+
+Atencao sensivel:
+Os JSONs do Correios Atende podem conter nomes, documentos, telefones, enderecos,
+objetos postais e dados operacionais. Nao subir JSONs reais no GitHub.
+
+Teste recomendado:
+1. Substituir os arquivos do Apps Script por estes arquivos.
+2. Salvar o projeto.
+3. Rodar setupInicial().
+4. Testar primeiro um JSON pequeno.
+5. Testar o JSON de atendimentos.
+6. Testar o JSON de objetos captados.
+7. Conferir abas Postagens, LOG_IMPORTACOES e ERROS.

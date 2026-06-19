@@ -27,3 +27,63 @@ Cuidados:
 - Nao registrar IDs completos de planilhas em documentacao publica do repositorio.
 - Documentar qualquer nova aba, coluna ou status antes de alterar codigo.
 - Avaliar dados pessoais e operacionais antes de expor resposta ao frontend.
+
+## Modulo Atende - planilha de postagens
+
+Abas esperadas criadas por `setupInicial()`:
+- `CONFIG`
+- `RAW_ATENDIMENTOS`
+- `RAW_OBJETOS_CAPTADOS`
+- `Postagens`
+- `EVENTOS_OBJETOS`
+- `LOG_IMPORTACOES`
+- `ERROS`
+
+Aba principal:
+- `Postagens` e a fonte do front `/atende`.
+- `Objeto` e a chave anti-duplicidade.
+- O JSON de atendimentos cria a base por item postal.
+- O JSON de objetos captados enriquece dados pelo `codObjeto`.
+
+Campos obrigatorios de `Postagens`:
+- Data
+- Atendente
+- Objeto
+- codigo
+- descricao
+- Categoria
+- Contrato
+- Cartão Postagem
+- Remetente
+- Rem. Documento
+- Valor
+- Forma Pagamento
+- Peso (kg)
+- Larg. (cm)
+- Comp. (cm)
+- Alt. (cm)
+- Diâm. (cm)
+- VD
+- Formato
+- Rem. CEP
+- Rem. Logradouro
+- Rem. Número
+- Rem. Comp
+- Rem. Bairro
+- Rem. Cidade
+- Rem. UF
+- Rem. Telefone
+- Dest. Nome
+- Dest. Documento
+- Dest. CEP
+- Dest. Logradouro
+- Dest. Número
+- Dest. Complemento
+- Dest. Bairro
+- Dest. Cidade
+- Dest. UF
+- Tipo Postagem
+- Status
+- Prev. Entrega
+- tipo
+- formaPagamento
