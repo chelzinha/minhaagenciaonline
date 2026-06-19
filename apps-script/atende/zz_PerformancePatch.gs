@@ -23,6 +23,7 @@ function buscarDadosPorData_(params) {
 
 function buscarDadosPayloadRapido_(params) {
   var startMs = Date.now();
+  var marks = {};
   params = params || {};
 
   var data = safe_(params.data || params.date).trim();
@@ -34,8 +35,8 @@ function buscarDadosPayloadRapido_(params) {
     dataFim = data;
   }
 
-  var inicioKey = dateFilterKey_(dataInicio);
-  var fimKey = dateFilterKey_(dataFim);
+  var inicioKey = fastDateKeyAtende_(dataInicio);
+  var fimKey = fastDateKeyAtende_(dataFim);
   var temFiltroData = !!(inicioKey || fimKey);
 
   if (inicioKey && fimKey && inicioKey > fimKey) {
@@ -57,7 +58,7 @@ function buscarDadosPayloadRapido_(params) {
   }
 
   var version = PropertiesService.getScriptProperties().getProperty('ATENDE_CACHE_VERSION') || '0';
-  var cacheKey = ['atende:postagens-fast', version, inicioKey || 'ini', fimKey || 'fim'].join(':');
+  var cacheKey = ['atende:postagens-fast-v2', version, inicioKey || 'ini', fimKey || 'fim'].join(':');
 
   if (temFiltroData) {
     var cached = CacheService.getScriptCache().get(cacheKey);
@@ -69,14 +70,24 @@ function buscarDadosPayloadRapido_(params) {
       return cachedPayload;
     }
   }
+  marks.tempoCacheMs = Date.now() - startMs;
 
+  var tOpen = Date.now();
   var spreadsheet = getAtendeSpreadsheet_();
-  ensureAtendeStructure_(spreadsheet);
   var sheet = spreadsheet.getSheetByName(ATENDE_CONFIG.SHEETS.POSTAGENS);
+  if (!sheet) {
+    ensureAtendeStructure_(spreadsheet);
+    sheet = spreadsheet.getSheetByName(ATENDE_CONFIG.SHEETS.POSTAGENS);
+  }
+  marks.tempoAbrirPlanilhaMs = Date.now() - tOpen;
+
+  var tRead = Date.now();
   var matrix = temFiltroData
     ? readPostagensByDateRangeRapido_(sheet, inicioKey, fimKey)
     : readSheetMatrix_(sheet);
+  marks.tempoLerPlanilhaMs = Date.now() - tRead;
 
+  var tFormat = Date.now();
   var rows = matrix.rows.map(function(row) {
     var obj = {};
     matrix.headers.forEach(function(header, index) {
@@ -84,12 +95,17 @@ function buscarDadosPayloadRapido_(params) {
     });
     return obj;
   });
+  marks.tempoFormatarLinhasMs = Date.now() - tFormat;
+
+  var tColumns = Date.now();
+  var columns = buildColumns_(matrix.headers);
+  marks.tempoMontarColunasMs = Date.now() - tColumns;
 
   var metaLeitura = matrix.meta || {};
   var payload = {
     ok: true,
     rows: rows,
-    columns: buildColumns_(matrix.headers),
+    columns: columns,
     meta: {
       dataInicio: dataInicio,
       dataFim: dataFim,
@@ -100,6 +116,14 @@ function buscarDadosPayloadRapido_(params) {
       blocosLidos: metaLeitura.blocosLidos || 0,
       modoLeitura: metaLeitura.modoLeitura || (temFiltroData ? 'por_coluna_data_e_blocos' : 'matriz_completa'),
       cacheHit: false,
+      tempoCacheMs: marks.tempoCacheMs,
+      tempoAbrirPlanilhaMs: marks.tempoAbrirPlanilhaMs,
+      tempoLerPlanilhaMs: marks.tempoLerPlanilhaMs,
+      tempoLerDatasMs: metaLeitura.tempoLerDatasMs || 0,
+      tempoFiltrarDatasMs: metaLeitura.tempoFiltrarDatasMs || 0,
+      tempoLerBlocosMs: metaLeitura.tempoLerBlocosMs || 0,
+      tempoFormatarLinhasMs: marks.tempoFormatarLinhasMs,
+      tempoMontarColunasMs: marks.tempoMontarColunasMs,
       tempoMs: Date.now() - startMs
     }
   };
@@ -109,6 +133,7 @@ function buscarDadosPayloadRapido_(params) {
 }
 
 function readPostagensByDateRangeRapido_(sheet, inicioKey, fimKey) {
+  var startMs = Date.now();
   var lastRow = sheet.getLastRow();
   var lastCol = sheet.getLastColumn();
   var headers = lastCol
@@ -129,7 +154,11 @@ function readPostagensByDateRangeRapido_(sheet, inicioKey, fimKey) {
         totalPlanilha: 0,
         linhasCorrespondentes: 0,
         blocosLidos: 0,
-        modoLeitura: 'planilha_vazia'
+        modoLeitura: 'planilha_vazia',
+        tempoLerDatasMs: 0,
+        tempoFiltrarDatasMs: 0,
+        tempoLerBlocosMs: 0,
+        tempoLeituraTotalMs: Date.now() - startMs
       }
     };
   }
@@ -141,22 +170,27 @@ function readPostagensByDateRangeRapido_(sheet, inicioKey, fimKey) {
       totalPlanilha: full.rows.length,
       linhasCorrespondentes: full.rows.length,
       blocosLidos: 1,
-      modoLeitura: 'fallback_sem_coluna_data'
+      modoLeitura: 'fallback_sem_coluna_data',
+      tempoLeituraTotalMs: Date.now() - startMs
     };
     return full;
   }
 
   var totalRows = lastRow - 1;
+  var tDates = Date.now();
   var dataValues = sheet.getRange(2, dataIndex + 1, totalRows, 1).getValues();
-  var matched = [];
+  var tempoLerDatasMs = Date.now() - tDates;
 
+  var tFilter = Date.now();
+  var matched = [];
   dataValues.forEach(function(row, index) {
-    var rowKey = dateFilterKey_(row[0]);
+    var rowKey = fastDateKeyAtende_(row[0]);
     if (!rowKey) return;
     if (inicioKey && rowKey < inicioKey) return;
     if (fimKey && rowKey > fimKey) return;
     matched.push(index);
   });
+  var tempoFiltrarDatasMs = Date.now() - tFilter;
 
   if (!matched.length) {
     return {
@@ -167,7 +201,11 @@ function readPostagensByDateRangeRapido_(sheet, inicioKey, fimKey) {
         totalPlanilha: totalRows,
         linhasCorrespondentes: 0,
         blocosLidos: 0,
-        modoLeitura: 'por_coluna_data_sem_resultado'
+        modoLeitura: 'por_coluna_data_sem_resultado',
+        tempoLerDatasMs: tempoLerDatasMs,
+        tempoFiltrarDatasMs: tempoFiltrarDatasMs,
+        tempoLerBlocosMs: 0,
+        tempoLeituraTotalMs: Date.now() - startMs
       }
     };
   }
@@ -191,7 +229,7 @@ function readPostagensByDateRangeRapido_(sheet, inicioKey, fimKey) {
   if (blocks.length > 120) {
     var fullMatrix = readSheetMatrix_(sheet);
     var filteredRows = fullMatrix.rows.filter(function(row) {
-      var rowKey = dateFilterKey_(row[dataIndex]);
+      var rowKey = fastDateKeyAtende_(row[dataIndex]);
       if (!rowKey) return false;
       if (inicioKey && rowKey < inicioKey) return false;
       if (fimKey && rowKey > fimKey) return false;
@@ -202,11 +240,16 @@ function readPostagensByDateRangeRapido_(sheet, inicioKey, fimKey) {
       totalPlanilha: totalRows,
       linhasCorrespondentes: filteredRows.length,
       blocosLidos: blocks.length,
-      modoLeitura: 'fallback_muitos_blocos'
+      modoLeitura: 'fallback_muitos_blocos',
+      tempoLerDatasMs: tempoLerDatasMs,
+      tempoFiltrarDatasMs: tempoFiltrarDatasMs,
+      tempoLerBlocosMs: Date.now() - startMs - tempoLerDatasMs - tempoFiltrarDatasMs,
+      tempoLeituraTotalMs: Date.now() - startMs
     };
     return fullMatrix;
   }
 
+  var tBlocks = Date.now();
   var rows = [];
   blocks.forEach(function(block) {
     var rowStart = block[0];
@@ -214,6 +257,7 @@ function readPostagensByDateRangeRapido_(sheet, inicioKey, fimKey) {
     var numRows = rowEnd - rowStart + 1;
     rows = rows.concat(sheet.getRange(rowStart + 2, 1, numRows, headers.length).getValues());
   });
+  var tempoLerBlocosMs = Date.now() - tBlocks;
 
   return {
     headers: headers,
@@ -223,9 +267,41 @@ function readPostagensByDateRangeRapido_(sheet, inicioKey, fimKey) {
       totalPlanilha: totalRows,
       linhasCorrespondentes: matched.length,
       blocosLidos: blocks.length,
-      modoLeitura: 'por_coluna_data_e_blocos'
+      modoLeitura: 'por_coluna_data_e_blocos',
+      tempoLerDatasMs: tempoLerDatasMs,
+      tempoFiltrarDatasMs: tempoFiltrarDatasMs,
+      tempoLerBlocosMs: tempoLerBlocosMs,
+      tempoLeituraTotalMs: Date.now() - startMs
     }
   };
+}
+
+function fastDateKeyAtende_(value) {
+  if (!value) return '';
+
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+    return String(value.getFullYear()) + pad2Atende_(value.getMonth() + 1) + pad2Atende_(value.getDate());
+  }
+
+  var text = safe_(value).trim();
+  if (!text) return '';
+
+  var iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return iso[1] + iso[2] + iso[3];
+
+  var br = text.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (br) return br[3] + br[2] + br[1];
+
+  var parsed = new Date(text);
+  if (!isNaN(parsed.getTime())) {
+    return String(parsed.getFullYear()) + pad2Atende_(parsed.getMonth() + 1) + pad2Atende_(parsed.getDate());
+  }
+
+  return '';
+}
+
+function pad2Atende_(value) {
+  return String(value).padStart(2, '0');
 }
 
 function diagnosticarPerformancePainelRapido(params) {
