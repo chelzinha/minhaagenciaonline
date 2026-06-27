@@ -1,3 +1,7 @@
+/**
+ * Troca o authorization code por access_token + user_id.
+ * Endpoint: POST https://www.tiendanube.com/apps/authorize/token
+ */
 function exchangeCodeForToken_(code) {
   const cfg = getConfig_();
   if (!cfg.appId || !cfg.clientSecret) {
@@ -30,18 +34,84 @@ function exchangeCodeForToken_(code) {
   return JSON.parse(body);
 }
 
+/**
+ * Extrai o storeId do tokenData com fallback nos parâmetros da URL.
+ * A Nuvemshop retorna o ID em user_id. Fallbacks existem por precaução.
+ */
+function resolveOAuthStoreId_(tokenData, e) {
+  const params = (e && e.parameter) || {};
+  return String(
+    tokenData.user_id ||
+    tokenData.store_id ||
+    tokenData.storeId ||
+    params.user_id ||
+    params.store_id ||
+    params.storeId ||
+    ''
+  ).trim();
+}
+
+/**
+ * Busca nome e email da loja via GET /{storeId}/store.
+ * Chamada APÓS salvar o token, pois nuvemFetch_ precisa do registro em STORES.
+ * Retorna { name, email } — ambos podem vir vazios se a API não retornar.
+ */
+function fetchStoreInfo_(storeId) {
+  try {
+    const info = nuvemFetch_(storeId, 'get', '/store');
+    return {
+      name: String(
+        (info && (info.name || (Array.isArray(info.name) ? info.name[0] : ''))) || ''
+      ).trim(),
+      email: String((info && info.email) || '').trim()
+    };
+  } catch (err) {
+    appendLog_('WARN', 'oauth.fetchStoreInfo', storeId, '', 'Não foi possível buscar dados da loja via API', {
+      error: err.message || String(err)
+    });
+    return { name: '', email: '' };
+  }
+}
+
+/**
+ * Callback OAuth principal.
+ * Chamado pela Nuvemshop após o cliente autorizar o app na loja dele.
+ * URL de entrada: ?code=XYZ ou ?route=oauthCallback&code=XYZ
+ */
 function handleOAuthCallback_(e) {
   const code = (e.parameter && e.parameter.code) || '';
   if (!code) {
-    return asHtml_('Callback sem código', 'A Nuvemshop chamou o callback, mas o parâmetro <code>code</code> não veio.');
+    return asHtml_(
+      'Callback sem código',
+      'A Nuvemshop chamou o callback, mas o parâmetro <code>code</code> não veio.'
+    );
   }
 
   try {
+    // 1. Trocar code por token
     const tokenData = exchangeCodeForToken_(code);
-    const existing = getStoreById_(tokenData.user_id) || {};
+    const storeId = resolveOAuthStoreId_(tokenData, e);
 
+    if (!storeId || storeId === 'undefined' || storeId === 'null') {
+      appendLog_('ERROR', 'oauth.callback.storeId', '', '', 'Token recebido sem user_id/store_id. Loja não gravada.', {
+        tokenKeys: Object.keys(tokenData || {}),
+        scope: tokenData.scope || '',
+        hasAccessToken: !!tokenData.access_token
+      });
+      return asHtml_(
+        'Loja não identificada',
+        'A autorização retornou um token, mas não retornou o ID da loja. ' +
+        'A loja não foi gravada para evitar cadastro inválido. ' +
+        'Avise a AGF José Bonifácio para verificar os logs e reinstalar o aplicativo.'
+      );
+    }
+
+    // 2. Salvar token imediatamente para que nuvemFetch_ consiga chamar a API
+    const existing = getStoreById_(storeId) || {};
     upsertStore_({
-      USER_ID: tokenData.user_id,
+      USER_ID: storeId,
+      STORE_NAME: existing.STORE_NAME || '',
+      STORE_EMAIL: existing.STORE_EMAIL || '',
       ACCESS_TOKEN: tokenData.access_token,
       SCOPE: tokenData.scope || '',
       STATUS: 'ACTIVE',
@@ -53,16 +123,37 @@ function handleOAuthCallback_(e) {
       ID_CRM_REF: existing.ID_CRM_REF || ''
     });
 
-    appendLog_('INFO', 'oauth.callback', tokenData.user_id, '', 'Loja conectada com sucesso', {
-      scope: tokenData.scope || ''
+    // 3. Buscar nome e email da loja via API (agora que o token já está salvo)
+    const storeInfo = fetchStoreInfo_(storeId);
+
+    // 4. Atualizar com nome e email se encontrados
+    if (storeInfo.name || storeInfo.email) {
+      upsertStore_({
+        USER_ID: storeId,
+        STORE_NAME: storeInfo.name,
+        STORE_EMAIL: storeInfo.email
+      });
+    }
+
+    const displayName = storeInfo.name || ('Loja #' + storeId);
+
+    appendLog_('INFO', 'oauth.callback', storeId, '', 'Loja conectada com sucesso', {
+      storeName: storeInfo.name,
+      storeEmail: storeInfo.email,
+      scope: tokenData.scope || '',
+      hasAccessToken: !!tokenData.access_token
     });
 
     return asHtml_(
       'Loja conectada',
-      'A loja <code>' + tokenData.user_id + '</code> foi conectada com sucesso. Agora você já pode registrar webhooks e sincronizar pedidos.'
+      'A loja <strong>' + displayName + '</strong> (ID: <code>' + storeId + '</code>) foi conectada com sucesso. ' +
+      'A AGF José Bonifácio irá vincular esta loja ao seu cadastro e ativar a sincronização de pedidos em breve.'
     );
+
   } catch (err) {
-    appendLog_('ERROR', 'oauth.callback', '', '', err.message, {});
+    appendLog_('ERROR', 'oauth.callback', '', '', err.message, {
+      stack: err && err.stack ? String(err.stack).slice(0, 2000) : ''
+    });
     return asHtml_('Erro no callback', err.message);
   }
 }

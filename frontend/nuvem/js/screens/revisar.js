@@ -63,7 +63,10 @@ Screens.revisar = (function () {
     UI.showLoading('Gerando etiqueta...');
     try {
       await Api.savePedidoReview(_orderId, readReview());
-      await Api.gerarEtiqueta(_orderId, readReview());
+      const res = await Api.gerarEtiqueta(_orderId, readReview());
+      const nome = (res && res.sentPayload && res.sentPayload.destinatarioNome) || '';
+      document.getElementById('loadingText').textContent = 'Abrindo etiqueta para impressão...';
+      await UI.abrirEtiquetaPedidoParaImpressao(_orderId, res, nome);
       UI.hideLoading(); UI.toast('Etiqueta gerada com sucesso', 'success'); Router.navigate('/emitidas');
     } catch (e) { UI.hideLoading(); UI.toastError(e); }
   }

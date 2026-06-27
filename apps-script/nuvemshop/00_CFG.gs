@@ -19,6 +19,8 @@ const CFG = Object.freeze({
   HEADERS: {
     STORES: [
       'USER_ID',
+      'STORE_NAME',
+      'STORE_EMAIL',
       'ACCESS_TOKEN',
       'SCOPE',
       'STATUS',

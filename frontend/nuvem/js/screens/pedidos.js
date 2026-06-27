@@ -112,7 +112,10 @@ Screens.pedidos = (function () {
   async function gerarUm(orderId) {
     UI.showLoading('Gerando etiqueta...');
     try {
-      await Api.gerarEtiqueta(orderId, { formatoRotulo: selectedFormat() });
+      const res = await Api.gerarEtiqueta(orderId, { formatoRotulo: selectedFormat() });
+      const nome = (res && res.sentPayload && res.sentPayload.destinatarioNome) || '';
+      document.getElementById('loadingText').textContent = 'Abrindo etiqueta para impressão...';
+      await UI.abrirEtiquetaPedidoParaImpressao(orderId, res, nome);
       UI.hideLoading(); UI.toast('Etiqueta gerada com sucesso', 'success'); carregar();
     } catch (e) { UI.hideLoading(); UI.toastError(e); }
   }
