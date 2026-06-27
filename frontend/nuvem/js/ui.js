@@ -272,3 +272,64 @@ UI.openPrintHtml = function(html) {
   win.document.open(); win.document.write(html); win.document.close();
   setTimeout(() => { win.focus(); win.print(); }, 400);
 };
+
+// ============ NOME PADRONIZADO DE ARQUIVO ============
+UI.slugifyName = function(nome) {
+  const s = String(nome || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // remove acentos
+    .replace(/[^A-Za-z0-9]+/g, '')                     // só alfanumérico
+    .slice(0, 40);
+  return s || 'Cliente';
+};
+UI.dateStampDDMMYYYY = function(value) {
+  const dt = value ? new Date(value) : new Date();
+  const real = isNaN(dt.getTime()) ? new Date() : dt;
+  const pad = n => String(n).padStart(2, '0');
+  return pad(real.getDate()) + pad(real.getMonth() + 1) + real.getFullYear();
+};
+// Ex.: Etiqueta_RachelCavalcante_27062026.pdf
+UI.buildEtiquetaFileName = function(nome, value, prefixo) {
+  return (prefixo || 'Etiqueta') + '_' + UI.slugifyName(nome) + '_' + UI.dateStampDDMMYYYY(value) + '.pdf';
+};
+
+// ============ ABRIR PDF (base64) PARA IMPRESSÃO ============
+UI.openBase64Pdf = function(base64, filename) {
+  try {
+    const bytes = UI.base64ToUint8Array(base64);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!win) {
+      // popup bloqueado → baixa com o nome padronizado
+      const link = document.createElement('a');
+      link.href = url; link.download = filename || 'etiqueta.pdf';
+      document.body.appendChild(link); link.click();
+      setTimeout(() => link.remove(), 100);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) {
+    UI.downloadBase64Pdf(base64, filename);
+  }
+};
+
+// Abre a etiqueta de um pedido logo após gerar. Usa o pdfBase64 do retorno da
+// geração quando disponível; senão busca via reimpressão. Falha de impressão
+// não invalida a geração (que já foi concluída).
+UI.abrirEtiquetaPedidoParaImpressao = async function(orderId, gerarResult, nome) {
+  let base64 = (gerarResult && gerarResult.result && gerarResult.result.pdfBase64) || '';
+  if (!base64) {
+    try {
+      const data = await Api.reimprimirEtiquetaPedido(orderId);
+      base64 = (data && data.pdfBase64) || '';
+    } catch (e) {
+      UI.toast('Etiqueta gerada, mas não foi possível abrir o PDF agora. Use a aba Emitidas para imprimir.', 'error');
+      return false;
+    }
+  }
+  if (!base64) {
+    UI.toast('Etiqueta gerada. Use a aba Emitidas para imprimir.', 'success');
+    return false;
+  }
+  UI.openBase64Pdf(base64, UI.buildEtiquetaFileName(nome));
+  return true;
+};

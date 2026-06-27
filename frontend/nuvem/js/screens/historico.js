@@ -345,7 +345,16 @@ Screens.emitidas = (function () {
 
   function syncToolbar(){ const total=_selected.size; const el=document.getElementById('histCount'); if(el) el.textContent= total? total+' selecionado(s)':'Nenhum selecionado'; document.querySelectorAll('[data-hbulk]').forEach(b=>b.disabled=!total); }
   async function carregar(){ UI.showLoading('Carregando emitidas...'); try{ const d=await Api.listHistorico({bucket:'emitidos', q:document.getElementById('histBusca').value.trim(), limit:200}); _items=d.items||[]; _selected=new Set(); render(); UI.hideLoading(); }catch(e){UI.hideLoading();UI.toastError(e);} }
-  async function baixarDocs(orderIds,tipo){ UI.showLoading('Preparando PDFs...'); try{ const d=await Api.exportarDocumentosLote(orderIds,tipo); UI.hideLoading(); if(d.errors&&d.errors.length) UI.toast('Alguns pedidos falharam no preparo', 'error'); if(!d.docs||!d.docs.length) throw new Error('Nenhum documento disponível.'); const name = tipo==='declaracao' ? 'declaracoes_lote.pdf' : 'etiquetas_lote.pdf'; await UI.mergeAndDownloadPdfs(d.docs,name); }catch(e){UI.hideLoading();UI.toastError(e);} }
+  function nomeArquivoDocs_(orderIds, tipo){
+    const prefixo = tipo==='declaracao' ? 'Declaracao' : 'Etiqueta';
+    if (orderIds.length === 1) {
+      const it = _items.find(x => String(x.orderId) === String(orderIds[0]));
+      const nome = it ? (it.destNome || it.customerName || '') : '';
+      return UI.buildEtiquetaFileName(nome, it && it.dataHora, prefixo);
+    }
+    return prefixo + 's_lote_' + UI.dateStampDDMMYYYY() + '.pdf';
+  }
+  async function baixarDocs(orderIds,tipo){ UI.showLoading('Preparando PDFs...'); try{ const d=await Api.exportarDocumentosLote(orderIds,tipo); UI.hideLoading(); if(d.errors&&d.errors.length) UI.toast('Alguns pedidos falharam no preparo', 'error'); if(!d.docs||!d.docs.length) throw new Error('Nenhum documento disponível.'); await UI.mergeAndDownloadPdfs(d.docs, nomeArquivoDocs_(orderIds, tipo)); }catch(e){UI.hideLoading();UI.toastError(e);} }
   async function baixarSelecionadas(tipo){ return baixarDocs(Array.from(_selected), tipo); }
   async function gerarPlp(){ UI.showLoading('Gerando lista de postagem...'); try{ const d=await Api.gerarPlpLote(Array.from(_selected)); UI.hideLoading(); UI.openPrintHtml(d.html); }catch(e){ UI.hideLoading(); UI.toastError(e);} }
   async function sincronizarTracking(orderIds){ UI.showLoading('Sincronizando rastreio...'); try{ const res = await Api.syncTrackingPedido(orderIds); UI.hideLoading(); UI.toast('Rastreio sincronizado: ' + (res.success || 0) + ' sucesso(s)', 'success'); carregar(); }catch(e){ UI.hideLoading(); UI.toastError(e);} }

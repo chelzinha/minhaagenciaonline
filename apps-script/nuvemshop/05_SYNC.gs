@@ -75,10 +75,8 @@ function parseNfeListValue_(value) {
   }
 }
 
-function extractInvoiceFields_(storeId, orderId) {
-  const metafields = getOrderNfeMetafields_(storeId, orderId);
-  const row = Array.isArray(metafields) && metafields.length ? metafields[0] : null;
-  const invoiceList = row ? parseNfeListValue_(row.value) : [];
+function extractInvoiceFieldsFromValue_(value) {
+  const invoiceList = parseNfeListValue_(value);
 
   if (invoiceList.length) {
     const first = invoiceList[0] || {};
@@ -98,6 +96,41 @@ function extractInvoiceFields_(storeId, orderId) {
     invoiceLink: '',
     invoiceJson: '[]'
   };
+}
+
+function extractInvoiceFields_(storeId, orderId) {
+  const metafields = getOrderNfeMetafields_(storeId, orderId);
+  const row = Array.isArray(metafields) && metafields.length ? metafields[0] : null;
+  return extractInvoiceFieldsFromValue_(row ? row.value : '');
+}
+
+/**
+ * Busca, em poucas chamadas, os metafields de NF-e de TODOS os pedidos da loja
+ * e devolve um mapa owner_id -> value. Evita 1 chamada por pedido no sync.
+ * Retorna null se a busca em lote falhar (o chamador faz fallback por pedido).
+ */
+function getAllOrderNfeMetafieldMap_(storeId, perPage) {
+  try {
+    const map = {};
+    const pp = Math.min(Math.max(Number(perPage) || 200, 50), 200);
+    let page = 1;
+    for (let i = 0; i < 5; i++) { // teto de segurança: 5 páginas (até 1000 NFs)
+      const list = nuvemFetch_(storeId, 'get', '/metafields/orders', null, {
+        namespace: 'nfe', key: 'list', per_page: pp, page: page, fields: 'owner_id,value'
+      });
+      const arr = Array.isArray(list) ? list : (list.items || []);
+      if (!arr.length) break;
+      arr.forEach(function(mf) {
+        if (mf && mf.owner_id != null) map[String(mf.owner_id)] = mf.value;
+      });
+      if (arr.length < pp) break;
+      page++;
+    }
+    return map;
+  } catch (err) {
+    appendLog_('WARN', 'sync.metafields.batch', storeId, '', 'Falha ao buscar metafields NF em lote; usando fallback por pedido', { error: err.message || String(err) });
+    return null;
+  }
 }
 
 function buildDeclarationItemsFromOrder_(order) {
@@ -126,10 +159,14 @@ function normalizeOrder_(storeId, order, invoiceFields) {
   const shippingFields = extractShippingFields_(order);
   const declarationItems = buildDeclarationItemsFromOrder_(order);
 
-  const customerName = order.contact_name || shippingAddress.name || customer.name || order.billing_name || '';
-  const customerEmail = order.contact_email || customer.email || '';
-  const customerPhone = order.contact_phone || shippingAddress.phone || customer.phone || order.billing_phone || '';
-  const customerDocument = order.contact_identification || customer.identification || '';
+  // Pedidos novos (Nuvem Envio) trazem o destinatário em fulfillment_orders[].recipient,
+  // não em order.shipping_address. Usamos como fallback para não perder telefone/nome.
+  const fulfillmentRecipient = (fulfillmentOrdersRaw[0] && fulfillmentOrdersRaw[0].recipient) || {};
+
+  const customerName = order.contact_name || shippingAddress.name || customer.name || fulfillmentRecipient.name || order.billing_name || '';
+  const customerEmail = order.contact_email || customer.email || fulfillmentRecipient.email || '';
+  const customerPhone = order.contact_phone || shippingAddress.phone || customer.phone || fulfillmentRecipient.phone || order.billing_phone || '';
+  const customerDocument = order.contact_identification || customer.identification || fulfillmentRecipient.identifier || '';
 
   return {
     STORE_ID: String(storeId),
@@ -144,8 +181,8 @@ function normalizeOrder_(storeId, order, invoiceFields) {
     CUSTOMER_EMAIL: customerEmail,
     CUSTOMER_PHONE: customerPhone,
     CUSTOMER_DOCUMENT: customerDocument,
-    SHIPPING_NAME: shippingAddress.name || customerName,
-    SHIPPING_PHONE: shippingAddress.phone || customerPhone,
+    SHIPPING_NAME: shippingAddress.name || fulfillmentRecipient.name || customerName,
+    SHIPPING_PHONE: shippingAddress.phone || fulfillmentRecipient.phone || customerPhone,
     ZIP: shippingAddress.zipcode || shippingAddress.zip || order.billing_zipcode || '',
     ADDRESS: shippingAddress.address || order.billing_address || '',
     NUMBER: shippingAddress.number || order.billing_number || '',
@@ -241,6 +278,10 @@ function syncLatestOrders_(storeId, perPage) {
     orderIds: ids
   });
 
+  // Busca os metafields de NF de todos os pedidos de uma vez (1-2 chamadas)
+  // em vez de 1 por pedido. nfeMap = null sinaliza fallback por pedido.
+  const nfeMap = getAllOrderNfeMetafieldMap_(storeId, perPage);
+
   let count = 0;
   const processed = [];
   const failed = [];
@@ -250,8 +291,15 @@ function syncLatestOrders_(storeId, perPage) {
     if (!orderId) return;
 
     try {
-      const fullOrder = getOrder_(storeId, orderId);
-      const invoiceFields = extractInvoiceFields_(storeId, orderId);
+      // A listagem /orders já retorna o pedido completo (products, customer,
+      // shipping_address) com aggregates=fulfillment_orders. Só refazemos a
+      // chamada por pedido se o resumo vier sem itens.
+      const fullOrder = (Array.isArray(orderSummary.products) && orderSummary.products.length)
+        ? orderSummary
+        : getOrder_(storeId, orderId);
+      const invoiceFields = nfeMap
+        ? extractInvoiceFieldsFromValue_(nfeMap[String(orderId)])
+        : extractInvoiceFields_(storeId, orderId);
       const orderRow = normalizeOrder_(storeId, fullOrder, invoiceFields);
       const itemRows = normalizeOrderItems_(storeId, fullOrder);
 

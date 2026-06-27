@@ -160,12 +160,35 @@ function action_gerarEtiqueta_(params) {
 
 function action_syncTrackingPedido_(params) {
   var storeId = _sessionStoreId_(params);
-  var orderId = String(params.orderId || '').trim();
-  if (!orderId) throw new Error('orderId obrigatório.');
-  var row = getOrderRowById_(orderId);
-  if (!row || String(row.STORE_ID || '') !== storeId) throw new Error('Pedido não encontrado ou sem permissão.');
-  if (!row.POSTAGENS_CODIGO_OBJETO) throw new Error('Pedido sem código de rastreio para sincronizar.');
-  return syncTrackingBackToNuvemshopByOrderId_(orderId, String(row.POSTAGENS_CODIGO_OBJETO || ''), { status:'DISPATCHED', notifyCustomer:true });
+
+  // O front envia orderIds (array). Aceitamos também orderId (singular) por compat.
+  var orderIds = Array.isArray(params.orderIds) ? params.orderIds.slice() : [];
+  if (!orderIds.length && params.orderId) orderIds = [params.orderId];
+  orderIds = orderIds.map(function(id) { return String(id || '').trim(); }).filter(Boolean);
+  if (!orderIds.length) throw new Error('Informe ao menos um pedido para sincronizar.');
+
+  var results = [];
+  var errors = [];
+
+  orderIds.forEach(function(orderId) {
+    try {
+      var row = getOrderRowById_(orderId);
+      if (!row || String(row.STORE_ID || '') !== storeId) throw new Error('Pedido não encontrado ou sem permissão.');
+      if (!row.POSTAGENS_CODIGO_OBJETO) throw new Error('Pedido sem código de rastreio para sincronizar.');
+      var sync = syncTrackingBackToNuvemshopByOrderId_(orderId, String(row.POSTAGENS_CODIGO_OBJETO || ''), { status:'DISPATCHED', notifyCustomer:true });
+      results.push({ orderId: orderId, ok: true, fulfillmentOrderId: (sync && sync.fulfillmentOrderId) || '' });
+    } catch (err) {
+      errors.push({ orderId: orderId, ok: false, error: err.message || String(err) });
+    }
+  });
+
+  return {
+    total: orderIds.length,
+    success: results.length,
+    failed: errors.length,
+    results: results,
+    errors: errors
+  };
 }
 
 function action_gerarEtiquetaLote_(params) {
