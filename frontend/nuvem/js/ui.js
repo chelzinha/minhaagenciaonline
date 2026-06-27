@@ -34,6 +34,15 @@ const UI = (function () {
     el.setAttribute('aria-hidden', 'true');
     setBusyState(false);
   }
+  // Libera o scroll do body se não houver nenhum overlay realmente visível.
+  // Evita que um modal/loading mal fechado deixe overflow:hidden preso.
+  function repairScrollLock() {
+    const overlay = document.querySelector('.modal.show, .track-modal.show, .loading.show');
+    if (!overlay) {
+      document.body.classList.remove('modal-open');
+      document.body.classList.remove('is-busy');
+    }
+  }
 
   // ============ TOAST ============
   let _toastTimer = null;
@@ -223,7 +232,7 @@ const UI = (function () {
   }
 
   return {
-    showLoading, hideLoading, forceHideLoading,
+    showLoading, hideLoading, forceHideLoading, repairScrollLock,
     toast, toastError,
     confirm,
     fmtCep, fmtCpfCnpj, fmtPhone, fmtMoney, fmtDateTimeBr,

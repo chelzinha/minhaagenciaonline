@@ -30,7 +30,20 @@ const Router = (function () {
       if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
   }
+  // Ao trocar de tela, fecha overlays presos (modal de rastreio, confirmação,
+  // loading) e libera o scroll do body. Sem isso, navegar com um modal aberto
+  // deixava body.modal-open ativo e travava o scroll em todas as abas.
+  function clearTransientUi_() {
+    document.querySelectorAll('.track-modal.show, .modal.show').forEach(function (m) {
+      m.classList.remove('show');
+      m.setAttribute('aria-hidden', 'true');
+    });
+    document.body.classList.remove('modal-open');
+    if (window.UI && UI.forceHideLoading) UI.forceHideLoading();
+    else document.body.classList.remove('is-busy');
+  }
   function render() {
+    clearTransientUi_();
     const parsed = parseHash();
     _params = parsed.params;
     const def = ROUTES[parsed.route];
