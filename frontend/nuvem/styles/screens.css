@@ -2110,3 +2110,76 @@
     white-space: normal;
   }
 }
+
+/* ============================================================
+   Aba Emitidas — estilo Histórico (v1.3)
+   Chips de serviço, linha de metadados, chip de status de rastreio
+   ============================================================ */
+
+/* Chips de serviço (SEDEX/PAC) */
+.hist-service-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.hist-service-sedex { background: #fde68a; color: #92400e; }
+.hist-service-pac { background: var(--nv-50, #e6eef5); color: var(--nv); }
+.hist-service-outro { background: #e5e7eb; color: #374151; }
+
+/* Linha de metadados (destinatário • local • data) */
+.hist-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 2px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.hist-meta-place { font-weight: 600; color: var(--text); }
+.hist-meta-date { color: var(--muted); }
+.hist-meta-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--line);
+  display: inline-block;
+}
+
+/* Slot do chip de status (preenchido async) */
+.track-status-slot {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Chip de status de rastreio na lista */
+.track-status-list-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.track-status-list-chip .material-symbols-rounded { font-size: 16px; }
+.track-status-list-chip:hover { filter: brightness(0.97); }
+.track-status-ok { background: var(--ok-bg); color: var(--ok); border-color: var(--ok-bg); }
+.track-status-warn { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-bg); }
+.track-status-err { background: var(--err-bg); color: var(--err); border-color: var(--err-bg); }
+.track-status-info { background: var(--info-bg); color: var(--info); border-color: var(--info-bg); }
+.track-status-postado { background: #e5e7eb; color: #374151; border-color: #e5e7eb; }

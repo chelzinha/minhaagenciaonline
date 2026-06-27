@@ -52,6 +52,9 @@ const Api = (function () {
     exportarDocumentosLote: (orderIds, tipo) => call('exportarDocumentosLote', { orderIds, tipo }),
     gerarPlpLote: (orderIds) => call('gerarPlpLote', { orderIds }),
     excluirEtiquetaPedido: (orderId) => call('excluirEtiquetaPedido', { orderId }),
-    syncTrackingPedido: (orderIds) => call('syncTrackingPedido', { orderIds: orderIds || [] })
+    syncTrackingPedido: (orderIds) => call('syncTrackingPedido', { orderIds: orderIds || [] }),
+    // Rastreio ao vivo dos Correios. O backend (action rastrearObjetoPedido) resolve o
+    // código a partir do orderId e valida a permissão da loja, então passamos o orderId.
+    rastrearObjeto: (orderId) => call('rastrearObjetoPedido', { orderId })
   };
 })();

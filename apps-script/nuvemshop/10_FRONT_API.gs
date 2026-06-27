@@ -40,6 +40,12 @@ function sanitizeOrderListItem_(row) {
     reviewUpdatedAt: row.REVIEW_UPDATED_AT || '',
     hasReview: !!String(row.REVIEW_JSON || '').trim(),
     erro: row.POSTAGENS_ERRO || '',
+    // Campos para WhatsApp e rastreio (aba Emitidas estilo Histórico)
+    destNome: row.SHIPPING_NAME || row.CUSTOMER_NAME || '',
+    destCelular: row.SHIPPING_PHONE || row.CUSTOMER_PHONE || '',
+    destCidade: row.CITY || '',
+    destUf: provinceToUf_(row.PROVINCE || ''),
+    dataHora: row.POSTAGENS_UPDATED_AT || row.UPDATED_AT || row.CREATED_AT || '',
     trackingSyncStatus: row.NUVEMSHOP_TRACKING_SYNC_STATUS || '',
     trackingSyncError: row.NUVEMSHOP_TRACKING_SYNC_ERROR || '',
     trackingSyncAt: row.NUVEMSHOP_TRACKING_SYNC_AT || ''
