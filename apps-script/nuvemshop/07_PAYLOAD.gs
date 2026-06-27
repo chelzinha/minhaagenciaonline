@@ -183,12 +183,28 @@ function buildPackagingSuggestion_(orderRow, itemRows) {
   };
 }
 
+/**
+ * Normaliza um telefone brasileiro para o formato aceito pelos Correios:
+ * no máximo 11 dígitos (DDD + 9). A Nuvemshop costuma enviar o número com o
+ * código do país (ex: "+5585988888489" -> 13 dígitos), o que faz a pré-postagem
+ * falhar com "Excedeu tamanho celular destinatário.".
+ */
+function normalizeCelularBr_(value) {
+  var d = digitsOnly_(value);
+  if (!d) return '';
+  // Remove o código do país (55) quando vier com 12 ou 13 dígitos (55 + DDD + 8/9).
+  if (d.length > 11 && d.indexOf('55') === 0) d = d.slice(2);
+  // Trava final: nunca enviar mais que 11 dígitos.
+  if (d.length > 11) d = d.slice(-11);
+  return d;
+}
+
 function buildDestinatarioPayload_(orderRow) {
   const rawOrder = parseJsonSafe_(orderRow.RAW_JSON, {});
   const rawCustomer = rawOrder.customer || {};
   const rawDefaultAddress = rawCustomer.default_address || {};
 
-  const telefone = digitsOnly_(orderRow.SHIPPING_PHONE) || digitsOnly_(orderRow.CUSTOMER_PHONE) || digitsOnly_(rawDefaultAddress.phone) || '';
+  const telefone = normalizeCelularBr_(orderRow.SHIPPING_PHONE) || normalizeCelularBr_(orderRow.CUSTOMER_PHONE) || normalizeCelularBr_(rawDefaultAddress.phone) || '';
 
   return {
     nome: String(orderRow.SHIPPING_NAME || orderRow.CUSTOMER_NAME || ''),
