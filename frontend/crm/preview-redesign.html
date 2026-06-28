@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Preview Redesign — CRM AGF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/ui/agf-ui.css">
+<link rel="stylesheet" href="/crm/styles.css?v=redesign">
+<style>
+  body { padding-bottom: 80px; }
+  .preview-wrap { padding: 12px 16px 0; }
+  .section { padding: 18px 16px 4px; }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .section-head h2 { font-size: 14.5px; }
+  .section-head .sub { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+  .section-head a { font-size: 11.5px; color: var(--blue); font-weight: 700; text-decoration: none; }
+  .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .devnote { background: var(--navy); color: rgba(201,214,232,.9); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; text-align: center; padding: 6px 10px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="devnote">Preview visual do redesign · dados ilustrativos</div>
+
+<!-- TOPBAR -->
+<header class="crm-topbar">
+  <div class="crm-topbar-inner">
+    <a class="portal-btn" href="#" title="Voltar ao Portal AGF">
+      <span class="material-symbols-rounded">apps</span>
+    </a>
+    <a class="crm-brand" href="#">
+      <span class="brand-icon"><span class="material-symbols-rounded">hub</span></span>
+      <span><strong>CRM Comercial</strong><small>AGF JOSÉ BONIFÁCIO</small></span>
+    </a>
+    <div class="crm-top-actions">
+      <button class="icon-btn" type="button"><span class="material-symbols-rounded">refresh</span></button>
+      <div style="position:relative">
+        <button class="user-av user-av-md user-av-btn" id="user-av-btn" type="button" style="background:#0E9594">M</button>
+        <div class="user-menu" id="user-menu" style="display:none">
+          <div class="user-menu-hd">
+            <div class="user-av user-av-lg" style="background:#0E9594">M</div>
+            <div>
+              <div class="user-menu-name">Manu</div>
+              <div class="user-menu-role">Vendedora · Comercial</div>
+            </div>
+          </div>
+          <button class="user-menu-action" type="button">
+            <span class="material-symbols-rounded">logout</span>Sair
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- SECTION TABS -->
+<div class="preview-wrap">
+  <div class="tabs-bar">
+    <nav class="section-tabs">
+      <button class="active"><span class="material-symbols-rounded">dashboard</span>Dashboard</button>
+      <button><span class="material-symbols-rounded">view_kanban</span>Funil</button>
+      <button><span class="material-symbols-rounded">contacts</span>Prospects</button>
+    </nav>
+    <div class="tabs-actions">
+      <button class="tab-export-btn" id="export-btn" type="button">
+        <span class="material-symbols-rounded">ios_share</span><span class="tab-export-label">Exportar</span>
+      </button>
+      <div class="tab-export-menu" id="export-menu" style="display:none">
+        <button class="tab-export-opt" type="button">
+          <span class="material-symbols-rounded">image</span>Salvar como PNG
+        </button>
+        <button class="tab-export-opt" type="button">
+          <span class="material-symbols-rounded">print</span>Imprimir / PDF
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="context-filter-bar">
+    <div class="chip-filter">
+      <span class="material-symbols-rounded">person</span>
+      <span class="chip-value">Todos os responsáveis</span>
+      <span class="material-symbols-rounded chip-chevron">expand_more</span>
+      <div class="chip-dropdown-menu" hidden>
+        <button class="chip-option active">Todos os responsáveis</button>
+        <button class="chip-option">Manu</button>
+        <button class="chip-option">Carlos</button>
+      </div>
+    </div>
+    <div class="chip-filter">
+      <span class="material-symbols-rounded">tune</span>
+      <span class="chip-value">Todos os potenciais</span>
+      <span class="material-symbols-rounded chip-chevron">expand_more</span>
+      <div class="chip-dropdown-menu" hidden>
+        <button class="chip-option active">Todos os potenciais</button>
+        <button class="chip-option">Alto</button>
+        <button class="chip-option">Médio</button>
+      </div>
+    </div>
+    <div class="chip-filter">
+      <span class="material-symbols-rounded">location_on</span>
+      <span class="chip-value">Local</span>
+      <span class="material-symbols-rounded chip-chevron">expand_more</span>
+      <div class="chip-dropdown-menu" hidden>
+        <button class="chip-option active">Todos os locais</button>
+        <button class="chip-option">Centro</button>
+        <button class="chip-option">Jardim Paulista</button>
+        <button class="chip-option">Vila Mariana</button>
+        <button class="chip-option">Zona Norte</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FILA DE AÇÃO -->
+<section class="section">
+  <div class="section-head">
+    <h2>Sua fila de ação hoje</h2>
+    <a href="#">ver tudo →</a>
+  </div>
+  <div class="queue-card">
+    <div class="queue-item">
+      <div class="queue-bar urgent"></div>
+      <div class="queue-mid">
+        <div class="name">Renata Castro</div>
+        <div class="meta">Qualificado <span class="dot"></span> 6 dias sem contato</div>
+      </div>
+      <span class="badge urgent">atrasado</span>
+      <button class="queue-action" aria-label="Ligar">
+        <span class="material-symbols-rounded" style="font-size:16px">call</span>
+      </button>
+    </div>
+    <div class="queue-item">
+      <div class="queue-bar today"></div>
+      <div class="queue-mid">
+        <div class="name">Marcos Silveira</div>
+        <div class="meta">Negociação <span class="dot"></span> follow-up hoje</div>
+      </div>
+      <span class="badge today">hoje</span>
+      <button class="queue-action" aria-label="WhatsApp">
+        <span class="material-symbols-rounded" style="font-size:16px">chat</span>
+      </button>
+    </div>
+    <div class="queue-item">
+      <div class="queue-bar scheduled"></div>
+      <div class="queue-mid">
+        <div class="name">Juliana Tavares</div>
+        <div class="meta">Novo lead <span class="dot"></span> ligação agendada 14h</div>
+      </div>
+      <span class="badge scheduled">agendado</span>
+      <button class="queue-action" aria-label="Ligar">
+        <span class="material-symbols-rounded" style="font-size:16px">call</span>
+      </button>
+    </div>
+    <div class="queue-footer">+11 prospects aguardando ação esta semana</div>
+  </div>
+</section>
+
+<!-- KPIs -->
+<section class="section">
+  <div class="section-head">
+    <h2>Indicadores da semana</h2>
+    <span class="sub">vs. semana anterior</span>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card" style="background:linear-gradient(to bottom,#3A80C5 0 5px,#E2EFF7 5px 100%);">
+      <div class="label">Prospects ativos</div>
+      <div class="value num">221</div>
+      <div class="delta up">▲ 8% <span class="vs">sem.</span></div>
+    </div>
+    <div class="kpi-card" style="background:linear-gradient(to bottom,var(--warning) 0 5px,var(--warning-soft) 5px 100%);">
+      <div class="label">Conversão</div>
+      <div class="value num">5,8%</div>
+      <div class="delta up">▲ 0,4pp <span class="vs">sem.</span></div>
+    </div>
+    <div class="kpi-card" style="background:linear-gradient(to bottom,var(--blue) 0 5px,var(--sky) 5px 100%);">
+      <div class="label">Leads quentes</div>
+      <div class="value num">35</div>
+      <div class="delta up">▲ 6 <span class="vs">sem.</span></div>
+    </div>
+    <div class="kpi-card" style="background:linear-gradient(to bottom,var(--danger) 0 5px,var(--danger-soft) 5px 100%);">
+      <div class="label">Tempo 1º contato</div>
+      <div class="value num">2,9 dias</div>
+      <div class="delta down">▲ 0,6 dia <span class="vs">mais lento</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ALERTAS -->
+<section class="section">
+  <div class="section-head"><h2>Atenção da semana</h2></div>
+  <div class="alert-grid">
+    <div class="alert-tile">
+      <span class="ico" style="background:var(--danger-soft);color:var(--danger);">
+        <span class="material-symbols-rounded" style="font-size:17px">warning</span>
+      </span>
+      <span class="txt"><span class="n">14</span><br><span class="t">sem próxima ação</span></span>
+    </div>
+    <div class="alert-tile">
+      <span class="ico" style="background:var(--warning-soft);color:var(--warning);">
+        <span class="material-symbols-rounded" style="font-size:17px">schedule</span>
+      </span>
+      <span class="txt"><span class="n">22</span><br><span class="t">qualificados há 5+ dias</span></span>
+    </div>
+    <div class="alert-tile">
+      <span class="ico" style="background:var(--purple-soft);color:var(--purple);">
+        <span class="material-symbols-rounded" style="font-size:17px">person_add</span>
+      </span>
+      <span class="txt"><span class="n">3</span><br><span class="t">sem responsável</span></span>
+    </div>
+    <div class="alert-tile">
+      <span class="ico" style="background:var(--danger-soft);color:var(--danger);">
+        <span class="material-symbols-rounded" style="font-size:17px">local_fire_department</span>
+      </span>
+      <span class="txt"><span class="n">6</span><br><span class="t">quentes sem próxima ação</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ATIVIDADES VS META -->
+<section class="section">
+  <div class="section-head">
+    <h2>Atividades vs. meta</h2>
+    <span class="sub">esta semana</span>
+  </div>
+  <div class="activity-grid">
+    <div class="activity-card">
+      <div class="top">
+        <span class="act-ico" style="background:#E2EFF7;color:#3A80C5;">
+          <span class="material-symbols-rounded" style="font-size:14px">call</span>
+        </span>
+        <span class="label">Ligações</span>
+      </div>
+      <div class="ratio">12<span class="of">/30</span></div>
+      <div class="progress-track" style="margin-top:7px"><div class="progress-fill" style="width:40%;background:#3A80C5"></div></div>
+    </div>
+    <div class="activity-card">
+      <div class="top">
+        <span class="act-ico" style="background:var(--green-soft);color:var(--green);">
+          <span class="material-symbols-rounded" style="font-size:14px">chat</span>
+        </span>
+        <span class="label">WhatsApp</span>
+      </div>
+      <div class="ratio">16<span class="of">/20</span></div>
+      <div class="progress-track" style="margin-top:7px"><div class="progress-fill" style="width:80%;background:var(--green)"></div></div>
+    </div>
+    <div class="activity-card">
+      <div class="top">
+        <span class="act-ico" style="background:var(--orange-soft);color:var(--orange);">
+          <span class="material-symbols-rounded" style="font-size:14px">location_on</span>
+        </span>
+        <span class="label">Visitas</span>
+      </div>
+      <div class="ratio">3<span class="of">/10</span></div>
+      <div class="progress-track" style="margin-top:7px"><div class="progress-fill" style="width:30%;background:var(--orange)"></div></div>
+    </div>
+    <div class="activity-card">
+      <div class="top">
+        <span class="act-ico" style="background:var(--purple-soft);color:var(--purple);">
+          <span class="material-symbols-rounded" style="font-size:14px">description</span>
+        </span>
+        <span class="label">Propostas</span>
+      </div>
+      <div class="ratio">6<span class="of">/8</span></div>
+      <div class="progress-track" style="margin-top:7px"><div class="progress-fill" style="width:75%;background:var(--purple)"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- RESUMO POR RESPONSÁVEL -->
+<section class="section" style="padding-bottom:32px">
+  <div class="section-head"><h2>Resumo por responsável</h2></div>
+  <div class="rep-card">
+    <div class="rep-top"><span class="name">Manu</span><span class="total">174 em pipeline</span></div>
+    <div class="stack-bar">
+      <span style="width:49%;background:#ff751f"></span>
+      <span style="width:28%;background:#3b6fd8"></span>
+      <span style="width:14%;background:#ffb500"></span>
+      <span style="width:6%;background:#b14fd1"></span>
+      <span style="width:3%;background:#23976b"></span>
+    </div>
+    <div class="rep-legend">
+      <span class="li"><span class="dot" style="background:#ff751f"></span>Qualificado</span>
+      <span class="li"><span class="dot" style="background:#3b6fd8"></span>Contato</span>
+      <span class="li"><span class="dot" style="background:#ffb500"></span>Oportunidade</span>
+      <span class="li"><span class="dot" style="background:#b14fd1"></span>Negociação</span>
+      <span class="li"><span class="dot" style="background:#23976b"></span>Convertido</span>
+    </div>
+  </div>
+  <div class="rep-card">
+    <div class="rep-top"><span class="name">Carlos</span><span class="total">98 em pipeline</span></div>
+    <div class="stack-bar">
+      <span style="width:38%;background:#ff751f"></span>
+      <span style="width:32%;background:#3b6fd8"></span>
+      <span style="width:20%;background:#ffb500"></span>
+      <span style="width:7%;background:#b14fd1"></span>
+      <span style="width:3%;background:#23976b"></span>
+    </div>
+    <div class="rep-legend">
+      <span class="li"><span class="dot" style="background:#ff751f"></span>Qualificado</span>
+      <span class="li"><span class="dot" style="background:#3b6fd8"></span>Contato</span>
+      <span class="li"><span class="dot" style="background:#ffb500"></span>Oportunidade</span>
+      <span class="li"><span class="dot" style="background:#b14fd1"></span>Negociação</span>
+      <span class="li"><span class="dot" style="background:#23976b"></span>Convertido</span>
+    </div>
+  </div>
+</section>
+
+<!-- BOTTOM NAV -->
+<nav class="crm-bottom-nav">
+  <button><span class="material-symbols-rounded">home</span><small>Home</small></button>
+  <button class="active"><span class="material-symbols-rounded">explore</span><small>Prospects</small></button>
+  <button><span class="material-symbols-rounded">badge</span><small>CRM</small></button>
+  <button><span class="material-symbols-rounded">calendar_month</span><small>Agenda</small></button>
+</nav>
+
+<script>
+(function(){
+  document.querySelectorAll('.chip-filter').forEach(function(chip){
+    chip.addEventListener('click',function(e){
+      e.stopPropagation();
+      var menu=chip.querySelector('.chip-dropdown-menu');
+      var isOpen=!menu.hidden;
+      document.querySelectorAll('.chip-dropdown-menu').forEach(function(m){m.hidden=true;m.closest('.chip-filter').classList.remove('open');});
+      if(!isOpen){menu.hidden=false;chip.classList.add('open');}
+    });
+    chip.querySelectorAll('.chip-option').forEach(function(opt){
+      opt.addEventListener('click',function(e){
+        e.stopPropagation();
+        chip.querySelectorAll('.chip-option').forEach(function(o){o.classList.remove('active');});
+        opt.classList.add('active');
+        chip.querySelector('.chip-value').textContent=opt.textContent;
+        chip.querySelector('.chip-dropdown-menu').hidden=true;
+        chip.classList.remove('open');
+      });
+    });
+  });
+  document.addEventListener('click',function(){
+    document.querySelectorAll('.chip-dropdown-menu').forEach(function(m){m.hidden=true;if(m.closest('.chip-filter'))m.closest('.chip-filter').classList.remove('open');});
+    var um=document.getElementById('user-menu');if(um)um.style.display='none';
+    var em=document.getElementById('export-menu');if(em)em.style.display='none';
+  });
+})();
+// user menu toggle
+document.getElementById('user-av-btn').addEventListener('click',function(e){
+  e.stopPropagation();
+  var m=document.getElementById('user-menu');
+  m.style.display=m.style.display==='none'?'block':'none';
+});
+// export dropdown
+document.getElementById('export-btn').addEventListener('click',function(e){
+  e.stopPropagation();
+  var m=document.getElementById('export-menu');
+  m.style.display=m.style.display==='none'?'block':'none';
+});
+</script>
+</body>
+</html>

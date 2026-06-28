@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Preview Clientes — CRM AGF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/ui/agf-ui.css">
+<link rel="stylesheet" href="/crm/styles.css?v=redesign">
+<style>
+body { padding-bottom: 80px; }
+.preview-wrap { padding: 12px 16px 0; }
+.devnote { background: var(--navy); color: rgba(201,214,232,.9); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; text-align: center; padding: 6px 10px; font-weight: 600; }
+.filter-line1 { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.filter-line2 { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; margin-bottom: 10px; }
+.filter-line2::-webkit-scrollbar { display: none; }
+
+/* ── chips de curva (mesmos do funil) ── */
+.chip-curva-a { background:#E0F5F5; color:#0E9594; font-weight:700; font-size:10px; padding:2px 8px; border-radius:20px; display:inline-flex; align-items:center; }
+.chip-curva-b { background:var(--sky); color:var(--blue); font-weight:700; font-size:10px; padding:2px 8px; border-radius:20px; display:inline-flex; align-items:center; }
+.chip-curva-c { background:#F0F0F0; color:#888; font-weight:700; font-size:10px; padding:2px 8px; border-radius:20px; display:inline-flex; align-items:center; }
+/* ── chip de recomendação ── */
+.rec-chip { display:inline-flex; align-items:center; gap:3px; font-weight:700; font-size:10px; padding:2px 8px; border-radius:20px; }
+.rec-chip .material-symbols-rounded { font-size:12px; }
+
+/* ── card de cliente ── */
+.client-list { display: flex; flex-direction: column; gap: 8px; }
+.client-row {
+  display: flex; align-items: stretch; gap: 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-md); overflow: hidden;
+}
+.curva-bar { width: 4px; flex-shrink: 0; background: var(--cv,#CBD5E1); }
+.c-body { flex: 1; min-width: 0; padding: 10px 4px 10px 11px; }
+.c-name { font-size: 14px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-sub { display: flex; align-items: center; gap: 6px; margin-top: 3px; flex-wrap: wrap; }
+.c-contact { font-size: 12px; color: var(--muted); font-weight: 600; }
+.c-meta { display: flex; align-items: center; gap: 4px 12px; margin-top: 7px; flex-wrap: wrap; }
+.c-meta-item { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); font-weight: 600; }
+.c-meta-item .material-symbols-rounded { font-size: 13px; opacity: .8; }
+.c-meta-item strong { color: var(--text); font-weight: 800; }
+.c-meta-item.warn { color: var(--warning); }
+.c-meta-item.warn strong { color: var(--warning); }
+.c-meta-item.danger { color: var(--danger); }
+.c-meta-item.danger strong { color: var(--danger); }
+.c-actions { display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 8px 10px 8px 4px; flex-shrink: 0; }
+
+.fab-add { position: fixed; bottom: 76px; right: 16px; width: 50px; height: 50px; border-radius: 50%; background: var(--accent); color: #fff; border: none; box-shadow: 0 4px 16px rgba(14,149,148,.40); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 50; }
+.fab-add .material-symbols-rounded { font-size: 24px; }
+</style>
+</head>
+<body>
+
+<div class="devnote">Preview Clientes · dados ilustrativos</div>
+
+<header class="crm-topbar">
+  <div class="crm-topbar-inner">
+    <a class="portal-btn" href="#" title="Voltar ao Portal AGF">
+      <span class="material-symbols-rounded">apps</span>
+    </a>
+    <a class="crm-brand" href="#">
+      <span class="brand-icon"><span class="material-symbols-rounded">hub</span></span>
+      <span><strong>CRM Comercial</strong><small>AGF JOSÉ BONIFÁCIO</small></span>
+    </a>
+    <div class="crm-top-actions">
+      <button class="icon-btn" type="button"><span class="material-symbols-rounded">refresh</span></button>
+      <div style="position:relative">
+        <button class="user-av user-av-md user-av-btn" id="user-av-btn" type="button" style="background:#0E9594">M</button>
+        <div class="user-menu" id="user-menu" style="display:none">
+          <div class="user-menu-hd">
+            <div class="user-av user-av-lg" style="background:#0E9594">M</div>
+            <div>
+              <div class="user-menu-name">Manu</div>
+              <div class="user-menu-role">Vendedora · Comercial</div>
+            </div>
+          </div>
+          <button class="user-menu-action" type="button">
+            <span class="material-symbols-rounded">logout</span>Sair
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="preview-wrap">
+
+  <!-- Tabs -->
+  <div class="tabs-bar">
+    <nav class="section-tabs">
+      <button><span class="material-symbols-rounded">dashboard</span>Dashboard</button>
+      <button><span class="material-symbols-rounded">view_kanban</span>Funil</button>
+      <button class="active"><span class="material-symbols-rounded">badge</span>Clientes</button>
+      <button><span class="material-symbols-rounded">auto_graph</span>Ações</button>
+    </nav>
+    <div class="tabs-actions">
+      <button class="tab-export-btn" id="export-btn" type="button">
+        <span class="material-symbols-rounded">ios_share</span><span class="tab-export-label">Exportar</span>
+      </button>
+      <div class="tab-export-menu" id="export-menu" style="display:none">
+        <button class="tab-export-opt" type="button">
+          <span class="material-symbols-rounded">image</span>Salvar como PNG
+        </button>
+        <button class="tab-export-opt" type="button">
+          <span class="material-symbols-rounded">print</span>Imprimir / PDF
+        </button>
+        <button class="tab-export-opt" type="button">
+          <span class="material-symbols-rounded">table_view</span>Exportar planilha
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Linha 1: busca -->
+  <div class="filter-line1">
+    <div class="chip-search" style="flex:1">
+      <span class="material-symbols-rounded">search</span>
+      <input type="text" placeholder="Buscar cliente…">
+    </div>
+  </div>
+
+  <!-- Linha 2: chips de filtro (scroll horizontal) -->
+  <div class="filter-line2">
+    <div class="chip-filter">
+      <span class="material-symbols-rounded">bar_chart</span>
+      <span class="chip-value">Curva</span>
+      <span class="material-symbols-rounded chip-chevron">expand_more</span>
+      <div class="chip-dropdown-menu" hidden>
+        <button class="chip-option active">Todas as curvas</button>
+        <button class="chip-option">Curva A</button>
+        <button class="chip-option">Curva B</button>
+        <button class="chip-option">Curva C</button>
+      </div>
+    </div>
+    <div class="chip-filter">
+      <span class="material-symbols-rounded">auto_awesome</span>
+      <span class="chip-value">Recomendação</span>
+      <span class="material-symbols-rounded chip-chevron">expand_more</span>
+      <div class="chip-dropdown-menu" hidden>
+        <button class="chip-option active">Todas</button>
+        <button class="chip-option">Postar esta semana</button>
+        <button class="chip-option">Contrato a renovar</button>
+        <button class="chip-option">Sem postagem +30 dias</button>
+        <button class="chip-option">Queda de faturamento</button>
+      </div>
+    </div>
+    <div class="chip-filter">
+      <span class="material-symbols-rounded">category</span>
+      <span class="chip-value">Segmento</span>
+      <span class="material-symbols-rounded chip-chevron">expand_more</span>
+      <div class="chip-dropdown-menu" hidden>
+        <button class="chip-option active">Todos os segmentos</button>
+        <button class="chip-option">Alimentação</button>
+        <button class="chip-option">Saúde</button>
+        <button class="chip-option">Varejo</button>
+        <button class="chip-option">Serviços</button>
+      </div>
+    </div>
+    <div class="chip-filter">
+      <span class="material-symbols-rounded">person</span>
+      <span class="chip-value">Responsável</span>
+      <span class="material-symbols-rounded chip-chevron">expand_more</span>
+      <div class="chip-dropdown-menu" hidden>
+        <button class="chip-option active">Todos</button>
+        <button class="chip-option">Manu</button>
+        <button class="chip-option">Carlos</button>
+      </div>
+    </div>
+    <div class="chip-filter">
+      <span class="material-symbols-rounded">location_on</span>
+      <span class="chip-value">Local</span>
+      <span class="material-symbols-rounded chip-chevron">expand_more</span>
+      <div class="chip-dropdown-menu" hidden>
+        <button class="chip-option active">Todos os locais</button>
+        <button class="chip-option">Centro</button>
+        <button class="chip-option">Jardim Paulista</button>
+        <button class="chip-option">Vila Mariana</button>
+        <button class="chip-option">Zona Norte</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header da lista -->
+  <div class="prospect-list-header">
+    <span><strong>148</strong> clientes</span>
+    <button class="sort-btn" type="button">
+      <span class="material-symbols-rounded">swap_vert</span>Ordenar
+    </button>
+  </div>
+
+  <!-- Lista -->
+  <div class="client-list">
+
+    <!-- Curva A · Em acompanhamento · contrato a renovar -->
+    <div class="client-row">
+      <div class="curva-bar" style="--cv:#0E9594"></div>
+      <div class="c-body">
+        <div class="c-name">Supermercado Boa Vista</div>
+        <div class="c-sub">
+          <span class="c-contact">Carlos Andrade</span>
+          <span class="chip-curva-a">Curva A</span>
+          <span class="rec-chip" style="background:var(--warning-soft);color:var(--warning)"><span class="material-symbols-rounded">autorenew</span>Contrato a renovar</span>
+        </div>
+        <div class="c-meta">
+          <span class="c-meta-item"><span class="material-symbols-rounded">payments</span><strong>R$ 3.200</strong> 30D</span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">photo_camera</span>postou há <strong>3d</strong></span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">store</span>Alimentação · Centro</span>
+        </div>
+      </div>
+      <div class="c-actions">
+        <button class="deal-btn wapp" type="button" title="WhatsApp"><span class="material-symbols-rounded">chat</span></button>
+        <button class="deal-btn cal" type="button" title="Agendar"><span class="material-symbols-rounded">calendar_month</span></button>
+      </div>
+    </div>
+
+    <!-- Curva A · postar esta semana -->
+    <div class="client-row">
+      <div class="curva-bar" style="--cv:#0E9594"></div>
+      <div class="c-body">
+        <div class="c-name">Clínica Saúde Total</div>
+        <div class="c-sub">
+          <span class="c-contact">Dra. Fernanda Lima</span>
+          <span class="chip-curva-a">Curva A</span>
+          <span class="rec-chip" style="background:#E0F5F5;color:#0E9594"><span class="material-symbols-rounded">photo_camera</span>Postar esta semana</span>
+        </div>
+        <div class="c-meta">
+          <span class="c-meta-item"><span class="material-symbols-rounded">payments</span><strong>R$ 2.800</strong> 30D</span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">photo_camera</span>postou há <strong>5d</strong></span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">store</span>Saúde · Jardim Paulista</span>
+        </div>
+      </div>
+      <div class="c-actions">
+        <button class="deal-btn wapp" type="button" title="WhatsApp"><span class="material-symbols-rounded">chat</span></button>
+        <button class="deal-btn cal" type="button" title="Agendar"><span class="material-symbols-rounded">calendar_month</span></button>
+      </div>
+    </div>
+
+    <!-- Curva A · contrato a renovar -->
+    <div class="client-row">
+      <div class="curva-bar" style="--cv:#0E9594"></div>
+      <div class="c-body">
+        <div class="c-name">Farmácia Central Ltda.</div>
+        <div class="c-sub">
+          <span class="c-contact">João Silva</span>
+          <span class="chip-curva-a">Curva A</span>
+          <span class="rec-chip" style="background:var(--warning-soft);color:var(--warning)"><span class="material-symbols-rounded">autorenew</span>Contrato a renovar</span>
+        </div>
+        <div class="c-meta">
+          <span class="c-meta-item"><span class="material-symbols-rounded">payments</span><strong>R$ 2.450</strong> 30D</span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">photo_camera</span>postou há <strong>2d</strong></span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">store</span>Saúde · Centro</span>
+        </div>
+      </div>
+      <div class="c-actions">
+        <button class="deal-btn wapp" type="button" title="WhatsApp"><span class="material-symbols-rounded">chat</span></button>
+        <button class="deal-btn cal" type="button" title="Agendar"><span class="material-symbols-rounded">calendar_month</span></button>
+      </div>
+    </div>
+
+    <!-- Curva B -->
+    <div class="client-row">
+      <div class="curva-bar" style="--cv:#3b6fd8"></div>
+      <div class="c-body">
+        <div class="c-name">Padaria Dona Lúcia</div>
+        <div class="c-sub">
+          <span class="c-contact">Lúcia Pereira</span>
+          <span class="chip-curva-b">Curva B</span>
+        </div>
+        <div class="c-meta">
+          <span class="c-meta-item"><span class="material-symbols-rounded">payments</span><strong>R$ 1.180</strong> 30D</span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">photo_camera</span>postou há <strong>2d</strong></span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">store</span>Alimentação · Vila Mariana</span>
+        </div>
+      </div>
+      <div class="c-actions">
+        <button class="deal-btn wapp" type="button" title="WhatsApp"><span class="material-symbols-rounded">chat</span></button>
+        <button class="deal-btn cal" type="button" title="Agendar"><span class="material-symbols-rounded">calendar_month</span></button>
+      </div>
+    </div>
+
+    <!-- Curva B · sem postagem +30 dias -->
+    <div class="client-row">
+      <div class="curva-bar" style="--cv:#3b6fd8"></div>
+      <div class="c-body">
+        <div class="c-name">Pet Shop Flor</div>
+        <div class="c-sub">
+          <span class="c-contact">Rosana Matos</span>
+          <span class="chip-curva-b">Curva B</span>
+          <span class="rec-chip" style="background:var(--danger-soft);color:var(--danger)"><span class="material-symbols-rounded">warning</span>Sem postagem +30d</span>
+        </div>
+        <div class="c-meta">
+          <span class="c-meta-item"><span class="material-symbols-rounded">payments</span><strong>R$ 980</strong> 30D</span>
+          <span class="c-meta-item danger"><span class="material-symbols-rounded">event_busy</span><strong>28 dias</strong> s/postar</span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">store</span>Varejo · Zona Norte</span>
+        </div>
+      </div>
+      <div class="c-actions">
+        <button class="deal-btn wapp" type="button" title="WhatsApp"><span class="material-symbols-rounded">chat</span></button>
+        <button class="deal-btn cal" type="button" title="Agendar"><span class="material-symbols-rounded">calendar_month</span></button>
+      </div>
+    </div>
+
+    <!-- Curva C · queda de faturamento -->
+    <div class="client-row">
+      <div class="curva-bar" style="--cv:#94A3B8"></div>
+      <div class="c-body">
+        <div class="c-name">Lanchonete do João</div>
+        <div class="c-sub">
+          <span class="c-contact">João Mendes</span>
+          <span class="chip-curva-c">Curva C</span>
+          <span class="rec-chip" style="background:var(--purple-soft);color:var(--purple)"><span class="material-symbols-rounded">trending_down</span>Queda de faturamento</span>
+        </div>
+        <div class="c-meta">
+          <span class="c-meta-item warn"><span class="material-symbols-rounded">payments</span><strong>R$ 620</strong> 30D ▼35%</span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">photo_camera</span>postou há <strong>9d</strong></span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">store</span>Alimentação · Centro</span>
+        </div>
+      </div>
+      <div class="c-actions">
+        <button class="deal-btn wapp" type="button" title="WhatsApp"><span class="material-symbols-rounded">chat</span></button>
+        <button class="deal-btn cal" type="button" title="Agendar"><span class="material-symbols-rounded">calendar_month</span></button>
+      </div>
+    </div>
+
+    <!-- Curva B -->
+    <div class="client-row">
+      <div class="curva-bar" style="--cv:#3b6fd8"></div>
+      <div class="c-body">
+        <div class="c-name">Auto Peças Rápidas</div>
+        <div class="c-sub">
+          <span class="c-contact">Bruno Costa</span>
+          <span class="chip-curva-b">Curva B</span>
+        </div>
+        <div class="c-meta">
+          <span class="c-meta-item"><span class="material-symbols-rounded">payments</span><strong>R$ 1.350</strong> 30D</span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">photo_camera</span>postou há <strong>4d</strong></span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">store</span>Varejo · Zona Norte</span>
+        </div>
+      </div>
+      <div class="c-actions">
+        <button class="deal-btn wapp" type="button" title="WhatsApp"><span class="material-symbols-rounded">chat</span></button>
+        <button class="deal-btn cal" type="button" title="Agendar"><span class="material-symbols-rounded">calendar_month</span></button>
+      </div>
+    </div>
+
+    <!-- Curva B -->
+    <div class="client-row">
+      <div class="curva-bar" style="--cv:#3b6fd8"></div>
+      <div class="c-body">
+        <div class="c-name">Açougue Bom Corte</div>
+        <div class="c-sub">
+          <span class="c-contact">Marcelo Ramos</span>
+          <span class="chip-curva-b">Curva B</span>
+        </div>
+        <div class="c-meta">
+          <span class="c-meta-item"><span class="material-symbols-rounded">payments</span><strong>R$ 1.090</strong> 30D</span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">photo_camera</span>postou há <strong>1d</strong></span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">store</span>Alimentação · Centro</span>
+        </div>
+      </div>
+      <div class="c-actions">
+        <button class="deal-btn wapp" type="button" title="WhatsApp"><span class="material-symbols-rounded">chat</span></button>
+        <button class="deal-btn cal" type="button" title="Agendar"><span class="material-symbols-rounded">calendar_month</span></button>
+      </div>
+    </div>
+
+    <!-- Curva C -->
+    <div class="client-row">
+      <div class="curva-bar" style="--cv:#94A3B8"></div>
+      <div class="c-body">
+        <div class="c-name">Loja do Artesão</div>
+        <div class="c-sub">
+          <span class="c-contact">Fernanda Melo</span>
+          <span class="chip-curva-c">Curva C</span>
+          <span class="rec-chip" style="background:var(--danger-soft);color:var(--danger)"><span class="material-symbols-rounded">warning</span>Sem postagem +30d</span>
+        </div>
+        <div class="c-meta">
+          <span class="c-meta-item"><span class="material-symbols-rounded">payments</span><strong>R$ 540</strong> 30D</span>
+          <span class="c-meta-item danger"><span class="material-symbols-rounded">event_busy</span><strong>34 dias</strong> s/postar</span>
+          <span class="c-meta-item"><span class="material-symbols-rounded">store</span>Serviços · Jardim Paulista</span>
+        </div>
+      </div>
+      <div class="c-actions">
+        <button class="deal-btn wapp" type="button" title="WhatsApp"><span class="material-symbols-rounded">chat</span></button>
+        <button class="deal-btn cal" type="button" title="Agendar"><span class="material-symbols-rounded">calendar_month</span></button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FAB: novo cliente -->
+<button class="fab-add" type="button" title="Novo cliente">
+  <span class="material-symbols-rounded">person_add</span>
+</button>
+
+<nav class="crm-bottom-nav">
+  <button><span class="material-symbols-rounded">home</span><small>Home</small></button>
+  <button><span class="material-symbols-rounded">explore</span><small>Prospects</small></button>
+  <button class="active"><span class="material-symbols-rounded">badge</span><small>CRM</small></button>
+  <button><span class="material-symbols-rounded">calendar_month</span><small>Agenda</small></button>
+</nav>
+
+<script>
+(function(){
+  document.querySelectorAll('.chip-filter').forEach(function(chip){
+    chip.addEventListener('click',function(e){
+      e.stopPropagation();
+      var menu=chip.querySelector('.chip-dropdown-menu');
+      var isOpen=!menu.hidden;
+      document.querySelectorAll('.chip-dropdown-menu').forEach(function(m){m.hidden=true;m.closest('.chip-filter').classList.remove('open');});
+      if(!isOpen){menu.hidden=false;chip.classList.add('open');}
+    });
+    chip.querySelectorAll('.chip-option').forEach(function(opt){
+      opt.addEventListener('click',function(e){
+        e.stopPropagation();
+        chip.querySelectorAll('.chip-option').forEach(function(o){o.classList.remove('active');});
+        opt.classList.add('active');
+        chip.querySelector('.chip-value').textContent=opt.textContent;
+        chip.querySelector('.chip-dropdown-menu').hidden=true;
+        chip.classList.remove('open');
+      });
+    });
+  });
+  document.addEventListener('click',function(){
+    document.querySelectorAll('.chip-dropdown-menu').forEach(function(m){m.hidden=true;if(m.closest('.chip-filter'))m.closest('.chip-filter').classList.remove('open');});
+    var um=document.getElementById('user-menu');if(um)um.style.display='none';
+    var em=document.getElementById('export-menu');if(em)em.style.display='none';
+  });
+})();
+document.getElementById('user-av-btn').addEventListener('click',function(e){
+  e.stopPropagation();
+  var m=document.getElementById('user-menu');
+  m.style.display=m.style.display==='none'?'block':'none';
+});
+document.getElementById('export-btn').addEventListener('click',function(e){
+  e.stopPropagation();
+  var m=document.getElementById('export-menu');
+  m.style.display=m.style.display==='none'?'block':'none';
+});
+</script>
+
+</body>
+</html>

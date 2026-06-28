@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Jornada Comercial — CRM AGF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/ui/agf-ui.css">
+<link rel="stylesheet" href="/crm/styles.css?v=redesign">
+<style>
+body { background:var(--bg); padding-bottom: 40px; }
+.devnote { background: var(--navy); color: rgba(201,214,232,.9); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; text-align: center; padding: 6px 10px; font-weight: 600; }
+
+/* ── identidade do cliente (topo) ── */
+.client-identity {
+  display: flex; align-items: center; gap: 13px;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.client-initials {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--navy); color: #fff;
+  font-size: 17px; font-weight: 800; font-family: Manrope, sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; letter-spacing: -.5px;
+}
+.client-identity-body { flex: 1; min-width: 0; }
+.client-identity-name { font-size: 15px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.client-identity-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.client-identity-chips { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }
+
+/* ── botões de ação ── */
+.treatment-actions {
+  display: flex; gap: 8px; padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto; scrollbar-width: none;
+}
+.treatment-actions::-webkit-scrollbar { display: none; }
+.btn-action-primary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 14px; background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: inherit; white-space: nowrap; flex-shrink: 0;
+}
+.btn-action-primary .material-symbols-rounded { font-size: 16px; }
+.btn-action-secondary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 14px; background: transparent; color: var(--navy);
+  border: 1.5px solid rgba(27,51,88,.22); border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: inherit; white-space: nowrap; flex-shrink: 0;
+}
+.btn-action-secondary .material-symbols-rounded { font-size: 16px; }
+.btn-action-secondary:hover { background: rgba(27,51,88,.05); }
+
+/* ── tab nav (modal-tabs redesign) ── */
+.treat-tabs {
+  display: flex; overflow-x: auto; scrollbar-width: none;
+  background: var(--surface); border-bottom: 1.5px solid var(--line);
+  padding: 0 12px; gap: 0;
+}
+.treat-tabs::-webkit-scrollbar { display: none; }
+.treat-tab {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 11px 12px 10px; border: none; background: transparent;
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+  border-bottom: 2.5px solid transparent; margin-bottom: -1.5px;
+  transition: color .15s, border-color .15s;
+}
+.treat-tab .material-symbols-rounded { font-size: 16px; }
+.treat-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── panes ── */
+.treat-pane { display: none; }
+.treat-pane.active { display: block; }
+
+/* ── form-label (mesma usada em edit-prospect) ── */
+.form-label { font-size: 10px; color: var(--muted); font-weight: 600; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* ── resumo: detail rows ── */
+.detail-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid var(--line);
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-row .material-symbols-rounded { font-size: 18px; color: var(--muted); flex-shrink: 0; margin-top: 1px; }
+.detail-row-body { flex: 1; min-width: 0; }
+.detail-row-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+.detail-row-value { font-size: 13px; font-weight: 600; color: var(--text); }
+.detail-row-value a { color: var(--accent); text-decoration: none; }
+
+/* ── anotações ── */
+.note-compose {
+  padding: 14px 16px; border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.note-textarea {
+  width: 100%; box-sizing: border-box;
+  border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+  padding: 10px 12px; font-size: 13px; font-family: inherit;
+  color: var(--text); background: var(--bg);
+  resize: none; outline: none; min-height: 80px;
+  transition: border-color .15s;
+}
+.note-textarea:focus { border-color: var(--accent); }
+.note-add-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 8px; padding: 9px 14px;
+  background: var(--accent); color: #fff; border: none;
+  border-radius: var(--radius-sm); font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+}
+.note-add-btn .material-symbols-rounded { font-size: 16px; }
+.note-item {
+  padding: 13px 16px; border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.note-item-meta { font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+.note-item-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+
+/* ── histórico ── */
+.hist-item {
+  display: flex; gap: 12px;
+  padding: 13px 16px; border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.hist-ico {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+.hist-ico .material-symbols-rounded { font-size: 15px; }
+.hist-body { flex: 1; min-width: 0; }
+.hist-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.hist-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.hist-note { font-size: 12px; color: var(--text); margin-top: 5px; line-height: 1.45; background: var(--bg); border-radius: 6px; padding: 7px 9px; }
+
+/* ── checklist ── */
+.check-section-title {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .05em;
+  padding: 14px 16px 6px;
+}
+.check-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 16px; border-bottom: 1px solid var(--line);
+  background: var(--surface); cursor: pointer;
+}
+.check-item:last-child { border-bottom: none; }
+.check-item input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer; }
+.check-item-label { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; }
+.check-save-wrap { padding: 14px 16px; }
+
+/* ── chips (mesmos do funil) ── */
+.chip-curva-a { background:#E0F5F5; color:#0E9594; font-weight:700; font-size:11px; padding:3px 9px; border-radius:20px; display:inline-flex; align-items:center; }
+.chip-curva-b { background:var(--sky); color:var(--blue); font-weight:700; font-size:11px; padding:3px 9px; border-radius:20px; display:inline-flex; align-items:center; }
+.chip-curva-c { background:#F0F0F0; color:#888; font-weight:700; font-size:11px; padding:3px 9px; border-radius:20px; display:inline-flex; align-items:center; }
+/* chip de etapa da jornada — cor por estágio via --stage-bg/--stage-fg */
+.stage-chip {
+  display:inline-flex; align-items:center; gap:4px;
+  font-weight:700; font-size:11px; padding:3px 10px; border-radius:20px;
+  background:var(--stage-bg,#E0F5F5); color:var(--stage-fg,#0E9594);
+}
+.stage-chip .material-symbols-rounded { font-size:14px; }
+/* chip de recomendação do sistema */
+.rec-chip {
+  display:inline-flex; align-items:center; gap:4px;
+  font-weight:700; font-size:11px; padding:3px 10px; border-radius:20px;
+  background:var(--warning-soft); color:var(--warning);
+}
+.rec-chip .material-symbols-rounded { font-size:14px; }
+</style>
+</head>
+<body>
+
+<div class="devnote">Preview Tratativa CRM · dados ilustrativos</div>
+
+<!-- HEADER -->
+<header class="edit-header">
+  <button class="icon-btn" type="button">
+    <span class="material-symbols-rounded">arrow_back</span>
+  </button>
+  <span class="edit-header-title">Jornada Comercial</span>
+  <div style="width:36px"></div>
+</header>
+
+<!-- IDENTIDADE DO CLIENTE -->
+<div class="client-identity">
+  <div class="client-identity-body">
+    <div class="client-identity-name">Supermercado Boa Vista</div>
+    <div class="client-identity-sub">Carlos Andrade · (11) 98765-4321</div>
+    <div class="client-identity-chips">
+      <span class="chip-curva-a">Curva A</span>
+      <span class="stage-chip" style="--stage-bg:#E0F5F5;--stage-fg:#0E9594">
+        <span class="material-symbols-rounded">visibility</span>Em acompanhamento
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- BOTÕES DE AÇÃO -->
+<div class="treatment-actions">
+  <button class="btn-action-primary" type="button">
+    <span class="material-symbols-rounded">add_task</span>Agenda
+  </button>
+  <button class="btn-action-secondary" type="button">
+    <span class="material-symbols-rounded">edit</span>Editar cadastro
+  </button>
+  <button class="btn-action-secondary" type="button">
+    <span class="material-symbols-rounded">print</span>Imprimir
+  </button>
+</div>
+
+<!-- TABS -->
+<div class="treat-tabs" id="treat-tabs">
+  <button class="treat-tab active" data-pane="pane-resumo">
+    <span class="material-symbols-rounded">info</span>Resumo
+  </button>
+  <button class="treat-tab" data-pane="pane-checklist">
+    <span class="material-symbols-rounded">checklist</span>Checklist Correios
+  </button>
+  <button class="treat-tab" data-pane="pane-notas">
+    <span class="material-symbols-rounded">edit_note</span>Anotações
+  </button>
+  <button class="treat-tab" data-pane="pane-historico">
+    <span class="material-symbols-rounded">history</span>Histórico
+  </button>
+</div>
+
+<!-- ── RESUMO ──────────────────────────────────────────────────── -->
+<div class="treat-pane active" id="pane-resumo">
+
+  <div class="edit-section">
+    <div class="edit-section-title">Empresa</div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">business</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">Razão Social</div>
+        <div class="detail-row-value">Supermercado Boa Vista Ltda.</div>
+      </div>
+    </div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">badge</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">CNPJ</div>
+        <div class="detail-row-value">78.901.234/0001-56</div>
+      </div>
+    </div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">category</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">Segmento</div>
+        <div class="detail-row-value">Alimentação</div>
+      </div>
+    </div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">location_on</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">Local</div>
+        <div class="detail-row-value">Centro · Rua das Flores, 142</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edit-section">
+    <div class="edit-section-title">Contato</div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">person</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">Responsável pelo contato</div>
+        <div class="detail-row-value">Carlos Andrade</div>
+      </div>
+    </div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">chat</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">WhatsApp</div>
+        <div class="detail-row-value"><a href="#">(11) 98765-4321</a></div>
+      </div>
+    </div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">mail</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">E-mail</div>
+        <div class="detail-row-value"><a href="#">carlos@boavista.com.br</a></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edit-section">
+    <div class="edit-section-title">Situação atual</div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">route</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">Etapa da jornada</div>
+        <div class="detail-row-value">
+          <span class="stage-chip" style="--stage-bg:#E0F5F5;--stage-fg:#0E9594">
+            <span class="material-symbols-rounded">visibility</span>Em acompanhamento
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">bar_chart</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">Curva</div>
+        <div class="detail-row-value"><span class="chip-curva-a">Curva A</span></div>
+      </div>
+    </div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">payments</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">Faturamento 30D</div>
+        <div class="detail-row-value">R$ 3.200,00</div>
+      </div>
+    </div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">photo_camera</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">Última postagem</div>
+        <div class="detail-row-value">há 3 dias (23/06/2026)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edit-section">
+    <div class="edit-section-title">Contrato</div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">description</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">Tipo de contrato</div>
+        <div class="detail-row-value">Plano Mensal · Gestão de Redes Sociais</div>
+      </div>
+    </div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">event</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">Vencimento</div>
+        <div class="detail-row-value" style="color:var(--warning);font-weight:700">01/07/2026 · vence em 5 dias</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edit-section" style="padding-bottom:8px">
+    <div class="edit-section-title">Recomendação do sistema</div>
+    <div class="detail-row">
+      <span class="material-symbols-rounded">auto_awesome</span>
+      <div class="detail-row-body">
+        <div class="detail-row-label">Tag automática</div>
+        <div class="detail-row-value">
+          <span class="rec-chip"><span class="material-symbols-rounded">autorenew</span>Contrato a renovar</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edit-section" style="padding-bottom:8px">
+    <div class="edit-section-title">Responsável</div>
+    <div class="detail-row">
+      <div class="user-av user-av-md" style="background:#3b6fd8;color:#fff;flex-shrink:0">C</div>
+      <div class="detail-row-body" style="margin-left:2px">
+        <div class="detail-row-label">Responsável atual</div>
+        <div class="detail-row-value">Carlos</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── CHECKLIST CORREIOS ──────────────────────────────────────── -->
+<div class="treat-pane" id="pane-checklist">
+  <div class="check-section-title">Diagnóstico Correios</div>
+  <div class="edit-section" style="padding:0">
+    <div class="check-item">
+      <input type="checkbox" id="ck1" checked>
+      <label class="check-item-label" for="ck1">Possui caixa postal / endereço de entrega cadastrado</label>
+    </div>
+    <div class="check-item">
+      <input type="checkbox" id="ck2" checked>
+      <label class="check-item-label" for="ck2">Realiza envio de encomendas regularmente</label>
+    </div>
+    <div class="check-item">
+      <input type="checkbox" id="ck3">
+      <label class="check-item-label" for="ck3">Tem interesse em contrato de volume de envios</label>
+    </div>
+    <div class="check-item">
+      <input type="checkbox" id="ck4">
+      <label class="check-item-label" for="ck4">Utiliza PAC ou SEDEX atualmente</label>
+    </div>
+    <div class="check-item">
+      <input type="checkbox" id="ck5">
+      <label class="check-item-label" for="ck5">Há interesse em logística reversa</label>
+    </div>
+    <div class="check-item">
+      <input type="checkbox" id="ck6">
+      <label class="check-item-label" for="ck6">Conhece os serviços de marketing direto dos Correios</label>
+    </div>
+  </div>
+  <div class="check-save-wrap">
+    <button class="btn-save" type="button">
+      <span class="material-symbols-rounded">save</span>Salvar checklist
+    </button>
+  </div>
+</div>
+
+<!-- ── ANOTAÇÕES ──────────────────────────────────────────────── -->
+<div class="treat-pane" id="pane-notas">
+  <div class="note-compose">
+    <textarea class="note-textarea" placeholder="Digite uma anotação sobre este cliente…"></textarea>
+    <button class="note-add-btn" type="button">
+      <span class="material-symbols-rounded">add_comment</span>Adicionar anotação
+    </button>
+  </div>
+  <div class="note-item">
+    <div class="note-item-meta">Carlos · 20/06/2026 às 14h32</div>
+    <div class="note-item-text">Cliente pediu orçamento para renovação com acréscimo de stories diários. Aguardando aprovação da proposta enviada por e-mail.</div>
+  </div>
+  <div class="note-item">
+    <div class="note-item-meta">Manu · 10/06/2026 às 09h15</div>
+    <div class="note-item-text">Ligação realizada — confirma interesse em renovar. Prefere fechar antes do dia 30.</div>
+  </div>
+</div>
+
+<!-- ── HISTÓRICO ──────────────────────────────────────────────── -->
+<div class="treat-pane" id="pane-historico">
+  <div class="hist-item">
+    <span class="hist-ico" style="background:#E0F5F5">
+      <span class="material-symbols-rounded" style="color:#0E9594">description</span>
+    </span>
+    <div class="hist-body">
+      <div class="hist-title">Proposta de renovação enviada</div>
+      <div class="hist-meta">Carlos · 20/06/2026</div>
+      <div class="hist-note">Proposta enviada por e-mail com valor de R$ 3.400/mês para plano com stories diários.</div>
+    </div>
+  </div>
+  <div class="hist-item">
+    <span class="hist-ico" style="background:var(--sky)">
+      <span class="material-symbols-rounded" style="color:var(--blue)">call</span>
+    </span>
+    <div class="hist-body">
+      <div class="hist-title">Ligação de follow-up</div>
+      <div class="hist-meta">Carlos · 10/06/2026</div>
+      <div class="hist-note">Cliente confirma interesse em renovar. Pede proposta com acréscimo de conteúdo.</div>
+    </div>
+  </div>
+  <div class="hist-item">
+    <span class="hist-ico" style="background:#E0F5F5">
+      <span class="material-symbols-rounded" style="color:#0E9594">photo_camera</span>
+    </span>
+    <div class="hist-body">
+      <div class="hist-title">Postagem realizada</div>
+      <div class="hist-meta">Manu · 23/06/2026</div>
+    </div>
+  </div>
+  <div class="hist-item">
+    <span class="hist-ico" style="background:var(--purple-soft)">
+      <span class="material-symbols-rounded" style="color:var(--purple)">chat</span>
+    </span>
+    <div class="hist-body">
+      <div class="hist-title">Mensagem WhatsApp</div>
+      <div class="hist-meta">Manu · 15/06/2026</div>
+      <div class="hist-note">Enviou artes da semana para aprovação. Cliente aprovou com 1 ajuste no texto.</div>
+    </div>
+  </div>
+  <div class="hist-item">
+    <span class="hist-ico" style="background:var(--warning-soft)">
+      <span class="material-symbols-rounded" style="color:var(--warning)">location_on</span>
+    </span>
+    <div class="hist-body">
+      <div class="hist-title">Visita comercial</div>
+      <div class="hist-meta">Carlos · 01/06/2026</div>
+      <div class="hist-note">Visita de relacionamento. Cliente satisfeito com resultados. Abriu pauta sobre renovação.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var tabs = document.querySelectorAll('.treat-tab');
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.classList.remove('active'); });
+      document.querySelectorAll('.treat-pane').forEach(function(p){ p.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.pane).classList.add('active');
+    });
+  });
+})();
+</script>
+</body>
+</html>

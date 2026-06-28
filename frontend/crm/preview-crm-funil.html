@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Preview CRM Funil — Clientes AGF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/ui/agf-ui.css">
+<link rel="stylesheet" href="/crm/styles.css?v=redesign">
+<style>
+body { padding-bottom: 80px; }
+.devnote { background: var(--navy); color: rgba(201,214,232,.9); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; text-align: center; padding: 6px 10px; font-weight: 600; }
+.preview-wrap { padding: 12px 16px 0; }
+/* chip curva ABC */
+.chip-curva-a { background:#E0F5F5; color:#0E9594; font-weight:700; font-size:11px; padding:2px 8px; border-radius:20px; display:inline-flex; align-items:center; }
+.chip-curva-b { background:var(--sky); color:var(--blue); font-weight:700; font-size:11px; padding:2px 8px; border-radius:20px; display:inline-flex; align-items:center; }
+.chip-curva-c { background:#F0F0F0; color:#888; font-weight:700; font-size:11px; padding:2px 8px; border-radius:20px; display:inline-flex; align-items:center; }
+</style>
+</head>
+<body>
+
+<div class="devnote">Preview CRM · Funil Clientes · dados ilustrativos</div>
+
+<!-- TOPBAR -->
+<header class="crm-topbar">
+  <div class="crm-topbar-inner">
+    <a class="portal-btn" href="#" title="Voltar ao Portal AGF">
+      <span class="material-symbols-rounded">apps</span>
+    </a>
+    <a class="crm-brand" href="#">
+      <span class="brand-icon"><span class="material-symbols-rounded">hub</span></span>
+      <span><strong>CRM Comercial</strong><small>AGF JOSÉ BONIFÁCIO</small></span>
+    </a>
+    <div class="crm-top-actions">
+      <button class="icon-btn" type="button"><span class="material-symbols-rounded">refresh</span></button>
+      <div style="position:relative">
+        <button class="user-av user-av-md user-av-btn" id="user-av-btn" type="button" style="background:#0E9594">M</button>
+        <div class="user-menu" id="user-menu" style="display:none">
+          <div class="user-menu-hd">
+            <div class="user-av user-av-lg" style="background:#0E9594">M</div>
+            <div>
+              <div class="user-menu-name">Manu</div>
+              <div class="user-menu-role">Vendedora · Comercial</div>
+            </div>
+          </div>
+          <button class="user-menu-action" type="button">
+            <span class="material-symbols-rounded">logout</span>Sair
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="preview-wrap">
+  <div class="tabs-bar">
+    <nav class="section-tabs">
+      <button><span class="material-symbols-rounded">dashboard</span>Dashboard</button>
+      <button class="active"><span class="material-symbols-rounded">view_kanban</span>Funil</button>
+      <button><span class="material-symbols-rounded">badge</span>Clientes</button>
+      <button><span class="material-symbols-rounded">auto_graph</span>Ações</button>
+    </nav>
+    <div class="tabs-actions">
+      <button class="tab-export-btn" id="export-btn" type="button">
+        <span class="material-symbols-rounded">ios_share</span><span class="tab-export-label">Exportar</span>
+      </button>
+      <div class="tab-export-menu" id="export-menu" style="display:none">
+        <button class="tab-export-opt" type="button">
+          <span class="material-symbols-rounded">image</span>Salvar como PNG
+        </button>
+        <button class="tab-export-opt" type="button">
+          <span class="material-symbols-rounded">print</span>Imprimir / PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros + Agenda (idêntico ao board-toolbar do sistema real) -->
+  <div class="context-filter-bar">
+    <div class="chip-filter">
+      <span class="material-symbols-rounded">person</span>
+      <span class="chip-value">Todos os responsáveis</span>
+      <span class="material-symbols-rounded chip-chevron">expand_more</span>
+      <div class="chip-dropdown-menu" hidden>
+        <button class="chip-option active">Todos os responsáveis</button>
+        <button class="chip-option">Manu</button>
+        <button class="chip-option">Carlos</button>
+      </div>
+    </div>
+    <button class="agenda-chip" type="button">
+      <span class="material-symbols-rounded">add_task</span>Agenda
+    </button>
+  </div>
+
+  <!-- KANBAN -->
+  <div class="kanban-wrap">
+    <div class="kanban" style="--kanban-cols:6">
+
+      <!-- Sinalizado -->
+      <div class="kanban-col" style="--stage-color:#d99a3d">
+        <div class="kanban-head">
+          <div>
+            <h3>Sinalizado</h3>
+            <small>3 clientes</small>
+          </div>
+          <span class="material-symbols-rounded stage-icon">flag</span>
+        </div>
+        <div class="kanban-body">
+
+          <div class="deal-card">
+            <div class="deal-card-top">
+              <span class="deal-title">Barbearia Estilo</span>
+              <div class="deal-card-tools">
+                <span class="material-symbols-rounded deal-drag-handle">drag_indicator</span>
+                <span class="material-symbols-rounded deal-open-icon">open_in_new</span>
+              </div>
+            </div>
+            <div class="deal-meta">Wagner Silva · indicado por cliente</div>
+            <div class="chip-row">
+              <span class="chip-curva-c">Curva C</span>
+            </div>
+            <div class="deal-actions">
+              <button class="deal-btn wapp" type="button"><span class="material-symbols-rounded">chat</span></button>
+              <button class="deal-btn cal" type="button"><span class="material-symbols-rounded">calendar_month</span></button>
+            </div>
+          </div>
+
+          <div class="deal-card">
+            <div class="deal-card-top">
+              <span class="deal-title">Escola Kids Play</span>
+              <div class="deal-card-tools">
+                <span class="material-symbols-rounded deal-drag-handle">drag_indicator</span>
+                <span class="material-symbols-rounded deal-open-icon">open_in_new</span>
+              </div>
+            </div>
+            <div class="deal-meta">Renata Braga · primeiro contato pendente</div>
+            <div class="chip-row">
+              <span class="chip-curva-b">Curva B</span>
+            </div>
+            <div class="deal-actions">
+              <button class="deal-btn wapp" type="button"><span class="material-symbols-rounded">chat</span></button>
+              <button class="deal-btn cal" type="button"><span class="material-symbols-rounded">calendar_month</span></button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Em tratativa -->
+      <div class="kanban-col" style="--stage-color:#ff751f">
+        <div class="kanban-head">
+          <div>
+            <h3>Em tratativa</h3>
+            <small>7 clientes</small>
+          </div>
+          <span class="material-symbols-rounded stage-icon">handshake</span>
+        </div>
+        <div class="kanban-body">
+
+          <div class="deal-card">
+            <div class="deal-card-top">
+              <span class="deal-title">Pet Shop Flor</span>
+              <div class="deal-card-tools">
+                <span class="material-symbols-rounded deal-drag-handle">drag_indicator</span>
+                <span class="material-symbols-rounded deal-open-icon">open_in_new</span>
+              </div>
+            </div>
+            <div class="deal-meta">Rosana Matos · proposta em elaboração</div>
+            <div class="chip-row">
+              <span class="chip fidel"><span class="material-symbols-rounded">schedule</span>Aguardando</span>
+              <span class="chip-curva-b">Curva B</span>
+            </div>
+            <div class="deal-actions">
+              <button class="deal-btn wapp" type="button"><span class="material-symbols-rounded">chat</span></button>
+              <button class="deal-btn cal" type="button"><span class="material-symbols-rounded">calendar_month</span></button>
+            </div>
+          </div>
+
+          <div class="deal-card">
+            <div class="deal-card-top">
+              <span class="deal-title">Lanchonete do João</span>
+              <div class="deal-card-tools">
+                <span class="material-symbols-rounded deal-drag-handle">drag_indicator</span>
+                <span class="material-symbols-rounded deal-open-icon">open_in_new</span>
+              </div>
+            </div>
+            <div class="deal-meta">João Mendes · reunião agendada p/ sexta</div>
+            <div class="chip-row">
+              <span class="chip convert"><span class="material-symbols-rounded">today</span>Hoje</span>
+              <span class="chip-curva-c">Curva C</span>
+            </div>
+            <div class="deal-actions">
+              <button class="deal-btn wapp" type="button"><span class="material-symbols-rounded">chat</span></button>
+              <button class="deal-btn cal" type="button"><span class="material-symbols-rounded">calendar_month</span></button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Necessidade mapeada -->
+      <div class="kanban-col" style="--stage-color:#3b6fd8">
+        <div class="kanban-head">
+          <div>
+            <h3>Necessidade mapeada</h3>
+            <small>12 clientes</small>
+          </div>
+          <span class="material-symbols-rounded stage-icon">fact_check</span>
+        </div>
+        <div class="kanban-body">
+
+          <div class="deal-card">
+            <div class="deal-card-top">
+              <span class="deal-title">Auto Peças Rápidas</span>
+              <div class="deal-card-tools">
+                <span class="material-symbols-rounded deal-drag-handle">drag_indicator</span>
+                <span class="material-symbols-rounded deal-open-icon">open_in_new</span>
+              </div>
+            </div>
+            <div class="deal-meta">Bruno Costa · diagnóstico realizado 15/06</div>
+            <div class="chip-row">
+              <span class="chip fidel"><span class="material-symbols-rounded">check</span>Mapeado</span>
+              <span class="chip-curva-b">Curva B</span>
+            </div>
+            <div class="deal-actions">
+              <button class="deal-btn wapp" type="button"><span class="material-symbols-rounded">chat</span></button>
+              <button class="deal-btn cal" type="button"><span class="material-symbols-rounded">calendar_month</span></button>
+            </div>
+          </div>
+
+          <div class="deal-card">
+            <div class="deal-card-top">
+              <span class="deal-title">Gráfica Central</span>
+              <div class="deal-card-tools">
+                <span class="material-symbols-rounded deal-drag-handle">drag_indicator</span>
+                <span class="material-symbols-rounded deal-open-icon">open_in_new</span>
+              </div>
+            </div>
+            <div class="deal-meta">Roberto Dias · aguardando decisão</div>
+            <div class="chip-row">
+              <span class="chip fidel"><span class="material-symbols-rounded">schedule</span>Aguardando</span>
+              <span class="chip-curva-b">Curva B</span>
+            </div>
+            <div class="deal-actions">
+              <button class="deal-btn wapp" type="button"><span class="material-symbols-rounded">chat</span></button>
+              <button class="deal-btn cal" type="button"><span class="material-symbols-rounded">calendar_month</span></button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Solução em andamento -->
+      <div class="kanban-col" style="--stage-color:#b14fd1">
+        <div class="kanban-head">
+          <div>
+            <h3>Solução em andamento</h3>
+            <small>8 clientes</small>
+          </div>
+          <span class="material-symbols-rounded stage-icon">build</span>
+        </div>
+        <div class="kanban-body">
+
+          <div class="deal-card">
+            <div class="deal-card-top">
+              <span class="deal-title">Clínica Saúde Total</span>
+              <div class="deal-card-tools">
+                <span class="material-symbols-rounded deal-drag-handle">drag_indicator</span>
+                <span class="material-symbols-rounded deal-open-icon">open_in_new</span>
+              </div>
+            </div>
+            <div class="deal-meta">Dra. Fernanda Lima · plano em execução</div>
+            <div class="chip-row">
+              <span class="chip-curva-a">Curva A</span>
+            </div>
+            <div class="deal-actions">
+              <button class="deal-btn wapp" type="button"><span class="material-symbols-rounded">chat</span></button>
+              <button class="deal-btn cal" type="button"><span class="material-symbols-rounded">calendar_month</span></button>
+            </div>
+          </div>
+
+          <div class="deal-card">
+            <div class="deal-card-top">
+              <span class="deal-title">Padaria Dona Lúcia</span>
+              <div class="deal-card-tools">
+                <span class="material-symbols-rounded deal-drag-handle">drag_indicator</span>
+                <span class="material-symbols-rounded deal-open-icon">open_in_new</span>
+              </div>
+            </div>
+            <div class="deal-meta">Lúcia Pereira · ajuste de contrato</div>
+            <div class="chip-row">
+              <span class="chip-curva-b">Curva B</span>
+            </div>
+            <div class="deal-actions">
+              <button class="deal-btn wapp" type="button"><span class="material-symbols-rounded">chat</span></button>
+              <button class="deal-btn cal" type="button"><span class="material-symbols-rounded">calendar_month</span></button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Em acompanhamento -->
+      <div class="kanban-col" style="--stage-color:#0E9594">
+        <div class="kanban-head">
+          <div>
+            <h3>Em acompanhamento</h3>
+            <small>89 clientes</small>
+          </div>
+          <span class="material-symbols-rounded stage-icon">visibility</span>
+        </div>
+        <div class="kanban-body">
+
+          <div class="deal-card">
+            <div class="deal-card-top">
+              <span class="deal-title">Supermercado Boa Vista</span>
+              <div class="deal-card-tools">
+                <span class="material-symbols-rounded deal-drag-handle">drag_indicator</span>
+                <span class="material-symbols-rounded deal-open-icon">open_in_new</span>
+              </div>
+            </div>
+            <div class="deal-meta">Carlos Andrade · postagem há 3 dias</div>
+            <div class="chip-row">
+              <span class="chip-curva-a">Curva A</span>
+              <span class="chip fidel"><span class="material-symbols-rounded">autorenew</span>Renovar em 12d</span>
+            </div>
+            <div class="deal-actions">
+              <button class="deal-btn wapp" type="button"><span class="material-symbols-rounded">chat</span></button>
+              <button class="deal-btn cal" type="button"><span class="material-symbols-rounded">calendar_month</span></button>
+            </div>
+          </div>
+
+          <div class="deal-card">
+            <div class="deal-card-top">
+              <span class="deal-title">Farmácia Central Ltda.</span>
+              <div class="deal-card-tools">
+                <span class="material-symbols-rounded deal-drag-handle">drag_indicator</span>
+                <span class="material-symbols-rounded deal-open-icon">open_in_new</span>
+              </div>
+            </div>
+            <div class="deal-meta">João Silva · postagem há 5 dias</div>
+            <div class="chip-row">
+              <span class="chip-curva-a">Curva A</span>
+            </div>
+            <div class="deal-actions">
+              <button class="deal-btn wapp" type="button"><span class="material-symbols-rounded">chat</span></button>
+              <button class="deal-btn cal" type="button"><span class="material-symbols-rounded">calendar_month</span></button>
+            </div>
+          </div>
+
+          <div class="deal-card">
+            <div class="deal-card-top">
+              <span class="deal-title">Loja do Artesão</span>
+              <div class="deal-card-tools">
+                <span class="material-symbols-rounded deal-drag-handle">drag_indicator</span>
+                <span class="material-symbols-rounded deal-open-icon">open_in_new</span>
+              </div>
+            </div>
+            <div class="deal-meta">Fernanda Melo · 28 dias sem postagem</div>
+            <div class="chip-row">
+              <span class="chip rescue"><span class="material-symbols-rounded">warning</span>Sem postagem</span>
+              <span class="chip-curva-c">Curva C</span>
+            </div>
+            <div class="deal-actions">
+              <button class="deal-btn wapp" type="button"><span class="material-symbols-rounded">chat</span></button>
+              <button class="deal-btn cal" type="button"><span class="material-symbols-rounded">calendar_month</span></button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Concluído -->
+      <div class="kanban-col" style="--stage-color:#23976b">
+        <div class="kanban-head">
+          <div>
+            <h3>Concluído</h3>
+            <small>4 clientes</small>
+          </div>
+          <span class="material-symbols-rounded stage-icon">check_circle</span>
+        </div>
+        <div class="kanban-body">
+
+          <div class="deal-card">
+            <div class="deal-card-top">
+              <span class="deal-title">Açougue Bom Corte</span>
+              <div class="deal-card-tools">
+                <span class="material-symbols-rounded deal-drag-handle">drag_indicator</span>
+                <span class="material-symbols-rounded deal-open-icon">open_in_new</span>
+              </div>
+            </div>
+            <div class="deal-meta">Marcelo Ramos · concluído em 18/06</div>
+            <div class="chip-row">
+              <span class="chip-curva-b">Curva B</span>
+            </div>
+            <div class="deal-actions">
+              <button class="deal-btn wapp" type="button"><span class="material-symbols-rounded">chat</span></button>
+              <button class="deal-btn cal" type="button"><span class="material-symbols-rounded">calendar_month</span></button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="crm-bottom-nav">
+  <button><span class="material-symbols-rounded">home</span><small>Home</small></button>
+  <button><span class="material-symbols-rounded">explore</span><small>Prospects</small></button>
+  <button class="active"><span class="material-symbols-rounded">badge</span><small>CRM</small></button>
+  <button><span class="material-symbols-rounded">calendar_month</span><small>Agenda</small></button>
+</nav>
+
+<script>
+(function(){
+  document.querySelectorAll('.chip-filter').forEach(function(chip){
+    chip.addEventListener('click',function(e){
+      e.stopPropagation();
+      var menu=chip.querySelector('.chip-dropdown-menu');
+      var isOpen=!menu.hidden;
+      document.querySelectorAll('.chip-dropdown-menu').forEach(function(m){m.hidden=true;m.closest('.chip-filter').classList.remove('open');});
+      if(!isOpen){menu.hidden=false;chip.classList.add('open');}
+    });
+    chip.querySelectorAll('.chip-option').forEach(function(opt){
+      opt.addEventListener('click',function(e){
+        e.stopPropagation();
+        chip.querySelectorAll('.chip-option').forEach(function(o){o.classList.remove('active');});
+        opt.classList.add('active');
+        chip.querySelector('.chip-value').textContent=opt.textContent;
+        chip.querySelector('.chip-dropdown-menu').hidden=true;
+        chip.classList.remove('open');
+      });
+    });
+  });
+  document.addEventListener('click',function(){
+    document.querySelectorAll('.chip-dropdown-menu').forEach(function(m){m.hidden=true;if(m.closest('.chip-filter'))m.closest('.chip-filter').classList.remove('open');});
+    var um=document.getElementById('user-menu');if(um)um.style.display='none';
+    var em=document.getElementById('export-menu');if(em)em.style.display='none';
+  });
+  document.getElementById('user-av-btn').addEventListener('click',function(e){
+    e.stopPropagation();
+    var m=document.getElementById('user-menu');
+    m.style.display=m.style.display==='none'?'block':'none';
+  });
+  document.getElementById('export-btn').addEventListener('click',function(e){
+    e.stopPropagation();
+    var m=document.getElementById('export-menu');
+    m.style.display=m.style.display==='none'?'block':'none';
+  });
+})();
+</script>
+</body>
+</html>
