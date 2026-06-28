@@ -506,3 +506,10 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
 #prospects-cadastro .pcad-mi .material-symbols-rounded{font-size:14px;opacity:.85}
 #prospects-cadastro .pcad-actions{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:6px;padding:8px 12px 8px 6px;flex-shrink:0}
 #prospects-cadastro .pcad-actions a,#prospects-cadastro .pcad-actions .table-btn{white-space:nowrap}
+/* ════ Abas em barra sublinhada + botão Exportar (app vivo) ════ */
+.crm-main .tabs-bar{display:flex;align-items:center;margin:0 0 12px;padding:0;border-bottom:1.5px solid var(--line);overflow:visible}
+.crm-main .tabs-bar .section-tabs{flex:1;min-width:0;background:transparent!important;border-radius:0!important;padding:0!important;margin:0!important;gap:2px;overflow-x:auto;overflow-y:visible;border-bottom:none!important;scrollbar-width:none}
+.crm-main .tabs-bar .section-tabs::-webkit-scrollbar{display:none}
+.crm-main .tabs-bar .section-tabs button{flex-shrink:0;border-radius:0!important;background:transparent!important;color:var(--muted)!important;box-shadow:none!important;padding:9px 11px!important;border-bottom:2.5px solid transparent!important;margin-bottom:-1.5px}
+.crm-main .tabs-bar .section-tabs button.active{color:var(--accent)!important;border-bottom-color:var(--accent)!important}
+.crm-main .tabs-actions{flex-shrink:0;position:relative;display:flex;align-items:center;transform:none;margin:0 0 0 4px;padding:0}
