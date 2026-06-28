@@ -76,3 +76,28 @@
 #view-clientes.actions-exclusive .iframe-subview{width:100%;max-width:none;height:calc(100dvh - 150px)}
 #view-clientes.actions-exclusive #clientes-acoes{width:100%;max-width:none}
 #view-clientes.actions-exclusive #actionsFrame{width:100%;max-width:none}
+/* ════ Cadastro de Prospects — lista de cards sobre a <table> (preserva busca) ════ */
+#prospects-cadastro .table-wrap{overflow:visible}
+#prospects-cadastro table{display:block;min-width:0!important;width:100%}
+#prospects-cadastro thead{display:none}
+#prospects-cadastro tbody{display:block}
+#prospects-cadastro tbody tr{display:block;margin-bottom:8px}
+#prospects-cadastro tbody td{display:block;border:0!important;padding:0!important;white-space:normal!important}
+#prospects-cadastro tbody td:not(.pcad-cell){padding:16px!important;text-align:center;color:var(--muted);font-size:12px}
+#prospects-cadastro .pcad-card{display:flex;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;position:relative}
+#prospects-cadastro .pcad-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--pot,var(--slate))}
+#prospects-cadastro .pcad-card[data-pot*="alt" i]{--pot:var(--green)}
+#prospects-cadastro .pcad-card[data-pot*="dio" i]{--pot:var(--amber)}
+#prospects-cadastro .pcad-card[data-pot*="baix" i]{--pot:var(--slate)}
+#prospects-cadastro .pcad-main{flex:1;min-width:0;padding:11px 6px 11px 14px}
+#prospects-cadastro .pcad-row1{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+#prospects-cadastro .pcad-name{font-size:14px;font-weight:800;color:var(--text);letter-spacing:-.01em}
+#prospects-cadastro .pcad-pot{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--navy);text-transform:uppercase;letter-spacing:.03em}
+#prospects-cadastro .pcad-card[data-pot*="alt" i] .pcad-pot{background:var(--green-soft);color:var(--green)}
+#prospects-cadastro .pcad-card[data-pot*="dio" i] .pcad-pot{background:var(--amber-soft);color:var(--amber)}
+#prospects-cadastro .pcad-sub{font-size:12px;color:var(--muted);font-weight:600;margin-top:3px}
+#prospects-cadastro .pcad-meta{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px}
+#prospects-cadastro .pcad-mi{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);font-weight:600;min-width:0}
+#prospects-cadastro .pcad-mi .material-symbols-rounded{font-size:14px;opacity:.85}
+#prospects-cadastro .pcad-actions{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:6px;padding:8px 12px 8px 6px;flex-shrink:0}
+#prospects-cadastro .pcad-actions .table-btn{white-space:nowrap}
