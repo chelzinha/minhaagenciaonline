@@ -526,3 +526,5 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
 .dash-head{display:flex;justify-content:space-between;align-items:baseline;margin:2px 0 9px}
 .dash-head h2{font-size:15px;letter-spacing:-.02em;margin:0;font-weight:800;color:var(--text)}
 .dash-head .sub{font-size:11.5px;color:var(--muted);font-weight:600}
+/* grid 2 colunas para os KPIs (Indicadores) */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
