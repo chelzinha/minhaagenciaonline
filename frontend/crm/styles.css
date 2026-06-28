@@ -101,3 +101,39 @@
 #prospects-cadastro .pcad-mi .material-symbols-rounded{font-size:14px;opacity:.85}
 #prospects-cadastro .pcad-actions{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:6px;padding:8px 12px 8px 6px;flex-shrink:0}
 #prospects-cadastro .pcad-actions .table-btn{white-space:nowrap}
+/* ════ Cadastro de Clientes — lista de cards sobre a <table> (preserva busca/ordenação) ════ */
+#clientes-cadastro .table-wrap{overflow:visible}
+#clientes-cadastro table{display:block;min-width:0!important;width:100%}
+#clientes-cadastro tbody{display:block}
+#clientes-cadastro tbody tr{display:block;margin-bottom:8px}
+#clientes-cadastro tbody td{display:block;border:0!important;padding:0!important;white-space:normal!important}
+#clientes-cadastro tbody td:not(.cad-cell){padding:16px!important;text-align:center;color:var(--muted);font-size:12px}
+#clientes-cadastro thead{display:block}
+#clientes-cadastro thead tr{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0 10px}
+#clientes-cadastro thead tr::-webkit-scrollbar{display:none}
+#clientes-cadastro thead th{display:block;position:static!important;background:none!important;border:0!important;padding:0!important;flex:0 0 auto}
+#clientes-cadastro thead th:last-child{display:none}
+#clientes-cadastro .sort-head{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 11px;color:var(--muted);white-space:nowrap}
+#clientes-cadastro .sort-head.active{border-color:var(--blue);color:var(--blue);background:var(--sky)}
+#clientes-cadastro .cad-card{display:flex;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;position:relative}
+#clientes-cadastro .cad-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--cv,var(--slate))}
+#clientes-cadastro .cad-card[data-curva="TOP"]{--cv:var(--navy)}
+#clientes-cadastro .cad-card[data-curva="A"]{--cv:var(--teal)}
+#clientes-cadastro .cad-card[data-curva="B"]{--cv:var(--blue)}
+#clientes-cadastro .cad-card[data-curva="C"]{--cv:var(--slate)}
+#clientes-cadastro .cad-main{flex:1;min-width:0;padding:11px 6px 11px 14px}
+#clientes-cadastro .cad-row1{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+#clientes-cadastro .cad-name{font-size:14px;font-weight:800;color:var(--text);letter-spacing:-.01em}
+#clientes-cadastro .cad-curva{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--sky);color:var(--blue);white-space:nowrap}
+#clientes-cadastro .cad-card[data-curva="TOP"] .cad-curva{background:var(--soft);color:var(--navy)}
+#clientes-cadastro .cad-card[data-curva="A"] .cad-curva{background:var(--teal-soft);color:var(--teal)}
+#clientes-cadastro .cad-card[data-curva="C"] .cad-curva{background:#F0F0F0;color:#888}
+#clientes-cadastro .cad-sub{font-size:12px;color:var(--muted);font-weight:600;margin-top:3px}
+#clientes-cadastro .cad-meta{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px}
+#clientes-cadastro .cad-mi{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);font-weight:600}
+#clientes-cadastro .cad-mi em{font-style:normal;opacity:.7}
+#clientes-cadastro .cad-mi .material-symbols-rounded{font-size:14px;opacity:.85}
+#clientes-cadastro .cad-actions{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:6px;padding:8px 12px 8px 6px;flex-shrink:0}
+#clientes-cadastro .cad-actions .table-btn{white-space:nowrap}
+/* ── Cabeçalho de página compacto: oculta rótulo (eyebrow) + subtítulo, deixa só título + ações ── */
+.page-heading .eyebrow,.page-heading>div>p:not(.eyebrow){display:none}
