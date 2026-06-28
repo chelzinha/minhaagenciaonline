@@ -21,13 +21,26 @@
 <div class="crm-shell">
   <header class="crm-topbar">
     <div class="crm-topbar-inner">
+      <a class="portal-btn" href="/agf/" title="Voltar ao Portal AGF"><span class="material-symbols-rounded">apps</span></a>
       <a class="crm-brand" href="/agf/" aria-label="Voltar ao portal">
         <span class="brand-icon"><span class="material-symbols-rounded">hub</span></span>
         <span><strong>CRM Comercial</strong><small>AGF JOSÉ BONIFÁCIO</small></span>
       </a>
       <div class="crm-top-actions">
         <button class="icon-btn" id="refreshBtn" type="button" title="Atualizar"><span class="material-symbols-rounded">refresh</span></button>
-        <a class="icon-btn" href="/agf/" title="Portal"><span class="material-symbols-rounded">apps</span></a>
+        <div class="user-av-wrap" style="position:relative">
+          <button class="user-av user-av-md user-av-btn" id="userAvBtn" type="button" aria-label="Conta" style="background:var(--accent);color:#fff">·</button>
+          <div class="user-menu" id="userMenu" style="display:none">
+            <div class="user-menu-hd">
+              <div class="user-av user-av-lg" id="userAvLg" style="background:var(--accent);color:#fff">·</div>
+              <div>
+                <div class="user-menu-name" id="userMenuName">—</div>
+                <div class="user-menu-role" id="userMenuRole">—</div>
+              </div>
+            </div>
+            <button class="user-menu-action" id="userLogout" type="button"><span class="material-symbols-rounded">logout</span>Sair</button>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -104,5 +117,25 @@
 <script src="/crm/config.js?v=82"></script>
 <script src="/crm/app.js?v=98"></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/crm/sw.js').catch(()=>{}));}</script>
+<script>
+/* Thumb de usuário na topbar — religação self-contained (usa AgfAuth). */
+(function(){
+  function initial(s){s=(s||'').trim();return s?s[0].toUpperCase():'·';}
+  function roleLabel(u){if(!u)return'';if(u.role==='admin')return'Administrador';if(u.role==='manager')return'Gestor · Comercial';return'Comercial';}
+  function currentUser(){var a=window.AgfAuth;if(!a)return null;try{var ls=a.getLocalSession&&a.getLocalSession();return(ls&&ls.user)||(a.getCachedUser&&a.getCachedUser())||null;}catch(e){return null;}}
+  function set(id,txt){var el=document.getElementById(id);if(el)el.textContent=txt;}
+  function fill(){var u=currentUser();var name=(u&&(u.displayName||u.username))||'Usuário';var av=initial(name);set('userAvBtn',av);set('userAvLg',av);set('userMenuName',name);set('userMenuRole',roleLabel(u));}
+  window.addEventListener('agf:auth-ready',fill);
+  if(document.readyState!=='loading')fill();else document.addEventListener('DOMContentLoaded',fill);
+  var btn=document.getElementById('userAvBtn'),menu=document.getElementById('userMenu');
+  if(btn&&menu){
+    btn.addEventListener('click',function(e){e.stopPropagation();menu.style.display=menu.style.display==='none'?'block':'none';});
+    menu.addEventListener('click',function(e){e.stopPropagation();});
+    document.addEventListener('click',function(){menu.style.display='none';});
+  }
+  var lo=document.getElementById('userLogout');
+  if(lo)lo.addEventListener('click',function(){var a=window.AgfAuth;if(a&&a.logout){a.logout();}else{location.href='/agf/?reason=logout';}});
+})();
+</script>
 </body>
 </html>
