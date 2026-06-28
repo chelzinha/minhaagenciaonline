@@ -513,3 +513,8 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
 .crm-main .tabs-bar .section-tabs button{flex-shrink:0;border-radius:0!important;background:transparent!important;color:var(--muted)!important;box-shadow:none!important;padding:9px 11px!important;border-bottom:2.5px solid transparent!important;margin-bottom:-1.5px}
 .crm-main .tabs-bar .section-tabs button.active{color:var(--accent)!important;border-bottom-color:var(--accent)!important}
 .crm-main .tabs-actions{flex-shrink:0;position:relative;display:flex;align-items:center;transform:none;margin:0 0 0 4px;padding:0}
+/* ════ FAB "Novo prospect" (substitui o botão do cabeçalho, como na maquete) ════ */
+.fab-add{position:fixed;right:18px;bottom:calc(var(--bottom) + 16px + env(safe-area-inset-bottom));width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;box-shadow:0 6px 18px rgba(14,149,148,.42);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:80}
+.fab-add:hover{filter:brightness(.96)}
+.fab-add .material-symbols-rounded{font-size:25px}
+.fab-add.hidden{display:none!important}
