@@ -548,3 +548,23 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
   .context-filter-bar label .material-symbols-rounded{margin:0!important;font-size:18px!important}
   .context-filter-bar select{position:absolute;inset:0;width:100%!important;height:100%;opacity:0;cursor:pointer}
 }
+/* ════ Tabs: caber sem estourar (Acoes nao fica atras do Exportar) ════ */
+.tabs-bar .section-tabs{padding-right:6px!important}
+.tabs-bar .section-tabs button{padding:11px 13px!important;font-size:12.5px!important;gap:5px}
+@media(max-width:560px){
+  .tabs-bar .section-tabs button{padding:10px 11px!important;font-size:12px!important;gap:0}
+  .tabs-bar .section-tabs button .material-symbols-rounded{display:none}
+}
+/* ════ Cadastro: toolbar (busca + chip) + controles (ordenar/filtrar) ════ */
+.cad-toolbar{display:flex;align-items:center;gap:9px;padding:12px 13px;border-bottom:1px solid var(--line)}
+.cad-toolbar .search-field{flex:1 1 auto;margin:0}
+.cad-toolbar .board-count{flex:0 0 auto}
+.cad-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:11px 13px;border-bottom:1px solid var(--line)}
+.cad-controls .chip-filter{margin:0}
+/* botao Editar: topo-direita absoluto, so icone */
+.cad-card,.pcad-card{position:relative}
+.cad-actions,.pcad-actions{position:absolute!important;top:9px;right:9px;flex-direction:row!important;padding:0!important;gap:6px;z-index:2}
+.cad-row1,.pcad-row1{padding-right:42px}
+.table-btn.icon-only{width:34px;height:34px;min-height:0;padding:0;border-radius:10px;background:var(--soft);border:1px solid var(--line);color:var(--navy)}
+.table-btn.icon-only .material-symbols-rounded{font-size:18px}
+.table-btn.icon-only:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
