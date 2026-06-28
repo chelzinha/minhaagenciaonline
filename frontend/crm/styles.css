@@ -528,3 +528,23 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
 .dash-head .sub{font-size:11.5px;color:var(--muted);font-weight:600}
 /* grid 2 colunas para os KPIs (Indicadores) */
 .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+/* ════ Cards do funil maiores (fonte/botões) + chip de local colorido ════ */
+.kanban .deal-card{padding:11px 11px!important}
+.kanban .deal-title{font-size:14px!important;line-height:1.25!important}
+.kanban .deal-meta{font-size:11.5px!important;line-height:1.5!important;margin-top:6px!important;white-space:normal!important}
+.kanban .chip{font-size:10px!important;padding:3px 8px!important}
+.kanban .chip .material-symbols-rounded{font-size:12px!important}
+.kanban .chip.loc{background:var(--info-soft);color:var(--info)}
+.kanban .chip-row{gap:5px!important;margin-top:7px!important}
+.kanban .deal-btn{width:36px!important;height:36px!important;border-radius:10px!important}
+.kanban .deal-btn .material-symbols-rounded{font-size:19px!important}
+.kanban .deal-actions{gap:7px!important;margin-top:9px!important}
+/* ════ Filtros: pill mais suave + só ícones no mobile ════ */
+.context-filter-bar label{background:var(--soft)!important;border-color:transparent!important}
+.context-filter-bar label:hover{background:color-mix(in srgb,var(--accent) 8%,var(--soft))!important}
+@media(max-width:620px){
+  .context-filter-bar{gap:7px!important}
+  .context-filter-bar label{position:relative;padding:9px!important;gap:0!important;flex:0 0 auto!important;width:auto!important}
+  .context-filter-bar label .material-symbols-rounded{margin:0!important;font-size:18px!important}
+  .context-filter-bar select{position:absolute;inset:0;width:100%!important;height:100%;opacity:0;cursor:pointer}
+}
