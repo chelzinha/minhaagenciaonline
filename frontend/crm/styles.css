@@ -518,3 +518,11 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
 .fab-add:hover{filter:brightness(.96)}
 .fab-add .material-symbols-rounded{font-size:25px}
 .fab-add.hidden{display:none!important}
+/* ════ Dropdowns/filtros mais suaves (cantos arredondados) ════ */
+.context-filter-bar label{border-radius:999px!important;padding:6px 13px!important}
+.form-grid input,.form-grid select,.form-grid textarea{border-radius:12px}
+.filter-row select,.filter-row input,.agenda-toolbar select{border-radius:12px}
+/* ════ Títulos das seções do dashboard ════ */
+.dash-head{display:flex;justify-content:space-between;align-items:baseline;margin:2px 0 9px}
+.dash-head h2{font-size:15px;letter-spacing:-.02em;margin:0;font-weight:800;color:var(--text)}
+.dash-head .sub{font-size:11.5px;color:var(--muted);font-weight:600}
