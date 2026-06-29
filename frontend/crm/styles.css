@@ -569,9 +569,15 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
 .table-btn.icon-only .material-symbols-rounded{font-size:18px}
 .table-btn.icon-only:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 /* ════ Busca + chip de contagem: sempre na mesma linha (chip trava a direita, busca flexivel) ════ */
-.board-toolbar .filter-row,.cad-toolbar{flex-wrap:nowrap!important}
-.board-toolbar .filter-row .search-field,.cad-toolbar .search-field{flex:1 1 auto!important;width:auto!important;min-width:0!important;max-width:none!important}
-.board-toolbar .filter-row .board-count,.cad-toolbar .board-count{flex:0 0 auto}
+.board-toolbar .filter-row{flex-wrap:nowrap!important}
+.board-toolbar .filter-row .search-field{flex:1 1 auto!important;width:auto!important;min-width:0!important;max-width:none!important}
+.board-toolbar .filter-row .board-count{flex:0 0 auto}
+/* cadastro: busca + contagem + controles (ordenar/filtrar) na MESMA linha; quebram juntos se faltar espaco */
+.cad-toolbar{flex-wrap:wrap}
+.cad-toolbar .search-field{flex:1 1 170px!important;width:auto!important;min-width:0!important;max-width:none!important}
+.cad-toolbar .board-count{flex:0 0 auto}
+.cad-toolbar .cad-controls{display:contents}
+.cad-toolbar .cad-controls .chip-filter{flex:0 0 auto;margin:0}
 /* ════ Botao Exportar: tipografia limpa (corrige aparencia "grosseira") ════ */
 .tab-export-btn{gap:5px;padding:7px 12px;font-size:13px;font-weight:600;letter-spacing:-.01em}
 .tab-export-label{font-size:13px;font-weight:600;letter-spacing:-.01em}
