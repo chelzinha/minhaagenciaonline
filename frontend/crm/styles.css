@@ -568,3 +568,40 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
 .table-btn.icon-only{width:34px;height:34px;min-height:0;padding:0;border-radius:10px;background:var(--soft);border:1px solid var(--line);color:var(--navy)}
 .table-btn.icon-only .material-symbols-rounded{font-size:18px}
 .table-btn.icon-only:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+/* ════ Busca + chip de contagem: sempre na mesma linha (chip trava a direita, busca flexivel) ════ */
+.board-toolbar .filter-row,.cad-toolbar{flex-wrap:nowrap!important}
+.board-toolbar .filter-row .search-field,.cad-toolbar .search-field{flex:1 1 auto!important;width:auto!important;min-width:0!important;max-width:none!important}
+.board-toolbar .filter-row .board-count,.cad-toolbar .board-count{flex:0 0 auto}
+/* ════ Botao Exportar: tipografia limpa (corrige aparencia "grosseira") ════ */
+.tab-export-btn{gap:5px;padding:7px 12px;font-size:13px;font-weight:600;letter-spacing:-.01em}
+.tab-export-label{font-size:13px;font-weight:600;letter-spacing:-.01em}
+/* ════════════════ BIBLIOTECA DE COMPONENTES — Form de cadastro ════════════════ */
+/* dropdown suave (linha clicavel + valor) */
+.form-dd-row{cursor:pointer;user-select:none}
+.form-dd-value{font-size:13px;font-weight:500;color:var(--text);flex:1}
+/* contatos secundarios ("Outras pessoas") */
+.contact-item{padding:11px 14px;border-bottom:1px solid var(--line)}
+.contact-item-top{display:flex;align-items:center;gap:8px}
+.contact-item-icon{font-size:18px;color:var(--muted);flex-shrink:0}
+.contact-item-name{flex:1;min-width:0;border:none;background:transparent;font-size:13px;font-weight:500;color:var(--text);outline:none;font-family:inherit}
+.contact-item-name::placeholder{color:var(--muted)}
+.role-pill{border:1.5px solid currentColor;border-radius:99px;padding:2px 9px;font-size:11px;font-weight:700;background:transparent;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;color:var(--accent);transition:opacity .15s}
+.role-pill:hover{opacity:.75}
+.contact-item-del{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;flex-shrink:0;padding:0 2px;display:flex;align-items:center;justify-content:center}
+.contact-item-phone-row{display:flex;align-items:center;gap:6px;padding-left:26px;margin-top:6px}
+.contact-item-phone-row .material-symbols-rounded{font-size:14px;color:var(--muted);flex-shrink:0}
+.contact-item-phone{flex:1;border:none;background:transparent;font-size:12px;color:var(--muted);outline:none;font-family:inherit}
+.contact-item-phone::placeholder{color:var(--line)}
+/* adicionar pessoa */
+.add-person-btn{display:flex;align-items:center;gap:7px;padding:12px 14px;width:100%;border:none;background:transparent;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.add-person-btn .material-symbols-rounded{font-size:18px}
+/* CEP */
+.cep-row{display:flex;align-items:center;gap:8px}
+.cep-search-btn{display:inline-flex;align-items:center;gap:4px;background:var(--accent-soft);border:1.5px solid var(--accent);color:var(--accent);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
+.cep-search-btn .material-symbols-rounded{font-size:14px}
+.cep-loading{font-size:11px;color:var(--muted);display:none}
+/* ponto de cor da etapa */
+.stage-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block}
+/* botao Excluir: outline teal, fundo branco (baixa enfase) */
+.danger-btn.outline{background:#fff;border:1.5px solid var(--accent);color:var(--accent)}
+.danger-btn.outline:hover{background:var(--accent-soft)}
