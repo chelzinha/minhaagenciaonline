@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Preview — Modal de Cadastro montado · CRM AGF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/ui/agf-ui.css">
+<link rel="stylesheet" href="/crm/styles.css?v=dev">
+<style>
+body{background:#0c2036;font-family:Inter,sans-serif;margin:0}
+.form-label{font-size:10px;color:var(--muted);font-weight:600;margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em}
+/* corpo do modal: empilha as seções com respiro */
+.cad-modal-body{padding:13px;display:flex;flex-direction:column;gap:12px}
+/* rodapé fixo com os botões */
+.cad-modal-foot{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 14px;display:flex;gap:9px;align-items:center}
+.cad-modal-foot .secondary-btn{margin-left:auto}
+.cad-modal-foot .danger-btn,.cad-modal-foot .secondary-btn,.cad-modal-foot .primary-btn{min-height:42px;border-radius:12px;padding:0 15px;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+@media(max-width:430px){.cad-modal-foot .btn-label{display:none}.cad-modal-foot .danger-btn,.cad-modal-foot .secondary-btn,.cad-modal-foot .primary-btn{padding:0;width:44px;justify-content:center}.cad-modal-foot .primary-btn{flex:1;width:auto}}
+</style>
+</head>
+<body>
+<div class="modal-backdrop" style="position:static;padding:14px">
+  <section class="modal-panel" style="width:min(560px,100%)">
+    <header>
+      <div><p class="eyebrow">Cadastro de prospect</p><h2>Maria Aleida de Oliveira</h2></div>
+      <button class="close-btn" type="button"><span class="material-symbols-rounded">close</span></button>
+    </header>
+
+    <div class="cad-modal-body">
+
+      <!-- Empresa -->
+      <div class="edit-section">
+        <div class="edit-section-title">Empresa</div>
+        <div class="form-row"><span class="material-symbols-rounded form-row-icon">business</span><div class="form-value"><div class="form-label">Nome / Razão Social</div><input class="form-input" value="AeA Jeans Multimarcas"></div></div>
+        <div class="form-row"><span class="material-symbols-rounded form-row-icon" style="opacity:0">business</span><div class="form-value"><div class="form-label">Nome Fantasia</div><input class="form-input" value="AeA Jeans" placeholder="Opcional"></div></div>
+        <div class="form-row"><span class="material-symbols-rounded form-row-icon">badge</span><div class="form-value"><div class="form-label">CPF / CNPJ</div><input class="form-input" value="843.350.843-15"></div></div>
+      </div>
+
+      <!-- Contato principal -->
+      <div class="edit-section">
+        <div class="edit-section-title">Contato principal</div>
+        <div class="form-row"><span class="material-symbols-rounded form-row-icon">person</span><div class="form-value"><div class="form-label">Pessoa de contato</div><input class="form-input" value="Aleida Oliveira"></div></div>
+        <div class="form-row"><span class="material-symbols-rounded form-row-icon">chat</span><div class="form-value"><div class="form-label">WhatsApp</div><input class="form-input" type="tel" value="(85) 98698-5808"></div></div>
+        <div class="form-row"><span class="material-symbols-rounded form-row-icon">mail</span><div class="form-value"><div class="form-label">E-mail</div><input class="form-input" type="email" value="aleidaoliveira26@gmail.com"></div></div>
+        <div class="form-row"><span class="material-symbols-rounded form-row-icon">alternate_email</span><div class="form-value"><div class="form-label">Instagram</div><input class="form-input" value="@aeajeans"></div></div>
+      </div>
+
+      <!-- Outras pessoas -->
+      <div class="edit-section">
+        <div class="edit-section-title">Outras pessoas</div>
+        <div id="contact-list">
+          <div class="contact-item">
+            <div class="contact-item-top">
+              <span class="material-symbols-rounded contact-item-icon">person</span>
+              <input class="contact-item-name" value="Maria Costa">
+              <button class="role-pill" type="button" data-role="1" style="color:#ff751f">Influenciador</button>
+              <button class="contact-item-del" type="button"><span class="material-symbols-rounded" style="font-size:18px">close</span></button>
+            </div>
+            <div class="contact-item-phone-row"><span class="material-symbols-rounded">call</span><input class="contact-item-phone" type="tel" value="(85) 97654-3210"></div>
+          </div>
+        </div>
+        <button class="add-person-btn" type="button" id="add-person-btn"><span class="material-symbols-rounded">person_add</span>Adicionar pessoa</button>
+      </div>
+
+      <!-- Classificação -->
+      <div class="edit-section">
+        <div class="edit-section-title">Classificação</div>
+        <div class="form-row form-dd-row" id="seg-row"><span class="material-symbols-rounded form-row-icon">category</span><span class="form-dd-value" id="seg-value">Moda Feminina</span><span class="material-symbols-rounded form-chevron" id="seg-chev">expand_more</span></div>
+        <div class="form-dd-menu" id="seg-menu" hidden><button class="form-dd-opt active" type="button">Moda Feminina</button><button class="form-dd-opt" type="button">Calçados</button><button class="form-dd-opt" type="button">Acessórios</button><button class="form-dd-opt" type="button">Varejo</button></div>
+        <div class="form-row form-dd-row" id="loc-row"><span class="material-symbols-rounded form-row-icon">location_on</span><span class="form-dd-value" id="loc-value">Estação Fashion</span><span class="material-symbols-rounded form-chevron" id="loc-chev">expand_more</span></div>
+        <div class="form-dd-menu" id="loc-menu" hidden><button class="form-dd-opt active" type="button">Estação Fashion</button><button class="form-dd-opt" type="button">Centro</button><button class="form-dd-opt" type="button">Aldeota</button></div>
+      </div>
+
+      <!-- Endereço -->
+      <div class="edit-section">
+        <div class="edit-section-title">Endereço</div>
+        <div class="form-row"><span class="material-symbols-rounded form-row-icon">pin</span><div class="form-value"><div class="form-label">CEP</div><div class="cep-row"><input class="form-input" id="cep" value="60150-160" maxlength="9" style="flex:1"><button class="cep-search-btn" type="button" id="cep-btn"><span class="material-symbols-rounded">search</span>Buscar</button><span class="cep-loading" id="cep-loading">buscando…</span></div></div></div>
+        <div class="form-row"><span class="material-symbols-rounded form-row-icon">home</span><div class="form-value"><div class="form-label">Logradouro</div><input class="form-input" id="logradouro" value="Av. Monsenhor Tabosa"></div></div>
+        <div class="form-row" style="gap:12px"><span class="material-symbols-rounded form-row-icon" style="opacity:0">home</span><div style="flex:0 0 80px"><div class="form-label">Número</div><input class="form-input" id="numero" value="740"></div><div style="flex:1;border-left:1px solid var(--line);padding-left:12px"><div class="form-label">Complemento</div><input class="form-input" id="complemento" placeholder="Sala, loja…"></div></div>
+        <div class="form-row"><span class="material-symbols-rounded form-row-icon" style="opacity:0">home</span><div class="form-value"><div class="form-label">Bairro</div><input class="form-input" id="bairro" value="Praia de Iracema"></div></div>
+        <div class="form-row" style="gap:12px"><span class="material-symbols-rounded form-row-icon" style="opacity:0">home</span><div style="flex:1"><div class="form-label">Cidade</div><input class="form-input" id="cidade" value="Fortaleza"></div><div style="flex:0 0 52px;border-left:1px solid var(--line);padding-left:12px"><div class="form-label">UF</div><input class="form-input" id="estado" value="CE" maxlength="2"></div></div>
+      </div>
+
+      <!-- Funil -->
+      <div class="edit-section">
+        <div class="edit-section-title">Funil</div>
+        <div class="form-row form-dd-row" id="stage-row"><span class="material-symbols-rounded form-row-icon">view_kanban</span><div style="display:flex;align-items:center;gap:8px;flex:1"><span class="stage-dot" id="stage-dot" style="background:#23976b"></span><span class="form-dd-value" id="stage-label">Novo lead</span></div><span class="material-symbols-rounded form-chevron" id="stage-chev">expand_more</span></div>
+        <div class="form-dd-menu" id="stage-menu" hidden><button class="form-dd-opt active" data-color="#23976b" type="button"><span class="stage-dot" style="background:#23976b"></span>Novo lead</button><button class="form-dd-opt" data-color="#d99a3d" type="button"><span class="stage-dot" style="background:#d99a3d"></span>Qualificado</button><button class="form-dd-opt" data-color="#3b6fd8" type="button"><span class="stage-dot" style="background:#3b6fd8"></span>Em contato</button><button class="form-dd-opt" data-color="#b14fd1" type="button"><span class="stage-dot" style="background:#b14fd1"></span>Em negociação</button></div>
+        <div style="padding:8px 14px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Potencial</div>
+        <div class="pot-toggle"><button class="pot-opt active-alto" type="button">Alto</button><button class="pot-opt" type="button">Médio</button><button class="pot-opt" type="button">Baixo</button></div>
+      </div>
+
+      <!-- Responsável -->
+      <div class="edit-section">
+        <div class="edit-section-title">Responsável</div>
+        <div class="form-row"><div class="user-av user-av-md" id="resp-avatar" style="background:#0E9594;color:#fff">M</div><div class="form-value"><div class="form-label">Responsável atual</div><span id="resp-current" style="font-size:13px;font-weight:600">Manu</span></div></div>
+        <div class="form-row" id="resp-row" style="cursor:pointer;background:color-mix(in srgb,var(--accent) 5%,transparent)"><span class="material-symbols-rounded form-row-icon" style="color:var(--accent)">swap_horiz</span><span style="font-size:13px;font-weight:700;color:var(--accent);flex:1">Transferir responsável</span><span class="material-symbols-rounded" style="font-size:18px;color:var(--accent)" id="resp-chev">expand_more</span></div>
+        <div class="av-pick-wrap" id="resp-picker" style="display:none">
+          <div class="av-pick-item av-active" data-name="Manu" data-initial="M" data-color="#0E9594"><div class="user-av user-av-md" style="background:#0E9594;color:#fff">M</div><span class="av-pick-name">Manu</span></div>
+          <div class="av-pick-item" data-name="Carlos" data-initial="C" data-color="#3b6fd8"><div class="user-av user-av-md" style="background:#3b6fd8;color:#fff">C</div><span class="av-pick-name">Carlos</span></div>
+          <div class="av-pick-item" data-name="Ana" data-initial="A" data-color="#b14fd1"><div class="user-av user-av-md" style="background:#b14fd1;color:#fff">A</div><span class="av-pick-name">Ana</span></div>
+        </div>
+      </div>
+
+      <!-- Observações -->
+      <div class="edit-section">
+        <div class="edit-section-title">Observações</div>
+        <div class="form-row" style="align-items:flex-start;padding:12px 14px"><textarea class="form-input" rows="3" placeholder="Anotações…" style="resize:none;line-height:1.6">Novo lead vindo do Instagram. Tem interesse em encomendas.</textarea></div>
+      </div>
+
+    </div>
+
+    <div class="cad-modal-foot">
+      <button type="button" class="danger-btn outline"><span class="material-symbols-rounded">delete</span><span class="btn-label">Excluir cadastro</span></button>
+      <button type="button" class="secondary-btn"><span class="material-symbols-rounded">close</span><span class="btn-label">Cancelar</span></button>
+      <button type="button" class="primary-btn"><span class="material-symbols-rounded">save</span><span class="btn-label">Salvar cadastro</span></button>
+    </div>
+
+  </section>
+</div>
+
+<script>
+function closeAllDD(){document.querySelectorAll('.form-dd-menu').forEach(m=>m.hidden=true);var p=document.getElementById('resp-picker');if(p)p.style.display='none';['seg-chev','loc-chev','stage-chev','resp-chev'].forEach(id=>{var el=document.getElementById(id);if(el)el.textContent='expand_more';});}
+function initDD(rowId,menuId,valId,chevId,dot){var row=document.getElementById(rowId),menu=document.getElementById(menuId),chev=document.getElementById(chevId);row.addEventListener('click',function(e){e.stopPropagation();var open=!menu.hidden;closeAllDD();if(!open){menu.hidden=false;chev.textContent='expand_less';}});menu.querySelectorAll('.form-dd-opt').forEach(function(o){o.addEventListener('click',function(e){e.stopPropagation();menu.querySelectorAll('.form-dd-opt').forEach(x=>x.classList.remove('active'));o.classList.add('active');if(valId)document.getElementById(valId).textContent=o.textContent.trim();if(dot&&o.dataset.color){document.getElementById(dot).style.background=o.dataset.color;}menu.hidden=true;chev.textContent='expand_more';});});}
+initDD('seg-row','seg-menu','seg-value','seg-chev');
+initDD('loc-row','loc-menu','loc-value','loc-chev');
+initDD('stage-row','stage-menu','stage-label','stage-chev','stage-dot');
+var ROLES=[['Indicador','#0E9594'],['Influenciador','#ff751f'],['Decisor','#1B3358']];
+function initRole(p){p.addEventListener('click',function(e){e.stopPropagation();var i=(parseInt(p.dataset.role)+1)%3;p.dataset.role=i;p.textContent=ROLES[i][0];p.style.color=ROLES[i][1];});}
+document.querySelectorAll('.role-pill').forEach(initRole);
+document.querySelectorAll('.contact-item-del').forEach(b=>b.addEventListener('click',()=>b.closest('.contact-item').remove()));
+document.getElementById('add-person-btn').addEventListener('click',function(){var it=document.createElement('div');it.className='contact-item';it.innerHTML='<div class="contact-item-top"><span class="material-symbols-rounded contact-item-icon">person</span><input class="contact-item-name" placeholder="Nome da pessoa"><button class="role-pill" type="button" data-role="0" style="color:#0E9594">Indicador</button><button class="contact-item-del" type="button"><span class="material-symbols-rounded" style="font-size:18px">close</span></button></div><div class="contact-item-phone-row"><span class="material-symbols-rounded">call</span><input class="contact-item-phone" type="tel" placeholder="Telefone / WhatsApp"></div>';it.querySelector('.contact-item-del').addEventListener('click',()=>it.remove());initRole(it.querySelector('.role-pill'));document.getElementById('contact-list').appendChild(it);it.querySelector('.contact-item-name').focus();});
+document.getElementById('resp-row').addEventListener('click',function(e){e.stopPropagation();var p=document.getElementById('resp-picker'),open=p.style.display!=='none';closeAllDD();if(!open){p.style.display='flex';document.getElementById('resp-chev').textContent='expand_less';}});
+document.querySelectorAll('.av-pick-item').forEach(it=>it.addEventListener('click',function(e){e.stopPropagation();document.querySelectorAll('.av-pick-item').forEach(i=>i.classList.remove('av-active'));it.classList.add('av-active');document.getElementById('resp-current').textContent=it.dataset.name;var av=document.getElementById('resp-avatar');av.textContent=it.dataset.initial;av.style.background=it.dataset.color;}));
+document.querySelectorAll('.pot-opt').forEach((b,i)=>b.addEventListener('click',function(){document.querySelectorAll('.pot-opt').forEach(x=>x.classList.remove('active-alto','active-medio','active-baixo'));b.classList.add(['active-alto','active-medio','active-baixo'][i]);}));
+function fmtCEP(v){v=v.replace(/\D/g,'').substring(0,8);return v.length>5?v.substring(0,5)+'-'+v.substring(5):v;}
+var cepEl=document.getElementById('cep');cepEl.addEventListener('input',function(){this.value=fmtCEP(this.value);});
+async function buscaCEP(c){var b=document.getElementById('cep-btn'),l=document.getElementById('cep-loading');b.style.display='none';l.style.display='inline';try{var r=await fetch('https://viacep.com.br/ws/'+c+'/json/'),d=await r.json();if(!d.erro){logradouro.value=d.logradouro||'';bairro.value=d.bairro||'';cidade.value=d.localidade||'';estado.value=d.uf||'';}}catch(e){}b.style.display='';l.style.display='none';}
+document.getElementById('cep-btn').addEventListener('click',function(){var c=cepEl.value.replace(/\D/g,'');if(c.length===8)buscaCEP(c);});
+document.addEventListener('click',closeAllDD);
+</script>
+</body>
+</html>
