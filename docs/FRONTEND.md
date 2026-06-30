@@ -164,3 +164,10 @@ Cuidados de regressao no frontend:
 - Nao trocar IDs de inputs/templates sem revisar os scripts de tela.
 - Nao mudar a estrutura da resposta sem revisar renderizacao, toasts, loading, tela de sucesso e historico.
 - Nao alterar o fluxo de NF-e sem manter a orientacao de revisar dados antes de gerar etiqueta.
+
+### Filtros de contexto do CRM (2026-06-30)
+- renderContextFilters e ciente de escopo: Prospects usa Local de prospect
+  (config.prospectLocais) e nao mostra curvas; Clientes/Home/Agenda usam Local
+  de CRM (config.locais) + curvas.
+- matchesContext escolhe o local por tipo (PROSPECT usa prospectContextLocal;
+  CLIENTE usa contextLocal). Curva so para CLIENTE.
