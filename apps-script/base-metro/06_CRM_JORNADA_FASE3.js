@@ -197,7 +197,9 @@ function crm3_apiGetConfig_() {
     responsaveis:crm3_readObjects_(CRM3_CFG.SHEETS.RESPONSAVEIS).filter(function(x){ return crm3_isYes_(x.USER_ACTIVE) && crm3_isYes_(x.CRM_LINKED); }),
     transicoes:crm3_readJourneyTransitions_(),
     segmentos:(typeof crm82_getActiveSegments_ === 'function' ? crm82_getActiveSegments_() : []),
-    locais:(typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_() : [])
+    locais:(typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('CRM') : []),
+    prospectLocais:(typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('PROSPECTS') : []),
+    prospectsLocais:(typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('PROSPECTS') : [])
   };
 }
 
