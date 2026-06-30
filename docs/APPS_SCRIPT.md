@@ -217,3 +217,8 @@ Regras de manutencao:
 - Se um campo de payload mudar, revisar mascaras, validacoes, historico, destinatarios e emissao.
 - Se uma resposta mudar, revisar renderizacao da tela, mensagens de erro, tela de sucesso e logs.
 - Se a action manipula PDF, NF-e, Drive, CWS ou dados pessoais, tratar como Atencao sensivel.
+
+### Locais do CRM resiliente (2026-06-30, v8.3.2)
+- crm83_getActiveLocals_ com try/catch total; em erro cai no padrao por escopo.
+- crm3_apiGetConfig_ monta segmentos/locais via crm3_safeConfigList_, sem
+  derrubar o bootstrap.

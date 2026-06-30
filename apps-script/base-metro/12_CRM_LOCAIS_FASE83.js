@@ -9,7 +9,7 @@
  * - não altera registros existentes de clientes ou prospects.
  */
 var CRM83_CFG = Object.freeze({
-  VERSION:'8.3.1',
+  VERSION:'8.3.2',
   SHEET_LOCALS:'CRM_LOCAIS',
   LOCAL_HEADERS:['LOCAL_ID','NOME_EXIBICAO','ORDEM','ATIVO','TIPO','OBS','EXIBIR_EM'],
   DEFAULT_LOCALS:[
@@ -142,21 +142,37 @@ function crm83_localId_(name){
 }
 
 function crm83_getActiveLocals_(scope){
-  scope=op_upperNoAccents_(scope||'CRM');
-  var ss=op_getSpreadsheet_(),sh=ss.getSheetByName(CRM83_CFG.SHEET_LOCALS);
-  if(!sh||sh.getLastRow()<2){
-    return CRM83_CFG.DEFAULT_LOCALS.map(function(r){return crm83_localRowObject_(r);}).filter(function(x){return crm83_localMatchesScope_(x.exibirEm,scope);});
+  // Fase 8.3 (fix): blindagem total. Esta função alimenta a config do CRM.
+  // Se ela estourar (aba ausente, cabeçalho faltando, leitura inválida),
+  // o bootstrap inteiro do CRM caía. Agora qualquer erro cai no padrão e
+  // NUNCA lança exceção. Com os dados saudáveis, o comportamento é idêntico.
+  try{
+    scope=op_upperNoAccents_(scope||'CRM');
+    var ss=op_getSpreadsheet_(),sh=ss.getSheetByName(CRM83_CFG.SHEET_LOCALS);
+    if(!sh||sh.getLastRow()<2){
+      return crm83_defaultLocalsForScope_(scope);
+    }
+    var values=sh.getDataRange().getValues(),hm=op_buildHeaderMap_(values[0]);
+    return values.slice(1).map(function(r){return{
+      localId:op_norm_(op_getCell_(r,hm,'LOCAL_ID')),
+      nome:op_norm_(op_getCell_(r,hm,'NOME_EXIBICAO')),
+      ordem:Number(op_getCell_(r,hm,'ORDEM'))||999,
+      ativo:op_norm_(op_getCell_(r,hm,'ATIVO')),
+      tipo:op_norm_(op_getCell_(r,hm,'TIPO')),
+      obs:op_norm_(op_getCell_(r,hm,'OBS')),
+      exibirEm:op_norm_(op_getCell_(r,hm,'EXIBIR_EM'))||'CRM'
+    };}).filter(function(x){return x.nome&&crm3_isYes_(x.ativo||'SIM')&&crm83_localMatchesScope_(x.exibirEm,scope);}).sort(function(a,b){return a.ordem-b.ordem||a.nome.localeCompare(b.nome,'pt-BR');});
+  }catch(err){
+    try{ Logger.log('[CRM][locais] Falha em crm83_getActiveLocals_('+scope+'): '+((err&&err.message)||err)); }catch(_){ }
+    try{ return crm83_defaultLocalsForScope_(scope); }catch(_){ return []; }
   }
-  var values=sh.getDataRange().getValues(),hm=op_buildHeaderMap_(values[0]);
-  return values.slice(1).map(function(r){return{
-    localId:op_norm_(op_getCell_(r,hm,'LOCAL_ID')),
-    nome:op_norm_(op_getCell_(r,hm,'NOME_EXIBICAO')),
-    ordem:Number(op_getCell_(r,hm,'ORDEM'))||999,
-    ativo:op_norm_(op_getCell_(r,hm,'ATIVO')),
-    tipo:op_norm_(op_getCell_(r,hm,'TIPO')),
-    obs:op_norm_(op_getCell_(r,hm,'OBS')),
-    exibirEm:op_norm_(op_getCell_(r,hm,'EXIBIR_EM'))||'CRM'
-  };}).filter(function(x){return x.nome&&crm3_isYes_(x.ativo||'SIM')&&crm83_localMatchesScope_(x.exibirEm,scope);}).sort(function(a,b){return a.ordem-b.ordem||a.nome.localeCompare(b.nome,'pt-BR');});
+}
+
+// Fase 8.3 (fix): padrão seguro de locais por escopo, usado quando a aba
+// CRM_LOCAIS ainda não existe ou quando a leitura falha.
+function crm83_defaultLocalsForScope_(scope){
+  var sc=op_upperNoAccents_(scope||'CRM');
+  return CRM83_CFG.DEFAULT_LOCALS.map(function(r){return crm83_localRowObject_(r);}).filter(function(x){return crm83_localMatchesScope_(x.exibirEm,sc);});
 }
 
 function crm83_localRowObject_(r){

@@ -17,3 +17,7 @@ token.json
 *.log
 .DS_Store
 Thumbs.db
+
+# Netlify local e utilitarios de dev local
+.netlify/
+serve-crm.mjs

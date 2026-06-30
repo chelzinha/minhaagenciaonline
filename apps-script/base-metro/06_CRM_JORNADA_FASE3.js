@@ -196,11 +196,26 @@ function crm3_apiGetConfig_() {
     midias:op_readMidias_(),
     responsaveis:crm3_readObjects_(CRM3_CFG.SHEETS.RESPONSAVEIS).filter(function(x){ return crm3_isYes_(x.USER_ACTIVE) && crm3_isYes_(x.CRM_LINKED); }),
     transicoes:crm3_readJourneyTransitions_(),
-    segmentos:(typeof crm82_getActiveSegments_ === 'function' ? crm82_getActiveSegments_() : []),
-    locais:(typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('CRM') : []),
-    prospectLocais:(typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('PROSPECTS') : []),
-    prospectsLocais:(typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('PROSPECTS') : [])
+    // Fase 8.3 (fix): enriquecimentos OPCIONAIS da config. Antes, uma falha aqui
+    // derrubava todo o crm3_apiGetConfig_ e, com ele, o bootstrap inteiro do CRM.
+    // Agora cada item é blindado: se estourar, registra no log e devolve [].
+    segmentos:crm3_safeConfigList_(function(){ return (typeof crm82_getActiveSegments_ === 'function' ? crm82_getActiveSegments_() : []); }, 'segmentos'),
+    locais:crm3_safeConfigList_(function(){ return (typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('CRM') : []); }, 'locais'),
+    prospectLocais:crm3_safeConfigList_(function(){ return (typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('PROSPECTS') : []); }, 'prospectLocais'),
+    prospectsLocais:crm3_safeConfigList_(function(){ return (typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('PROSPECTS') : []); }, 'prospectsLocais')
   };
+}
+
+// Fase 8.3 (fix): executa um enriquecimento opcional da config sem deixar
+// que ele derrube o bootstrap do CRM. Sempre retorna um array.
+function crm3_safeConfigList_(fn, label) {
+  try {
+    var out = fn();
+    return Array.isArray(out) ? out : [];
+  } catch (err) {
+    try { Logger.log('[CRM][config] Falha ao montar "' + label + '": ' + ((err && err.message) || err)); } catch (_) {}
+    return [];
+  }
 }
 
 /* ========================= TRATATIVAS ========================= */

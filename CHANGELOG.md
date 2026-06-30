@@ -2,6 +2,16 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## [nao versionado] - 2026-06-30
+### Corrigido
+- CRM/Prospects: barra de filtros passou a usar escopo de prospect. Local agora
+  vem de config.prospectLocais e a secao Prospects nao exibe mais "Todas as
+  curvas (clientes)". Clientes/Home/Agenda seguem com Local de CRM + curvas.
+  Arquivo: frontend/crm/app.js.
+- CRM/Locais (backend): crm3_apiGetConfig_ e crm83_getActiveLocals_ blindados.
+  Uma falha de Locais nao derruba mais o bootstrap do CRM. Versao 8.3.2.
+  Arquivos: apps-script/base-metro/06_CRM_JORNADA_FASE3.js e 12_CRM_LOCAIS_FASE83.js.
+
 ## Documentacao - CRM_LOCAIS por EXIBIR_EM
 
 - Documentada a correcao funcional ja aplicada para separar locais de CRM/clientes e Prospects pela coluna `EXIBIR_EM` da aba unica `CRM_LOCAIS`.
