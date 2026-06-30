@@ -633,9 +633,9 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
    abas (Dashboard/Cadastro ja tem a propria busca). Sem mudanca no app.js. */
 .prospect-filter-row .context-filter-bar{flex:0 1 auto}
 .prospect-filter-row .prospect-dashboard-period{margin-left:auto}
-.prospect-filter-row .board-toolbar{display:none;margin:0;padding:0;flex:0 0 auto;gap:8px;justify-content:flex-start}
-.prospect-filter-row .board-toolbar .filter-row{margin:0;gap:8px}
-.prospect-filter-row .board-toolbar .search-field.compact{min-width:200px;max-width:300px}
+.prospect-filter-row .board-toolbar{display:none;margin:0;padding:0;flex:1 1 auto;min-width:0;gap:8px;justify-content:flex-start}
+.prospect-filter-row .board-toolbar .filter-row{margin:0;gap:8px;flex:1 1 auto;min-width:0;flex-wrap:nowrap}
+.prospect-filter-row .board-toolbar .search-field.compact{flex:1 1 auto;min-width:160px;max-width:none}
 #view-prospects:has(#prospects-funil.active) .prospect-filter-row .board-toolbar{display:flex}
 #view-clientes:has(#clientes-funil.active) .prospect-filter-row .board-toolbar{display:flex}
 @media(max-width:620px){
