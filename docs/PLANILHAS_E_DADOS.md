@@ -48,6 +48,20 @@ Regra para a aba Manuais:
 - A estrutura esperada usa `ID`, `CATEGORIA`, `ORDEM_C`, `ICONE_CATEGORIA`, `TITULO`, `DESCRICAO`, `FORMATO`, `LINK` e coluna de ordem do item quando existir.
 - Para vincular conteudos a acao/filtro de cliente, usar colunas opcionais como `ORIGEM_CONTEUDO`, `MIDIA_CRM_ID`, `ACAO_CRM`, `SUB_ACAO`, `PUBLICO`, `FILTRO_CLIENTE`, `CURVA`, `STATUS_ATIVIDADE`, `PERFIL_COMERCIAL`, `BUCKET_NEGOCIO`, `RECORRENCIA_NIVEL`, `TENDENCIA`, `NIVEL_ALERTA`, `PORTE_OPERACIONAL`, `TEM_CONTRATO` e `CANAL_SUGERIDO`.
 
+Regra para a aba CRM_LOCAIS:
+- Esta secao documenta uma correcao funcional ja aplicada na branch `redesign-crm`.
+- A aba `CRM_LOCAIS` e unica e atende CRM/clientes e Prospects.
+- A coluna `EXIBIR_EM` define onde cada local aparece.
+- Valores aceitos em `EXIBIR_EM`: `CRM`, `PROSPECTS`, `CRM;PROSPECTS`, `AMBOS` e `TODOS`.
+- `EXIBIR_EM=CRM` alimenta filtros e configuracoes de CRM/clientes.
+- `EXIBIR_EM=PROSPECTS` alimenta filtros e cadastro de Prospects.
+- `CRM;PROSPECTS`, `AMBOS` e `TODOS` podem alimentar os dois contextos.
+- Nao existe aba separada `PROSPECTS_LOCAIS`.
+- Nao recriar a constante `PROSPECTS_LOCAIS`.
+- O objetivo e evitar regressao em que locais de clientes, como CF e METRO, aparecam em Prospects.
+- Prospects devem usar locais como ESTACAO FASHION, SHOPPING PARANGABA e REVERSA quando configurados com `EXIBIR_EM=PROSPECTS`.
+- Exemplos e testes documentados nao devem usar dados sensiveis reais.
+
 Cuidados:
 - Nao documentar IDs completos de planilha, links privados reais, tokens ou dados de clientes.
 - Antes de alterar cabecalhos, revisar Apps Script, frontend, cache e endpoints afetados.

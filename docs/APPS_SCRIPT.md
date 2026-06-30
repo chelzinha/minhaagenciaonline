@@ -21,6 +21,30 @@ Modulos adicionados:
 
 Arquivos .clasp.json permanecem locais e nao devem ser enviados ao GitHub.
 
+## CRM - regra de locais por EXIBIR_EM
+
+Esta secao documenta uma correcao funcional ja aplicada na branch `redesign-crm`.
+
+A aba `CRM_LOCAIS` e unica. A coluna `EXIBIR_EM` define em quais contextos cada local deve aparecer:
+- `CRM`
+- `PROSPECTS`
+- `CRM;PROSPECTS`
+- `AMBOS`
+- `TODOS`
+
+Regra de leitura esperada:
+- `EXIBIR_EM=CRM` alimenta filtros e configuracoes de CRM/clientes.
+- `EXIBIR_EM=PROSPECTS` alimenta filtros e cadastro de Prospects.
+- `CRM;PROSPECTS`, `AMBOS` e `TODOS` podem alimentar os dois contextos.
+
+Cuidados de regressao:
+- Nao existe aba separada `PROSPECTS_LOCAIS`.
+- Nao recriar a constante `PROSPECTS_LOCAIS`.
+- Nao misturar locais exclusivos de clientes nos filtros ou cadastro de Prospects.
+- O objetivo da regra e evitar que locais de clientes, como CF e METRO, aparecam em Prospects quando nao estiverem configurados para esse contexto.
+- Prospects devem usar locais como ESTACAO FASHION, SHOPPING PARANGABA e REVERSA quando esses locais estiverem configurados com `EXIBIR_EM=PROSPECTS`.
+- Exemplos de documentacao nao devem usar dados sensiveis reais.
+
 ## Modulo Reverso - backend Apps Script
 
 Backend principal identificado:
