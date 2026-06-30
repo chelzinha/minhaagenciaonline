@@ -1,7 +1,7 @@
 :root{
   color-scheme:light;
   --navy:#1B3358;--navy-2:#2C4A78;--blue:#0E9594;--sky:#E4F5F4;
-  --bg:#F4F5F8;--surface:#fff;--text:#17354B;--muted:#647B8C;--line:#E7E9EF;
+  --bg:#F4F5F8;--surface:#fff;--text:#17354B;--muted:#586A78;--line:#E7E9EF;
   --soft:#EFF6FB;--green:#15803D;--green-soft:#DCFCE7;--amber:#B45309;--amber-soft:#FEF3C7;
   --red:#B42318;--red-soft:#FEE2E2;--purple:#6D3CB1;--purple-soft:#F3E8FF;--teal:#0F766E;--teal-soft:#CCFBF1;
   --pink:#BE185D;--pink-soft:#FCE7F3;--orange:#C2410C;--orange-soft:#FFEDD5;--slate:#64748B;
@@ -653,3 +653,26 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
 .kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.kpi-grid{grid-template-columns:1fr}}
+
+/* ===== AGF: pacote de acessibilidade e legibilidade (auditoria) ===== */
+/* B3 - subtitulo do topo escuro precisa de cor clara, nao do --muted escurecido */
+.crm-brand small{color:rgba(255,255,255,.74)}
+/* B2 - foco visivel onde o outline tinha sido removido */
+.search-field:focus-within,.context-filter-bar label:focus-within{outline:2px solid var(--blue);outline-offset:1px}
+.filter-row select:focus-visible,.filter-row input:focus-visible,.agenda-toolbar select:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.icon-btn:focus-visible,.close-btn:focus-visible,.mini-btn:focus-visible,.table-btn:focus-visible,.section-tabs button:focus-visible,.crm-bottom-nav button:focus-visible,.primary-btn:focus-visible,.secondary-btn:focus-visible,.text-btn:focus-visible,.tab-export-btn:focus-visible,.fab-add:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+/* C2 - alvos de toque maiores */
+.icon-btn,.close-btn{width:40px;height:40px}
+.mini-btn,.table-btn{min-height:32px}
+/* C1 - piso de tamanho para textos minusculos (legibilidade) */
+.chip{font-size:10px}
+.deal-meta{font-size:10.5px}
+.kanban-head small{font-size:10.5px}
+.agenda-card small,.agenda-card.compact small{font-size:10px}
+/* T1 - skip link */
+.skip-link{position:absolute;left:8px;top:-48px;z-index:200;background:var(--navy);color:#fff;padding:9px 13px;border-radius:10px;font-size:13px;font-weight:800;text-decoration:none;transition:top .15s}
+.skip-link:focus{top:8px;outline:2px solid #fff;outline-offset:2px}
+/* W3 - respeitar prefers-reduced-motion */
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+/* W1 - inputs com 16px no mobile para evitar zoom no iOS */
+@media(max-width:620px){.search-field input,.context-filter-bar select,.filter-row input,.filter-row select,.agenda-toolbar select,.cad-toolbar input,.form-grid input,.form-grid select,.form-grid textarea,.entity-section-grid input,.entity-section-grid select,.entity-section-grid textarea{font-size:16px!important}}
