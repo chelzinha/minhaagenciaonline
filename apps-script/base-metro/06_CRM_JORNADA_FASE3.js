@@ -220,6 +220,52 @@ function crm3_safeConfigList_(fn, label) {
 
 /* ========================= TRATATIVAS ========================= */
 
+// === AGF fix: casar responsavel por ID, USERNAME ou DISPLAY_NAME (aba CRM_RESPONSAVEIS) ===
+// Normaliza texto: minusculo e sem acento, para comparar responsaveis com seguranca.
+function crm3_normResp_(v) {
+  v = crm3_text_(v);
+  if (!v) return '';
+  try { v = v.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) {}
+  return v.toLowerCase();
+}
+// Monta um indice {token normalizado -> RESPONSAVEL_ID normalizado} a partir de CRM_RESPONSAVEIS,
+// aceitando RESPONSAVEL_ID, USERNAME e DISPLAY_NAME como chaves para a mesma pessoa.
+function crm3_buildResponsibleIndex_() {
+  var rows = crm3_readObjects_(CRM3_CFG.SHEETS.RESPONSAVEIS) || [];
+  var idx = {};
+  rows.forEach(function (r) {
+    var pid = crm3_normResp_(r.RESPONSAVEL_ID);
+    if (!pid) return;
+    [r.RESPONSAVEL_ID, r.USERNAME, r.DISPLAY_NAME].forEach(function (tok) {
+      var k = crm3_normResp_(tok);
+      if (k) idx[k] = pid;
+    });
+  });
+  return idx;
+}
+// Resolve qualquer valor de responsavel para o RESPONSAVEL_ID canonico da pessoa.
+// Se nao achar no indice, cai no proprio valor normalizado (comportamento seguro).
+function crm3_respPersonId_(value, idx) {
+  var key = crm3_normResp_(value);
+  if (!key) return '';
+  idx = idx || crm3_buildResponsibleIndex_();
+  return idx[key] || key;
+}
+// Resolve qualquer valor (id, username ou display) para o RESPONSAVEL_ID REAL da pessoa
+// (mantendo a caixa original do cadastro). Se nao achar, devolve o valor recebido.
+function crm3_respRealId_(value) {
+  var key = crm3_normResp_(value);
+  if (!key) return '';
+  var rows = crm3_readObjects_(CRM3_CFG.SHEETS.RESPONSAVEIS) || [];
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    if (crm3_normResp_(r.RESPONSAVEL_ID) === key || crm3_normResp_(r.USERNAME) === key || crm3_normResp_(r.DISPLAY_NAME) === key) {
+      return crm3_text_(r.RESPONSAVEL_ID);
+    }
+  }
+  return crm3_text_(value);
+}
+
 function crm3_apiGetJornada_(params) {
   crm3_assertSetupReady_();
   params = params || {};
@@ -227,6 +273,8 @@ function crm3_apiGetJornada_(params) {
   var entityType = crm3_upper_(params.tipoEntidade || '');
   var status = crm3_upper_(params.statusTratativa || '');
   var responsavelId = crm3_text_(params.responsavelId || '');
+  var respIndex = crm3_buildResponsibleIndex_();
+  var wantedResp = responsavelId ? crm3_respPersonId_(responsavelId, respIndex) : '';
   var tratativas = crm3_readObjects_(CRM3_CFG.SHEETS.TRATATIVAS);
   var stages = crm3_readObjects_(CRM3_CFG.SHEETS.ETAPAS).filter(function(x){ return crm3_isYes_(x.ATIVA); });
   var stageById = crm3_indexBy_(stages, 'ETAPA_ID');
@@ -237,7 +285,7 @@ function crm3_apiGetJornada_(params) {
     if (funnelId && crm3_text_(t.FUNIL_ID) !== funnelId) return false;
     if (entityType && crm3_upper_(t.TIPO_ENTIDADE) !== entityType) return false;
     if (status && crm3_upper_(t.STATUS_TRATATIVA) !== status) return false;
-    if (responsavelId && crm3_text_(t.RESPONSAVEL_ID) !== responsavelId) return false;
+    if (wantedResp && (crm3_respPersonId_(t.RESPONSAVEL_ID, respIndex)) !== wantedResp) return false;
     return true;
   }).map(function(t){
     var type = crm3_upper_(t.TIPO_ENTIDADE);
@@ -277,6 +325,10 @@ function crm3_apiCreateTratativa_(payload) {
   var clientAction = entityType === 'CLIENTE' ? crm3_text_(entity.acaoEngine || entity.acao || '') : '';
   var clientSubAction = entityType === 'CLIENTE' ? crm3_text_(entity.subAcao || '') : '';
   var priority = entityType === 'CLIENTE' ? crm3_text_(entity.prioridadeFila || '') : crm3_text_(entity.prioridade || '');
+  // Herda o responsavel do proprio prospect/cliente quando nenhum for informado,
+  // e normaliza para o RESPONSAVEL_ID real. Evita tratativas nascerem sem dono.
+  var responsibleId = crm3_text_(payload.responsavelId);
+  if (!responsibleId) responsibleId = crm3_respRealId_(entity.responsavel || entity.responsavelId || entity.RESPONSAVEL || '');
 
   var obj = {
     TRATATIVA_ID:treatmentId,
@@ -289,7 +341,7 @@ function crm3_apiCreateTratativa_(payload) {
     ACAO_ENGINE_SNAPSHOT:clientAction,
     SUB_ACAO_SNAPSHOT:clientSubAction,
     PRIORIDADE_SNAPSHOT:priority,
-    RESPONSAVEL_ID:crm3_text_(payload.responsavelId),
+    RESPONSAVEL_ID:responsibleId,
     ABERTA_EM:now,
     ETAPA_ATUALIZADA_EM:now,
     PROXIMO_FOLLOWUP_EM:crm3_text_(payload.proximoFollowupEm),
