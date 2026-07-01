@@ -865,3 +865,153 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
   #homeStats .stat-card strong,#clientsStats .stat-card strong{font-size:22px}
   #homeStats .stat-card small,#clientsStats .stat-card small{font-size:10px}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ETAPA 4 — v2 do front do CRM
+   Agenda (foco), funil kanban, Home, listas de Clientes, legibilidade,
+   alinhamento e 100% mobile. Anexado ao fim para vencer a cascata.
+   Regras: nada de dado fabricado; topbar e aba Ações intocadas.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Agenda: card de atividade com a hora como âncora ──────────────────── */
+.agenda-card{
+  display:grid;grid-template-columns:52px 1fr;gap:0;align-items:stretch;padding:0;
+  border:1px solid var(--line);border-left:4px solid var(--activity-color,var(--blue));
+  border-radius:12px;background:#fff;overflow:hidden
+}
+.agenda-card .agenda-time{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  padding:9px 4px;background:color-mix(in srgb,var(--activity-color,var(--blue)) 7%,white);
+  border-right:1px solid color-mix(in srgb,var(--activity-color,var(--blue)) 14%,var(--line))
+}
+.agenda-card .agenda-time b{font-family:Manrope,sans-serif;font-size:13px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.agenda-card .agenda-time i{font-style:normal;font-size:9.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.agenda-card .agenda-time .nt{font-size:16px;color:var(--muted)}
+.agenda-card .agenda-body{display:block;min-width:0;padding:8px 10px}
+.agenda-card .agenda-body strong{display:block;font-size:12px;line-height:1.3;overflow-wrap:anywhere}
+.agenda-card .agenda-body small{display:flex;align-items:center;gap:4px;flex-wrap:wrap;color:var(--muted);font-size:10.5px;line-height:1.4;margin-top:3px}
+.agenda-card .agenda-type-ic{font-size:14px;color:var(--activity-color,var(--blue))}
+.agenda-card .agenda-status{
+  display:inline-block;margin-top:6px;padding:2px 8px;border-radius:999px;
+  font-size:9px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;
+  background:#EEF3F7;color:#486477
+}
+.agenda-card[data-status^="CONCLU"] .agenda-status{background:#DCFCE7;color:#15803D}
+.agenda-card[data-status^="CANCEL"] .agenda-status{background:#FEE2E2;color:#B42318}
+.agenda-card[data-status^="REAGEND"] .agenda-status{background:#FFF0C2;color:#92400E}
+.agenda-card[data-status^="PLANEJ"] .agenda-status{background:#DBEAFE;color:#1D4ED8}
+.agenda-card[data-status^="CONCLU"],.agenda-card[data-status^="CANCEL"]{opacity:.82}
+.agenda-card:hover{opacity:1}
+
+/* ── Agenda: semana ─────────────────────────────────────────────────────── */
+.day-head{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 10px}
+.day-head strong{display:flex;align-items:center;gap:6px;font-size:11.5px}
+.day-head small{font-size:10px;color:var(--muted)}
+.today-tag{
+  display:inline-block;padding:1px 7px;border-radius:999px;background:var(--accent);
+  color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.05em;text-transform:uppercase
+}
+.day-count{
+  display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;
+  padding:0 7px;border-radius:999px;background:#EEF3F7;color:var(--navy);
+  font-family:Manrope,sans-serif;font-size:11px;font-weight:800;white-space:nowrap
+}
+.day-focus-head .day-count{height:auto;padding:4px 10px;margin-left:auto}
+.day-col{min-height:300px}
+.day-col.today{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 30%,transparent)}
+.day-col.today .day-head{background:color-mix(in srgb,var(--accent) 7%,white)}
+.empty-state.slim{padding:10px;font-size:11px}
+
+/* ── Agenda: mês ────────────────────────────────────────────────────────── */
+.month-day>header{font-size:11px}
+.month-day.today{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.month-day.today>header{background:color-mix(in srgb,var(--accent) 9%,white);color:var(--navy)}
+.agenda-mini{padding:4px 5px;border-radius:6px}
+.agenda-mini small{font-size:9.5px}
+.agenda-mini .material-symbols-rounded{font-size:13px}
+.more-count{font-size:9.5px}
+
+/* ── Agenda: toolbar alinhada ───────────────────────────────────────────── */
+.agenda-toolbar{margin-bottom:12px;gap:8px}
+.agenda-toolbar strong{font-family:Manrope,sans-serif;font-size:13.5px;letter-spacing:-.01em}
+
+/* ── Fila de ação (agora clicável): reset de button + toque confortável ── */
+.queue-item{width:100%;border:0;background:#fff;text-align:left;cursor:pointer;color:var(--text);font:inherit}
+.queue-item:hover{background:#F8FBFD}
+.queue-item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.queue-item .name,.queue-item .meta{display:block}
+.queue-action{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;border:1px solid var(--line);background:var(--soft);color:var(--navy);flex-shrink:0}
+
+/* ── Home e listas: itens de atividade mais legíveis ────────────────────── */
+.list-item{align-items:center}
+.list-item .activity-icon{width:34px;height:34px;border-radius:11px;font-size:18px}
+.list-item strong{font-size:13px}
+.list-item p{font-size:11.5px;margin-top:3px}
+.list-item .chip{font-size:9.5px;padding:3px 8px}
+.list-item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+/* ── Funil kanban: legibilidade e polimento (drag & drop intocado) ─────── */
+.kanban-head h3{font-size:11.5px}
+.kanban-head small{
+  display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;
+  padding:0 6px;border-radius:999px;background:#EEF3F7;color:var(--navy);
+  font-family:Manrope,sans-serif;font-size:10px;font-weight:800
+}
+.deal-card{padding:9px;border-radius:12px}
+.deal-title{font-size:12.5px}
+.deal-meta{font-size:10.5px;margin-top:5px}
+.meta-line .material-symbols-rounded{font-size:14px}
+.chip{font-size:9.5px;padding:3px 7px}
+.chip .material-symbols-rounded{font-size:13px}
+.deal-actions .mini-btn{min-height:30px;font-size:10px}
+
+/* ── Tipografia mínima geral (piso de legibilidade) ─────────────────────── */
+.table-wrap th{font-size:9.5px}
+.kanban-head small,.day-head small{font-weight:800}
+
+/* ── User-menu: avatar com foto + ações de conta ────────────────────────── */
+.user-av-img{background-size:cover!important;background-position:center!important;color:transparent!important;text-shadow:none}
+.user-menu-action .material-symbols-rounded{font-size:18px;color:var(--blue)}
+.user-menu-action:hover{background:var(--soft)}
+.user-menu-action.danger,.user-menu-action.danger .material-symbols-rounded{color:var(--red)}
+.pwd-hint{font-size:10.5px;color:var(--muted);line-height:1.45;margin:2px 0 0}
+.pwd-error{display:none;padding:9px 11px;border-radius:10px;background:#FFF1F2;border:1px solid #FECACA;color:#991B1B;font-size:11.5px;font-weight:700}
+.pwd-error.show{display:block}
+
+/* ── Mobile ─────────────────────────────────────────────────────────────── */
+@media(max-width:900px){
+  /* Semana vira lista vertical de dias: zero rolagem lateral */
+  .week-grid{display:flex;flex-direction:column;gap:8px;min-width:0}
+  .day-col{min-height:0}
+  .day-col .day-body{min-height:0;padding:7px}
+}
+@media(max-width:620px){
+  .agenda-card .agenda-body strong{font-size:12.5px}
+  .agenda-card .agenda-body small{font-size:11px}
+  .agenda-card .agenda-time b{font-size:13.5px}
+  .queue-item{padding:12px}
+  .month-grid,.month-weekdays{min-width:740px}
+  .day-focus{min-height:0}
+  .agenda-toolbar{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;row-gap:8px}
+  .agenda-toolbar strong{text-align:center;font-size:12.5px}
+  .agenda-toolbar #agendaFilters{grid-column:1/-1;display:flex;gap:6px}
+  .agenda-toolbar #agendaFilters select{flex:1;min-width:0}
+}
+
+/* ── Impressão: esconder controles novos ────────────────────────────────── */
+@media print{
+  #prospectBulkBar,.tab-export-menu,.user-menu,.tabs-actions,.cad-select-toggle{display:none!important}
+  .week-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ETAPA 5 — Filtros da Agenda no padrão de chips + acabamentos
+   Complementa a Etapa 4 já aplicada. Não toca topbar.
+   ═══════════════════════════════════════════════════════════════════════ */
+.chip-filter.locked{cursor:default;opacity:.78}
+.chip-filter.locked .chip-value{color:var(--muted)}
+#agendaFilters{gap:8px}
+@media(max-width:620px){
+  .agenda-toolbar{row-gap:8px}
+  #agendaFilters{flex:1 1 100%;justify-content:flex-start}
+}

@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
   <link rel="manifest" href="/crm/manifest.webmanifest">
   <link rel="stylesheet" href="/shared/ui/agf-ui.css">
-  <link rel="stylesheet" href="/crm/styles.css?v=118">
+  <link rel="stylesheet" href="/crm/styles.css?v=120">
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
   <script>window.AGF_ACCESS={roles:['admin','manager','user'],app:'crm'};</script>
@@ -39,7 +39,7 @@
                 <div class="user-menu-role" id="userMenuRole">—</div>
               </div>
             </div>
-            <button class="user-menu-action" id="userLogout" type="button"><span class="material-symbols-rounded">logout</span>Sair</button>
+            <button class="user-menu-action" id="userAvatarBtn" type="button"><span class="material-symbols-rounded">add_a_photo</span>Alterar foto</button><button class="user-menu-action" id="userPasswordBtn" type="button"><span class="material-symbols-rounded">password</span>Alterar senha</button><input type="file" id="userAvatarInput" accept="image/png,image/jpeg,image/webp" hidden><button class="user-menu-action danger" id="userLogout" type="button"><span class="material-symbols-rounded">logout</span>Sair</button>
           </div>
         </div>
       </div>
@@ -117,26 +117,50 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="/crm/config.js?v=82"></script>
-<script src="/crm/app.js?v=115"></script>
+<script src="/crm/app.js?v=117"></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/crm/sw.js').catch(()=>{}));}</script>
 <script>
-/* Thumb de usuário na topbar — religação self-contained (usa AgfAuth). */
+/* Conta do usuário na topbar: avatar com foto, troca de senha e Sair (usa AgfAuth). */
 (function(){
-  function initial(s){s=(s||'').trim();return s?s[0].toUpperCase():'·';}
+  var AV_KEY='agf_jb_avatar_v1';
+  function initial(t){t=(t||'').trim();return t?t[0].toUpperCase():'·';}
   function roleLabel(u){if(!u)return'';if(u.role==='admin')return'Administrador';if(u.role==='manager')return'Gestor · Comercial';return'Comercial';}
   function currentUser(){var a=window.AgfAuth;if(!a)return null;try{var ls=a.getLocalSession&&a.getLocalSession();return(ls&&ls.user)||(a.getCachedUser&&a.getCachedUser())||null;}catch(e){return null;}}
-  function set(id,txt){var el=document.getElementById(id);if(el)el.textContent=txt;}
-  function fill(){var u=currentUser();var name=(u&&(u.displayName||u.username))||'Usuário';var av=initial(name);set('userAvBtn',av);set('userAvLg',av);set('userMenuName',name);set('userMenuRole',roleLabel(u));}
-  window.addEventListener('agf:auth-ready',fill);
-  if(document.readyState!=='loading')fill();else document.addEventListener('DOMContentLoaded',fill);
-  var btn=document.getElementById('userAvBtn'),menu=document.getElementById('userMenu');
-  if(btn&&menu){
-    btn.addEventListener('click',function(e){e.stopPropagation();menu.style.display=menu.style.display==='none'?'block':'none';});
-    menu.addEventListener('click',function(e){e.stopPropagation();});
-    document.addEventListener('click',function(){menu.style.display='none';});
-  }
-  var lo=document.getElementById('userLogout');
-  if(lo)lo.addEventListener('click',function(){var a=window.AgfAuth;if(a&&a.logout){a.logout();}else{location.href='/agf/?reason=logout';}});
+  function say(msg,isErr){try{if(typeof toast==='function'){toast(msg,!!isErr);return;}}catch(e){}alert(msg);}
+  function authPost(action,payload){var cfg=window.AGF_AUTH_CONFIG||{};return fetch(cfg.apiUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action:action},payload||{}))}).then(function(r){return r.json();}).then(function(d){if(!d||d.ok===false)throw new Error((d&&d.error)||'Falha na comunicação com o controle de acesso.');return d;});}
+  function token(){var a=window.AgfAuth;return a&&a.getToken?a.getToken():'';}
+  function el(id){return document.getElementById(id);}
+  function paintAvatar(data){['userAvBtn','userAvLg'].forEach(function(id){var n=el(id);if(!n)return;if(data){n.classList.add('user-av-img');n.style.backgroundImage='url("'+data+'")';n.textContent='';}else{n.classList.remove('user-av-img');n.style.backgroundImage='';}});}
+  function cachedAvatar(u){try{var raw=localStorage.getItem(AV_KEY);if(!raw)return'';var o=JSON.parse(raw);return(o&&u&&o.u===u.username)?(o.d||''):'';}catch(e){return'';}}
+  function cacheAvatar(u,d){try{localStorage.setItem(AV_KEY,JSON.stringify({u:u&&u.username,d:d||''}));}catch(e){}}
+  function fill(){var u=currentUser();var name=(u&&(u.displayName||u.username))||'Usuário';var av=initial(name);['userAvBtn','userAvLg'].forEach(function(id){var n=el(id);if(n&&!n.classList.contains('user-av-img'))n.textContent=av;});var nm=el('userMenuName'),rl=el('userMenuRole');if(nm)nm.textContent=name;if(rl)rl.textContent=roleLabel(u);var c=cachedAvatar(u);if(c)paintAvatar(c);}
+  function refreshAvatar(){var u=currentUser(),tk=token();if(!u||!tk)return;authPost('getMyAvatar',{token:tk}).then(function(d){var data=(d&&d.avatar)||'';cacheAvatar(u,data);paintAvatar(data);}).catch(function(){});}
+  window.addEventListener('agf:auth-ready',function(){fill();refreshAvatar();});
+  if(document.readyState!=='loading'){fill();refreshAvatar();}else document.addEventListener('DOMContentLoaded',function(){fill();refreshAvatar();});
+  var btn=el('userAvBtn'),menu=el('userMenu');
+  if(btn&&menu){btn.addEventListener('click',function(e){e.stopPropagation();menu.style.display=menu.style.display==='none'?'block':'none';});menu.addEventListener('click',function(e){e.stopPropagation();});document.addEventListener('click',function(){menu.style.display='none';});}
+  /* Sair: encerra a sessão e SEMPRE redireciona ao portal (antes ficava na página). */
+  var lo=el('userLogout');
+  if(lo)lo.addEventListener('click',function(){lo.disabled=true;var a=window.AgfAuth;var done=function(){location.href='/agf/?reason=logout';};if(a&&a.logout){Promise.resolve(a.logout()).then(done,done);}else{done();}});
+  /* Alterar foto: redimensiona no navegador (128px JPEG) e envia à autenticação. */
+  var avBtn=el('userAvatarBtn'),avInput=el('userAvatarInput');
+  if(avBtn&&avInput){avBtn.addEventListener('click',function(){avInput.click();});
+    avInput.addEventListener('change',function(){var f=avInput.files&&avInput.files[0];avInput.value='';if(!f)return;if(f.size>8*1024*1024){say('Imagem muito grande. Escolha um arquivo de até 8 MB.',true);return;}
+      var img=new Image();img.onload=function(){try{var S=128,c=document.createElement('canvas');c.width=S;c.height=S;var x=c.getContext('2d');var side=Math.min(img.width,img.height);x.drawImage(img,(img.width-side)/2,(img.height-side)/2,side,side,0,0,S,S);var data=c.toDataURL('image/jpeg',0.82);if(data.length>45000)data=c.toDataURL('image/jpeg',0.6);URL.revokeObjectURL(img.src);var u=currentUser();say('Enviando foto…');authPost('uploadMyAvatar',{token:token(),avatarData:data}).then(function(){cacheAvatar(u,data);paintAvatar(data);say('Foto atualizada.');}).catch(function(err){say(err.message||'Não foi possível atualizar a foto.',true);});}catch(e){say('Não foi possível processar a imagem.',true);}};
+      img.onerror=function(){URL.revokeObjectURL(img.src);say('Arquivo de imagem inválido.',true);};img.src=URL.createObjectURL(f);});}
+  /* Alterar senha: usa a ação changeMyPassword já existente na autenticação. */
+  var pwBtn=el('userPasswordBtn'),pwModal=el('pwdModal'),pwForm=el('pwdForm'),pwErr=el('pwdError');
+  function pwOpen(){if(!pwModal)return;pwErr.classList.remove('show');pwForm.reset();pwModal.classList.remove('hidden');menu.style.display='none';setTimeout(function(){var f=el('pwdCurrent');if(f)f.focus();},50);}
+  function pwClose(){if(pwModal)pwModal.classList.add('hidden');}
+  if(pwBtn)pwBtn.addEventListener('click',pwOpen);
+  ['pwdClose','pwdCancel'].forEach(function(id){var b=el(id);if(b)b.addEventListener('click',pwClose);});
+  if(pwModal)pwModal.addEventListener('click',function(e){if(e.target===pwModal)pwClose();});
+  if(pwForm)pwForm.addEventListener('submit',function(e){e.preventDefault();pwErr.classList.remove('show');
+    var cur=el('pwdCurrent').value,nv=el('pwdNew').value,cf=el('pwdConfirm').value;
+    if(nv.length<8){pwErr.textContent='A nova senha deve ter ao menos 8 caracteres.';pwErr.classList.add('show');return;}
+    if(nv!==cf){pwErr.textContent='A confirmação não confere com a nova senha.';pwErr.classList.add('show');return;}
+    var save=el('pwdSave');save.disabled=true;
+    authPost('changeMyPassword',{token:token(),currentPassword:cur,newPassword:nv}).then(function(){pwClose();say('Senha alterada. Entre novamente com a nova senha.');var a=window.AgfAuth;if(a&&a.clearSession)a.clearSession();setTimeout(function(){location.href='/agf/?reason=password-changed';},900);}).catch(function(err){pwErr.textContent=err.message||'Não foi possível alterar a senha.';pwErr.classList.add('show');}).finally(function(){save.disabled=false;});});
 })();
 </script>
 <script>
@@ -157,5 +181,6 @@
   });
 })();
 </script>
+<div class="modal-backdrop hidden" id="pwdModal"><section class="modal-panel" style="width:min(430px,100%)"><header><div><p class="eyebrow">Minha conta</p><h2>Alterar senha</h2></div><button class="close-btn" type="button" aria-label="Fechar" id="pwdClose"><span class="material-symbols-rounded">close</span></button></header><form id="pwdForm" class="form-grid" style="grid-template-columns:1fr"><div class="pwd-error" id="pwdError"></div><label><span>Senha atual</span><input type="password" id="pwdCurrent" autocomplete="current-password" required></label><label><span>Nova senha</span><input type="password" id="pwdNew" autocomplete="new-password" minlength="8" required><p class="pwd-hint">Mínimo de 8 caracteres. Ao confirmar, você sairá de todos os dispositivos e fará login de novo.</p></label><label><span>Confirmar nova senha</span><input type="password" id="pwdConfirm" autocomplete="new-password" minlength="8" required></label><div class="form-actions"><button type="button" class="secondary-btn" id="pwdCancel">Cancelar</button><button type="submit" class="primary-btn" id="pwdSave"><span class="material-symbols-rounded">lock_reset</span>Alterar senha</button></div></form></section></div>
 </body>
 </html>
