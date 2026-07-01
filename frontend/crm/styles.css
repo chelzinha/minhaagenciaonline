@@ -1015,3 +1015,49 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
   .agenda-toolbar{row-gap:8px}
   #agendaFilters{flex:1 1 100%;justify-content:flex-start}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ETAPA 6 — Agenda: barra de controle unificada, Nova atividade, semana útil.
+   Mobile: chips com rótulo (reverte o colapso para ícone). Não toca topbar.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Chips legíveis em qualquer largura (rótulo visível, com reticências no mobile) */
+.chip-filter .chip-value,.chip-filter .chip-chevron{display:inline-flex!important}
+@media(max-width:620px){
+  .chip-filter{flex:0 1 auto;max-width:100%}
+  .chip-filter .chip-value{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:38vw}
+  .chip-filter .chip-chevron{font-size:16px}
+  .page-heading{display:grid;grid-template-columns:1fr auto;align-items:start;gap:10px}
+}
+
+/* Barra de controle da Agenda */
+.agenda-controlbar{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.agenda-cb-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.agenda-cb-top .agenda-mode-switch{margin:0;background:#fff;border:1px solid var(--line)}
+.agenda-period{display:inline-flex;align-items:center;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px}
+.agenda-period .period-nav{width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:var(--navy);display:grid;place-items:center;cursor:pointer}
+.agenda-period .period-nav:hover{background:var(--soft)}
+.agenda-period .period-nav .material-symbols-rounded{font-size:20px}
+.agenda-period strong{padding:0 11px;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.agenda-today-btn{border-radius:999px}
+.agenda-new-btn{margin-left:auto;border-radius:999px}
+.agenda-cb-filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.agenda-cb-filters .context-filter-bar{margin:0;padding:0;border:0;background:transparent;box-shadow:none}
+.agenda-cb-filters #agendaFilters{gap:8px}
+
+/* Nova atividade: botão no desktop, FAB no mobile/tablet */
+.agenda-fab{display:none}
+@media(max-width:900px){
+  .agenda-new-btn{display:none}
+  .agenda-fab{display:flex}
+}
+@media(max-width:620px){
+  .agenda-cb-top{gap:8px}
+  .agenda-period{flex:1 1 auto;justify-content:space-between;order:2}
+  .agenda-today-btn{order:3}
+}
+
+/* Semana útil (Seg-Sex) no desktop; mobile segue vertical (Etapa 4) */
+@media(min-width:621px){.week-grid{grid-template-columns:repeat(5,minmax(0,1fr));min-width:0}}
+/* Mês útil: 5 colunas em todas as larguras (cabeçalho e grade) */
+.month-weekdays,.month-grid{grid-template-columns:repeat(5,minmax(112px,1fr));min-width:560px}

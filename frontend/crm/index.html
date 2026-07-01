@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
   <link rel="manifest" href="/crm/manifest.webmanifest">
   <link rel="stylesheet" href="/shared/ui/agf-ui.css">
-  <link rel="stylesheet" href="/crm/styles.css?v=120">
+  <link rel="stylesheet" href="/crm/styles.css?v=121">
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
   <script>window.AGF_ACCESS={roles:['admin','manager','user'],app:'crm'};</script>
@@ -82,9 +82,7 @@
 
     <section class="view hidden" data-view="agenda" id="view-agenda">
       <div class="page-heading"><div><p class="eyebrow">Organização comercial</p><h1>Agenda</h1><p>Todas as atividades programadas e executadas.</p></div><div class="heading-actions"><div class="tabs-actions" style="position:relative"><button class="tab-export-btn" type="button" aria-label="Exportar"><span class="material-symbols-rounded">ios_share</span><span class="tab-export-label">Exportar</span></button><div class="tab-export-menu" style="display:none"><button class="tab-export-opt" type="button" data-save-image><span class="material-symbols-rounded">image</span>Salvar como PNG</button><button class="tab-export-opt" type="button" data-print-page><span class="material-symbols-rounded">print</span>Imprimir / PDF</button></div></div></div></div>
-      <div class="context-filter-bar" data-context-filters="agenda"></div>
-      <div class="agenda-mode-switch"><button data-agenda-mode="day"><span class="material-symbols-rounded">today</span>Diária</button><button class="active" data-agenda-mode="week"><span class="material-symbols-rounded">date_range</span>Semanal</button><button data-agenda-mode="month"><span class="material-symbols-rounded">calendar_month</span>Mensal</button></div>
-      <div class="agenda-toolbar"><button class="icon-btn bordered" id="prevPeriodBtn" type="button" aria-label="Período anterior"><span class="material-symbols-rounded">chevron_left</span></button><strong id="agendaPeriodLabel">—</strong><button class="icon-btn bordered" id="nextPeriodBtn" type="button" aria-label="Próximo período"><span class="material-symbols-rounded">chevron_right</span></button><button class="secondary-btn" id="todayBtn"><span class="material-symbols-rounded">my_location</span>Hoje</button><div class="filter-row" id="agendaFilters"></div></div>
+      <div class="agenda-controlbar"><div class="agenda-cb-top"><div class="agenda-mode-switch" aria-label="Modo de visualização"><button data-agenda-mode="day"><span class="material-symbols-rounded">today</span>Diária</button><button class="active" data-agenda-mode="week"><span class="material-symbols-rounded">date_range</span>Semanal</button><button data-agenda-mode="month"><span class="material-symbols-rounded">calendar_month</span>Mensal</button></div><div class="agenda-period"><button class="period-nav" id="prevPeriodBtn" type="button" aria-label="Período anterior"><span class="material-symbols-rounded">chevron_left</span></button><strong id="agendaPeriodLabel">—</strong><button class="period-nav" id="nextPeriodBtn" type="button" aria-label="Próximo período"><span class="material-symbols-rounded">chevron_right</span></button></div><button class="secondary-btn agenda-today-btn" id="todayBtn" type="button"><span class="material-symbols-rounded">my_location</span>Hoje</button><button class="primary-btn agenda-new-btn" type="button" data-open-agenda><span class="material-symbols-rounded">add</span>Nova atividade</button></div><div class="agenda-cb-filters"><div class="context-filter-bar" data-context-filters="agenda"></div><div class="filter-row" id="agendaFilters"></div></div></div><button class="fab-add agenda-fab" type="button" data-open-agenda aria-label="Nova atividade"><span class="material-symbols-rounded">add</span></button>
       <div class="agenda-calendar" id="agendaCalendar"></div>
       <article class="surface-card overdue-card"><div class="card-heading"><div><h2><span class="material-symbols-rounded">notification_important</span>Pendências vencidas</h2><p>Atividades planejadas com data anterior a hoje.</p></div></div><div class="list-stack" id="overdueList"></div></article>
     </section>
@@ -117,7 +115,7 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="/crm/config.js?v=82"></script>
-<script src="/crm/app.js?v=118"></script>
+<script src="/crm/app.js?v=119"></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/crm/sw.js').catch(()=>{}));}</script>
 <script>
 /* Conta do usuário na topbar: avatar com foto, troca de senha e Sair (usa AgfAuth). */
