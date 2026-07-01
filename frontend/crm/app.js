@@ -37,7 +37,7 @@ const state={
  user:null,config:null,dashboard:null,clients:[],prospects:[],clientsById:{},prospectsById:{},
  journeyClients:{items:[],columns:[]},journeyProspects:{items:[],columns:[]},agenda:{items:[]},overdue:[],
  agendaMode:'week',agendaCursor:today(),selectedEntity:null,selectedActivity:null,selectedTreatment:null,checklists:[],
- view:'home',subviews:{prospects:'prospects-dashboard',clientes:'clientes-dashboard'},notes:[],activityNotes:[],activityChecklists:[],clientSort:{key:'cliente',dir:'asc'},prospectSort:'nome',
+ view:'home',subviews:{prospects:'prospects-dashboard',clientes:'clientes-dashboard'},notes:[],activityNotes:[],activityChecklists:[],clientSort:{key:'cliente',dir:'asc'},prospectSort:'nome',prospectSelectMode:false,prospectSelection:new Set(),prospectFilteredIds:[],
  filters:{clientBoardResponsible:'',prospectBoardResponsible:'',clientBoardSearch:'',prospectBoardSearch:'',agendaResponsible:'',agendaType:'',agendaStatus:'',contextLocal:'',prospectContextLocal:'',contextCurve:'',clientResponsible:'',contextAction:'',prospectResponsible:'',prospectStage:'',prospectSegment:'',prospectPotential:''}
 };
 
@@ -112,7 +112,7 @@ function renderProspectResponsibleSummary(items,done){const cols=(state.journeyP
 
 function prospectContextFiltersHtml(){const f=state.filters,cols=(state.journeyProspects.columns||[]).map(c=>text(c.nome||c.etapaId)).filter(Boolean),items=state.journeyProspects.items||[],uniq=g=>[...new Set(items.map(g).map(text).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR')),segs=uniq(x=>first(x&&x.segmento,x&&x.SEGMENTO)),pots=uniq(x=>first(x&&x.potencial,x&&x.POTENCIAL)),opt=(arr,cur,all)=>`<option value="">${esc(all)}</option>`+arr.map(v=>`<option value="${esc(v)}" ${cur===v?'selected':''}>${esc(v)}</option>`).join('');return`<label><span class="material-symbols-rounded">person</span><select data-prospect-filter="prospectResponsible">${responsibleOptions(f.prospectResponsible,true)}</select></label><label><span class="material-symbols-rounded">star</span><select data-prospect-filter="prospectPotential">${opt(pots,f.prospectPotential,'Todos os potenciais')}</select></label>`;}
 function contextChip(attr,scope,icon,allLabel,cur,opts,noAll){const items=noAll?opts:[['',allLabel]].concat(opts),curItem=items.find(o=>String(o[0])===String(cur||''))||items[0];return`<div class="chip-filter" data-chip-filter="${esc(attr)}"${scope?` data-chip-scope="${esc(scope)}"`:''}><span class="material-symbols-rounded">${icon}</span><span class="chip-value">${esc(curItem[1])}</span><span class="material-symbols-rounded chip-chevron">expand_more</span><div class="chip-dropdown-menu" hidden>${items.map(([v,l])=>`<button class="chip-option${String(v)===String(cur||'')?' active':''}" type="button" data-value="${esc(v)}">${esc(l)}</button>`).join('')}</div></div>`;}
-function renderContextFilters(){const f=state.filters;$$('[data-context-filters]').forEach(host=>{const scope=contextScopeForHost(host),curLocal=currentContextLocal(scope),locals=localOptionValues(curLocal,scope).map(x=>[x,x]);let html=contextChip('contextLocal',scope,'location_on','Todos os locais',curLocal,locals);if(scope==='prospect'){const resp=[...new Set(responsibleRows().map(responsibleNameFromRow).map(text).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(x=>[x,x]),pots=[...new Set((state.journeyProspects.items||[]).map(x=>text(first(x.potencial,x.POTENCIAL))).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(x=>[x,x]);html+=contextChip('prospectResponsible','','person','Todos os responsáveis',f.prospectResponsible,resp)+contextChip('prospectPotential','','star','Todos os potenciais',f.prospectPotential,pots);}else{const resp=[...new Set(responsibleRows().map(responsibleNameFromRow).map(text).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(x=>[x,x]);html+=contextChip('clientResponsible','','person','Todos os responsáveis',f.clientResponsible,resp);}host.innerHTML=html;});if(!renderContextFilters._bound){renderContextFilters._bound=true;document.addEventListener('click',function(e){const opt=e.target.closest('.chip-filter .chip-option');if(opt){e.stopPropagation();const chip=opt.closest('.chip-filter'),attr=chip.dataset.chipFilter,val=opt.dataset.value;if(attr==='contextLocal')setContextLocal(chip.dataset.chipScope||'crm',val);else if(attr==='clientCadSort')state.clientSort={key:val,dir:(val==='valor30d'||val==='diasSemPostar')?'desc':'asc'};else if(attr==='prospectCadSort')state.prospectSort=val;else state.filters[attr]=val;rerenderContext();return;}const chip=e.target.closest('.chip-filter');document.querySelectorAll('.chip-filter').forEach(function(c){if(c!==chip){c.classList.remove('open');const m=c.querySelector('.chip-dropdown-menu');if(m)m.hidden=true;}});if(chip){const m=chip.querySelector('.chip-dropdown-menu');if(m){const willOpen=m.hidden;m.hidden=!willOpen;chip.classList.toggle('open',willOpen);}}});}}
+function renderContextFilters(){const f=state.filters;$$('[data-context-filters]').forEach(host=>{const scope=contextScopeForHost(host),curLocal=currentContextLocal(scope),locals=localOptionValues(curLocal,scope).map(x=>[x,x]);let html=contextChip('contextLocal',scope,'location_on','Todos os locais',curLocal,locals);if(scope==='prospect'){const resp=[...new Set(responsibleRows().map(responsibleNameFromRow).map(text).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(x=>[x,x]),pots=[...new Set((state.journeyProspects.items||[]).map(x=>text(first(x.potencial,x.POTENCIAL))).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(x=>[x,x]),stages=(state.journeyProspects.columns||[]).map(c=>text(c.nome||c.etapaId)).filter(Boolean).map(x=>[x,x]);html+=contextChip('prospectStage','','route','Todas as etapas',f.prospectStage,stages)+contextChip('prospectResponsible','','person','Todos os responsáveis',f.prospectResponsible,resp)+contextChip('prospectPotential','','star','Todos os potenciais',f.prospectPotential,pots);}else{const resp=[...new Set(responsibleRows().map(responsibleNameFromRow).map(text).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(x=>[x,x]);html+=contextChip('clientResponsible','','person','Todos os responsáveis',f.clientResponsible,resp);}host.innerHTML=html;});if(!renderContextFilters._bound){renderContextFilters._bound=true;document.addEventListener('click',function(e){const opt=e.target.closest('.chip-filter .chip-option');if(opt){e.stopPropagation();const chip=opt.closest('.chip-filter'),attr=chip.dataset.chipFilter,val=opt.dataset.value;if(attr==='contextLocal')setContextLocal(chip.dataset.chipScope||'crm',val);else if(attr==='clientCadSort')state.clientSort={key:val,dir:(val==='valor30d'||val==='diasSemPostar')?'desc':'asc'};else if(attr==='prospectCadSort')state.prospectSort=val;else state.filters[attr]=val;rerenderContext();return;}const chip=e.target.closest('.chip-filter');document.querySelectorAll('.chip-filter').forEach(function(c){if(c!==chip){c.classList.remove('open');const m=c.querySelector('.chip-dropdown-menu');if(m)m.hidden=true;}});if(chip){const m=chip.querySelector('.chip-dropdown-menu');if(m){const willOpen=m.hidden;m.hidden=!willOpen;chip.classList.toggle('open',willOpen);}}});}}
 function rerenderContext(){renderContextFilters();renderHome();renderProspects();renderClients();renderAgenda();updateActionsFrameFilters();}
 
 async function apiGet(action,params={},options={}){const u=new URL(cfg.apiUrl);u.searchParams.set('action',action);Object.entries(params).forEach(([k,v])=>{if(v!==''&&v!=null)u.searchParams.set(k,v);});const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),Number(options.timeoutMs||cfg.requestTimeoutMs||60000));try{const res=await fetch(u,{signal:ctl.signal,cache:'no-store'}),data=await res.json();if(!data||data.ok===false)throw new Error((data&&data.error)||'A API retornou erro.');return data;}catch(err){if(err.name==='AbortError')throw new Error('O servidor demorou para responder.');throw err;}finally{clearTimeout(timer);}}
@@ -151,7 +151,105 @@ function clientSortValue(x,key){const vals={cliente:entityName(x),contato:x.pess
 function sortClients(rows){const {key,dir}=state.clientSort,m=dir==='asc'?1:-1;return rows.slice().sort((a,b)=>{const av=clientSortValue(a,key),bv=clientSortValue(b,key);if(typeof av==='number'||typeof bv==='number')return(num(av)-num(bv))*m;return String(av||'').localeCompare(String(bv||''),'pt-BR',{numeric:true,sensitivity:'base'})*m;});}
 function updateClientSortHeaders(){$$('[data-client-sort]').forEach(btn=>{const active=btn.dataset.clientSort===state.clientSort.key;btn.classList.toggle('active',active);const icon=$('.material-symbols-rounded',btn);if(icon)icon.textContent=active?(state.clientSort.dir==='asc'?'arrow_upward':'arrow_downward'):'unfold_more';});}
 function renderClientTable(){const ctrl=$('#clientCadControls');if(ctrl){const acoes=[...new Set(state.clients.map(x=>text(x.acaoEngine||x.acao)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(x=>[x,x]);ctrl.innerHTML=contextChip('clientCadSort','','swap_vert','Ordenar',state.clientSort.key,[['cliente','Nome (A-Z)'],['curva','Curva'],['valor30d','Faturamento 30D'],['diasSemPostar','Dias sem postar']],true)+contextChip('contextCurve','','leaderboard','Todas as curvas',state.filters.contextCurve,CURVE_OPTIONS.map(x=>[x,'Curva '+x]))+contextChip('contextAction','','bolt','Todas as ações',state.filters.contextAction,acoes);}const setCount=n=>{const cc=$('#clientCadCount');if(cc)cc.innerHTML='<span class="material-symbols-rounded">filter_alt</span>'+esc(n);};if(!state.legacyReady){$('#clientTableBody').innerHTML='<tr><td colspan="12">Carregando cadastros detalhados…</td></tr>';setCount(0);return;}const q=norm($('#clientSearch').value),all=sortClients(state.clients.filter(x=>matchesContext(x,'CLIENTE')&&(!q||norm([x.cliente,x.nomeFantasia,x.razaoSocial,x.cnpjCpf,x.whatsapp,x.numeroContrato,x.cartao].join(' ')).includes(q)))),rows=all.slice(0,500);setCount(all.length);$('#clientTableBody').innerHTML=rows.length?rows.map(x=>`<tr><td colspan="12" class="cad-cell"><article class="cad-card" data-curva="${esc(x.curva||'')}"><div class="cad-main"><div class="cad-row1"><strong class="cad-name">${esc(entityName(x))}</strong>${x.curva?`<span class="curva-chip" data-curva="${esc(x.curva)}">${text(x.curva).toUpperCase()==='TOP'?'<span class="material-symbols-rounded">star</span>':''}Curva ${esc(x.curva)}</span>`:''}<span class="chip ${actionClass(x.acaoEngine||x.acao)}">${esc(x.acaoEngine||x.acao||'—')}</span></div><div class="cad-sub">${esc(x.cnpjCpf||'')}${x.pessoaContato?` · ${esc(x.pessoaContato)}`:''}</div><div class="cad-meta"><span class="cad-mi"><span class="material-symbols-rounded">payments</span>${fmtMoney(x.valor30d)} <em>30D</em></span><span class="cad-mi"><span class="material-symbols-rounded">photo_camera</span>${fmtDate(x.dataUltimaPostagem)}</span><span class="cad-mi"><span class="material-symbols-rounded">event_busy</span>${esc(x.diasSemPostar||0)} dias s/p</span><span class="cad-mi"><span class="material-symbols-rounded">store</span>${esc(x.segmento||'—')} · ${esc(x.local||'—')}</span><span class="cad-mi"><span class="material-symbols-rounded">description</span>${esc(x.numeroContrato||'—')}${x.cartao?` · ${esc(x.cartao)}`:''}</span></div></div><div class="cad-actions">${can('canEditClients')?`<button class="table-btn icon-only" data-edit-client="${esc(x.clienteId)}" title="Editar" aria-label="Editar"><span class="material-symbols-rounded">edit</span></button>`:''}</div></article></td></tr>`).join(''):'<tr><td colspan="12">Nenhum cliente encontrado.</td></tr>';$$('[data-edit-client]').forEach(b=>b.onclick=()=>openEntityModal('CLIENTE',b.dataset.editClient));}
-function renderProspectTable(){const ctrl=$('#prospectCadControls');if(ctrl){ctrl.innerHTML=contextChip('prospectCadSort','','swap_vert','Ordenar',state.prospectSort,[['nome','Nome (A-Z)'],['etapa','Estágio do funil']],true);}const setCount=n=>{const cc=$('#prospectCadCount');if(cc)cc.innerHTML='<span class="material-symbols-rounded">filter_alt</span>'+esc(n);};if(!state.legacyReady){$('#prospectTableBody').innerHTML='<tr><td colspan="9">Carregando cadastros detalhados…</td></tr>';setCount(0);return;}const stageOrder={};(state.journeyProspects.columns||[]).forEach((c,i)=>{stageOrder[text(c.nome||c.etapaId)]=i;});const q=norm($('#prospectSearch').value),all=state.prospects.filter(x=>!isDeletedProspect(x)&&matchesContext(x,'PROSPECT')&&(!q||norm([x.cliente,x.nomeFantasia,x.razaoSocial,x.segmento,x.whatsapp,x.email,x.potencial,x.etapaFunil,x.responsavel].join(' ')).includes(q)));all.sort((a,b)=>state.prospectSort==='etapa'?((stageOrder[text(a.etapaFunil)]??999)-(stageOrder[text(b.etapaFunil)]??999)||String(entityName(a)).localeCompare(entityName(b),'pt-BR')):String(entityName(a)).localeCompare(String(entityName(b)),'pt-BR'));const rows=all.slice(0,500);setCount(all.length);$('#prospectTableBody').innerHTML=rows.length?rows.map(x=>`<tr><td colspan="9" class="pcad-cell"><article class="pcad-card" data-pot="${esc(x.potencial||'')}"><div class="pcad-main"><div class="pcad-row1"><strong class="pcad-name">${esc(entityName(x))}</strong>${x.etapaFunil?`<span class="chip">${esc(x.etapaFunil)}</span>`:''}${x.potencial?`<span class="pcad-pot">${esc(x.potencial)}</span>`:''}</div><div class="pcad-sub">${esc(x.cnpjCpf||'')}${x.nomeFantasia?` · ${esc(x.nomeFantasia)}`:''}</div><div class="pcad-meta"><span class="pcad-mi"><span class="material-symbols-rounded">category</span>${esc(x.segmento||'—')}</span><span class="pcad-mi"><span class="material-symbols-rounded">person</span>${esc(x.responsavel||'—')}</span></div></div><div class="pcad-actions">${can('canEditProspects')?`<button class="table-btn icon-only" data-edit-prospect="${esc(x.prospectId)}" title="Editar" aria-label="Editar"><span class="material-symbols-rounded">edit</span></button>`:''}</div></article></td></tr>`).join(''):'<tr><td colspan="9">Nenhum prospect encontrado.</td></tr>';$$('[data-edit-prospect]').forEach(b=>b.onclick=()=>openEntityModal('PROSPECT',b.dataset.editProspect));}
+function renderProspectTable(){
+  const canBulk=can('canMoveFunnel');
+  if(!canBulk&&state.prospectSelectMode){state.prospectSelectMode=false;state.prospectSelection.clear();}
+  const ctrl=$('#prospectCadControls');
+  if(ctrl){
+    const sortChip=contextChip('prospectCadSort','','swap_vert','Ordenar',state.prospectSort,[['nome','Nome (A-Z)'],['etapa','Estágio do funil']],true);
+    const selBtn=canBulk?`<button type="button" class="cad-select-toggle${state.prospectSelectMode?' active':''}" id="prospectSelectToggle"><span class="material-symbols-rounded">${state.prospectSelectMode?'close':'checklist'}</span>${state.prospectSelectMode?'Cancelar':'Selecionar'}</button>`:'';
+    ctrl.innerHTML=sortChip+selBtn;
+    const tg=$('#prospectSelectToggle');if(tg)tg.onclick=prospectToggleSelectMode;
+  }
+  const setCount=n=>{const cc=$('#prospectCadCount');if(cc)cc.innerHTML='<span class="material-symbols-rounded">filter_alt</span>'+esc(n);};
+  if(!state.legacyReady){$('#prospectTableBody').innerHTML='<tr><td colspan="9">Carregando cadastros detalhados…</td></tr>';setCount(0);updateProspectBulkBar();return;}
+  const stageOrder={};(state.journeyProspects.columns||[]).forEach((c,i)=>{stageOrder[text(c.nome||c.etapaId)]=i;});
+  const q=norm($('#prospectSearch').value),all=state.prospects.filter(x=>!isDeletedProspect(x)&&matchesContext(x,'PROSPECT')&&(!q||norm([x.cliente,x.nomeFantasia,x.razaoSocial,x.segmento,x.whatsapp,x.email,x.potencial,x.etapaFunil,x.responsavel].join(' ')).includes(q)));
+  all.sort((a,b)=>state.prospectSort==='etapa'?((stageOrder[text(a.etapaFunil)]??999)-(stageOrder[text(b.etapaFunil)]??999)||String(entityName(a)).localeCompare(entityName(b),'pt-BR')):String(entityName(a)).localeCompare(String(entityName(b)),'pt-BR'));
+  state.prospectFilteredIds=all.map(x=>text(x.prospectId)).filter(Boolean);
+  const rows=all.slice(0,500);setCount(all.length);
+  const sel=state.prospectSelection,selMode=state.prospectSelectMode;
+  $('#prospectTableBody').innerHTML=rows.length?rows.map(x=>{
+    const pid=text(x.prospectId),checked=sel.has(pid)?' checked':'';
+    const check=selMode?`<label class="pcad-check"><input type="checkbox" data-sel-prospect="${esc(pid)}"${checked} aria-label="Selecionar ${esc(entityName(x))}"></label>`:'';
+    return `<tr><td colspan="9" class="pcad-cell"><article class="pcad-card${selMode?' selectable':''}" data-pot="${esc(x.potencial||'')}">${check}<div class="pcad-main"><div class="pcad-row1"><strong class="pcad-name">${esc(entityName(x))}</strong>${x.etapaFunil?`<span class="chip">${esc(x.etapaFunil)}</span>`:''}${x.potencial?`<span class="pcad-pot">${esc(x.potencial)}</span>`:''}</div><div class="pcad-sub">${esc(x.cnpjCpf||'')}${x.nomeFantasia?` · ${esc(x.nomeFantasia)}`:''}</div><div class="pcad-meta"><span class="pcad-mi"><span class="material-symbols-rounded">category</span>${esc(x.segmento||'—')}</span><span class="pcad-mi"><span class="material-symbols-rounded">person</span>${esc(x.responsavel||'—')}</span></div></div><div class="pcad-actions">${can('canEditProspects')?`<button class="table-btn icon-only" data-edit-prospect="${esc(pid)}" title="Editar" aria-label="Editar"><span class="material-symbols-rounded">edit</span></button>`:''}</div></article></td></tr>`;
+  }).join(''):'<tr><td colspan="9">Nenhum prospect encontrado.</td></tr>';
+  $$('[data-edit-prospect]').forEach(b=>b.onclick=()=>openEntityModal('PROSPECT',b.dataset.editProspect));
+  wireProspectSelection();
+  updateProspectBulkBar();
+}
+/* ── Edição em lote de prospects (seleção múltipla + mover para etapa) ── */
+function wireProspectSelection(){
+  if(wireProspectSelection._bound)return;wireProspectSelection._bound=true;
+  const body=$('#prospectTableBody');
+  if(body)body.addEventListener('change',e=>{
+    const cb=e.target.closest('input[data-sel-prospect]');if(!cb)return;
+    const pid=cb.getAttribute('data-sel-prospect');
+    if(cb.checked)state.prospectSelection.add(pid);else state.prospectSelection.delete(pid);
+    updateProspectBulkBar();
+  });
+}
+function prospectToggleSelectMode(){
+  state.prospectSelectMode=!state.prospectSelectMode;
+  if(!state.prospectSelectMode)state.prospectSelection.clear();
+  renderProspectTable();
+}
+function prospectSelectAllFiltered(){
+  const ids=state.prospectFilteredIds||[];
+  const allSelected=ids.length>0&&ids.every(id=>state.prospectSelection.has(id));
+  if(allSelected)ids.forEach(id=>state.prospectSelection.delete(id));
+  else ids.forEach(id=>state.prospectSelection.add(id));
+  renderProspectTable();
+}
+function ensureProspectBulkBar(){
+  let bar=$('#prospectBulkBar');if(bar)return bar;
+  bar=document.createElement('div');bar.id='prospectBulkBar';
+  bar.innerHTML='<button type="button" class="bulk-all" id="prospectBulkAll"><span class="material-symbols-rounded">select_all</span><span id="prospectBulkAllLabel">Todos</span></button><span class="count" id="prospectBulkCount">0 selecionados</span><select id="prospectBulkStage" aria-label="Etapa de destino"></select><button type="button" class="bulk-test" id="prospectBulkTest">Testar</button><button type="button" class="bulk-move" id="prospectBulkMove"><span class="material-symbols-rounded">move_down</span>Mover</button><button type="button" class="bulk-cancel" id="prospectBulkCancel" aria-label="Sair da seleção"><span class="material-symbols-rounded">close</span></button>';
+  document.body.appendChild(bar);
+  $('#prospectBulkAll',bar).onclick=prospectSelectAllFiltered;
+  $('#prospectBulkCancel',bar).onclick=()=>{state.prospectSelectMode=false;state.prospectSelection.clear();renderProspectTable();};
+  $('#prospectBulkTest',bar).onclick=()=>prospectBulkMove(true);
+  $('#prospectBulkMove',bar).onclick=()=>prospectBulkMove(false);
+  document.addEventListener('click',e=>{if(e.target.closest('[data-nav],[data-subview]'))setTimeout(updateProspectBulkBar,0);});
+  return bar;
+}
+function updateProspectBulkBar(){
+  const bar=ensureProspectBulkBar();
+  const cad=document.getElementById('prospects-cadastro'),view=document.getElementById('view-prospects');
+  const visible=state.prospectSelectMode&&cad&&cad.classList.contains('active')&&view&&!view.classList.contains('hidden');
+  bar.classList.toggle('show',!!visible);
+  if(!visible)return;
+  const n=state.prospectSelection.size;
+  $('#prospectBulkCount').textContent=n+(n===1?' selecionado':' selecionados');
+  const stage=$('#prospectBulkStage'),cur=stage.value,cols=state.journeyProspects.columns||[];
+  stage.innerHTML='<option value="">Mover para etapa…</option>'+cols.map(c=>`<option value="${esc(c.etapaId)}">${esc(c.nome||c.etapaId)}</option>`).join('');
+  if(cur)stage.value=cur;
+  const ids=state.prospectFilteredIds||[],allSelected=ids.length>0&&ids.every(id=>state.prospectSelection.has(id));
+  const lbl=$('#prospectBulkAllLabel');if(lbl)lbl.textContent=allSelected?'Limpar':('Todos ('+ids.length+')');
+  const moveBtn=$('#prospectBulkMove'),testBtn=$('#prospectBulkTest'),disabled=n===0;
+  if(moveBtn)moveBtn.disabled=disabled;if(testBtn)testBtn.disabled=disabled;
+}
+async function prospectBulkMove(dryRun){
+  const stage=$('#prospectBulkStage'),etapaId=stage&&stage.value;
+  if(!etapaId){toast('Escolha a etapa de destino.',true);return;}
+  const ids=[...state.prospectSelection];
+  if(!ids.length){toast('Selecione ao menos um prospect.',true);return;}
+  const col=(state.journeyProspects.columns||[]).find(c=>text(c.etapaId)===text(etapaId)),nome=col?text(col.nome||col.etapaId):etapaId;
+  if(!dryRun&&!confirm(`Mover ${ids.length} prospect(s) para "${nome}"?`))return;
+  const moveBtn=$('#prospectBulkMove'),testBtn=$('#prospectBulkTest'),busyBtn=dryRun?testBtn:moveBtn,orig=busyBtn?busyBtn.innerHTML:'';
+  if(busyBtn){busyBtn.disabled=true;busyBtn.textContent=dryRun?'Testando…':'Movendo…';}
+  try{
+    const res=await apiPost('move_tratativas_lote',{modo:dryRun?'TESTE':'APLICAR',etapaId,prospectIds:ids,responsavelId:responsibleApiValue('')},{timeoutMs:120000});
+    const resumo=`${res.movidos||0} movido(s), ${res.criados||0} criado(s), ${res.pulados||0} pulado(s), ${res.erros||0} com erro`;
+    if(dryRun){toast('Teste: '+resumo);}
+    else{
+      toast('Concluído: '+resumo,(res.erros||0)>0);
+      state.prospectSelection.clear();state.prospectSelectMode=false;
+      await reloadJourney();await loadLegacyData(true);renderProspectTable();
+    }
+  }catch(err){toast(err.message||'Falha ao mover em lote.',true);}
+  finally{if(busyBtn){busyBtn.disabled=false;busyBtn.innerHTML=orig;}updateProspectBulkBar();}
+}
 
 function renderAgenda(){const p=agendaPeriod();$('#agendaPeriodLabel').textContent=agendaPeriodLabel();$$('[data-agenda-mode]').forEach(b=>b.classList.toggle('active',b.dataset.agendaMode===state.agendaMode));renderAgendaFilters();const items=(state.agenda.items||[]).filter(activityMatchesContext),host=$('#agendaCalendar');host.className=`agenda-calendar mode-${state.agendaMode}`;if(state.agendaMode==='day')host.innerHTML=renderAgendaDay(p.start,items);else if(state.agendaMode==='month')host.innerHTML=renderAgendaMonth(p.start,items);else host.innerHTML=renderAgendaWeek(p.start,items);const overdue=(state.overdue||[]).filter(activityMatchesContext);$('#overdueList').innerHTML=overdue.length?overdue.map(activityListItem).join(''):'<div class="empty-state">Nenhuma atividade vencida.</div>';wireAgendaCards();}
 function renderAgendaWeek(start,items){return`<div class="week-grid">${Array.from({length:7},(_,i)=>{const date=addDays(start,i),dayItems=items.filter(x=>x.dataProgramada===date);return`<section class="day-col"><header class="day-head"><strong>${['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'][i]}</strong><small>${fmtDate(date)}</small></header><div class="day-body">${dayItems.length?dayItems.map(agendaCard).join(''):'<div class="empty-state">Sem atividades</div>'}</div></section>`;}).join('')}</div>`;}

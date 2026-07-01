@@ -761,3 +761,65 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
   .prospect-main-stats .kpi-ico{width:36px;height:36px;border-radius:11px;font-size:19px}
   .prospect-main-stats .kpi-card .value{font-size:24px}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ENTREGA 2 — Filtro de etapa (usa .chip-filter existente) + edição em lote
+   Anexado ao fim de propósito. Não toca topbar.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Botão "Selecionar" na barra de controles do Cadastro */
+.cad-select-toggle{
+  display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;
+  border:1px solid var(--line);background:var(--surface);color:var(--text);
+  font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap
+}
+.cad-select-toggle .material-symbols-rounded{font-size:17px}
+.cad-select-toggle.active{background:var(--accent);border-color:transparent;color:#fff}
+
+/* Checkbox por card no modo seleção */
+#prospects-cadastro .pcad-card.selectable{padding-left:2px}
+.pcad-check{display:flex;align-items:center;justify-content:center;padding:0 4px 0 12px;flex-shrink:0}
+.pcad-check input{
+  width:20px;height:20px;min-width:20px;accent-color:var(--accent);cursor:pointer;margin:0
+}
+
+/* Barra flutuante de ação em lote */
+#prospectBulkBar{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--bottom) + 12px);
+  z-index:60;display:none;align-items:center;gap:9px;flex-wrap:wrap;justify-content:center;
+  max-width:calc(100% - 24px);background:var(--surface);border:1px solid var(--line);
+  box-shadow:var(--shadow-hover);border-radius:14px;padding:9px 11px
+}
+#prospectBulkBar.show{display:flex}
+#prospectBulkBar .count{font-weight:800;font-size:13px;color:var(--text);white-space:nowrap}
+#prospectBulkBar select{
+  border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;
+  background:var(--surface);color:var(--text);max-width:190px
+}
+#prospectBulkBar .bulk-all{
+  display:inline-flex;align-items:center;gap:5px;padding:7px 10px;border-radius:10px;
+  border:1px solid var(--line);background:var(--soft);color:var(--accent);
+  font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap
+}
+#prospectBulkBar .bulk-all .material-symbols-rounded{font-size:17px}
+#prospectBulkBar .bulk-test{
+  padding:8px 11px;border-radius:10px;border:1px solid var(--line);background:var(--surface);
+  color:var(--muted);font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap
+}
+#prospectBulkBar .bulk-move{
+  display:inline-flex;align-items:center;gap:6px;padding:9px 13px;border-radius:10px;border:none;
+  background:var(--accent);color:#fff;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap
+}
+#prospectBulkBar .bulk-move .material-symbols-rounded{font-size:18px}
+#prospectBulkBar .bulk-move[disabled],#prospectBulkBar .bulk-test[disabled]{opacity:.45;cursor:not-allowed}
+#prospectBulkBar .bulk-cancel{
+  display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
+  border:none;border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;flex-shrink:0
+}
+#prospectBulkBar .bulk-cancel:hover{background:var(--soft)}
+
+@media(max-width:620px){
+  #prospectBulkBar{left:12px;right:12px;transform:none;max-width:none;gap:8px;bottom:calc(var(--bottom) + 8px)}
+  #prospectBulkBar .count{order:-1;flex:1 1 100%;text-align:center}
+  #prospectBulkBar select{flex:1 1 auto;max-width:none}
+}

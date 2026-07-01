@@ -379,6 +379,102 @@ function crm3_apiMoveTratativa_(payload) {
   return { ok:true, tratativaId:treatmentId, etapaAnterior:current, etapaId:destination, statusTratativa:status };
 }
 
+/* ============ MOVER TRATATIVAS EM LOTE (reaproveita move/create) ============
+ * Recebe { etapaId (destino), prospectIds:[] e/ou tratativaIds:[], modo:'TESTE'|'APLICAR' }.
+ * Reusa crm3_apiMoveTratativa_ (validação de etapa/status/data/histórico) e,
+ * quando o prospect não tem tratativa aberta, cria na etapa de destino com
+ * crm3_apiCreateTratativa_ (decisão de negócio aprovada). Tolerante a erro item a item.
+ * modo TESTE = dry-run: só relatório, não grava nada.
+ * Permissão: mesmo padrão do move_tratativa (controlada na UI). Sem auth nova no backend.
+ * Roda dentro de op_withDocumentLock_ (trava herdada do op_doPost). */
+function crm3_apiMoveTratativasLote_(payload) {
+  crm3_assertSetupReady_();
+  payload = payload || {};
+  var destino = crm3_text_(payload.etapaId || payload.etapaDestinoId);
+  if (!destino) throw new Error('etapaId (etapa de destino) é obrigatório.');
+  var modo = crm3_upper_(payload.modo || 'APLICAR');
+  var dryRun = (modo === 'TESTE' || modo === 'DRY_RUN' || modo === 'DRYRUN' || modo === 'SIMULAR');
+  var funnelId = crm3_text_(payload.funilId || CRM3_CFG.FUNIL_PROSPECTS);
+  var destStage = crm3_validateStageForFunnel_(destino, funnelId); // valida a etapa 1x (mesma regra do move individual)
+  var responsavelId = crm3_text_(payload.responsavelId);
+  var updatedBy = responsavelId || 'CRM_PORTAL';
+
+  var tratIds = (payload.tratativaIds || []).map(crm3_text_).filter(Boolean);
+  var prospectIds = (payload.prospectIds || payload.entidadeIds || []).map(crm3_text_).filter(Boolean);
+  if (!tratIds.length && !prospectIds.length) throw new Error('Informe prospectIds ou tratativaIds.');
+
+  var itens = [], movidos = 0, criados = 0, pulados = 0, erros = 0;
+  function push(id, acao, de, para, msg) { itens.push({ id: id, acao: acao, de: de, para: para, msg: msg || '' }); }
+
+  // 1) Alvos por tratativaId direto
+  tratIds.forEach(function (tid) {
+    try {
+      var rec = crm3_findRowObject_(CRM3_CFG.SHEETS.TRATATIVAS, 'TRATATIVA_ID', tid);
+      if (!rec) { erros++; push(tid, 'ERRO', '', destino, 'Tratativa não encontrada.'); return; }
+      var atual = crm3_text_(rec.obj.ETAPA_ID);
+      if (atual === destino) { pulados++; push(tid, 'PULADO', atual, destino, 'Já está na etapa de destino.'); return; }
+      if (dryRun) { movidos++; push(tid, 'MOVER', atual, destino, '(teste) seria movida.'); return; }
+      var r = crm3_apiMoveTratativa_({ tratativaId: tid, etapaId: destino, responsavelId: responsavelId, updatedBy: updatedBy });
+      movidos++; push(tid, 'MOVIDO', r.etapaAnterior, r.etapaId, '');
+    } catch (e) { erros++; push(tid, 'ERRO', '', destino, e.message || String(e)); }
+  });
+
+  // 2) Alvos por prospectId: move a tratativa aberta ou cria na etapa de destino
+  prospectIds.forEach(function (pid) {
+    try {
+      var aberta = crm3_findOpenTratativa_('PROSPECT', pid, funnelId);
+      if (aberta) {
+        var tid = crm3_text_(aberta.TRATATIVA_ID);
+        var atual = crm3_text_(aberta.ETAPA_ID);
+        if (atual === destino) { pulados++; push(pid, 'PULADO', atual, destino, 'Já está na etapa de destino (' + tid + ').'); return; }
+        if (dryRun) { movidos++; push(pid, 'MOVER', atual, destino, '(teste) moveria ' + tid + '.'); return; }
+        var r = crm3_apiMoveTratativa_({ tratativaId: tid, etapaId: destino, responsavelId: responsavelId, updatedBy: updatedBy });
+        movidos++; push(pid, 'MOVIDO', r.etapaAnterior, r.etapaId, tid);
+      } else {
+        var ent = crm3_getEntity_('PROSPECT', pid);
+        if (!ent) { erros++; push(pid, 'ERRO', '', destino, 'Prospect não encontrado.'); return; }
+        if (dryRun) { criados++; push(pid, 'CRIAR', '', destino, '(teste) criaria tratativa na etapa.'); return; }
+        var c = crm3_apiCreateTratativa_({ tipoEntidade: 'PROSPECT', entidadeId: pid, funilId: funnelId, etapaId: destino, responsavelId: responsavelId, origem: 'CRM_PORTAL_LOTE' });
+        if (c && c.created) { criados++; push(pid, 'CRIADO', '', destino, crm3_text_(c.tratativaId)); }
+        else if (c && c.tratativaId) { // corrida: já existia; garante a etapa movendo
+          var r2 = crm3_apiMoveTratativa_({ tratativaId: crm3_text_(c.tratativaId), etapaId: destino, responsavelId: responsavelId, updatedBy: updatedBy });
+          movidos++; push(pid, 'MOVIDO', r2.etapaAnterior, r2.etapaId, crm3_text_(c.tratativaId));
+        } else { erros++; push(pid, 'ERRO', '', destino, 'Não foi possível criar/mover.'); }
+      }
+    } catch (e) { erros++; push(pid, 'ERRO', '', destino, e.message || String(e)); }
+  });
+
+  if (!dryRun && (movidos + criados) > 0) crm3_bumpCacheRev_();
+
+  return {
+    ok: true,
+    modo: (dryRun ? 'TESTE' : 'APLICAR'),
+    etapaId: destino,
+    etapaNome: crm3_text_(destStage.NOME_EXIBICAO || destino),
+    total: tratIds.length + prospectIds.length,
+    movidos: movidos, criados: criados, pulados: pulados, erros: erros,
+    itens: itens
+  };
+}
+
+/* Dry-run para rodar no editor do Apps Script ANTES de mover em massa.
+ * Ajuste DESTINO (ETAPA_ID) e, se quiser, a lista de prospectIds.
+ * Sem prospectIds, usa os 10 primeiros prospects com tratativa aberta (dados reais).
+ * Não grava nada; loga e retorna o relatório. */
+function crm3_testarMoverLoteProspects() {
+  var DESTINO = 'P_OPORTUNIDADE';           // <-- troque pelo ETAPA_ID de destino
+  var prospectIds = [];                      // <-- opcional: liste prospectIds
+  if (!prospectIds.length) {
+    var abertas = crm3_readObjects_(CRM3_CFG.SHEETS.TRATATIVAS).filter(function (t) {
+      return crm3_text_(t.TIPO_ENTIDADE) === 'PROSPECT' && crm3_isOpenTratativaStatus_(t.STATUS_TRATATIVA);
+    }).slice(0, 10);
+    prospectIds = abertas.map(function (t) { return crm3_text_(t.ENTIDADE_ID); });
+  }
+  var rep = crm3_apiMoveTratativasLote_({ modo: 'TESTE', etapaId: DESTINO, prospectIds: prospectIds });
+  Logger.log(JSON.stringify(rep, null, 2));
+  return rep;
+}
+
 /* ========================= AGENDA GENÉRICA ========================= */
 
 function crm3_apiGetAgenda_(params) {

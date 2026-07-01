@@ -82,6 +82,7 @@ function op_doPost(e) {
     else if (action === 'sync_prospect_conversions') result = op_syncProspectConversions_();
     else if (action === 'create_tratativa') result = crm3_apiCreateTratativa_(payload);
     else if (action === 'move_tratativa') result = crm3_apiMoveTratativa_(payload);
+    else if (action === 'move_tratativas_lote') result = crm3_apiMoveTratativasLote_(payload);
     else if (action === 'save_atividade') result = crm3_apiSaveAtividade_(payload);
     else if (action === 'complete_atividade') result = crm3_apiCompleteAtividade_(payload);
     else if (action === 'cancel_atividade') result = crm3_apiCancelAtividade_(payload);
