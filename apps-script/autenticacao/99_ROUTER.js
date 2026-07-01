@@ -22,6 +22,10 @@ function agfHandleRequest_(e) {
         return agfJson_(agfLogout_(request.token));
       case 'changeMyPassword':
         return agfJson_(agfChangeMyPassword_(request.token, request));
+      case 'getMyAvatar':
+        return agfJson_(agfGetMyAvatar_(request.token));
+      case 'uploadMyAvatar':
+        return agfJson_(agfUploadMyAvatar_(request.token, request));
       case 'getUiConfig':
         return agfJson_(agfGetUiConfig_());
       case 'saveUiConfig':
