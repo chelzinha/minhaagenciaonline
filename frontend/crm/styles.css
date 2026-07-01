@@ -1,7 +1,7 @@
 :root{
   color-scheme:light;
   --navy:#1B3358;--navy-2:#2C4A78;--blue:#0E9594;--sky:#E4F5F4;
-  --bg:#F4F5F8;--surface:#fff;--text:#17354B;--muted:#647B8C;--line:#E7E9EF;
+  --bg:#F4F5F8;--surface:#fff;--text:#17354B;--muted:#586A78;--line:#E7E9EF;
   --soft:#EFF6FB;--green:#15803D;--green-soft:#DCFCE7;--amber:#B45309;--amber-soft:#FEF3C7;
   --red:#B42318;--red-soft:#FEE2E2;--purple:#6D3CB1;--purple-soft:#F3E8FF;--teal:#0F766E;--teal-soft:#CCFBF1;
   --pink:#BE185D;--pink-soft:#FCE7F3;--orange:#C2410C;--orange-soft:#FFEDD5;--slate:#64748B;
@@ -625,3 +625,139 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
 .curva-chip[data-curva="B"]{background:var(--info-soft);color:var(--info)}
 .curva-chip[data-curva="C"]{background:#EAECEF;color:#8A9099}
 .curva-chip[data-curva="TOP"] .material-symbols-rounded{font-variation-settings:'FILL' 1}
+
+/* ===== AGF: busca do Funil na mesma linha dos filtros de contexto =====
+   A busca + contador do Funil (#prospectBoardFilters / #clientBoardFilters)
+   foram movidos para dentro da linha de filtros (.prospect-filter-row).
+   Aqui eles aparecem somente quando a aba Funil esta ativa e somem nas demais
+   abas (Dashboard/Cadastro ja tem a propria busca). Sem mudanca no app.js. */
+.prospect-filter-row .context-filter-bar{flex:0 1 auto}
+.prospect-filter-row .prospect-dashboard-period{margin-left:auto}
+.prospect-filter-row .board-toolbar{display:none;margin:0;padding:0;flex:1 1 auto;min-width:0;gap:8px;justify-content:flex-start}
+.prospect-filter-row .board-toolbar .filter-row{margin:0;gap:8px;flex:1 1 auto;min-width:0;flex-wrap:nowrap}
+.prospect-filter-row .board-toolbar .search-field.compact{flex:1 1 auto;min-width:160px;max-width:none}
+#view-prospects:has(#prospects-funil.active) .prospect-filter-row .board-toolbar{display:flex}
+#view-clientes:has(#clientes-funil.active) .prospect-filter-row .board-toolbar{display:flex}
+@media(max-width:620px){
+  .prospect-filter-row .prospect-dashboard-period{margin-left:0}
+  .prospect-filter-row .board-toolbar,.prospect-filter-row .board-toolbar .filter-row{width:100%}
+  .prospect-filter-row .board-toolbar .search-field.compact{min-width:0;width:100%;max-width:none}
+}
+
+/* ===== AGF: cards do dashboard de Prospects ocupando a largura toda =====
+   Bug: o container (#prospectsStats / #prospectChannelStats) tinha grid de 4
+   colunas e envolvia um unico .kpi-grid, espremendo os cards em 1/4 da tela.
+   Correcao: o container vira bloco e o proprio .kpi-grid faz o layout,
+   responsivo (4 no desktop, 2 no tablet, 1 no celular). */
+#prospectsStats,#prospectChannelStats{display:block}
+.kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.kpi-grid{grid-template-columns:1fr}}
+
+/* ===== AGF: pacote de acessibilidade e legibilidade (auditoria) ===== */
+/* B3 - subtitulo do topo escuro precisa de cor clara, nao do --muted escurecido */
+.crm-brand small{color:rgba(255,255,255,.74)}
+/* B2 - foco visivel onde o outline tinha sido removido */
+.search-field:focus-within,.context-filter-bar label:focus-within{outline:2px solid var(--blue);outline-offset:1px}
+.filter-row select:focus-visible,.filter-row input:focus-visible,.agenda-toolbar select:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.icon-btn:focus-visible,.close-btn:focus-visible,.mini-btn:focus-visible,.table-btn:focus-visible,.section-tabs button:focus-visible,.crm-bottom-nav button:focus-visible,.primary-btn:focus-visible,.secondary-btn:focus-visible,.text-btn:focus-visible,.tab-export-btn:focus-visible,.fab-add:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+/* C2 - alvos de toque maiores */
+.icon-btn,.close-btn{width:40px;height:40px}
+.mini-btn,.table-btn{min-height:32px}
+/* C1 - piso de tamanho para textos minusculos (legibilidade) */
+.chip{font-size:10px}
+.deal-meta{font-size:10.5px}
+.kanban-head small{font-size:10.5px}
+.agenda-card small,.agenda-card.compact small{font-size:10px}
+/* T1 - skip link */
+.skip-link{position:absolute;left:8px;top:-48px;z-index:200;background:var(--navy);color:#fff;padding:9px 13px;border-radius:10px;font-size:13px;font-weight:800;text-decoration:none;transition:top .15s}
+.skip-link:focus{top:8px;outline:2px solid #fff;outline-offset:2px}
+/* W3 - respeitar prefers-reduced-motion */
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+/* W1 - inputs com 16px no mobile para evitar zoom no iOS */
+@media(max-width:620px){.search-field input,.context-filter-bar select,.filter-row input,.filter-row select,.agenda-toolbar select,.cad-toolbar input,.form-grid input,.form-grid select,.form-grid textarea,.entity-section-grid input,.entity-section-grid select,.entity-section-grid textarea{font-size:16px!important}}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ETAPA 2 — Redesign do dashboard de Prospects (estilo "2b Índice")
+   Escopo: KPIs, funil, fila de ação, atividades vs. meta, atenção, responsáveis.
+   Regra: só dado real. Sem sparkline, sem delta fabricado, sem anel de conversão.
+   Anexado ao fim de propósito: vence a cascata sem editar o CSS legado (W4 fica p/ depois).
+   Não toca topbar nem filtros.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── KPI cards (Indicadores da semana): chip de ícone + spine colorida ──── */
+.prospect-main-stats .kpi-grid{gap:10px}
+.prospect-main-stats .kpi-card{
+  position:relative;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:12px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-md);
+  box-shadow:var(--shadow);padding:13px 14px 13px 17px;overflow:hidden;min-height:0
+}
+.prospect-main-stats .kpi-card::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:var(--kpi-solid,#0E7BC0)
+}
+.prospect-main-stats .kpi-ico{
+  width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;
+  background:var(--kpi-soft,#E2EFF7);color:var(--kpi-solid,#0E7BC0);font-size:21px
+}
+.prospect-main-stats .kpi-body{display:flex;flex-direction:column;min-width:0}
+.prospect-main-stats .kpi-card .label{
+  font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--muted);line-height:1.15
+}
+.prospect-main-stats .kpi-card .value{
+  font-size:26px;font-weight:800;font-family:Manrope,sans-serif;line-height:1.05;
+  margin-top:4px;color:var(--text)
+}
+
+/* ── Funil "Onde os prospects estão" (contagens reais + % reais) ───────── */
+.prospect-stage-card .funnel-row{margin-bottom:4px}
+.prospect-stage-card .funnel-label-row{margin-bottom:6px}
+.prospect-stage-card .funnel-label-row .name{font-size:12.5px;font-weight:700;color:var(--text)}
+.prospect-stage-card .funnel-label-row .count{font-size:15px;font-weight:800;font-family:Manrope,sans-serif;color:var(--text)}
+.prospect-stage-card .funnel-track{height:22px;background:#EDF1F5;border-radius:8px}
+.prospect-stage-card .funnel-fill{border-radius:8px;min-width:8px;box-shadow:inset 0 -1px 0 rgba(0,0,0,.06)}
+.prospect-stage-card .funnel-connector{padding:5px 2px 7px 6px;font-size:10.5px;color:var(--muted)}
+.prospect-stage-card .funnel-connector .material-symbols-rounded{color:var(--ink-faint)}
+.prospect-stage-card .funnel-connector b{color:var(--text);font-weight:800}
+
+/* ── Fila de ação hoje ─────────────────────────────────────────────────── */
+.prospect-queue-section .queue-card{border-radius:var(--radius-lg)}
+.prospect-queue-section .queue-item{gap:12px;padding:12px 14px}
+.prospect-queue-section .queue-bar{width:3px;border-radius:3px}
+.prospect-queue-section .queue-mid .name{font-size:14px;font-weight:700}
+.prospect-queue-section .queue-mid .meta{font-size:11.5px;margin-top:2px}
+.prospect-queue-section .badge{
+  font-size:10px;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em
+}
+.prospect-queue-section .queue-action{width:36px;height:36px;border-radius:11px}
+.prospect-queue-section .queue-footer{font-size:12px;padding:11px 14px}
+
+/* ── Atividades vs. meta (feito/meta real; meta é alvo fixo) ────────────── */
+.prospect-channel-stats .activity-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.prospect-channel-stats .activity-card{padding:12px 13px;border-radius:var(--radius-md)}
+.prospect-channel-stats .act-ico{width:26px;height:26px;border-radius:8px}
+.prospect-channel-stats .activity-card .label{font-size:11.5px;font-weight:700;color:var(--muted)}
+.prospect-channel-stats .activity-card .ratio{font-size:24px}
+.prospect-channel-stats .activity-card .ratio .of{font-size:12px}
+.prospect-channel-stats .progress-track{height:6px;margin-top:9px}
+@media(max-width:900px){.prospect-channel-stats .activity-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.prospect-channel-stats .activity-grid{grid-template-columns:1fr}}
+
+/* ── Atenção da semana ─────────────────────────────────────────────────── */
+.prospect-attention-card .alert-tile{gap:10px;padding:11px 12px;border-radius:var(--radius-md)}
+.prospect-attention-card .alert-tile .ico{width:34px;height:34px;border-radius:10px;font-size:18px}
+.prospect-attention-card .alert-tile .t{font-size:10.5px}
+
+/* ── Resumo por responsável ────────────────────────────────────────────── */
+.prospect-owner-card .rep-card{padding:12px 14px;border-radius:var(--radius-md)}
+.prospect-owner-card .rep-top .name{font-size:13px;font-weight:700}
+.prospect-owner-card .rep-top .total{font-size:11px}
+.prospect-owner-card .stack-bar{height:9px;border-radius:6px}
+
+/* ── Mobile: 1 coluna nos KPIs, toques confortáveis ────────────────────── */
+@media(max-width:620px){
+  .prospect-main-stats .kpi-card{padding:12px 13px 12px 16px}
+  .prospect-main-stats .kpi-ico{width:36px;height:36px;border-radius:11px;font-size:19px}
+  .prospect-main-stats .kpi-card .value{font-size:24px}
+}
