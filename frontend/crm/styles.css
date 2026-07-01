@@ -823,3 +823,45 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
   #prospectBulkBar .count{order:-1;flex:1 1 100%;text-align:center}
   #prospectBulkBar select{flex:1 1 auto;max-width:none}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ETAPA 3 — Home (Visão geral) e dashboard de Clientes na linguagem da Etapa 2
+   Só CSS: o markup de stat() não muda (zero regressão no JS).
+   Escopo restrito a #homeStats e #clientsStats para não afetar regras legadas.
+   Não toca topbar.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Cards de indicadores: chip de ícone à esquerda + spine, igual aos KPIs de Prospects */
+#homeStats .stat-card,#clientsStats .stat-card{
+  display:grid;grid-template-columns:auto 1fr;align-items:center;gap:12px;
+  padding:13px 14px 13px 17px;border:1px solid var(--line);border-radius:var(--radius-md);
+  box-shadow:var(--shadow)
+}
+#homeStats .stat-card:before,#clientsStats .stat-card:before{width:4px}
+#homeStats .stat-card .stat-icon,#clientsStats .stat-card .stat-icon{
+  width:40px;height:40px;border-radius:12px;margin:0;
+  background:color-mix(in srgb,var(--stat-color,var(--blue)) 13%,white)
+}
+#homeStats .stat-card .stat-icon .material-symbols-rounded,
+#clientsStats .stat-card .stat-icon .material-symbols-rounded{font-size:21px}
+#homeStats .stat-card em,#clientsStats .stat-card em{
+  font-size:10.5px;font-weight:800;letter-spacing:.04em;line-height:1.15
+}
+#homeStats .stat-card strong,#clientsStats .stat-card strong{
+  font-size:26px;font-weight:800;font-family:Manrope,sans-serif;
+  letter-spacing:normal;line-height:1.05;margin-top:4px
+}
+#homeStats .stat-card small,#clientsStats .stat-card small{font-size:11px;margin-top:3px}
+
+/* Números das listas de métricas (recomendações e etapas) na mesma família dos KPIs */
+.metric-row strong{font-family:Manrope,sans-serif;font-weight:800;font-size:14px}
+
+/* Mobile: grid 2x2 preservado, card mais compacto */
+@media(max-width:620px){
+  #homeStats .stat-card,#clientsStats .stat-card{padding:11px 11px 11px 14px;gap:9px}
+  #homeStats .stat-card .stat-icon,#clientsStats .stat-card .stat-icon{width:34px;height:34px;border-radius:10px}
+  #homeStats .stat-card .stat-icon .material-symbols-rounded,
+  #clientsStats .stat-card .stat-icon .material-symbols-rounded{font-size:18px}
+  #homeStats .stat-card strong,#clientsStats .stat-card strong{font-size:22px}
+  #homeStats .stat-card small,#clientsStats .stat-card small{font-size:10px}
+}
