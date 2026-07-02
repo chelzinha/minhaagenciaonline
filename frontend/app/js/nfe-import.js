@@ -25,6 +25,11 @@ window.NfeImport = (function () {
   }
 
   function moneyNumber(v) {
+    if (typeof v === 'string') {
+      const s = v.trim();
+      if (/^\d{1,3}(\.\d{3})*,\d{1,2}$/.test(s)) v = s.replace(/\./g, '').replace(',', '.');
+      else if (/^\d+,\d{1,2}$/.test(s)) v = s.replace(',', '.');
+    }
     const n = Number(v || 0);
     return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
   }
@@ -138,13 +143,41 @@ window.NfeImport = (function () {
     setValue(ids.chave, patch.chaveNFe || '');
   }
 
+  function normalizeItem(it, index) {
+    it = it || {};
+    const descricao = String(it.descricao || it.descricaoItem || it.nome || it.produto || it.xProd || '').trim();
+    const quantidade = Number(it.quantidade || it.qtd || it.qCom || 1) || 1;
+    const valorUnitario = moneyNumber(it.valor || it.valorUnitario || it.valor_unitario || it.vUnCom || 0);
+    const valorTotal = moneyNumber(it.valorTotal || it.valor_total || it.vProd || 0);
+    const valor = valorUnitario || (valorTotal && quantidade ? moneyNumber(valorTotal / quantidade) : 0);
+    return { descricao: descricao || ('Item importado da NF-e ' + (index + 1)), quantidade: quantidade, valor: valor };
+  }
+
+  function getItensDeclaracao(parsed, patch) {
+    parsed = parsed || {};
+    patch = patch || {};
+    const dec = parsed.declaracao || {};
+    const nota = parsed.nota || {};
+    const fontes = [patch.itensDeclaracao, patch.declaracaoItens, dec.itens, dec.items, parsed.itensDeclaracao, parsed.produtos, nota.produtos, nota.itens];
+    for (let i = 0; i < fontes.length; i++) {
+      if (Array.isArray(fontes[i]) && fontes[i].length) {
+        const itens = fontes[i].map(normalizeItem).filter(it => it.descricao || it.valor > 0);
+        if (itens.length) return itens;
+      }
+    }
+    const valorNota = moneyNumber(patch.valorNotaFiscal || patch.valorDeclaradoSugerido || nota.valorTotal || (parsed.totais && parsed.totais.valorTotalNota) || dec.valorTotalItens || 0);
+    if (valorNota > 0) return [{ descricao: 'Produtos conforme NF-e ' + (patch.numeroNotaFiscal || nota.numero || ''), quantidade: 1, valor: valorNota }];
+    return [];
+  }
+
   function clearAndFillDc(opts, itens) {
     const lista = $(opts.dcListId);
     if (!lista) return;
     lista.innerHTML = '';
     const arr = (itens || []).slice(0, 80);
     if (!arr.length) arr.push({ descricao: '', quantidade: 1, valor: 0 });
-    arr.forEach(it => {
+    arr.forEach((it, index) => {
+      it = normalizeItem(it, index);
       let row;
       const tpl = $('tpl-item-dc');
       if (tpl && tpl.content) {
@@ -163,7 +196,7 @@ window.NfeImport = (function () {
       const val = row.querySelector('.dc-valor');
       if (desc) desc.value = it.descricao || '';
       if (qtd) qtd.value = it.quantidade || 1;
-      if (val) val.value = moneyNumber(it.valor || it.valorUnitario || it.valor_unitario || 0);
+      if (val) val.value = moneyNumber(it.valor || 0);
       const remove = row.querySelector('.dc-remove');
       if (remove) remove.addEventListener('click', () => {
         if (lista.children.length <= 1) return;
@@ -188,8 +221,8 @@ window.NfeImport = (function () {
     const p = normalizePatch(parsed).patch;
     const nf = p.numeroNotaFiscal ? 'NF ' + p.numeroNotaFiscal : 'NF importada';
     const dest = p.destinatarioNome || 'destinatário não identificado';
-    const itens = (p.itensDeclaracao || []).length;
-    return nf + ' · ' + dest + ' · ' + itens + (itens === 1 ? ' produto identificado' : ' produtos identificados');
+    const itens = getItensDeclaracao(parsed, p).length;
+    return nf + ' · ' + dest + ' · ' + itens + (itens === 1 ? ' item preenchido' : ' itens preenchidos');
   }
 
   function storePreviewState(parsed, file) {
@@ -202,12 +235,8 @@ window.NfeImport = (function () {
   }
 
   function getPreviewState() {
-    try {
-      const raw = localStorage.getItem(PREVIEW_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) {
-      return null;
-    }
+    try { const raw = localStorage.getItem(PREVIEW_STORAGE_KEY); return raw ? JSON.parse(raw) : null; }
+    catch (e) { return null; }
   }
 
   function hasPreviewState() {
@@ -251,7 +280,7 @@ window.NfeImport = (function () {
         const el = $(config.valorDeclaradoId);
         if (el) { el.value = el.type === 'number' ? String(moneyNumber(patch.valorDeclaradoSugerido)) : moneyBr(patch.valorDeclaradoSugerido); el.dispatchEvent(new Event('input', { bubbles: true })); }
       }
-      clearAndFillDc(config, patch.itensDeclaracao || []);
+      clearAndFillDc(config, getItensDeclaracao(parsed, patch));
       storePreviewState(parsed, file);
       if (config.deferPreviewToSuccess) hidePreviewButton(config.previewBtnId);
       else showPreviewButton(config.previewBtnId);
