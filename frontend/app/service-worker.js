@@ -1,4 +1,4 @@
-const CACHE_NAME = 'postagens-agf-app-v32-password-toggle';
+const CACHE_NAME = 'postagens-agf-app-v36-danfe-sucesso';
 const PRECACHE_URLS = [
   './',
   './index.html',
