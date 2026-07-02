@@ -62,8 +62,10 @@ function portal_apiCurvaAbcV1_(p) {
   }
 
   var clientes = portalReadClientes_();
-  var postagens = portalReadPostagens_();
-  var payload = portalBuildCurvaPayload_(clientes, postagens);
+  var postagensData = portalReadPostagens_();
+  var payload = portalBuildCurvaPayload_(clientes, postagensData.items);
+  payload.meta.linhasPostagensIgnoradas = postagensData.ignored.length;
+  payload.ignored = postagensData.ignored.slice(0, 50);
 
   portalCachePut_(cacheKey, payload, PORTAL_CFG.CACHE.CURVA_SEC);
   return payload;
@@ -111,31 +113,49 @@ function portalReadClientes_() {
 function portalReadPostagens_() {
   var ss = SpreadsheetApp.openById(PORTAL_CFG.FILES.POSTAGENS_ID);
   var sh = ss.getSheets()[0];
-  if (!sh || sh.getLastRow() < 2) return [];
+  if (!sh || sh.getLastRow() < 2) return { items: [], ignored: [] };
 
   var values = sh.getDataRange().getValues();
   var hm = portalHeaderMap_(values[0]);
   var out = [];
+  var ignored = [];
 
   for (var i = 1; i < values.length; i++) {
     var r = values[i];
     var cliente = portalText_(portalCell_(r, hm, ['CLIENTE', 'NOME']));
+    var dataRaw = portalCell_(r, hm, ['DATA', 'DATA FORMAT', 'DATA_FORMAT']);
+    var qtdRaw = portalCell_(r, hm, ['QTD', 'QUANT', 'QUANTIDADE']);
+    var valorRaw = portalCell_(r, hm, ['VALOR', 'FATURAMENTO']);
+
     if (!cliente) continue;
 
-    var dataIso = portalDateToIso_(portalCell_(r, hm, ['DATA', 'DATA FORMAT', 'DATA_FORMAT']));
-    if (!dataIso) continue;
+    var dataIso = portalDateToIso_(dataRaw);
+    var qtd = portalNumberStrict_(qtdRaw);
+    var valor = portalNumberStrict_(valorRaw);
+
+    if (!dataIso || qtd === null || valor === null || qtd < 0 || valor < 0) {
+      ignored.push({
+        rowNumber: i + 1,
+        cliente: cliente,
+        data: portalText_(dataRaw),
+        qtd: portalText_(qtdRaw),
+        valor: portalText_(valorRaw),
+        motivo: 'DATA, QTD ou VALOR invalido'
+      });
+      continue;
+    }
 
     out.push({
       cliente: cliente,
       clienteKey: portalKey_(cliente),
       data: dataIso,
       ym: dataIso.slice(0, 7),
-      qtd: portalNumber_(portalCell_(r, hm, ['QTD', 'QUANT', 'QUANTIDADE'])),
-      valor: portalNumber_(portalCell_(r, hm, ['VALOR', 'FATURAMENTO']))
+      qtd: qtd,
+      valor: valor
     });
   }
 
-  return out;
+  return { items: out, ignored: ignored };
 }
 
 function portalBuildCurvaPayload_(clientesData, postagens) {
@@ -170,6 +190,7 @@ function portalBuildCurvaPayload_(clientesData, postagens) {
   });
 
   postagens.forEach(function(p) {
+    if (!/^\d{4}-\d{2}$/.test(p.ym)) return;
     monthsMap[p.ym] = 1;
     if (!latest || p.data > latest) latest = p.data;
 
@@ -208,7 +229,9 @@ function portalBuildCurvaPayload_(clientesData, postagens) {
     if (!row.ultimaPostagem || p.data > row.ultimaPostagem) row.ultimaPostagem = p.data;
   });
 
-  var months = Object.keys(monthsMap).sort();
+  var months = Object.keys(monthsMap).filter(function(x) {
+    return /^\d{4}-\d{2}$/.test(x);
+  }).sort();
   if (months.length > 8) months = months.slice(months.length - 8);
 
   var today = portalYmd_(new Date());
@@ -218,8 +241,8 @@ function portalBuildCurvaPayload_(clientesData, postagens) {
     r.totalValor = Math.round(r.totalValor * 100) / 100;
     r.ticketMedio = r.totalQtd > 0 ? Math.round((r.totalValor / r.totalQtd) * 100) / 100 : 0;
     if (r.ultimaPostagem) {
-      r.ultimoLabel = portalDateLabel_(r.ultimaPostagem);
       r.diasSemPostar = portalDiffDays_(today, r.ultimaPostagem);
+      r.ultimoLabel = r.diasSemPostar + 'd';
     }
     return r;
   });
@@ -233,7 +256,7 @@ function portalBuildCurvaPayload_(clientesData, postagens) {
   return {
     ok: true,
     module: 'portal-postal',
-    version: 'curva_abc_v1',
+    version: 'curva_abc_v1_2026_07_02_b',
     generatedAt: portalNow_(),
     months: months,
     rows: rows,
@@ -335,39 +358,58 @@ function portalNorm_(v) {
 }
 
 function portalNumber_(v) {
-  if (v == null || v === '') return 0;
-  if (typeof v === 'number') return isNaN(v) ? 0 : v;
+  var n = portalNumberStrict_(v);
+  return n === null ? 0 : n;
+}
+
+function portalNumberStrict_(v) {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') return isNaN(v) ? null : v;
   var s = String(v).trim();
-  if (!s) return 0;
+  if (!s) return null;
+
+  if (!/^-?\d{1,3}(\.\d{3})*(,\d+)?$/.test(s) && !/^-?\d+(\.\d+)?$/.test(s) && !/^-?\d+(,\d+)?$/.test(s)) {
+    return null;
+  }
+
   if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
-  s = s.replace(/[^0-9.-]/g, '');
   var n = Number(s);
-  return isNaN(n) ? 0 : n;
+  return isNaN(n) ? null : n;
 }
 
 function portalDateToIso_(v) {
   if (v == null || v === '') return '';
 
   if (Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v.getTime())) {
-    return portalYmd_(v);
+    return portalValidateIso_(portalYmd_(v));
   }
 
   var s = String(v).trim();
   if (!s) return '';
 
-  var iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  var iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\s|T|$)/);
   if (iso) {
-    return Utilities.formatString('%04d-%02d-%02d', Number(iso[1]), Number(iso[2]), Number(iso[3]));
+    return portalValidateIso_(Utilities.formatString('%04d-%02d-%02d', Number(iso[1]), Number(iso[2]), Number(iso[3])));
   }
 
-  var br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  var br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s|$)/);
   if (br) {
-    return Utilities.formatString('%04d-%02d-%02d', Number(br[3]), Number(br[2]), Number(br[1]));
+    return portalValidateIso_(Utilities.formatString('%04d-%02d-%02d', Number(br[3]), Number(br[2]), Number(br[1])));
   }
 
-  var d = new Date(s);
-  if (!isNaN(d.getTime())) return portalYmd_(d);
   return '';
+}
+
+function portalValidateIso_(iso) {
+  var m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '';
+  var y = Number(m[1]);
+  var mo = Number(m[2]);
+  var d = Number(m[3]);
+  if (y < 2020 || y > 2035 || mo < 1 || mo > 12 || d < 1 || d > 31) return '';
+  var dt = new Date(y, mo - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return '';
+  return iso;
 }
 
 function portalYmd_(d) {
