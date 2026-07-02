@@ -1,8 +1,8 @@
 /* =====================================================
-   APP ETIQUETAS — Screen: sucesso
+   APP ETIQUETAS - Screen: sucesso
    =====================================================
-   Mostra o resultado após gerar etiqueta:
-     - Código de rastreio (BR...BR)
+   Mostra o resultado apos gerar etiqueta:
+     - Codigo de rastreio (BR...BR)
      - Preview do PDF (iframe com data-uri base64)
      - Imprimir (window.print do iframe)
      - Baixar PDF
@@ -22,11 +22,9 @@ Screens.sucesso = (function () {
     const codigoEl = $('successCodigo');
     if (codigoEl) codigoEl.textContent = '—';
 
-    // Esconde preview e troca ações
     const iframe = $('pdfPreview');
     if (iframe) iframe.src = 'about:blank';
 
-    // Mensagem de estado vazio
     const card = document.querySelector('.success-card');
     if (card) {
       const h = card.querySelector('.success-title');
@@ -35,7 +33,6 @@ Screens.sucesso = (function () {
       if (p) p.textContent = 'Gere uma nova etiqueta ou consulte o histórico.';
     }
 
-    // Remove preview vazio
     const prev = document.querySelector('.success-preview');
     if (prev) prev.style.display = 'none';
 
@@ -181,6 +178,30 @@ Screens.sucesso = (function () {
     }
   }
 
+  function renderDanfeAction_(data) {
+    const old = document.getElementById('btnAbrirDanfe10x15');
+    if (old) old.remove();
+
+    const tipoDocumento = String(data && data.tipoDocumento || '').toUpperCase();
+    if (tipoDocumento !== 'NF') return;
+    if (!window.NfeImport || !NfeImport.hasPreviewState || !NfeImport.hasPreviewState()) return;
+
+    const btnImp = $('btnImprimir');
+    if (!btnImp || !btnImp.parentElement) return;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-ghost btn-block';
+    btn.id = 'btnAbrirDanfe10x15';
+    btn.innerHTML = '<span class="material-symbols-rounded">fact_check</span>Abrir DANFE 10×15';
+    btn.addEventListener('click', () => {
+      if (window.NfeImport && NfeImport.openPreview) NfeImport.openPreview();
+      else window.open('/danfe-simplificado/?portal=app', '_blank');
+    });
+
+    btnImp.insertAdjacentElement('afterend', btn);
+  }
+
   function mount() {
     const data = Router.getSuccessData();
     const mainPdfUrl = getShareUrl(data);
@@ -190,10 +211,8 @@ Screens.sucesso = (function () {
       return;
     }
 
-    // Código de rastreio
     $('successCodigo').textContent = data.codigoObjeto || data.idPrePostagem || '—';
 
-    // Preview do PDF: usa Blob URL quando há base64. Se vier só link do Drive, mostra estado de link.
     const iframe = $('pdfPreview');
     const preview = document.querySelector('.success-preview');
     const card = document.querySelector('.success-card');
@@ -211,7 +230,6 @@ Screens.sucesso = (function () {
       }
     }
 
-    // Botões
     const btnImp = $('btnImprimir');
     const btnDl  = $('btnBaixar');
     const btnWa  = $('btnWhatsapp');
@@ -257,20 +275,16 @@ Screens.sucesso = (function () {
       }, 'a etiqueta de postagem');
     }
 
-    // Se for DC e veio a declaração, mantém os botões individuais como fallback
-    // e prepara também o PDF completo (etiqueta + DACE) para impressão em um clique.
+    renderDanfeAction_(data);
     renderDeclaracao(data);
     enhanceCombinedPdf_(data);
 
-    // No fluxo com NF-e não existe DACE: a NF substitui a DC-e.
-    // Explicita isso na tela para que o PDF de 1 página não pareça incompleto.
     const tipoDocumento = String(data.tipoDocumento || '').toUpperCase();
     if (tipoDocumento === 'NF' && !data.declaracao) {
       const subtitle = document.querySelector('.success-card .success-sub');
       if (subtitle) subtitle.textContent = 'Etiqueta pronta. Esta postagem utiliza NF-e e, por isso, não possui DACE.';
     }
 
-    // Se a declaração falhou mas o rótulo foi OK, avisa o usuário
     if (data.declaracaoErro) {
       const nomeDoc = (String(data.tipoDocumento || '').toUpperCase() === 'DC') ? 'DACE / DC-e' : 'documento da remessa';
       UI.toast('Atenção: rótulo OK, mas falhou ao gerar ' + nomeDoc + ': ' +
@@ -281,7 +295,6 @@ Screens.sucesso = (function () {
   }
 
   function renderDeclaracao(data) {
-    // Remove seção antiga se existir (re-render)
     const existente = document.getElementById('dcSection');
     if (existente) existente.remove();
 
@@ -324,7 +337,6 @@ Screens.sucesso = (function () {
         '<iframe id="pdfPreviewDC" title="Preview da declaração"></iframe>' +
       '</div>';
 
-    // Insere antes do preview do rótulo se existir, senão no fim
     const previewRotulo = card.querySelector('.success-preview');
     if (previewRotulo) {
       card.insertBefore(section, previewRotulo);
@@ -332,7 +344,6 @@ Screens.sucesso = (function () {
       card.appendChild(section);
     }
 
-    // Preenche iframe e bind dos botões
     const iframeDc = document.getElementById('pdfPreviewDC');
     if (iframeDc) UI.setIframeBase64Pdf(iframeDc, data.declaracao.pdfBase64);
 
