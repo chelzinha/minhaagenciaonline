@@ -1,6 +1,6 @@
 /* =====================================================
-   AGF — Importador de NF-e em PDF + prévia DANFE 10x15
-   O PDF alimenta a postagem; a prévia fiscal permanece em modo de teste.
+   AGF - Importador de NF-e em PDF + previa DANFE 10x15
+   O PDF alimenta a postagem; a previa fiscal permanece em modo de teste.
    ===================================================== */
 window.NfeImport = (function () {
   const $ = id => document.getElementById(id);
@@ -126,7 +126,6 @@ window.NfeImport = (function () {
     try {
       await Api.salvarDestinatario(Object.assign({}, patch, { origemCadastro: 'NFE_IMPORT' }));
     } catch (e) {
-      // Cadastro de destinatário é auxiliar e não deve bloquear a importação da NF-e.
       try { console.warn('Cadastro automático do destinatário importado não concluído:', e && e.message ? e.message : e); } catch (ignore) {}
     }
   }
@@ -202,12 +201,39 @@ window.NfeImport = (function () {
     } catch (e) {}
   }
 
+  function getPreviewState() {
+    try {
+      const raw = localStorage.getItem(PREVIEW_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function hasPreviewState() {
+    const st = getPreviewState();
+    return !!(st && st.parsed);
+  }
+
+  function clearPreviewState() {
+    try { localStorage.removeItem(PREVIEW_STORAGE_KEY); } catch (e) {}
+  }
+
+  function openPreview() {
+    window.open('/danfe-simplificado/?portal=app', '_blank');
+  }
+
+  function hidePreviewButton(id) {
+    const btn = $(id);
+    if (btn) btn.hidden = true;
+  }
+
   function showPreviewButton(id) {
     const btn = $(id); if (!btn) return;
     btn.hidden = false;
     if (!btn._danfeBound) {
       btn._danfeBound = true;
-      btn.addEventListener('click', () => window.open('/danfe-simplificado/?portal=app', '_blank'));
+      btn.addEventListener('click', openPreview);
     }
   }
 
@@ -226,7 +252,9 @@ window.NfeImport = (function () {
         if (el) { el.value = el.type === 'number' ? String(moneyNumber(patch.valorDeclaradoSugerido)) : moneyBr(patch.valorDeclaradoSugerido); el.dispatchEvent(new Event('input', { bubbles: true })); }
       }
       clearAndFillDc(config, patch.itensDeclaracao || []);
-      storePreviewState(parsed, file); showPreviewButton(config.previewBtnId);
+      storePreviewState(parsed, file);
+      if (config.deferPreviewToSuccess) hidePreviewButton(config.previewBtnId);
+      else showPreviewButton(config.previewBtnId);
       setStatus(config.statusId, 'NF-e importada com sucesso! Revise os dados preenchidos antes de gerar a etiqueta. ' + buildSummary(parsed), 'success');
       if (window.UI && UI.toast) UI.toast('NF-e importada. Revise os dados antes de continuar.', 'success');
       return parsed;
@@ -252,12 +280,12 @@ window.NfeImport = (function () {
     const btn = $('btnNfeImportEtq'); if (!btn || btn._nfeBound) return;
     btn._nfeBound = true;
     btn.addEventListener('click', () => handleImport({
-      portal:'app', fileId:'nfePdfEtq', statusId:'nfeStatusEtq', previewBtnId:'btnNfeDanfePreviewEtq', tipoRadioName:'etqTipoDocumento',
+      portal:'app', fileId:'nfePdfEtq', statusId:'nfeStatusEtq', previewBtnId:'btnNfeDanfePreviewEtq', tipoRadioName:'etqTipoDocumento', deferPreviewToSuccess:true,
       valorDeclaradoId:'etqValorDeclarado', dcListId:'etqDcLista', dcTotalId:'etqDcTotal',
       destIds:{nome:'etqDestNome',doc:'etqDestCpfCnpj',celular:'etqDestCelular',email:'etqDestEmail',cep:'etqDestCep',endereco:'etqDestEndereco',numero:'etqDestNumero',complemento:'etqDestComplemento',bairro:'etqDestBairro',cidade:'etqDestCidade',uf:'etqDestUf'},
       nfIds:{numero:'etqNfNumero',serie:'etqNfSerie',valor:'etqNfValor',chave:'etqNfChave'}
     }));
   }
 
-  return { attachAppNova, attachAppEtiqueta, _callNfeParser: callNfeParser };
+  return { attachAppNova, attachAppEtiqueta, _callNfeParser: callNfeParser, hasPreviewState, clearPreviewState, openPreview };
 })();
