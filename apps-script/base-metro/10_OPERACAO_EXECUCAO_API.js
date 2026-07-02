@@ -9,6 +9,9 @@ function op_doGet(e) {
   try {
     var p = (e && e.parameter) ? e.parameter : {};
     var action = op_norm_(p.action || 'init_operacao');
+    if (action.indexOf('portal_') === 0) {
+      return op_jsonOut_(portal_doGet_(p));
+    }
     if (action === 'init_operacao') {
       return op_jsonOut_(op_apiInit_(p));
     }

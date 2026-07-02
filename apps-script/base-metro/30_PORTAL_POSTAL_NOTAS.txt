@@ -1,0 +1,7 @@
+Notas do Portal Postal
+
+Backend criado em apps-script/base-metro/30_PORTAL_POSTAL_API.js.
+
+A rota esperada pelo frontend e portal_curva_abc_v1.
+
+Para ativar no Apps Script, o roteador principal precisa encaminhar chamadas que comecem com portal_ para portal_doGet_.
