@@ -128,7 +128,76 @@ function applyPermissions(){const indicators=can('canViewIndicators');['prospect
 function stat(label,value,sub='',icon='insights',tone='blue'){return`<article class="stat-card tone-${esc(tone)}"><span class="stat-icon material-symbols-rounded">${esc(icon)}</span><div><em>${esc(label)}</em><strong>${esc(value)}</strong><small>${esc(sub)}</small></div></article>`;}
 function metricRows(obj,colorFor=()=>null){const entries=Object.entries(obj||{}).sort((a,b)=>b[1]-a[1]),max=Math.max(1,...entries.map(x=>x[1]));return entries.length?entries.map(([k,v])=>`<div class="metric-row"><span>${esc(k||'Sem classificação')}</span><strong>${esc(v)}</strong><div class="metric-bar"><i style="width:${Math.round((v/max)*100)}%;--metric-color:${esc(colorFor(k)||'#006EA6')}"></i></div></div>`).join(''):'<div class="empty-state">Nenhum registro para exibir.</div>';}
 function upcoming(items,limit=7){return(items||[]).filter(x=>text(x.statusAtividade).toUpperCase()==='PLANEJADO').sort((a,b)=>`${a.dataProgramada}|${a.horaProgramada}`.localeCompare(`${b.dataProgramada}|${b.horaProgramada}`)).slice(0,limit);}
-function renderHome(){const d=state.dashboard||{atividades:{},tratativas:{}},baseA=d.atividades||{},baseT=d.tratativas||{},hasContext=Boolean(state.filters.contextLocal||state.filters.contextCurve),visibleAgenda=(state.agenda.items||[]).filter(activityMatchesContext),visibleOverdue=(state.overdue||[]).filter(activityMatchesContext),visibleTreatments=filterContextItems(state.journeyClients.items,'CLIENTE');let a=baseA,t=baseT;if(hasContext){const concluded=visibleAgenda.filter(x=>text(x.statusAtividade).toUpperCase()==='CONCLUIDO').length,total=visibleAgenda.length;a={total,concluidas:concluded,vencidas:visibleOverdue.length,taxaExecucao:total?Math.round(concluded/total*100):0};t={abertas:visibleTreatments.filter(x=>!['CONCLUIDA','ARQUIVADA'].includes(text(x.statusTratativa).toUpperCase())).length,pausadas:visibleTreatments.filter(x=>text(x.statusTratativa).toUpperCase()==='PAUSADA').length};}$('#homeStats').innerHTML=can('canViewIndicators')?[stat('Atividades da semana',a.total||0,'Todos os tipos','calendar_month','blue'),stat('Concluídas',a.concluidas||0,`${a.taxaExecucao||0}% de execução`,'task_alt','green'),stat('Pendências vencidas',a.vencidas||0,'Exigem atenção','warning','amber'),stat('Tratativas abertas',t.abertas||0,`${t.pausadas||0} pausadas`,'hub','purple')].join(''):[stat('Minha agenda',a.total||0,'Atividades da semana','calendar_month','blue'),stat('Concluídas',a.concluidas||0,'Atividades encerradas','task_alt','green')].join('');const list=upcoming(visibleAgenda,7);$('#homeNextActivities').innerHTML=list.length?list.map(activityListItem).join(''):'<div class="empty-state">Nenhuma atividade planejada neste período.</div>';const rec={};visibleTreatments.forEach(x=>{const k=text(x.recomendacao)||'Sem recomendação';rec[k]=(rec[k]||0)+1;});$('#homeRecommendations').innerHTML=metricRows(rec,k=>ACTION_COLORS[text(k).toUpperCase()]);wireAgendaCards();}
+/* ── HOME EXECUTIVA (Etapa 8): grandes números e gráficos com dado real ──
+   Regra do projeto: nada fabricado. Sem tendência (não há histórico no front),
+   sem metas (não existem cadastradas). Perfis sem canViewIndicators veem versão reduzida. */
+function homeDonutChart(map,colorFn){
+  const entries=Object.entries(map).filter(([,n])=>n>0),total=entries.reduce((s,[,n])=>s+n,0);
+  if(!total)return'<div class="empty-state">Sem dados no período.</div>';
+  let acc=0;const stops=entries.map(([k,n])=>{const from=acc/total*100;acc+=n;const to=acc/total*100;return`${colorFn(k)} ${from}% ${to}%`;});
+  const legend=entries.map(([k,n])=>`<li><i style="background:${colorFn(k)}"></i><span>${esc(k)}</span><b class="num">${n}</b><small>${Math.round(n/total*100)}%</small></li>`).join('');
+  return`<div class="donut-flex"><div class="donut" style="background:conic-gradient(${stops.join(',')})"><div class="donut-hole"><strong class="num">${total}</strong><span>clientes</span></div></div><ul class="donut-legend">${legend}</ul></div>`;
+}
+function homeHBars(map,color){
+  const entries=Object.entries(map).sort((a,b)=>b[1]-a[1]),max=Math.max(1,...entries.map(([,n])=>n));
+  if(!entries.length)return'<div class="empty-state">Sem dados no período.</div>';
+  return`<div class="hbars">${entries.map(([k,n])=>`<div class="hbar-row"><span class="hbar-label">${esc(k)}</span><div class="hbar-track"><div class="hbar-fill" style="width:${Math.max(3,Math.round(n/max*100))}%;background:${color}"></div></div><b class="num">${n}</b></div>`).join('')}</div>`;
+}
+function homeStackBar(segs,total){
+  const live=segs.filter(x=>x.n>0);
+  if(!total||!live.length)return'<div class="empty-state">Sem prospects no funil.</div>';
+  const bar=live.map(x=>`<i title="${esc(x.name)}: ${x.n}" style="flex:${x.n} ${x.n} 0;background:${x.color}"></i>`).join('');
+  const legend=segs.map(x=>`<li><i style="background:${x.color}"></i><span>${esc(x.name)}</span><b class="num">${x.n}</b></li>`).join('');
+  return`<div class="stackbar">${bar}</div><ul class="stack-legend">${legend}</ul>`;
+}
+function homeTeamBars(map){
+  const entries=Object.entries(map).sort((a,b)=>b[1].p-a[1].p);
+  if(!entries.length)return'<div class="empty-state">Sem atividades no período.</div>';
+  const max=Math.max(1,...entries.map(([,v])=>v.p));
+  return`<div class="team-bars">${entries.map(([k,v])=>{const pct=v.p?Math.round(v.c/v.p*100):0;return`<div class="team-row"><div class="team-top"><span>${esc(k)}</span><b class="num">${v.c}<small>/${v.p}</small></b></div><div class="team-track" style="width:${Math.max(6,Math.round(v.p/max*100))}%"><div class="team-fill" style="width:${pct}%"></div></div></div>`;}).join('')}</div>`;
+}
+function renderHome(){
+  const heroHost=$('#homeHero');if(!heroHost)return;
+  const visibleAgenda=(state.agenda.items||[]).filter(activityMatchesContext),
+        visibleOverdue=(state.overdue||[]).filter(activityMatchesContext),
+        visibleTreatments=filterContextItems(state.journeyClients.items,'CLIENTE'),
+        clients=(state.clients||[]).filter(x=>matchesContext(x,'CLIENTE')),
+        prospects=visibleProspectItems(),
+        isDone=x=>text(x.statusAtividade).toUpperCase().indexOf('CONCLU')===0,
+        concl=visibleAgenda.filter(isDone).length,
+        planned=visibleAgenda.length,
+        exec=planned?Math.round(concl/planned*100):0,
+        hojeN=visibleAgenda.filter(x=>text(x.dataProgramada)===today()).length,
+        carteira=clients.length,
+        v30=clients.reduce((sum,x)=>sum+num(x.valor30d),0),
+        resg=clients.filter(x=>text(x.recomendacao).toUpperCase()==='RESGATAR').length,
+        conv=prospects.length?Math.round(prospects.filter(isConvertedProspect).length/prospects.length*1000)/10:0,
+        full=can('canViewIndicators');
+  const hero=(l,v,cap,icon,solid,soft)=>`<article class="hero-card" style="--hero-solid:${solid};--hero-soft:${soft}"><span class="hero-ico material-symbols-rounded">${icon}</span><strong class="num">${v}</strong><em>${esc(l)}</em>${cap?`<small>${esc(cap)}</small>`:''}</article>`;
+  heroHost.innerHTML=full?[
+    hero('Carteira ativa',carteira,'clientes na base','group','#0E7BC0','#E2EFF7'),
+    hero('Carteira 30D',fmtMoney(v30),'soma dos últimos 30 dias','payments','var(--green)','var(--green-soft)'),
+    hero('Prospects ativos',prospects.length,String(conv).replace('.',',')+'% de conversão','person_search','#7C3AED','#F1EAFE'),
+    hero('Atividades da semana',planned,exec+'% concluídas pela equipe','event_available','var(--navy)','#E8EDF5'),
+    hero('Em Resgatar',resg,'clientes sinalizados pelo motor','priority_high','var(--amber)','var(--amber-soft)')
+  ].join(''):[
+    hero('Minha agenda',planned,'atividades na semana','calendar_month','#0E7BC0','#E2EFF7'),
+    hero('Concluídas',concl,exec+'% de execução','task_alt','var(--green)','var(--green-soft)')
+  ].join('');
+  const chartsWrap=document.querySelector('.home-charts'),strip=$('#homeStrip');
+  if(chartsWrap)chartsWrap.style.display=full?'':'none';
+  if(!full){if(strip)strip.innerHTML='';return;}
+  const rec={};visibleTreatments.forEach(x=>{const k=text(x.recomendacao)||'Sem recomendação';rec[k]=(rec[k]||0)+1;});
+  $('#homeDonut').innerHTML=homeDonutChart(rec,k=>ACTION_COLORS[text(k).toUpperCase()]||'#94A3B8');
+  const cur={};clients.forEach(x=>{const k=text(x.curva)||'Sem curva';cur[k]=(cur[k]||0)+1;});
+  $('#homeCurves').innerHTML=homeHBars(cur,'var(--blue)');
+  const cols=state.journeyProspects.columns||[],colorOf=stageColors(state.journeyProspects);
+  const segs=cols.map(c=>{const name=text(c.nome||c.etapaId);return{name,n:prospects.filter(x=>text(x.etapaId)===text(c.etapaId)).length,color:colorOf[name]||'#94A3B8'};});
+  $('#homeFunnel').innerHTML=homeStackBar(segs,prospects.length);
+  const team={};visibleAgenda.forEach(x=>{const k=text(x.responsavelNome)||'Sem responsável';team[k]=team[k]||{p:0,c:0};team[k].p++;if(isDone(x))team[k].c++;});
+  $('#homeTeam').innerHTML=homeTeamBars(team);
+  if(strip)strip.innerHTML=[['today','Hoje',hojeN],['date_range','Semana',planned],['task_alt','Concluídas',concl],['warning','Vencidas',visibleOverdue.length]].map(([ic,l,v])=>`<div class="strip-item"><span class="material-symbols-rounded">${ic}</span><b class="num">${v}</b><em>${l}</em></div>`).join('');
+}
 function activityListItem(x){return`<button type="button" class="list-item agenda-open" data-agenda-id="${esc(x.agendaId)}"><span class="activity-icon material-symbols-rounded" style="--activity-color:${esc(x.cor||'#006EA6')}">${esc(activityIcon(x))}</span><span class="list-content"><strong>${esc(x.cliente||'Atividade')}</strong><p>${esc(x.tipoAtividadeNome||x.tipoAtividadeId||'Atividade')} · ${fmtDate(x.dataProgramada)} ${esc(fmtTime(x.horaProgramada))}</p></span><span class="chip">${esc(x.responsavelNome||'Sem responsável')}</span></button>`;}
 function journeyStageMetrics(journey,items){const out={};(journey.columns||[]).forEach(c=>out[c.nome||c.etapaId]=0);(items||journey.items||[]).forEach(x=>{const col=(journey.columns||[]).find(c=>text(c.etapaId)===text(x.etapaId)),key=col?(col.nome||col.etapaId):(text(x.etapaId)||'Sem etapa');out[key]=(out[key]||0)+1;});return out;}
 function renderProspectFunnel(items){const host=$('#prospectsStageMetrics');if(!host)return;const cols=state.journeyProspects.columns||[],colorOf=stageColors(state.journeyProspects),counts=cols.map(c=>{const name=text(c.nome||c.etapaId);return{name,n:items.filter(x=>text(x.etapaId)===text(c.etapaId)).length,color:colorOf[name]||'#94A3B8'};});if(!counts.length){host.innerHTML='<div class="empty-state">Sem etapas configuradas.</div>';return;}const max=Math.max(1,...counts.map(s=>s.n));let html='';counts.forEach((s,i)=>{const w=Math.max(4,Math.round(s.n/max*100));html+=`<div class="funnel-row"><div class="funnel-label-row"><span class="name"><span class="material-symbols-rounded" style="font-size:11px;color:${s.color};vertical-align:-1px;margin-right:5px">circle</span>${esc(s.name)}</span><span class="count">${esc(s.n)}</span></div><div class="funnel-track"><div class="funnel-fill" style="width:${w}%;background:${s.color}"></div></div></div>`;if(i<counts.length-1){const nx=counts[i+1],pct=s.n?Math.round(nx.n/s.n*100):0,last=i===counts.length-2;html+=`<div class="funnel-connector"><span class="material-symbols-rounded" style="font-size:13px">south</span><b>${pct}%</b> ${last?'convertem':'avançam para '+esc(nx.name)}</div>`;}});host.innerHTML=html;}

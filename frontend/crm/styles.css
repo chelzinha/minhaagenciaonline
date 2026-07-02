@@ -1101,3 +1101,79 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
   .rail-period{margin-left:0}
   .board-toolbar .search-field{flex:1 1 100%}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ETAPA 8 — HOME EXECUTIVA: grandes números + gráficos (dado real).
+   Visual próprio, sem replicar os dashboards de Prospects/Clientes.
+   Não toca topbar.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Números-herói */
+.home-hero{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.hero-card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:16px 16px 14px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.hero-card::after{content:"";position:absolute;left:14px;right:14px;top:0;height:3px;border-radius:0 0 4px 4px;background:var(--hero-solid,#0E7BC0)}
+.hero-ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:19px;background:var(--hero-soft,#E2EFF7);color:var(--hero-solid,#0E7BC0);margin-bottom:8px}
+.hero-card strong{font-family:Manrope,sans-serif;font-weight:800;font-size:27px;line-height:1.02;color:var(--text);letter-spacing:-.01em;word-break:break-word}
+.hero-card em{font-style:normal;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+.hero-card small{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* Grade de gráficos */
+.home-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.chart-card{min-width:0}
+
+/* Donut (conic-gradient, proporções reais) */
+.donut-flex{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.donut{width:150px;height:150px;border-radius:50%;position:relative;flex:0 0 auto}
+.donut-hole{position:absolute;inset:26px;background:var(--surface);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.donut-hole strong{font-family:Manrope,sans-serif;font-weight:800;font-size:24px;line-height:1}
+.donut-hole span{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.donut-legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;flex:1 1 180px;min-width:0}
+.donut-legend li{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text)}
+.donut-legend i,.stack-legend i{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+.donut-legend span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.donut-legend b{font-family:Manrope,sans-serif;font-weight:800}
+.donut-legend small{color:var(--muted);width:34px;text-align:right}
+
+/* Barras horizontais (curvas) */
+.hbars{display:flex;flex-direction:column;gap:9px}
+.hbar-row{display:grid;grid-template-columns:88px 1fr 34px;align-items:center;gap:10px}
+.hbar-label{font-size:12px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbar-track{height:16px;background:#EDF1F5;border-radius:6px;overflow:hidden}
+.hbar-fill{height:100%;border-radius:6px}
+.hbar-row b{font-family:Manrope,sans-serif;font-weight:800;font-size:13px;text-align:right}
+
+/* Barra empilhada do funil */
+.stackbar{display:flex;height:26px;border-radius:9px;overflow:hidden;gap:2px;margin-bottom:12px}
+.stackbar i{display:block;min-width:6px}
+.stack-legend{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 12px}
+.stack-legend li{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text)}
+.stack-legend span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stack-legend b{font-family:Manrope,sans-serif;font-weight:800}
+
+/* Equipe na semana */
+.team-bars{display:flex;flex-direction:column;gap:11px}
+.team-row{display:flex;flex-direction:column;gap:4px}
+.team-top{display:flex;align-items:baseline;justify-content:space-between;font-size:12.5px;font-weight:700;color:var(--text)}
+.team-top b{font-family:Manrope,sans-serif;font-weight:800;font-size:14px}
+.team-top b small{color:var(--muted);font-weight:700}
+.team-track{height:12px;background:#EDF1F5;border-radius:6px;overflow:hidden;min-width:36px}
+.team-fill{height:100%;border-radius:6px;background:var(--green)}
+
+/* Faixa de atividades (só números) */
+.home-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:12px 14px}
+.strip-item{display:flex;align-items:center;gap:9px;min-width:0}
+.strip-item .material-symbols-rounded{font-size:19px;color:var(--muted)}
+.strip-item b{font-family:Manrope,sans-serif;font-weight:800;font-size:19px}
+.strip-item em{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+
+/* Responsivo */
+@media(max-width:1100px){.home-hero{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:900px){.home-charts{grid-template-columns:1fr}}
+@media(max-width:620px){
+  .home-hero{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .hero-card{padding:13px 13px 12px}
+  .hero-card strong{font-size:22px}
+  .home-strip{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .donut{width:132px;height:132px}
+  .donut-hole{inset:23px}
+}
