@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#1B3358">
+  <title>Portal Postal - AGF José Bonifácio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f4f6f9;
+      --surface:#ffffff;
+      --surface-2:#eef4fb;
+      --line:#dce3ec;
+      --line-2:#c9d4e3;
+      --navy:#1b3358;
+      --navy-2:#12243f;
+      --blue:#2f6fdb;
+      --text:#182b3d;
+      --muted:#64748b;
+      --green:#168a5b;
+      --green-soft:#dff6e9;
+      --red:#c43d32;
+      --red-soft:#fde7e5;
+      --yellow:#f4b400;
+      --yellow-soft:#fff3cf;
+      --purple:#7c3aed;
+      --purple-soft:#f0e7ff;
+      --shadow:0 1px 2px rgba(20,32,48,.05),0 10px 24px -18px rgba(20,32,48,.22);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+    button,input,select{font:inherit}
+    .portal-shell{min-height:100vh;display:flex;flex-direction:column}
+    .topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+    .topbar-inner{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 18px;max-width:1800px;margin:0 auto}
+    .brand{display:flex;align-items:center;gap:10px;min-width:0;color:inherit;text-decoration:none}
+    .brand-icon{width:38px;height:38px;border-radius:14px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow)}
+    .brand-icon .material-symbols-rounded{font-size:22px}
+    .brand strong{display:block;font-size:15px;letter-spacing:-.02em;color:var(--navy)}
+    .brand small{display:block;margin-top:1px;font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--muted)}
+    .top-actions{display:flex;align-items:center;gap:8px}
+    .icon-btn{width:36px;height:36px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--navy);display:flex;align-items:center;justify-content:center;cursor:pointer}
+    .icon-btn:hover{background:var(--surface-2);border-color:var(--line-2)}
+    .main{width:100%;max-width:1800px;margin:0 auto;padding:14px 16px 24px;flex:1}
+    .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .eyebrow{margin:0 0 3px;font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+    h1{margin:0;color:var(--navy);font-size:24px;letter-spacing:-.04em}
+    .subtitle{margin:4px 0 0;color:var(--muted);font-size:13px;font-weight:600}
+    .tabs-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+    .tabs{display:flex;gap:4px;padding:4px;background:#e9eef6;border-radius:999px;overflow-x:auto;scrollbar-width:none}
+    .tabs::-webkit-scrollbar{display:none}
+    .tab{border:0;background:transparent;color:var(--muted);border-radius:999px;padding:10px 14px;font-size:13px;font-weight:800;display:flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer}
+    .tab .material-symbols-rounded{font-size:18px}
+    .tab.active{background:var(--navy);color:#fff;box-shadow:0 3px 10px rgba(27,51,88,.18)}
+    .status{display:none;margin-bottom:12px;padding:10px 12px;border-radius:14px;font-size:13px;font-weight:700;border:1px solid var(--line)}
+    .status.show{display:block}
+    .status.loading{background:#eef6ff;color:var(--navy)}
+    .status.error{background:var(--red-soft);color:#8f251d;border-color:#f2c4bf}
+    .status.ok{background:var(--green-soft);color:#11633f;border-color:#bee9d0}
+    .view{display:none}
+    .view.active{display:block}
+    .filters{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:12px;box-shadow:var(--shadow)}
+    .filters-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+    .field{display:flex;flex-direction:column;gap:4px;min-width:0}
+    .field label{font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:900;color:var(--muted)}
+    .field input,.field select{height:38px;border:1px solid var(--line);border-radius:13px;background:var(--surface-2);color:var(--text);padding:0 10px;font-size:13px;font-weight:700;outline:none;width:100%}
+    .field input:focus,.field select:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,51,88,.08)}
+    .field.search{grid-column:span 2}
+    .stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:12px}
+    .kpi{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);overflow:hidden}
+    .kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--blue)}
+    .kpi.green:before{background:var(--green)}
+    .kpi.red:before{background:var(--red)}
+    .kpi.yellow:before{background:var(--yellow)}
+    .kpi.purple:before{background:var(--purple)}
+    .kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:900;color:var(--muted);margin-bottom:5px}
+    .kpi-value{font-size:24px;font-weight:900;letter-spacing:-.04em;color:var(--navy);line-height:1.05}
+    .kpi-note{margin-top:4px;font-size:11px;font-weight:700;color:var(--muted)}
+    .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+    .panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+    .panel-title{display:flex;align-items:center;gap:8px;color:var(--navy);font-weight:900;font-size:14px}
+    .panel-title .material-symbols-rounded{font-size:20px;color:var(--blue)}
+    .panel-sub{font-size:11px;color:var(--muted);font-weight:700}
+    .table-wrap{overflow:auto;max-height:calc(100vh - 320px)}
+    table{width:100%;border-collapse:collapse;background:#fff;font-size:12px;min-width:1120px}
+    th,td{padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left;vertical-align:middle}
+    th{position:sticky;top:0;z-index:4;background:#eef4fb;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:900;cursor:pointer;user-select:none}
+    th:first-child,td:first-child{position:sticky;left:0;z-index:3;background:#fff;max-width:310px;min-width:260px}
+    th:first-child{z-index:5;background:#eef4fb}
+    .client-name{font-weight:900;color:#23364a;display:block;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .client-sub{font-size:10px;color:var(--muted);font-weight:700;margin-top:2px}
+    .num{text-align:right;font-variant-numeric:tabular-nums}
+    .month-cell{text-align:center;font-weight:900;color:var(--navy);background:#eef6ff}
+    .month-cell.up{background:#dff6e9;color:#11633f}
+    .month-cell.down{background:#fde7e5;color:#9b2b23}
+    .month-cell.empty{background:#fafafa;color:#b6c0cc;font-weight:700}
+    .delta{font-size:10px;font-weight:900;margin-left:3px}
+    .delta.up{color:#11633f}
+    .delta.down{color:#9b2b23}
+    .badge{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:900;white-space:nowrap}
+    .badge.top{background:var(--purple-soft);color:#5b21b6}
+    .badge.a{background:var(--green-soft);color:#11633f}
+    .badge.b{background:var(--yellow-soft);color:#8a6100}
+    .badge.c{background:#eef2f7;color:#475569}
+    .badge.com{background:var(--green-soft);color:#11633f}
+    .badge.sem{background:var(--red-soft);color:#9b2b23}
+    .placeholder{background:var(--surface);border:1px dashed var(--line-2);border-radius:var(--radius);padding:24px;text-align:center;color:var(--muted);font-weight:700}
+    .placeholder .material-symbols-rounded{display:block;margin:0 auto 8px;font-size:34px;color:var(--blue)}
+    .footer-note{margin-top:10px;color:var(--muted);font-size:11px;font-weight:700;text-align:center}
+    @media(max-width:1100px){.filters-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.field.search{grid-column:span 3}}
+    @media(max-width:720px){.topbar-inner{padding:10px 12px}.main{padding:12px}.page-head{align-items:flex-start;flex-direction:column}.tabs-bar{align-items:flex-start;flex-direction:column}.filters-grid{grid-template-columns:1fr 1fr}.field.search{grid-column:1/-1}.stats{grid-template-columns:1fr 1fr}h1{font-size:21px}.kpi-value{font-size:20px}}
+    @media(max-width:460px){.filters-grid,.stats{grid-template-columns:1fr}.brand small{display:none}}
+  </style>
+</head>
+<body>
+  <div class="portal-shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="/agf/" aria-label="Voltar ao Portal AGF">
+          <span class="brand-icon"><span class="material-symbols-rounded">local_shipping</span></span>
+          <span><strong>Portal Postal</strong><small>AGF JOSÉ BONIFÁCIO</small></span>
+        </a>
+        <div class="top-actions">
+          <button class="icon-btn" id="refreshBtn" type="button" title="Atualizar"><span class="material-symbols-rounded">refresh</span></button>
+          <a class="icon-btn" href="/crm/" title="Abrir CRM"><span class="material-symbols-rounded">badge</span></a>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Carteira Portal Postal</p>
+          <h1>Análise mensal de postagens</h1>
+          <p class="subtitle">Painel de teste para acompanhar clientes, curva e evolução mês a mês.</p>
+        </div>
+      </div>
+
+      <div class="tabs-bar">
+        <nav class="tabs" aria-label="Navegação do Portal Postal">
+          <button class="tab" data-view="dashboard" type="button"><span class="material-symbols-rounded">dashboard</span>Dashboard</button>
+          <button class="tab active" data-view="curva" type="button"><span class="material-symbols-rounded">table_chart</span>Curva ABC</button>
+          <button class="tab" data-view="agenda" type="button"><span class="material-symbols-rounded">calendar_month</span>Agenda</button>
+          <button class="tab" data-view="funil" type="button"><span class="material-symbols-rounded">view_kanban</span>Funil</button>
+        </nav>
+      </div>
+
+      <div id="statusBox" class="status loading show">Carregando dados do Portal Postal...</div>
+
+      <section class="view" data-view-panel="dashboard">
+        <div class="placeholder">
+          <span class="material-symbols-rounded">dashboard_customize</span>
+          Dashboard reservado para a próxima fase. Nesta etapa, o foco é validar a Curva ABC.
+        </div>
+      </section>
+
+      <section class="view active" data-view-panel="curva">
+        <section class="filters" aria-label="Filtros da Curva ABC">
+          <div class="filters-grid">
+            <div class="field search">
+              <label for="qFilter">Buscar cliente</label>
+              <input id="qFilter" type="search" placeholder="Digite o nome do cliente">
+            </div>
+            <div class="field">
+              <label for="comFilter">COM/SEM</label>
+              <select id="comFilter"><option value="">Todos</option></select>
+            </div>
+            <div class="field">
+              <label for="tipoFilter">Tipo contrato</label>
+              <select id="tipoFilter"><option value="">Todos</option></select>
+            </div>
+            <div class="field">
+              <label for="cwsFilter">CWS</label>
+              <select id="cwsFilter"><option value="">Todos</option></select>
+            </div>
+            <div class="field">
+              <label for="curvaFilter">Curva</label>
+              <select id="curvaFilter"><option value="">Todas</option></select>
+            </div>
+          </div>
+        </section>
+
+        <section class="stats" aria-label="Indicadores">
+          <article class="kpi"><div class="kpi-label">Clientes</div><div class="kpi-value" id="kClientes">0</div><div class="kpi-note">filtrados</div></article>
+          <article class="kpi green"><div class="kpi-label">Objetos</div><div class="kpi-value" id="kQtd">0</div><div class="kpi-note">no período</div></article>
+          <article class="kpi yellow"><div class="kpi-label">Faturamento</div><div class="kpi-value" id="kValor">R$ 0,00</div><div class="kpi-note">soma total</div></article>
+          <article class="kpi purple"><div class="kpi-label">Ticket médio</div><div class="kpi-value" id="kTicket">R$ 0,00</div><div class="kpi-note">valor por objeto</div></article>
+          <article class="kpi red"><div class="kpi-label">Sem contrato</div><div class="kpi-value" id="kSem">0</div><div class="kpi-note">oportunidade futura</div></article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title"><span class="material-symbols-rounded">analytics</span>Curva ABC mensal</div>
+              <div class="panel-sub" id="tableSub">Aguardando dados.</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="abcTable">
+              <thead id="abcHead"></thead>
+              <tbody id="abcBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="agenda">
+        <div class="placeholder">
+          <span class="material-symbols-rounded">event_upcoming</span>
+          Agenda será compartilhada com o CRM usando LOCAL = Portal Postal.
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="funil">
+        <div class="placeholder">
+          <span class="material-symbols-rounded">view_kanban</span>
+          Funil do Portal Postal será criado depois da validação da Curva ABC.
+        </div>
+      </section>
+
+      <div class="footer-note">Módulo de teste isolado em /portal. Não altera Clientes Ativos, Prospects ou ações do CRM.</div>
+    </main>
+  </div>
+
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbytPcqQl8Rk62YclOVx0BH-zEgHtYFv0b-aUrTfyR_QKKr0VmjGbJc9GpX19rJ-1YV0OA/exec';
+    const state = { raw:null, rows:[], months:[], sortKey:'totalQtd', sortDir:'desc' };
+
+    const $ = (id) => document.getElementById(id);
+    const money = (v) => Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+    const num = (v) => Number(v||0).toLocaleString('pt-BR');
+    const norm = (v) => String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
+    const esc = (v) => String(v ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+    function setStatus(type,msg){
+      const el = $('statusBox');
+      el.className = 'status ' + type + ' show';
+      el.textContent = msg;
+    }
+    function hideStatus(){ $('statusBox').className = 'status'; }
+
+    function activateView(name){
+      document.querySelectorAll('.tab').forEach(btn => btn.classList.toggle('active', btn.dataset.view === name));
+      document.querySelectorAll('[data-view-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.viewPanel === name));
+    }
+
+    function fillSelect(id, values, first){
+      const el = $(id);
+      const selected = el.value;
+      el.innerHTML = '<option value="">' + first + '</option>' + values.map(v => '<option value="' + esc(v) + '">' + esc(v) + '</option>').join('');
+      if(values.includes(selected)) el.value = selected;
+    }
+
+    function curveClass(v){
+      const s = norm(v);
+      if(s.includes('TOP')) return 'top';
+      if(s === 'CURVA A' || s === 'A') return 'a';
+      if(s === 'CURVA B' || s === 'B') return 'b';
+      return 'c';
+    }
+    function contractBadge(v){
+      const s = norm(v);
+      return s.includes('SEM') ? 'sem' : 'com';
+    }
+
+    function normalizePayload(payload){
+      if(!payload || payload.ok === false) throw new Error(payload && payload.error ? payload.error : 'Resposta inválida da API.');
+      const rows = payload.rows || payload.items || payload.clientes || [];
+      const months = payload.months || payload.meses || [];
+      return { rows, months };
+    }
+
+    function filteredRows(){
+      const q = norm($('qFilter').value);
+      const com = $('comFilter').value;
+      const tipo = $('tipoFilter').value;
+      const cws = $('cwsFilter').value;
+      const curva = $('curvaFilter').value;
+      return state.rows.filter(r => {
+        if(q && norm(r.cliente || r.nome).indexOf(q) < 0) return false;
+        if(com && String(r.comSem || '') !== com) return false;
+        if(tipo && String(r.tipoContrato || '') !== tipo) return false;
+        if(cws && String(r.cws || '') !== cws) return false;
+        if(curva && String(r.curva || '') !== curva) return false;
+        return true;
+      });
+    }
+
+    function sortRows(rows){
+      const key = state.sortKey;
+      const dir = state.sortDir === 'asc' ? 1 : -1;
+      return rows.slice().sort((a,b) => {
+        const av = key === 'cliente' ? String(a.cliente || a.nome || '') : Number(a[key] || 0);
+        const bv = key === 'cliente' ? String(b.cliente || b.nome || '') : Number(b[key] || 0);
+        if(av < bv) return -1 * dir;
+        if(av > bv) return 1 * dir;
+        return String(a.cliente || '').localeCompare(String(b.cliente || ''),'pt-BR');
+      });
+    }
+
+    function renderFilters(){
+      const uniq = (field) => Array.from(new Set(state.rows.map(r => String(r[field] || '').trim()).filter(Boolean))).sort((a,b) => a.localeCompare(b,'pt-BR'));
+      fillSelect('comFilter', uniq('comSem'), 'Todos');
+      fillSelect('tipoFilter', uniq('tipoContrato'), 'Todos');
+      fillSelect('cwsFilter', uniq('cws'), 'Todos');
+      fillSelect('curvaFilter', uniq('curva'), 'Todas');
+    }
+
+    function renderStats(rows){
+      const qtd = rows.reduce((s,r) => s + Number(r.totalQtd || r.qtd || 0), 0);
+      const valor = rows.reduce((s,r) => s + Number(r.totalValor || r.valor || 0), 0);
+      const sem = rows.filter(r => norm(r.comSem).includes('SEM')).length;
+      $('kClientes').textContent = num(rows.length);
+      $('kQtd').textContent = num(qtd);
+      $('kValor').textContent = money(valor);
+      $('kTicket').textContent = money(qtd > 0 ? valor / qtd : 0);
+      $('kSem').textContent = num(sem);
+    }
+
+    function renderTable(){
+      const rows = sortRows(filteredRows());
+      renderStats(rows);
+      $('tableSub').textContent = rows.length + ' clientes exibidos de ' + state.rows.length + ' carregados.';
+
+      const months = state.months.length ? state.months : inferMonths(rows);
+      const headMonth = months.map(m => '<th data-sort="m_' + esc(m) + '">' + esc(labelMonth(m)) + '</th>').join('');
+      $('abcHead').innerHTML = '<tr>' +
+        '<th data-sort="cliente">Cliente</th>' +
+        '<th data-sort="diasSemPostar">Último</th>' +
+        headMonth +
+        '<th data-sort="totalQtd">Total</th>' +
+        '<th data-sort="totalValor">Fat.</th>' +
+        '<th data-sort="ticketMedio">Ticket</th>' +
+        '<th>Contrato</th>' +
+        '<th>Curva</th>' +
+      '</tr>';
+
+      $('abcBody').innerHTML = rows.map(r => renderRow(r, months)).join('') || '<tr><td colspan="20">Nenhum cliente encontrado com os filtros atuais.</td></tr>';
+      bindSortHeaders();
+    }
+
+    function inferMonths(rows){
+      const s = new Set();
+      rows.forEach(r => Object.keys(r.months || r.meses || {}).forEach(k => s.add(k)));
+      return Array.from(s).sort();
+    }
+    function labelMonth(ym){
+      if(!ym) return '';
+      const p = String(ym).split('-');
+      if(p.length !== 2) return ym;
+      return p[1] + '/' + String(p[0]).slice(2);
+    }
+    function monthValue(r, ym){
+      const map = r.months || r.meses || {};
+      const item = map[ym] || {};
+      return Number(item.qtd || item.totalQtd || item.quantidade || 0);
+    }
+    function renderMonthCell(r, ym, prevYm){
+      const current = monthValue(r, ym);
+      if(!current) return '<td class="month-cell empty">-</td>';
+      const prev = prevYm ? monthValue(r, prevYm) : 0;
+      let cls = 'month-cell';
+      let delta = '';
+      if(prev > 0 && current > prev){ cls += ' up'; delta = '<span class="delta up">▲' + num(current - prev) + '</span>'; }
+      if(prev > 0 && current < prev){ cls += ' down'; delta = '<span class="delta down">▼' + num(prev - current) + '</span>'; }
+      return '<td class="' + cls + '">' + num(current) + delta + '</td>';
+    }
+    function renderRow(r, months){
+      const cliente = r.cliente || r.nome || '';
+      const comSem = r.comSem || r.contratoStatus || '';
+      const tipo = r.tipoContrato || '';
+      const curva = r.curva || 'CURVA C';
+      const qtd = Number(r.totalQtd || r.qtd || 0);
+      const valor = Number(r.totalValor || r.valor || 0);
+      const ticket = Number(r.ticketMedio || (qtd > 0 ? valor / qtd : 0));
+      const monthCells = months.map((m,i) => renderMonthCell(r, m, months[i-1])).join('');
+      return '<tr>' +
+        '<td><span class="client-name" title="' + esc(cliente) + '">' + esc(cliente) + '</span><div class="client-sub">' + esc(tipo || 'Sem tipo') + '</div></td>' +
+        '<td class="num">' + esc(r.ultimoLabel || r.ultimaPostagemLabel || r.ultimo || '') + '</td>' +
+        monthCells +
+        '<td class="num"><strong>' + num(qtd) + '</strong></td>' +
+        '<td class="num"><strong>' + money(valor) + '</strong></td>' +
+        '<td class="num">' + money(ticket) + '</td>' +
+        '<td><span class="badge ' + contractBadge(comSem) + '">' + esc(comSem || '-') + '</span></td>' +
+        '<td><span class="badge ' + curveClass(curva) + '">' + esc(curva) + '</span></td>' +
+      '</tr>';
+    }
+
+    function bindSortHeaders(){
+      document.querySelectorAll('#abcHead th[data-sort]').forEach(th => {
+        th.onclick = () => {
+          const key = th.dataset.sort;
+          if(state.sortKey === key) state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+          else { state.sortKey = key; state.sortDir = 'desc'; }
+          renderTable();
+        };
+      });
+    }
+
+    async function loadData(){
+      setStatus('loading','Carregando dados do Portal Postal...');
+      try{
+        const url = new URL(API_URL);
+        url.searchParams.set('action','portal_curva_abc_v1');
+        const res = await fetch(url.toString(), { cache:'no-store' });
+        const text = await res.text();
+        let json;
+        try{ json = JSON.parse(text); }catch(e){ throw new Error('API não retornou JSON para portal_curva_abc_v1.'); }
+        const payload = normalizePayload(json);
+        state.raw = json;
+        state.rows = payload.rows;
+        state.months = payload.months;
+        renderFilters();
+        renderTable();
+        hideStatus();
+      }catch(err){
+        state.rows = [];
+        state.months = [];
+        renderFilters();
+        renderTable();
+        setStatus('error','HTML pronto. Próximo passo: publicar o backend portal_curva_abc_v1. Detalhe: ' + (err.message || err));
+      }
+    }
+
+    document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => activateView(btn.dataset.view)));
+    ['qFilter','comFilter','tipoFilter','cwsFilter','curvaFilter'].forEach(id => $(id).addEventListener('input', renderTable));
+    $('refreshBtn').addEventListener('click', loadData);
+    loadData();
+  </script>
+</body>
+</html>
