@@ -1,11 +1,15 @@
 /* =====================================================
-   APP ETIQUETAS — Screen: destinatarios
-   Cadastro, edição, filtro por UF e CEP automático.
+   APP ETIQUETAS - Screen: destinatarios
+   Cadastro, edicao, filtro por UF e CEP automatico.
    ===================================================== */
 Screens.destinatarios = (function () {
   const $ = id => document.getElementById(id);
   let _items = [];
   let _timer = null;
+
+  function isMounted() {
+    return !!($('destLista') && $('destBusca') && $('destFiltroUf'));
+  }
 
   function radioValue(name, fallback) {
     const el = document.querySelector('input[name="' + name + '"]:checked');
@@ -55,7 +59,9 @@ Screens.destinatarios = (function () {
 
   async function buscarCep(opts) {
     opts = opts || {};
-    const cep = UI.digitsOnly($('destCadCep').value || '');
+    const cepEl = $('destCadCep');
+    if (!cepEl) return null;
+    const cep = UI.digitsOnly(cepEl.value || '');
     if (cep.length !== 8) { if (!opts.silent) UI.toast('CEP precisa ter 8 dígitos', 'error'); return null; }
     const btn = $('destCadBtnBuscarCep'); if (btn) btn.disabled = true;
     if (!opts.silent) UI.showLoading('Buscando CEP...');
@@ -66,11 +72,14 @@ Screens.destinatarios = (function () {
       $('destCadCidade').value = data.cidade || '';
       $('destCadUf').value = (data.uf || '').toUpperCase();
       const hint = $('destCadCepHint');
-      hint.hidden = false; hint.classList.remove('is-error');
-      hint.textContent = '✓ ' + [data.logradouro, data.bairro, (data.cidade || '') + '/' + (data.uf || '')].filter(Boolean).join(' — ');
+      if (hint) {
+        hint.hidden = false; hint.classList.remove('is-error');
+        hint.textContent = '✓ ' + [data.logradouro, data.bairro, (data.cidade || '') + '/' + (data.uf || '')].filter(Boolean).join(' - ');
+      }
       return data;
     } catch (e) {
-      const hint = $('destCadCepHint'); hint.hidden = false; hint.classList.add('is-error'); hint.textContent = 'CEP não encontrado. Preencha o endereço manualmente.';
+      const hint = $('destCadCepHint');
+      if (hint) { hint.hidden = false; hint.classList.add('is-error'); hint.textContent = 'CEP não encontrado. Preencha o endereço manualmente.'; }
       if (!opts.silent) UI.toastError(e);
       return null;
     } finally { if (!opts.silent) UI.hideLoading(); if (btn) btn.disabled = false; }
@@ -147,14 +156,22 @@ Screens.destinatarios = (function () {
   }
 
   async function carregar() {
+    if (!isMounted()) return;
     const list = $('destLista'); if (list) list.innerHTML = '<div class="hist-empty">Carregando...</div>';
     try {
-      const data = await Api.listarDestinatarios({ busca: $('destBusca').value.trim(), uf: $('destFiltroUf').value || '', limit: 1000 });
+      const buscaEl = $('destBusca');
+      const ufEl = $('destFiltroUf');
+      const data = await Api.listarDestinatarios({ busca: buscaEl ? buscaEl.value.trim() : '', uf: ufEl ? (ufEl.value || '') : '', limit: 1000 });
+      if (!isMounted()) return;
       renderUfOptions(data.ufs || []); render(data.items || []);
-      $('destTotal').textContent = String(data.total || 0);
-    } catch (e) { UI.toastError(e); if (list) list.innerHTML = '<div class="hist-empty">Falha ao carregar destinatários.</div>'; }
+      const totalEl = $('destTotal');
+      if (totalEl) totalEl.textContent = String(data.total || 0);
+    } catch (e) {
+      if (!isMounted()) return;
+      UI.toastError(e);
+      if (list) list.innerHTML = '<div class="hist-empty">Falha ao carregar destinatários.</div>';
+    }
   }
-
 
   function normalizeCsvHeader_(value) {
     return String(value || '')
@@ -226,6 +243,7 @@ Screens.destinatarios = (function () {
   }
 
   function mount() {
+    if (!isMounted()) return;
     UI.bindMask($('destCadCep'), UI.fmtCep); UI.bindMask($('destCadCpfCnpj'), UI.fmtCpfCnpj); UI.bindMask($('destCadCelular'), UI.fmtPhone);
     UI.bindSegmented($('destCadastroForm'));
     $('destNovo').addEventListener('click', () => showForm(null));
