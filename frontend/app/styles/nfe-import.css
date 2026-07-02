@@ -35,10 +35,17 @@
 .nfe-status.success { background: #ecfdf5; border-color: #bbf7d0; color: #047857; }
 .nfe-status.error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
 .nfe-status.loading { background: #eff6ff; border-color: #bfdbfe; color: #075985; }
+
+.nfe-preview-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+.btn-danfe-preview { border-color:#f59e0b !important; color:#805b00 !important; background:#fff9dd !important; }
+.nfe-test-tag { display:inline-flex; align-items:center; border-radius:999px; padding:5px 9px; font-size:11px; font-weight:800; color:#9a6700; background:#fff3bf; border:1px solid #ffe08a; }
+
+/* No fluxo direto de Etiqueta, o DANFE 10x15 deve aparecer somente na tela final de impressão. */
+#etqCardNfeImport .nfe-preview-actions {
+  display: none !important;
+}
+
 @media (max-width: 720px) {
   .nfe-import-box { grid-template-columns: 1fr; }
   .nfe-import-actions .btn { width: 100%; justify-content: center; }
 }
-.nfe-preview-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px; }
-.btn-danfe-preview { border-color:#f59e0b !important; color:#805b00 !important; background:#fff9dd !important; }
-.nfe-test-tag { display:inline-flex; align-items:center; border-radius:999px; padding:5px 9px; font-size:11px; font-weight:800; color:#9a6700; background:#fff3bf; border:1px solid #ffe08a; }
