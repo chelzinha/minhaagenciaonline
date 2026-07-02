@@ -1,0 +1,11 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "Live Preview",
+			"workspacePath": "g:\\Meu Drive\\___AGF-Codex\\01_REPOS_GITHUB\\minhaagenciaonline",
+			"problemMatcher": [],
+			"label": "Live Preview: Run Server"
+		}
+	]
+}
