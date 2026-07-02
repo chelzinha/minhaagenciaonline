@@ -1,6 +1,6 @@
 
 /* =====================================================
-   APP ETIQUETAS — Screen: etiqueta (fluxo direto)
+   APP ETIQUETAS - Screen: etiqueta (fluxo direto)
    ===================================================== */
 
 Screens.etiqueta = (function () {
@@ -351,6 +351,7 @@ Screens.etiqueta = (function () {
 
   function mount() {
     _state = { servico: null, tipoObjeto: 'PACOTE', autocompleteItems: [] };
+    if (window.NfeImport && NfeImport.clearPreviewState) NfeImport.clearPreviewState();
     renderHero();
     renderServicos();
     renderTipoObjeto();
