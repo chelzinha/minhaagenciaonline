@@ -20,7 +20,8 @@ var PORTAL_CFG = {
     POSTAGENS_ID: '1jMk7niNs7eULxsU9yazVDxz5Q8-V5CN75eA_Dwmq1hI'
   },
   CACHE: {
-    CURVA_SEC: 1800
+    CURVA_SEC: 1800,
+    CHUNK_SIZE: 85000
   },
   CURVA: {
     CUTS: { TOP: 0.05, A: 0.25, B: 0.60 },
@@ -53,18 +54,23 @@ function portal_doGet_(p) {
 
 function portal_apiCurvaAbcV1_(p) {
   p = p || {};
-  var noCache = portalBool_(p.noCache || p.refresh);
-  var cacheKey = 'portal_curva_abc_v1';
+  var noCache = portalBool_(p.refresh || p.forceRefresh);
+  var cacheKey = 'portal_curva_abc_v1_chunked_v1';
 
   if (!noCache) {
     var cached = portalCacheGet_(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      cached.meta = cached.meta || {};
+      cached.meta.cacheHit = true;
+      return cached;
+    }
   }
 
   var clientes = portalReadClientes_();
   var postagensData = portalReadPostagens_();
   var payload = portalBuildCurvaPayload_(clientes, postagensData.items);
   payload.meta.linhasPostagensIgnoradas = postagensData.ignored.length;
+  payload.meta.cacheHit = false;
   payload.ignored = postagensData.ignored.slice(0, 50);
 
   portalCachePut_(cacheKey, payload, PORTAL_CFG.CACHE.CURVA_SEC);
@@ -256,7 +262,7 @@ function portalBuildCurvaPayload_(clientesData, postagens) {
   return {
     ok: true,
     module: 'portal-postal',
-    version: 'curva_abc_v1_2026_07_02_b',
+    version: 'curva_abc_v1_2026_07_02_cache_chunks',
     generatedAt: portalNow_(),
     months: months,
     rows: rows,
@@ -460,7 +466,29 @@ function portalBool_(v) {
 
 function portalCacheGet_(key) {
   try {
-    var raw = CacheService.getScriptCache().get(key);
+    var cache = CacheService.getScriptCache();
+    var metaRaw = cache.get(key + ':meta');
+
+    if (metaRaw) {
+      var meta = JSON.parse(metaRaw);
+      var chunkCount = Number(meta.chunkCount || 0);
+      if (chunkCount <= 0) return null;
+
+      var keys = [];
+      for (var i = 0; i < chunkCount; i++) keys.push(key + ':chunk:' + i);
+      var chunks = cache.getAll(keys);
+      var json = '';
+
+      for (var c = 0; c < chunkCount; c++) {
+        var part = chunks[key + ':chunk:' + c];
+        if (!part) return null;
+        json += part;
+      }
+
+      return JSON.parse(json);
+    }
+
+    var raw = cache.get(key);
     return raw ? JSON.parse(raw) : null;
   } catch(e) {
     return null;
@@ -469,7 +497,24 @@ function portalCacheGet_(key) {
 
 function portalCachePut_(key, obj, sec) {
   try {
+    var cache = CacheService.getScriptCache();
     var json = JSON.stringify(obj);
-    if (json.length < 95000) CacheService.getScriptCache().put(key, json, sec || 300);
+    var ttl = sec || 300;
+    var chunkSize = PORTAL_CFG.CACHE.CHUNK_SIZE || 85000;
+
+    if (json.length < chunkSize) {
+      cache.put(key, json, ttl);
+      cache.put(key + ':meta', JSON.stringify({ chunkCount: 0, storedAt: portalNow_(), size: json.length }), ttl);
+      return;
+    }
+
+    var payload = {};
+    var chunkCount = Math.ceil(json.length / chunkSize);
+    for (var i = 0; i < chunkCount; i++) {
+      payload[key + ':chunk:' + i] = json.slice(i * chunkSize, (i + 1) * chunkSize);
+    }
+
+    cache.putAll(payload, ttl);
+    cache.put(key + ':meta', JSON.stringify({ chunkCount: chunkCount, storedAt: portalNow_(), size: json.length }), ttl);
   } catch(e) {}
 }
