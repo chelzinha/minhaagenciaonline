@@ -1,6 +1,59 @@
-﻿# FRONTEND
+# FRONTEND
 
 Documento tecnico em preparacao.
+
+## Modulo /nuvem - Minhas Postagens Nuvemshop
+
+Tipo de modulo:
+- SPA/PWA publica de Minhas Postagens Nuvemshop.
+- Frontend estatico com login proprio e rotas internas por hash.
+- Integra pedidos pagos da Nuvemshop com o fluxo de geracao de etiquetas.
+
+Entrada principal:
+- frontend/nuvem/index.html
+
+Arquivos principais:
+- frontend/nuvem/js/config.js: configuracao do frontend, nome do app, versao, Web App e chaves locais.
+- frontend/nuvem/js/api.js: cliente HTTP para Apps Script.
+- frontend/nuvem/js/app.js: bootstrap, login, sessao, logout e registro PWA.
+- frontend/nuvem/js/router.js: hash router da SPA.
+- frontend/nuvem/js/ui.js: loading, toast, modal, formatadores, PDF e reparo de scroll lock.
+- frontend/nuvem/js/screens/pedidos.js: fila de pedidos pagos, chips, selecao e geracao de etiqueta.
+- frontend/nuvem/js/screens/historico.js: etiquetas emitidas, PDF, DC-e, PLP, rastreio e WhatsApp.
+- frontend/nuvem/styles/base.css: base visual, loading, modal, toast e polimento responsivo do modulo.
+- frontend/nuvem/styles/screens.css: estrutura das telas, cards, toolbar, bottom nav e listas.
+
+Rotas internas:
+- /nuvem/#/pedidos: fila de pedidos pagos elegiveis para gerar etiqueta.
+- /nuvem/#/revisar/:orderId: revisao de servico, formato, peso, dimensoes e valor declarado.
+- /nuvem/#/emitidas: etiquetas geradas, reimpressao, DC-e, lista de postagem, rastreio e WhatsApp.
+- /nuvem/#/conta: dados resumidos da conta conectada.
+
+Mudancas aplicadas nesta revisao:
+- Cards de pedidos exibem valor do pedido quando o backend retorna TOTAL.
+- Chips de pagamento ganharam cores por estado: pago, autorizado, pendente, cancelado e estornado.
+- Chips de servico ganharam cores por categoria: PAC, SEDEX e outro.
+- Pedidos sem pagamento confirmado ou cancelados ficam nao elegiveis no frontend.
+- Checkbox e botao Gerar etiqueta ficam bloqueados para pedido nao elegivel.
+- Botao de sincronizar passou a solicitar lote menor para reduzir tempo de importacao.
+- Loading/toast/modal receberam reparo de scroll lock para evitar rolagem travada no desktop.
+- CSS recebeu reforco mobile para botoes, cards, chips e bottom nav.
+
+O que nao deve ser alterado sem novo mapeamento:
+- Nomes das actions em frontend/nuvem/js/api.js.
+- Nomes das rotas hash.
+- IDs de templates e inputs usados pelos scripts de tela.
+- Chaves de localStorage.
+- Fluxo de autenticacao.
+- URL completa do Web App em documentacao.
+
+Checklist visual:
+- Desktop: confirmar rolagem apos login, sincronizacao, modal de rastreio e erro controlado.
+- Desktop: confirmar cards com chips coloridos e valor do pedido.
+- Mobile: testar larguras 390px e 430px.
+- Mobile: confirmar botoes sem corte e sem rolagem horizontal.
+- Mobile: confirmar que bottom nav nao cobre acoes.
+- Fluxo: confirmar que pedido cancelado ou nao pago nao aparece como pronto para gerar.
 
 ## Modulo Reverso - melhoria de mensagens
 
@@ -16,7 +69,7 @@ Arquivos afetados:
 O que mudou:
 - Mensagens tecnicas foram suavizadas.
 - Loadings ficaram mais claros para o usuario.
-- Erros de autenticacao, servidor e etiqueta ficaram mais orientativos.
+- Erros de autenticacao, validacao de etiqueta, servidor e carregamento de unidade ficaram mais orientativos.
 
 O que nao mudou:
 - Nenhuma regra de negocio.

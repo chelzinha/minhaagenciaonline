@@ -1,5 +1,29 @@
-
 const App = (function () {
+  function unlockPageScroll() {
+    try {
+      document.documentElement.style.overflowY = 'auto';
+      document.documentElement.style.height = 'auto';
+      document.body.style.overflowY = 'auto';
+      document.body.style.height = 'auto';
+      document.body.style.position = 'static';
+
+      const shell = document.getElementById('screen-app');
+      const mount = document.getElementById('screenMount');
+      if (shell) {
+        shell.style.height = 'auto';
+        shell.style.minHeight = '100dvh';
+        shell.style.overflow = 'visible';
+      }
+      if (mount) {
+        mount.style.height = 'auto';
+        mount.style.minHeight = '0';
+        mount.style.overflow = 'visible';
+      }
+
+      if (UI && UI.repairScrollLock) UI.repairScrollLock();
+    } catch (e) {}
+  }
+
   function applyBranding() {
     document.title = APP_CONFIG.APP_NAME;
     const support = document.getElementById('loginSupportLink');
@@ -8,11 +32,14 @@ const App = (function () {
   function showLogin() {
     document.getElementById('screen-login').classList.remove('hidden');
     document.getElementById('screen-app').classList.add('hidden');
+    unlockPageScroll();
   }
   function showApp() {
     document.getElementById('screen-login').classList.add('hidden');
     document.getElementById('screen-app').classList.remove('hidden');
     Router.init();
+    unlockPageScroll();
+    setTimeout(unlockPageScroll, 100);
   }
   async function bootstrapSession() {
     const token = Api.getSessionToken();
@@ -43,10 +70,14 @@ const App = (function () {
     });
   }
   function bindGlobal() {
-    document.getElementById('navHome').addEventListener('click', () => Router.navigate('/pedidos'));
+    document.getElementById('navHome').addEventListener('click', () => { Router.navigate('/pedidos'); setTimeout(unlockPageScroll, 0); });
     document.getElementById('navLogout').addEventListener('click', async () => {
       await Api.logout(); showLogin();
     });
+    window.addEventListener('hashchange', () => setTimeout(unlockPageScroll, 0));
+    window.addEventListener('resize', unlockPageScroll);
+    window.addEventListener('orientationchange', () => setTimeout(unlockPageScroll, 250));
+
     const form = document.getElementById('loginForm');
     form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
@@ -60,16 +91,18 @@ const App = (function () {
         UI.hideLoading();
         showApp();
       } catch (e) {
-        UI.hideLoading(); UI.toastError(e);
+        UI.hideLoading(); UI.toastError(e); unlockPageScroll();
       }
     });
   }
   function init() {
     applyBranding(); initPasswordToggles(); bindGlobal(); bootstrapSession();
     document.body.classList.remove('app-booting'); document.body.classList.add('app-ready');
+    unlockPageScroll();
+    setTimeout(unlockPageScroll, 300);
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(() => {});
   }
-  return { init };
+  return { init, unlockPageScroll };
 })();
 window.addEventListener('DOMContentLoaded', App.init);
 
@@ -97,4 +130,6 @@ document.addEventListener('click', function (ev) {
   if (btnGerarLote) {
     btnGerarLote.disabled = true;
   }
+
+  if (App && App.unlockPageScroll) App.unlockPageScroll();
 });
