@@ -5,11 +5,30 @@
 
 const UI = (function () {
 
-  // ============ LOADING ============
+  // ============ LOADING / SCROLL LOCK ============
   let _loadingCount = 0;
+
+  function hasVisibleLoading_() {
+    const el = document.getElementById('loading');
+    return !!(el && el.classList.contains('show'));
+  }
+
+  function hasVisibleModal_() {
+    return !!document.querySelector('.modal.show, .track-modal.show');
+  }
+
   function setBusyState(isBusy) {
     document.body.classList.toggle('is-busy', !!isBusy);
   }
+
+  // Regra AGF: se um erro interromper loading/modal, não deixar o desktop sem rolagem.
+  function repairScrollLock() {
+    try {
+      if (!hasVisibleLoading_()) document.body.classList.remove('is-busy');
+      if (!hasVisibleModal_()) document.body.classList.remove('modal-open');
+    } catch (e) {}
+  }
+
   function showLoading(text) {
     _loadingCount++;
     const el = document.getElementById('loading');
@@ -25,6 +44,7 @@ const UI = (function () {
       el.classList.remove('show');
       el.setAttribute('aria-hidden', 'true');
       setBusyState(false);
+      repairScrollLock();
     }
   }
   function forceHideLoading() {
@@ -33,6 +53,7 @@ const UI = (function () {
     el.classList.remove('show');
     el.setAttribute('aria-hidden', 'true');
     setBusyState(false);
+    repairScrollLock();
   }
 
   // ============ TOAST ============
@@ -52,6 +73,7 @@ const UI = (function () {
   function toastError(err) {
     const msg = err && err.message ? err.message : String(err || 'Erro inesperado');
     toast(msg, 'error');
+    repairScrollLock();
   }
 
   // ============ MODAL CONFIRM ============
@@ -92,6 +114,7 @@ const UI = (function () {
         btnCancel.removeEventListener('click', onNo);
         modal.removeEventListener('click', onBackdrop);
         document.removeEventListener('keydown', onKeyDown);
+        repairScrollLock();
         try {
           if (previousFocus && typeof previousFocus.focus === 'function') previousFocus.focus();
         } catch (e) {}
@@ -223,7 +246,7 @@ const UI = (function () {
   }
 
   return {
-    showLoading, hideLoading, forceHideLoading,
+    showLoading, hideLoading, forceHideLoading, repairScrollLock,
     toast, toastError,
     confirm,
     fmtCep, fmtCpfCnpj, fmtPhone, fmtMoney, fmtDateTimeBr,
@@ -333,3 +356,10 @@ UI.abrirEtiquetaPedidoParaImpressao = async function(orderId, gerarResult, nome)
   UI.openBase64Pdf(base64, UI.buildEtiquetaFileName(nome));
   return true;
 };
+
+window.addEventListener('error', function () {
+  if (UI && UI.repairScrollLock) setTimeout(UI.repairScrollLock, 0);
+});
+window.addEventListener('unhandledrejection', function () {
+  if (UI && UI.repairScrollLock) setTimeout(UI.repairScrollLock, 0);
+});
