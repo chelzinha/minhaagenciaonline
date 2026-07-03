@@ -957,6 +957,9 @@ function printCaixa(){ var dt=els.dateIso.value||getLocalTodayIso(); document.ge
     }
 
     async function api(data) {
+      // Gate AGF: anexa o token de sessão em toda chamada (POST e fallback GET).
+      const _tok = (window.AgfAuth && window.AgfAuth.getToken) ? window.AgfAuth.getToken() : '';
+      if (_tok) data = Object.assign({}, data, { st: _tok });
       const tryPost = async () => {
         const res = await fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data) });
         if (!res.ok) throw new Error('Falha na comunicação com a API.');

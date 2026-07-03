@@ -34,6 +34,17 @@ function doGet(e){
   try{
     var p=(e&&e.parameter)?e.parameter:{};
 
+    // Gate AGF: toda leitura exige sessão válida, exceto ping/health.
+    // Modo controlado pela Script Property AGF_API_AUTH_MODE (ver 000_AGF_AUTH_GATE.js).
+    var isPublicGet=(p.action==='ping')||(String(p.route||'').toLowerCase()==='health');
+    if(!isPublicGet){
+      var gateGet=agfGateCheck_(p.st||p.auth_token||'', 'GET '+(p.action||p.route||''));
+      if(!gateGet.allowed){
+        return ContentService.createTextOutput(JSON.stringify(agfGateDeniedResponse_()))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
     // Rotas da Operação convivendo no mesmo projeto
     if(p.action){
       return op_doGet(e);
@@ -67,6 +78,18 @@ function doGet(e){
 function doPost(e){
   try{
     var p=(e&&e.parameter)?e.parameter:{};
+
+    // Gate AGF: toda escrita exige sessão válida (token via query 'st'
+    // ou campo 'st'/'auth_token' no corpo JSON).
+    var postToken=p.st||p.auth_token||'';
+    if(!postToken&&e&&e.postData&&e.postData.contents){
+      try{var pb=JSON.parse(e.postData.contents||'{}');postToken=pb.st||pb.auth_token||'';}catch(errTok){}
+    }
+    var gatePost=agfGateCheck_(postToken,'POST '+(p.action||''));
+    if(!gatePost.allowed){
+      return ContentService.createTextOutput(JSON.stringify(agfGateDeniedResponse_()))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
 
     // POST usado apenas pela Operação
     if(p.action){

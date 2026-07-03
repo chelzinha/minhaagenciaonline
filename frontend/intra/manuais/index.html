@@ -239,6 +239,7 @@ function render(){
 async function load(){
   const url=new URL(API);
   url.searchParams.set('action','get_midias_catalog');
+  const _tok=(window.AgfAuth&&window.AgfAuth.getToken)?window.AgfAuth.getToken():'';if(_tok)url.searchParams.set('st',_tok);
   const res=await fetch(url.toString());
   const j=await res.json();
   if(!j.ok) throw new Error(j.error||'Erro ao carregar materiais');

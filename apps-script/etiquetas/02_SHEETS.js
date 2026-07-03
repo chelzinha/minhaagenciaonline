@@ -108,15 +108,54 @@ function updateCellByHeader_(sheetName, row, headerName, value) {
  */
 function updateRowByHeader_(sheetName, row, patch) {
   const sh = getSheet_(sheetName);
-  const headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0];
+  const lastCol = sh.getLastColumn();
+  const headers = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  // Regra AGF de performance: 1 leitura + 1 escrita em lote por linha,
+  // em vez de um setValue por coluna dentro de loop.
+  const rowRange = sh.getRange(row, 1, 1, lastCol);
+  const values = rowRange.getValues()[0];
+  let touched = false;
   Object.keys(patch).forEach(headerName => {
     for (let i = 0; i < headers.length; i++) {
       if (String(headers[i]).trim() === headerName) {
-        sh.getRange(row, i + 1).setValue(patch[headerName]);
+        values[i] = patch[headerName];
+        touched = true;
         return;
       }
     }
   });
+  if (touched) rowRange.setValues([values]);
+}
+
+/**
+ * Lê apenas as últimas maxRows linhas de dados da aba (mais recentes),
+ * preservando o mesmo formato de readSheetAsObjects_ (inclui _row real).
+ * Uso: históricos que crescem sem parar e não precisam ser lidos inteiros.
+ */
+function readSheetTailAsObjects_(sheetName, maxRows) {
+  const sh = getSheet_(sheetName);
+  const lastRow = sh.getLastRow();
+  const lastCol = sh.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return [];
+
+  const max = Math.max(1, Number(maxRows) || 1000);
+  const startRow = Math.max(2, lastRow - max + 1);
+  const numRows = lastRow - startRow + 1;
+
+  const headers = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0].map(h => String(h).trim());
+  const values = sh.getRange(startRow, 1, numRows, lastCol).getDisplayValues();
+
+  const out = [];
+  for (let i = 0; i < values.length; i++) {
+    const row = values[i];
+    if (!row.some(v => String(v).trim() !== '')) continue;
+    const obj = { _row: startRow + i };
+    for (let c = 0; c < headers.length; c++) {
+      if (headers[c]) obj[headers[c]] = row[c] || '';
+    }
+    out.push(obj);
+  }
+  return out;
 }
 
 /**

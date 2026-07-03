@@ -1578,6 +1578,7 @@ async function api(p){
   var u=new URL(API);
 
   u.searchParams.set('route','dashboard');
+  var _tok=(window.AgfAuth&&window.AgfAuth.getToken)?window.AgfAuth.getToken():'';if(_tok)u.searchParams.set('st',_tok);
 
   Object.entries(p||{}).forEach(function(e){
     if(e[1]!=null&&e[1]!=='')u.searchParams.set(e[0],e[1]);

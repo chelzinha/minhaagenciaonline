@@ -57,7 +57,7 @@ function sfEnsureAllSheets_(ss) {
     ['Carteira SuperFrete', 'Controle paralelo', 'Espelha recargas, consumo real de etiquetas e estornos da conta AGF na SuperFrete.'],
     ['DC-e/DACE', 'Campos preparados', 'DC-e usa remetente, destinatário com CPF/CNPJ e itens com descrição, quantidade e valor.'],
     ['Tokens', 'Não salvar na planilha', 'Use PropertiesService: ' + SF.PROPERTIES.SUPERFRETE_TOKEN_SANDBOX + ' / ' + SF.PROPERTIES.SUPERFRETE_TOKEN_PRODUCAO],
-    ['Senha inicial admin', 'admin / admin123', 'Trocar antes de produção.']
+    ['Senha inicial admin', 'gerada aleatoriamente no bootstrap', 'Ver log da execução; trocar com sfDefinirSenhaAdmin().']
   ]);
   sfStyleSheet_(readme, 3);
   return true;
@@ -158,19 +158,50 @@ function sfSeedListas_(sh) {
 function sfSeedAdmin_(sh) {
   const rows = sfReadObjectsFromSheet_(sh);
   if (rows.some(function (r) { return lower_(r.LOGIN) === lower_(SF.DEFAULTS.ADMIN_LOGIN); })) return;
+  // Segurança: senha inicial ALEATÓRIA (nunca mais admin123 fixo).
+  // O valor aparece UMA vez no log de execução; troque em seguida com
+  // sfDefinirSenhaAdmin('novaSenha') se preferir uma senha sua.
+  const senhaInicial = 'AGF-' + Utilities.getUuid().slice(0, 13);
+  console.warn('[SF_BOOTSTRAP] Senha inicial do admin (anote e troque): ' + senhaInicial);
   sfAppendByHeadersToSheet_(sh, {
     USUARIO_ID: 'USR_ADMIN_001',
     TIPO_USUARIO: 'ADMIN',
     CLIENTE_ID: '',
     NOME: 'Administrador AGF',
     LOGIN: SF.DEFAULTS.ADMIN_LOGIN,
-    SENHA_HASH: sfSha256_(SF.DEFAULTS.ADMIN_PASSWORD),
+    SENHA_HASH: sfSha256_(senhaInicial),
     STATUS: 'ATIVO',
     PERMISSOES: 'ADMIN_MASTER',
     ULTIMO_LOGIN: '',
     CRIADO_EM: nowIso_(),
     ATUALIZADO_EM: nowIso_()
   });
+}
+
+/**
+ * Troca a senha do admin do SuperFrete. Rodar direto no editor do
+ * Apps Script: sfDefinirSenhaAdmin('minhaNovaSenhaForte')
+ * Use também para corrigir instalações antigas que ficaram com admin123.
+ */
+function sfDefinirSenhaAdmin(novaSenha) {
+  const senha = String(novaSenha || '').trim();
+  if (senha.length < 8) throw new Error('Use uma senha com pelo menos 8 caracteres.');
+  const ss = sfGetSs_();
+  const sh = ss.getSheetByName(SF.SHEETS.USUARIOS);
+  const rows = sfReadObjectsFromSheet_(sh);
+  for (let i = 0; i < rows.length; i++) {
+    if (lower_(rows[i].LOGIN) === lower_(SF.DEFAULTS.ADMIN_LOGIN)) {
+      const headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0];
+      const colSenha = headers.indexOf('SENHA_HASH') + 1;
+      const colAtu = headers.indexOf('ATUALIZADO_EM') + 1;
+      if (colSenha < 1) throw new Error('Coluna SENHA_HASH não encontrada.');
+      sh.getRange(rows[i]._row, colSenha).setValue(sfSha256_(senha));
+      if (colAtu > 0) sh.getRange(rows[i]._row, colAtu).setValue(nowIso_());
+      console.info('[SF] Senha do admin atualizada.');
+      return 'OK';
+    }
+  }
+  throw new Error('Usuário admin não encontrado na aba ' + SF.SHEETS.USUARIOS + '.');
 }
 
 function sfSeedClienteExemplo_(ss) {

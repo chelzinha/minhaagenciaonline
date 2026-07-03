@@ -485,8 +485,12 @@ function crm3_apiGetAgenda_(params) {
   var responsavelId = crm3_text_(params.responsavelId || '');
   var status = crm3_upper_(params.status || '');
   var typeId = crm3_text_(params.tipoAtividadeId || '');
+  // AGF fix: responsavel casado pelo ID canonico (aceita ID, USERNAME ou
+  // DISPLAY_NAME gravados na planilha), evitando itens sumirem do filtro.
+  var respIdx = responsavelId ? crm3_buildResponsibleIndex_() : null;
+  var respWanted = responsavelId ? crm3_respPersonId_(responsavelId, respIdx) : '';
   var items = crm3_readAgendaV3_(start, end).filter(function(x){
-    if (responsavelId && x.responsavelId !== responsavelId) return false;
+    if (respWanted && crm3_respPersonId_(x.responsavelId, respIdx) !== respWanted) return false;
     if (status && crm3_upper_(x.statusAtividade) !== status) return false;
     if (typeId && x.tipoAtividadeId !== typeId) return false;
     return true;
@@ -680,11 +684,14 @@ function crm3_apiGetDashboard_(params) {
   var start = crm3_text_(params.start || params.dataInicio || op_getWeekStart_(op_toYmd_(new Date())));
   var end = crm3_text_(params.end || params.dataFim || op_addDays_(start, 6));
   var responsavelId = crm3_text_(params.responsavelId || '');
+  // AGF fix: mesmo casamento canonico de responsavel usado na agenda.
+  var dashRespIdx = responsavelId ? crm3_buildResponsibleIndex_() : null;
+  var dashRespWanted = responsavelId ? crm3_respPersonId_(responsavelId, dashRespIdx) : '';
   var activities = crm3_readAgendaV3_(start, end).filter(function(x){
-    return !responsavelId || crm3_text_(x.responsavelId) === responsavelId;
+    return !dashRespWanted || crm3_respPersonId_(x.responsavelId, dashRespIdx) === dashRespWanted;
   });
   var treatments = crm3_readObjects_(CRM3_CFG.SHEETS.TRATATIVAS).filter(function(x){
-    return !responsavelId || crm3_text_(x.RESPONSAVEL_ID) === responsavelId;
+    return !dashRespWanted || crm3_respPersonId_(x.RESPONSAVEL_ID, dashRespIdx) === dashRespWanted;
   });
   var today = op_toYmd_(new Date());
   var planned = activities.filter(function(x){ return crm3_upper_(x.statusAtividade) === 'PLANEJADO'; });

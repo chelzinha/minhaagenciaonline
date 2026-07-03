@@ -1177,3 +1177,27 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
   .donut{width:132px;height:132px}
   .donut-hole{inset:23px}
 }
+
+/* AGF fix (mobile/iOS): inputs e selects com fonte < 16px disparam zoom
+   automático ao receber foco no iPhone. Em telas pequenas, forçamos 16px
+   nos controles de formulário/filtro. Não afeta o layout desktop. */
+@media (max-width: 640px) {
+  .filter-row select,
+  .filter-row input,
+  .agenda-toolbar select,
+  .board-toolbar .filter-row select,
+  .board-toolbar .filter-row input,
+  .context-filter-bar select,
+  .context-filter-bar label,
+  .chip-filter,
+  .search-field input,
+  .form-grid input,
+  .form-grid select,
+  .form-grid textarea,
+  .entity-section-grid input,
+  .entity-section-grid select,
+  .entity-section-grid textarea,
+  .note-form textarea {
+    font-size: 16px !important;
+  }
+}

@@ -25,22 +25,33 @@ function toast(message, type = 'info') {
   window.setTimeout(() => el.classList.remove('show'), 3200);
 }
 function todayLabel() { return new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'2-digit',month:'long'}).format(new Date()).replace(/^./,c=>c.toUpperCase()); }
+// AGF fix (timezone): datas 'aaaa-mm-dd' vindas do backend eram lidas como
+// meia-noite UTC e exibidas 1 dia antes em Fortaleza (UTC-3). parseLocalDate
+// interpreta o caso ISO-date puro como data LOCAL; qualquer outro formato
+// (ISO com hora, timestamp) segue pelo new Date padrão.
+function parseLocalDate(v){
+  if (v instanceof Date) return v;
+  var s = String(v == null ? '' : v).trim();
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return new Date(v);
+}
 function fmtDate(value, withTime = false) {
   if (!value) return '-';
-  const date = new Date(value);
+  const date = parseLocalDate(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return new Intl.DateTimeFormat('pt-BR', withTime ? { dateStyle: 'short', timeStyle: 'short' } : { dateStyle: 'short' }).format(date);
 }
 function fmtShortDay(value) {
-  const date = new Date(value);
+  const date = parseLocalDate(value);
   return new Intl.DateTimeFormat('pt-BR', { weekday: 'short' }).format(date).replace('.', '').slice(0, 3);
 }
 function fmtDayMonth(value) {
-  const date = new Date(value);
+  const date = parseLocalDate(value);
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(date);
 }
 function formatDateKey(value) {
-  const date = new Date(value);
+  const date = parseLocalDate(value);
   if (Number.isNaN(date.getTime())) return '';
   date.setHours(0, 0, 0, 0);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -54,7 +65,7 @@ function confirmationWord(count) { return Number(count) > 1 ? 'confirmações' :
 function bottomActive() { document.querySelectorAll('.collector-bottom-nav button').forEach((button) => button.classList.toggle('is-active', button.dataset.tab === tab)); }
 function businessDaysUntil(value) {
   if (!value) return null;
-  const end = new Date(value);
+  const end = parseLocalDate(value);
   if (Number.isNaN(end.getTime())) return null;
   const start = new Date(); start.setHours(0, 0, 0, 0); end.setHours(0, 0, 0, 0);
   const direction = end >= start ? 1 : -1;

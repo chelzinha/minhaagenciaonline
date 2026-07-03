@@ -2,4 +2,15 @@ User-agent: *
 Allow: /
 Disallow: /intra/
 Disallow: /balcao/
+Disallow: /crm/
+Disallow: /caixa/
+Disallow: /atende/
+Disallow: /sla/
+Disallow: /cep/
+Disallow: /portal/
+Disallow: /agf/
+Disallow: /reverso-admin/
+Disallow: /reverso-coleta/
+Disallow: /reverso-expedicao/
+Disallow: /superfrete-admin/
 Sitemap: https://minhaagenciaonline.com.br/sitemap.xml

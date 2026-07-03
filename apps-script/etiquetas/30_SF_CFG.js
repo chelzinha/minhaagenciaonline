@@ -68,7 +68,7 @@ const SF = {
 
   DEFAULTS: {
     ADMIN_LOGIN: 'admin',
-    ADMIN_PASSWORD: 'admin123',
+    // ADMIN_PASSWORD removido: a senha inicial agora é aleatória (ver 31_SF_BOOTSTRAP.js).
     CLIENTE_EXEMPLO_LOGIN: 'cliente.exemplo',
     CLIENTE_EXEMPLO_PASSWORD: 'cliente123',
     LIMITE_CLIENTE_EXEMPLO: 300,

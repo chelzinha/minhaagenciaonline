@@ -15,9 +15,20 @@ function showLoading(text) { $('loadingText').textContent = text || 'Carregando.
 function hideLoading() { $('loading').classList.remove('show'); }
 function toast(message, type = 'info') { const el = $('toast'); el.textContent = message; el.style.background = type === 'error' ? '#B91C1C' : type === 'success' ? '#15803D' : '#1F2937'; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 3600); }
 function label(key) { return String(key || '').replaceAll('_', ' ').replaceAll('-', ' ').replace(/\b\w/g, c => c.toUpperCase()); }
-function dt(v) { if (!v) return '-'; const d = new Date(v); return isNaN(d) ? String(v) : d.toLocaleString('pt-BR'); }
+// AGF fix (timezone): datas 'aaaa-mm-dd' vindas do backend eram lidas como
+// meia-noite UTC e exibidas 1 dia antes em Fortaleza (UTC-3). parseLocalDate
+// interpreta o caso ISO-date puro como data LOCAL; qualquer outro formato
+// (ISO com hora, timestamp) segue pelo new Date padrão.
+function parseLocalDate(v){
+  if (v instanceof Date) return v;
+  var s = String(v == null ? '' : v).trim();
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return new Date(v);
+}
+function dt(v) { if (!v) return '-'; const d = parseLocalDate(v); return isNaN(d) ? String(v) : d.toLocaleString('pt-BR'); }
 function todayLabel() { return new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).format(new Date()).replace(/^./,c=>c.toUpperCase()); }
-function dateOnly(v) { if (!v) return ''; const d=new Date(v); return isNaN(d)?'':d.toLocaleDateString('pt-BR'); }
+function dateOnly(v) { if (!v) return ''; const d=parseLocalDate(v); return isNaN(d)?'':d.toLocaleDateString('pt-BR'); }
 function copyText(text) { if (!text) return; navigator.clipboard?.writeText(String(text)).then(()=>toast('Copiado para a área de transferência.')).catch(()=>toast('Não foi possível copiar.','error')); }
 function safe(v) { return String(v ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[m])); }
 function badge(v) { const cls = String(v || 'info').replaceAll('_','-'); return `<span class="badge ${cls}">${label(v || '-')}</span>`; }
@@ -138,7 +149,7 @@ function startOfWeek(date = new Date()) {
   const d = new Date(date); const day = d.getDay(); const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff); d.setHours(0,0,0,0); return d;
 }
-function dateKey(v) { const d = new Date(v); if (isNaN(d)) return ''; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function dateKey(v) { const d = parseLocalDate(v); if (isNaN(d)) return ''; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function renderWeekCalendar() {
   const monday = startOfWeek();
   const days = Array.from({ length: 5 }, (_, i) => { const d = new Date(monday); d.setDate(d.getDate()+i); return d; });

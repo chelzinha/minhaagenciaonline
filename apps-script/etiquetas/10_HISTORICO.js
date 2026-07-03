@@ -25,7 +25,8 @@ const HIST_HEADERS = [
   'ID_PREPOSTAGEM', 'CODIGO_OBJETO', 'ID_RECIBO_ROTULO',
   'URL_PDF_DRIVE', 'FILE_ID_PDF_DRIVE',
   'URL_PDF_DECLARACAO_DRIVE', 'FILE_ID_DECLARACAO_DRIVE',
-  'STATUS', 'MENSAGEM_ERRO'
+  'STATUS', 'MENSAGEM_ERRO',
+  'ID_REQUISICAO'
 ];
 
 /**
@@ -113,11 +114,34 @@ function criarRegistroHistorico_(client, payload) {
     URL_PDF_DECLARACAO_DRIVE: '',
     FILE_ID_DECLARACAO_DRIVE: '',
     STATUS: 'PROCESSANDO_VALIDACAO',
-    MENSAGEM_ERRO: ''
+    MENSAGEM_ERRO: '',
+    ID_REQUISICAO: sanitize_(payload.idRequisicao || '')
   };
 
   const rowNum = appendByHeaders_(CFG.SHEETS.HIST, row);
   return { idRegistro: idRegistro, rowNum: rowNum };
+}
+
+/**
+ * Proteção contra emissão duplicada (idempotência).
+ * Procura, nas últimas linhas do histórico, um registro do mesmo login
+ * com o mesmo ID_REQUISICAO que NÃO tenha falhado. Se existir, o front
+ * tentou reenviar (timeout de rede etc.) e a segunda emissão deve ser
+ * barrada para não gerar cobrança em dobro.
+ */
+function buscarRegistroPorRequisicao_(loginApp, idRequisicao) {
+  const key = sanitize_(idRequisicao);
+  if (!key) return null;
+  const tail = readSheetTailAsObjects_(CFG.SHEETS.HIST, 300);
+  for (let i = tail.length - 1; i >= 0; i--) {
+    const r = tail[i];
+    if (sanitize_(r.LOGIN_APP) !== sanitize_(loginApp)) continue;
+    if (sanitize_(r.ID_REQUISICAO) !== key) continue;
+    const status = upper_(r.STATUS);
+    if (status.indexOf('ERRO') === 0 || status === 'CANCELADA') continue;
+    return r;
+  }
+  return null;
 }
 
 function atualizarHistorico_(rowNum, patch) {
@@ -161,7 +185,9 @@ function action_listarHistorico_(params) {
   const f = params.filtros || {};
   const limit = Math.min(toNumber_(f.limit, 100), 500);
 
-  const all = readSheetAsObjects_(CFG.SHEETS.HIST);
+  // Performance: lê apenas as últimas 3000 linhas (mais que suficiente
+  // para os filtros de mês/período do app) em vez da planilha inteira.
+  const all = readSheetTailAsObjects_(CFG.SHEETS.HIST, 3000);
   const meusRegistros = all.filter(r => sanitize_(r.LOGIN_APP) === sessionClient.LOGIN_APP);
   const mes = normalizeHistoricoMes_(f.mes);
   const registrosPeriodo = mes

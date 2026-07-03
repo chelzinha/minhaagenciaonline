@@ -102,5 +102,15 @@
       if (!canAccess(result.user)) throw new Error('Perfil sem permissão.');
       ready(result);
     })
-    .catch(() => fail('sessao'));
+    .catch((err) => {
+      /* Fail-soft no caminho bloqueante: só desloga quando o SERVIDOR
+       * recusa a sessão (err.code === 'rejected'). Timeout/queda de rede
+       * (codes 'timeout' | 'network' | 'bad-response') não podem apagar
+       * uma sessão local ainda válida — antes, qualquer oscilação depois
+       * do TTL de 10 min jogava o usuário no login. Aqui renderizamos em
+       * modo degradado (offline) e revalidamos no próximo carregamento. */
+      if (err && err.code === 'rejected') { fail('sessao'); return; }
+      if (err && err.message === 'Perfil sem permissão.') { fail('perfil'); return; }
+      ready({ user: localUser, cached: true, degraded: true });
+    });
 })(window);

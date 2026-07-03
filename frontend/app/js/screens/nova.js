@@ -41,6 +41,8 @@ Screens.nova = (function () {
     autocompleteIdx: -1
   };
 
+  let _idemKey = '';
+
   // ============================================================
   // ESTADO DO FORM
   // ============================================================
@@ -52,6 +54,8 @@ Screens.nova = (function () {
       autocompleteItems: [],
       autocompleteIdx: -1
     };
+    // Idempotência: nova chave a cada montagem/limpeza do formulário.
+    _idemKey = 'REQ_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
   }
 
   function getCurrentClient() {
@@ -659,7 +663,8 @@ Screens.nova = (function () {
       destinatarioComplemento:  $('destComplemento').value.trim(),
       destinatarioBairro:       $('destBairro').value.trim(),
       destinatarioCidade:       $('destCidade').value.trim(),
-      destinatarioUf:           $('destUf').value.trim().toUpperCase()
+      destinatarioUf:           $('destUf').value.trim().toUpperCase(),
+      idRequisicao:             _idemKey
     };
 
     if (payload.objetosProibidos !== 'NAO') {
@@ -715,6 +720,7 @@ Screens.nova = (function () {
       }
 
       Router.setSuccessData(result);
+      _idemKey = 'REQ_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
       Router.navigate('/sucesso');
     } catch (e) {
       UI.hideLoading();

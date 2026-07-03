@@ -42,6 +42,19 @@ function action_criarEtiqueta_(params) {
   const fullClient = getFullClientFromSession_(params.sessionToken);
   const input = params.payload || {};
 
+  // 0. Idempotência: se o front reenviar a MESMA solicitação (timeout de
+  //    rede com o servidor tendo concluído), não gerar segunda etiqueta.
+  if (input.idRequisicao) {
+    const existente = buscarRegistroPorRequisicao_(fullClient.LOGIN_APP, input.idRequisicao);
+    if (existente) {
+      logEvent_('WARN', 'ETIQUETA', 'DUPLICADA_BLOQUEADA', {
+        idRegistro: existente.ID_REGISTRO,
+        login: fullClient.LOGIN_APP
+      });
+      throw new Error('Este envio já foi processado ou está em processamento. Confira a aba Histórico antes de emitir novamente.');
+    }
+  }
+
   // 1. Cria o registro no histórico ANTES de qualquer chamada externa.
   //    Garante rastro mesmo se a Correios derrubar a conexão no meio.
   let reg;

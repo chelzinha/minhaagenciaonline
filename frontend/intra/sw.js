@@ -12,7 +12,7 @@
  *   3. SW novo é detectado, baixa em background, ativa no próximo refresh
  * ============================================================ */
 
-const VERSION = 'v21-topbar-favicon-transparente';
+const VERSION = 'v22-sharedui-nf';
 const STATIC_CACHE  = 'agf-static-'  + VERSION;
 const RUNTIME_CACHE = 'agf-runtime-' + VERSION;
 
@@ -125,6 +125,21 @@ self.addEventListener('fetch', (event) => {
               || caches.match('/intra/')
               || caches.match(OFFLINE_FALLBACK_HTML));
         })
+    );
+    return;
+  }
+
+  /* === UI compartilhada (/shared/ui/): network-first para propagar
+     atualizações de CSS/JS imediatamente; cai no cache só offline. === */
+  if (url.origin === self.location.origin && url.pathname.indexOf('/shared/ui/') === 0) {
+    event.respondWith(
+      fetch(req).then((res) => {
+        if (res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(STATIC_CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+        }
+        return res;
+      }).catch(() => caches.match(req))
     );
     return;
   }

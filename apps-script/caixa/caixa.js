@@ -132,9 +132,14 @@ function doGet(e) {
   const p = (e && e.parameter) ? e.parameter : {};
   const action = String(p.action || '').trim();
 
+  if (action === 'ping') return jsonOutput_(ping_());
+
+  // Gate AGF: dados do caixa exigem sessão válida (ver 00_AGF_AUTH_GATE.js).
+  const gateGet = agfGateCheck_(p.st || p.auth_token || '', 'GET ' + action);
+  if (!gateGet.allowed) return jsonOutput_(agfGateDeniedResponse_());
+
   if (action === 'init') return jsonOutput_(init_());
   if (action === 'summary') return jsonOutput_(getSummary_(String(p.date || '').trim() || todayISO_()));
-  if (action === 'ping') return jsonOutput_(ping_());
 
   return jsonOutput_({
     ok: true,
@@ -147,6 +152,12 @@ function doPost(e) {
   try {
     const data = parseRequestBody_(e);
     const action = String(data.action || '').trim();
+
+    if (action !== 'ping') {
+      // Gate AGF: escrita e leitura do caixa exigem sessão válida.
+      const gatePost = agfGateCheck_(data.st || data.auth_token || '', 'POST ' + action);
+      if (!gatePost.allowed) return jsonOutput_(agfGateDeniedResponse_());
+    }
 
     switch (action) {
       case 'init':

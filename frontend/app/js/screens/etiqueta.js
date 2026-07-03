@@ -9,8 +9,9 @@ Screens.etiqueta = (function () {
   let _state = {
     servico: null,
     tipoObjeto: 'PACOTE',
-    autocompleteItems: []
-  };
+    autocompleteItems: []  };
+
+  let _idemKey = '';
 
   function getCurrentClient() {
     return Api.getCachedClient() || {};
@@ -290,7 +291,8 @@ Screens.etiqueta = (function () {
       destinatarioComplemento: $('etqDestComplemento').value.trim(),
       destinatarioBairro: $('etqDestBairro').value.trim(),
       destinatarioCidade: $('etqDestCidade').value.trim(),
-      destinatarioUf: $('etqDestUf').value.trim().toUpperCase()
+      destinatarioUf: $('etqDestUf').value.trim().toUpperCase(),
+      idRequisicao: _idemKey
     };
 
     if (payload.objetosProibidos !== 'NAO') {
@@ -342,6 +344,9 @@ Screens.etiqueta = (function () {
         UI.toast('Etiqueta gerada com sucesso!', 'success');
       }
       Router.setSuccessData(result);
+      // Emissão concluída: renova a chave para que uma próxima etiqueta
+      // nesta mesma sessão não seja confundida com esta.
+      _idemKey = 'REQ_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
       Router.navigate('/sucesso');
     } catch (e) {
       UI.hideLoading();
@@ -351,6 +356,9 @@ Screens.etiqueta = (function () {
 
   function mount() {
     _state = { servico: null, tipoObjeto: 'PACOTE', autocompleteItems: [] };
+    // Idempotência: chave única desta tentativa de emissão. Reenvios após
+    // timeout de rede mantêm a MESMA chave, e o backend barra a duplicata.
+    _idemKey = 'REQ_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
     if (window.NfeImport && NfeImport.clearPreviewState) NfeImport.clearPreviewState();
     renderHero();
     renderServicos();

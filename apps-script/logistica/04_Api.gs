@@ -71,11 +71,44 @@ function doPost(e) {
 /** =========================
  * ROTEADOR CENTRAL
  * ========================= */
+/**
+ * Actions internas (admin, coleta e expedição): exigem sessão AGF.
+ * Actions públicas (fluxo do usuário final em /reverso) ficam fora
+ * desta lista e continuam funcionando sem sessão AGF:
+ * health, getUnitBySlug, registerOrLoginUser, readEtiqueta,
+ * confirmDropoff, getUserHistory, getUnitStatus, getDashboard (só
+ * resumo agregado), openColeta, scanEtiquetaColeta, closeColeta,
+ * markRecebidaAgencia, markPostada.
+ */
+var REVERSA_INTERNAL_ACTIONS = {
+  getAdminBootstrap: true,
+  listUnidades: true, createUnidade: true, updateUnidade: true,
+  listLotes: true, generateLoteEtiquetas: true,
+  getLotePrintData: true, getEtiquetaPrintData: true, listEtiquetas: true,
+  listReversas: true, getReversaDetail: true,
+  listColetas: true, listDivergencias: true, createDivergencia: true,
+  listParametros: true, updateParametro: true,
+  getCollectorHome: true, getCollectorHistory: true, getColetaDetail: true,
+  startColetaExecution: true, getColetaSummary: true,
+  registerCollectorDivergence: true, transferColeta: true,
+  listExpedicao: true, receiveObjetoAgencia: true, postObjeto: true,
+  resendPostedEmail: true, markWhatsAppSent: true
+};
+
 function routeApiRequest_(req) {
   const action = String(req.action || '').trim();
 
   if (!action) {
     return apiError_('ACTION_REQUIRED', 'Ação não informada.');
+  }
+
+  // Gate AGF: os fronts internos (reverso-admin/coleta/expedição) já
+  // enviam auth_token em toda chamada; aqui ele passa a ser validado.
+  if (REVERSA_INTERNAL_ACTIONS[action]) {
+    const gate = agfGateCheck_(req.auth_token || req.st || '', 'reversa ' + action);
+    if (!gate.allowed) {
+      return apiError_('AUTH_REQUIRED', 'Sessão necessária. Faça login no Portal AGF e tente novamente.');
+    }
   }
 
   switch (action) {

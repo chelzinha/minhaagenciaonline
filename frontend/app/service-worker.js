@@ -1,4 +1,4 @@
-const CACHE_NAME = 'postagens-agf-app-v36-danfe-sucesso';
+const CACHE_NAME = 'postagens-agf-app-v37-idem-svgfix';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -22,7 +22,6 @@ const PRECACHE_URLS = [
   './js/screens/config.js',
   './js/screens/sucesso.js',
   './assets/correios-logo-2.png',
-  './assets/icon-app.svg',
   './assets/favicon.ico',
   './assets/favicon-16x16.png',
   './assets/favicon-32x32.png',
