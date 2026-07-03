@@ -4,7 +4,8 @@ function registerDefaultWebhooksForStore_(storeId) {
 
   const targets = [
     { event: 'order/created', url: cfg.webappUrl + '?route=webhookOrder' },
-    { event: 'order/updated', url: cfg.webappUrl + '?route=webhookOrder' }
+    { event: 'order/updated', url: cfg.webappUrl + '?route=webhookOrder' },
+    { event: 'order/paid', url: cfg.webappUrl + '?route=webhookOrder' }
   ];
 
   const existing = listWebhooks_(storeId);
@@ -42,18 +43,28 @@ function handleOrderWebhook_(e) {
   const storeId = body.store_id || body.storeId || '';
   const orderId = body.id || '';
 
-  appendLog_('INFO', 'webhook.order.received', storeId, orderId, 'Webhook recebido', body);
+  appendLog_('INFO', 'webhook.order.received', storeId, orderId, 'Webhook recebido', {
+    event: body.event || '',
+    id: orderId,
+    store_id: storeId
+  });
 
   if (!storeId || !orderId) {
-    appendLog_('WARN', 'webhook.order.received', storeId, orderId, 'Payload sem store_id ou id', body);
+    appendLog_('WARN', 'webhook.order.received', storeId, orderId, 'Payload sem store_id ou id', {
+      event: body.event || ''
+    });
     return asJson_({ ok: true, ignored: true });
   }
 
   try {
-    const result = syncOrderById_(storeId, orderId);
+    const result = syncPaidOrderById_(storeId, orderId);
     return asJson_(result);
   } catch (err) {
-    appendLog_('ERROR', 'webhook.order.process', storeId, orderId, err.message, body);
+    appendLog_('ERROR', 'webhook.order.process', storeId, orderId, err.message, {
+      event: body.event || '',
+      id: orderId,
+      store_id: storeId
+    });
     return asJson_({ ok: false, error: err.message });
   }
 }
