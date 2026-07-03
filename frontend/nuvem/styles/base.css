@@ -243,6 +243,106 @@ textarea:focus-visible {
   }
 }
 
+/* =====================================================
+   Nuvemshop — polimento de cards, chips e mobile
+   ===================================================== */
+.queue-card,
+.hist-item,
+.hist-item-inline {
+  max-width: 100%;
+}
+
+.queue-main,
+.hist-item-main,
+.queue-head-main,
+.hist-item-titleline,
+.queue-subline,
+.hist-meta-row {
+  min-width: 0;
+}
+
+.queue-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--nv);
+  background: var(--nv-50);
+  border: 1px solid var(--nv-100);
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.badge-pay-paid,
+.badge-pay-authorized,
+.badge-pay-pending,
+.badge-pay-cancelled,
+.badge-pay-refunded,
+.badge-service-pac,
+.badge-service-sedex,
+.badge-service-other {
+  border: 1px solid transparent;
+}
+
+.badge-pay-paid { background: #dcfce7 !important; color: #166534 !important; border-color: #bbf7d0 !important; }
+.badge-pay-authorized { background: #e0f2fe !important; color: #075985 !important; border-color: #bae6fd !important; }
+.badge-pay-pending { background: #fef3c7 !important; color: #92400e !important; border-color: #fde68a !important; }
+.badge-pay-cancelled,
+.badge-pay-refunded { background: #fee2e2 !important; color: #991b1b !important; border-color: #fecaca !important; }
+
+.badge-service-pac,
+.hist-service-pac { background: #e0f2fe !important; color: #075985 !important; border-color: #bae6fd !important; }
+.badge-service-sedex,
+.hist-service-sedex { background: #fef3c7 !important; color: #92400e !important; border-color: #fde68a !important; }
+.badge-service-other,
+.hist-service-outro { background: #f1f5f9 !important; color: #334155 !important; border-color: #e2e8f0 !important; }
+
+.queue-card.is-not-eligible {
+  opacity: .86;
+}
+.queue-card.is-not-eligible .queue-title,
+.queue-card.is-not-eligible .queue-subline {
+  color: var(--muted);
+}
+.queue-actions-note {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.35;
+  padding: 7px 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+@media (max-width: 640px) {
+  .screen { padding-left: 12px !important; padding-right: 12px !important; }
+  .toolbar,
+  .hist-toolbar-card { padding: 12px !important; }
+  .queue-card,
+  .hist-item,
+  .hist-item-inline { border-radius: 18px !important; }
+  .queue-main,
+  .hist-item-main { padding-right: 12px !important; }
+  .queue-actions,
+  .hist-item-actions-inline { display: grid !important; grid-template-columns: 1fr !important; }
+  .queue-actions .btn,
+  .hist-item-actions-inline .btn { width: 100% !important; min-height: 44px !important; }
+  .queue-value { width: fit-content; }
+  .toolbar-actions-bulk { grid-template-columns: 1fr !important; }
+  .bottom-nav { left: 8px !important; right: 8px !important; }
+}
+
+@media (max-width: 420px) {
+  .queue-title,
+  .hist-item-titleline .hist-item-nome { font-size: 17px !important; }
+  .queue-subline,
+  .hist-meta-row { font-size: 12px !important; }
+  .badge { font-size: 10px !important; padding-inline: 8px !important; }
+}
+
 /* Print */
 @media print {
   .topbar, .bottom-nav, .sticky-actions, .toast, .loading,
