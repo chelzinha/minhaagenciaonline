@@ -431,8 +431,22 @@ function op_median_(arr){
   if (!a.length) return 0; var mid = Math.floor(a.length/2); return a.length % 2 ? a[mid] : (a[mid-1] + a[mid]) / 2;
 }
 function op_percentileRank_(arr, value){
-  var a = (arr || []).slice().sort(function(x,y){return x-y;}); if (!a.length) return 0;
-  var count = 0; for (var i=0;i<a.length;i++) if (a[i] <= value) count++; return count / a.length;
+  // AGF perf: O(n log n). Ordena 1x e conta <= por busca binaria.
+  // Resultado IDENTICO ao loop antigo (count de a[i] <= value) / total.
+  var a = (arr || []).slice().sort(function(x,y){ return x - y; });
+  if (!a.length) return 0;
+  return op_countLteSorted_(a, value) / a.length;
+}
+
+// AGF perf: conta quantos elementos <= value num array JA ordenado (asc).
+function op_countLteSorted_(a, value){
+  var lo = 0, hi = a.length;
+  while (lo < hi){
+    var mid = (lo + hi) >> 1;
+    if (a[mid] <= value) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
 }
 function op_padNumber_(n,size){ var s=String(n); while(s.length < size) s='0'+s; return s; }
 function op_nowIso_(){ return Utilities.formatDate(new Date(), OP_CFG.TZ, "yyyy-MM-dd'T'HH:mm:ss"); }
@@ -867,12 +881,19 @@ function op_applyCurva_(metrics, label, fields){
   var ticketVals = metrics.map(function(m){ return op_toNumber_(m[fields.ticketField]); });
   var diasVals = metrics.map(function(m){ return op_toNumber_(m[fields.diasField]); });
 
+  // AGF perf: ordena cada array UMA vez (antes era 1x por cliente = O(n^2)).
+  var fatSorted = fatVals.slice().sort(function(x,y){ return x - y; });
+  var qtdSorted = qtdVals.slice().sort(function(x,y){ return x - y; });
+  var ticketSorted = ticketVals.slice().sort(function(x,y){ return x - y; });
+  var diasSorted = diasVals.slice().sort(function(x,y){ return x - y; });
+  var _n = metrics.length || 1;
+
   metrics.forEach(function(m){
     var score =
-      op_percentileRank_(fatVals, op_toNumber_(m[fields.fatField])) * OP_CFG.CURVA.WEIGHTS.FAT_30D +
-      op_percentileRank_(qtdVals, op_toNumber_(m[fields.qtdField])) * OP_CFG.CURVA.WEIGHTS.QTD_30D +
-      op_percentileRank_(ticketVals, op_toNumber_(m[fields.ticketField])) * OP_CFG.CURVA.WEIGHTS.TICKET_30D +
-      op_percentileRank_(diasVals, op_toNumber_(m[fields.diasField])) * OP_CFG.CURVA.WEIGHTS.DIAS_ATIVOS_30D;
+      (op_countLteSorted_(fatSorted, op_toNumber_(m[fields.fatField])) / _n) * OP_CFG.CURVA.WEIGHTS.FAT_30D +
+      (op_countLteSorted_(qtdSorted, op_toNumber_(m[fields.qtdField])) / _n) * OP_CFG.CURVA.WEIGHTS.QTD_30D +
+      (op_countLteSorted_(ticketSorted, op_toNumber_(m[fields.ticketField])) / _n) * OP_CFG.CURVA.WEIGHTS.TICKET_30D +
+      (op_countLteSorted_(diasSorted, op_toNumber_(m[fields.diasField])) / _n) * OP_CFG.CURVA.WEIGHTS.DIAS_ATIVOS_30D;
     m['SCORE_CURVA_' + label] = score;
   });
 
