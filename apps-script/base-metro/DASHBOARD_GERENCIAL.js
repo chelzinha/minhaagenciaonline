@@ -640,8 +640,8 @@ function getDash_(p){
   var unitKey=csvS_(p.units||p.unit||'');
   // v10.4: chave hasheada para evitar "Argumento grande demais: key".
   // CacheService do Apps Script tem limite de 250 chars por key.
-  var rawKey='d10v10::'+ct_(p.periodMode||'')+'|'+ct_(p.monthYm||'')+'|'+ct_(p.startDate||'')+'|'+ct_(p.endDate||'')+'|'+unitKey+'|'+ct_(p.type||'')+'|'+ct_(p.inter||'')+'|'+ct_(p.seg||'')+'|'+ct_(p.q||'')+'|'+ct_(p.day||'');
-  var ck='d10v10_'+hashKey_(rawKey);
+  var rawKey='d10v11::'+ct_(p.periodMode||'')+'|'+ct_(p.monthYm||'')+'|'+ct_(p.startDate||'')+'|'+ct_(p.endDate||'')+'|'+unitKey+'|'+ct_(p.type||'')+'|'+ct_(p.inter||'')+'|'+ct_(p.seg||'')+'|'+ct_(p.q||'')+'|'+ct_(p.day||'');
+  var ck='d10v11_'+hashKey_(rawKey);
   var cc=gcj_(ck);if(cc)return cc;
   try{ if(typeof op_ensureMasterFresh_==='function') op_ensureMasterFresh_({allowStale:true}); }catch(e){}
   var b=getBundle_(),f=normF_(p,b.latest);
@@ -679,8 +679,8 @@ function getDash_(p){
 
 function getDashSummary_(p){
   var unitKey=csvS_(p.units||p.unit||'');
-  var rawKey='ds10v8::'+ct_(p.periodMode||'')+'|'+ct_(p.monthYm||'')+'|'+ct_(p.startDate||'')+'|'+ct_(p.endDate||'')+'|'+unitKey+'|'+ct_(p.type||'')+'|'+ct_(p.inter||'')+'|'+ct_(p.seg||'')+'|'+ct_(p.q||'')+'|'+ct_(p.day||'');
-  var ck='ds10v8_'+hashKey_(rawKey);
+  var rawKey='ds10v9::'+ct_(p.periodMode||'')+'|'+ct_(p.monthYm||'')+'|'+ct_(p.startDate||'')+'|'+ct_(p.endDate||'')+'|'+unitKey+'|'+ct_(p.type||'')+'|'+ct_(p.inter||'')+'|'+ct_(p.seg||'')+'|'+ct_(p.q||'')+'|'+ct_(p.day||'');
+  var ck='ds10v9_'+hashKey_(rawKey);
   var cc=gcj_(ck);if(cc)return cc;
   var pl=getDash_(p);
   var out={ok:true,fl:pl.fl,ctx:pl.ctx,ov:{cards:pl.ov.cards,mc:pl.ov.mc,insights:pl.ov.insights},dy:{cards:pl.dy.cards,resumo:pl.dy.resumo},acoes:{sum:pl.acoes.sum,counts:pl.acoes.counts,foco:pl.acoes.foco}};
