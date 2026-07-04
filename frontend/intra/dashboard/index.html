@@ -1085,7 +1085,6 @@ th.desc .sa{
       <div class="period-title">Período</div>
       <div class="period-bar" id="periodBar">
         <button class="period-chip" type="button" data-pm="all">Todo o período</button>
-        <button class="period-chip" type="button" data-pm="day">Do dia</button>
         <button class="period-chip" type="button" data-pm="week">Da semana</button>
         <button class="period-chip on" type="button" data-pm="month">Do mês</button>
         <button class="period-chip" type="button" data-pm="range">Intervalo</button>
@@ -1792,14 +1791,14 @@ function rOv(){
 
   $('v-ov').innerHTML=
     '<div class="g g4">'+
-      K({t:receitaTitulo,v:M(c.fM),n:metaTitulo+M(c.metaM),d:c.fdPct,s:'bl'})+
-      K({t:'% da meta',v:P(c.percM),n:'Tempo: '+P(m.pctTempo),p:c.percM,bc:c.percM>=m.pctTempo?'ok':'gd',s:'gd'})+
-      K({t:'Meta restante',v:M(c.mRest),s:'dn'})+
-      K({t:'Média diária necessária',v:M(c.mNec),n:'Base diária: '+M(m.metaDia),s:'bl'})+
+      K({t:receitaTitulo,v:M(c.fM),n:(c.isMonth?metaTitulo+M(c.metaM):'Total do período'),d:(c.isMonth?c.fdPct:null),s:'bl'})+
+      K({t:'% da meta',v:(c.isMonth?P(c.percM):'-'),n:(c.isMonth?'Tempo: '+P(m.pctTempo):'Não se aplica'),p:(c.isMonth?c.percM:0),bc:(c.isMonth&&c.percM>=m.pctTempo?'ok':'gd'),s:'gd'})+
+      K({t:'Meta restante',v:(c.isMonth?M(c.mRest):'-'),s:'dn'})+
+      K({t:'Média diária necessária',v:(c.isMonth?M(c.mNec):'-'),n:(c.isMonth?'Base diária: '+M(m.metaDia):''),s:'bl'})+
     '</div>'+
 
     '<div class="g g14" style="margin-top:8px">'+
-      K({t:qtdTitulo,v:N(c.oM),n:'Ant: '+N(c.oP),d:c.odPct,s:'bl'})+
+      K({t:qtdTitulo,v:N(c.oM),n:(c.isMonth?'Ant: '+N(c.oP):'Total do período'),d:(c.isMonth?c.odPct:null),s:'bl'})+
       '<div class="k"><div class="k-l">Tendência da base</div><div class="tend-row">'+
         '<div class="tend-card"><div class="tend-label">Crescendo</div><div class="tend-val" style="color:var(--ok)">'+pCresc+'%<span class="tend-icon">▲</span></div></div>'+
         '<div class="tend-card"><div class="tend-label">Estável</div><div class="tend-val" style="color:var(--mt)">'+pEst+'%<span class="tend-icon">●</span></div></div>'+
@@ -1808,9 +1807,9 @@ function rOv(){
     '</div>'+
 
     '<div class="g g4" style="margin-top:8px">'+
-      K({t:'Ticket médio',v:M(c.tM),n:'Ant: '+M(c.tP),d:c.tdPct,s:'gd'})+
+      K({t:'Ticket médio',v:M(c.tM),n:(c.isMonth?'Ant: '+M(c.tP):'Média do período'),d:(c.isMonth?c.tdPct:null),s:'gd'})+
       K({t:'Clientes no período',v:N(c.tot),n:'Ativos 30d: '+N(c.a30),s:'gn'})+
-      K({t:'Novos clientes',v:N(c.novos),n:'1ª postagem no mês',s:'gn'})+
+      K({t:'Novos clientes',v:N(c.novos),n:(c.isMonth?'1ª postagem no mês':'1ª postagem no período'),s:'gn'})+
       K({t:'Inativos 60+d',v:N(c.i60),n:'Base total',s:'rd'})+
     '</div>'+
 

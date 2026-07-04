@@ -235,7 +235,7 @@ function readMet_(){var ss=getSsMet_(),sh=ss.getSheetByName(CFG.SHEETS.METAS);if
 
 
 /* === FILTROS === */
-function normF_(p,lat){var ym=ct_(p.monthYm||ym_(lat)),ms=msYm_(ym),rme=meYm_(ym),me=rme>lat?lat:rme;var gMin=CFG.RULES.MIN_START,gMax=lat;var rs=ct_(p.startDate||ms),re=ct_(p.endDate||me);var sd=rs<gMin?gMin:(rs>gMax?gMax:rs);var ed=re<sd?sd:(re>gMax?gMax:re);var dy=ct_(p.day||ed);if(dy<sd)dy=sd;if(dy>ed)dy=ed;var units=csvA_(p.units||p.unit||''),types=csvA_(p.types||p.type||''),inters=csvA_(p.inters||p.inter||''),segs=csvA_(p.segs||p.seg||'');return{monthYm:ym,monthStart:ms,monthEnd:me,startDate:sd,endDate:ed,day:dy,unit:units.join(','),units:units,type:types.join(','),types:types,inter:inters.join(','),inters:inters,seg:segs.join(','),segs:segs,q:ct_(p.q||'')}}
+function normF_(p,lat){var ym=ct_(p.monthYm||ym_(lat)),ms=msYm_(ym),rme=meYm_(ym),me=rme>lat?lat:rme;var gMin=CFG.RULES.MIN_START,gMax=lat;var rs=ct_(p.startDate||ms),re=ct_(p.endDate||me);var sd=rs<gMin?gMin:(rs>gMax?gMax:rs);var ed=re<sd?sd:(re>gMax?gMax:re);var dy=ct_(p.day||ed);if(dy<sd)dy=sd;if(dy>ed)dy=ed;var units=csvA_(p.units||p.unit||''),types=csvA_(p.types||p.type||''),inters=csvA_(p.inters||p.inter||''),segs=csvA_(p.segs||p.seg||'');return{monthYm:ym,monthStart:ms,monthEnd:me,startDate:sd,endDate:ed,day:dy,unit:units.join(','),units:units,type:types.join(','),types:types,inter:inters.join(','),inters:inters,seg:segs.join(','),segs:segs,q:ct_(p.q||''),periodMode:ct_(p.periodMode||'')||'month'}}
 function fltND_(rows,f){return rows.filter(function(r){if(f.units&&f.units.length&&f.units.indexOf(r.unidade)<0)return false;if(f.types&&f.types.length&&f.types.indexOf(r.tipoServico)<0)return false;if(f.inters&&f.inters.length&&f.inters.indexOf(r.intermediador)<0)return false;if(f.segs&&f.segs.length&&f.segs.indexOf(r.segmento)<0)return false;if(f.q&&r.clienteKey.indexOf(bck_(f.q))<0)return false;return true})}
 
 function fltW_(rows,f){return rows.filter(function(r){if(r.ymd<f.startDate||r.ymd>f.endDate)return false;if(f.units&&f.units.length&&f.units.indexOf(r.unidade)<0)return false;if(f.types&&f.types.length&&f.types.indexOf(r.tipoServico)<0)return false;if(f.inters&&f.inters.length&&f.inters.indexOf(r.intermediador)<0)return false;if(f.segs&&f.segs.length&&f.segs.indexOf(r.segmento)<0)return false;if(f.q&&r.clienteKey.indexOf(bck_(f.q))<0)return false;return true})}
@@ -424,11 +424,26 @@ return f.slice(0,4);
 function buildOv_(base,win,cAll,cWin,metaMap,f,lat,ap){
 var mYm=f.monthYm,pYm=prevYm_(mYm);
 var mR=base.filter(function(r){return r.ym===mYm}),pR=base.filter(function(r){return r.ym===pYm});
-var fM=sumR_(mR,'valor'),oM=sumR_(mR,'qtd'),fP=sumR_(pR,'valor'),oP=sumR_(pR,'qtd');
+// AGF fix periodo: no modo mensal os cards de total usam o MES; nos demais
+// modos (all/range/week/day) usam a JANELA filtrada (win = range escolhido).
+var _pm=f.periodMode||'month',_isMonth=(_pm==='month');
+var fM,oM,fP,oP;
+if(_isMonth){
+  fM=sumR_(mR,'valor');oM=sumR_(mR,'qtd');fP=sumR_(pR,'valor');oP=sumR_(pR,'qtd');
+}else{
+  // Total do periodo filtrado. Sem comparativo mes-a-mes (nao se aplica).
+  fM=sumR_(win,'valor');oM=sumR_(win,'qtd');fP=0;oP=0;
+}
 var tM=oM>0?fM/oM:0,tP=oP>0?fP/oP:0;
 var mc=mctx_(metaMap,mYm,lat,f.endDate);
-var metaM=mc.metaFat,percM=metaM>0?fM/metaM*100:0;
-var mRest=Math.max(0,metaM-fM),mNec=mc.duRest>0?mRest/mc.duRest:0,dvI=percM-mc.pctTempo;
+// AGF fix: meta e um conceito MENSAL. Fora do modo mensal, zera (front mostra "-").
+var metaM,percM,mRest,mNec,dvI;
+if(_isMonth){
+  metaM=mc.metaFat;percM=metaM>0?fM/metaM*100:0;
+  mRest=Math.max(0,metaM-fM);mNec=mc.duRest>0?mRest/mc.duRest:0;dvI=percM-mc.pctTempo;
+}else{
+  metaM=0;percM=0;mRest=0;mNec=0;dvI=0;
+}
 
 var a30=0,i3059=0,i60=0,novos=0,niAll=cAll.filter(function(x){return!x.isInt});
 for(var c=0;c<niAll.length;c++){var x=niAll[c];if(x.st==='ATIVO_30D')a30++;else if(x.st==='INATIVO_30_59D')i3059++;else i60++;if(x.isNovo)novos++}
@@ -451,7 +466,7 @@ var nResg=ap.filter(function(x){return x.ac==='RESGATAR'}).length;
 var nVisit=0; // compatibilidade de payload legado; VISITAR não é recomendação estratégica.
 var fW=sumR_(win,'valor'),oW=sumR_(win,'qtd');
 
-return{fW:fW,oW:oW,cards:{fM:fM,fP:fP,fdPct:pctD_(fM,fP),metaM:metaM,percM:percM,mRest:mRest,mNec:mNec,dvI:dvI,tM:tM,tP:tP,tdPct:pctD_(tM,tP),oM:oM,oP:oP,odPct:pctD_(oM,oP),tot:tot,a30:a30,i3059:i3059,i60:i60,novos:novos,ctC:ctC,ctPct:pB(ctC),vrC:vrC,vrPct:pB(vrC),blC:blC,blPct:pB(blC),intC:intC,intPct:pB(intC),cEtq:cEtq,sEtq:sEtq,bEtq:bEtq},mc:mc,
+return{fW:fW,oW:oW,cards:{fM:fM,fP:fP,fdPct:pctD_(fM,fP),metaM:metaM,percM:percM,mRest:mRest,mNec:mNec,dvI:dvI,tM:tM,tP:tP,tdPct:pctD_(tM,tP),oM:oM,oP:oP,odPct:pctD_(oM,oP),tot:tot,a30:a30,i3059:i3059,i60:i60,novos:novos,ctC:ctC,ctPct:pB(ctC),vrC:vrC,vrPct:pB(vrC),blC:blC,blPct:pB(blC),intC:intC,intPct:pB(intC),cEtq:cEtq,sEtq:sEtq,bEtq:bEtq,isMonth:_isMonth,periodMode:_pm},mc:mc,
 insights:{alertaMeta:dvI>=0?'Mês em linha ou acima do ritmo.':'Abaixo do ritmo. Priorizar conversão e resgate.'},
 topCl:topCl.slice(0,CFG.LIMITS.TOP_GEN),byType:oSA_(byType).slice(0,12),byInter:oSA_(byInter).slice(0,12),mSeries:mSeries,dailySeries:dailySeries,
 seg:{seg:oSA_(segV),catQ:oSA_(catQ)},tendencia:trSum_(cWin),etqChart:[{label:'COM contrato',value:cEtq},{label:'SEM contrato',value:sEtq}]}}
