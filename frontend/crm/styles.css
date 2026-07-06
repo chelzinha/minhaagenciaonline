@@ -1201,3 +1201,64 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
     font-size: 16px !important;
   }
 }
+
+
+/* ===== AGF CRM UX pack (pacote unico): multi-select, agenda, chips de tipo, home executiva ===== */
+
+/* Multi-select nos chips de filtro */
+.chip-filter.ms .chip-badge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--teal,#0F766E);color:#fff;font-size:10px;font-weight:900}
+.chip-filter.ms.has-sel{border-color:color-mix(in srgb,var(--teal,#0F766E) 45%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--teal,#0F766E) 25%,transparent)}
+.chip-dropdown-menu.ms{max-height:300px;overflow:auto;padding:5px}
+.chip-dropdown-menu.ms .chip-option{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;border-radius:9px;padding:8px 9px;font-size:12px;font-weight:700;color:var(--text);text-align:left}
+.chip-dropdown-menu.ms .chip-option:hover{background:var(--soft)}
+.chip-dropdown-menu.ms .ms-box{display:grid;place-items:center;width:19px;height:19px;border-radius:6px;border:1.5px solid #C3D2DD;background:#fff;color:transparent;font-size:14px;flex:0 0 auto;transition:.12s}
+.chip-dropdown-menu.ms .chip-option.on .ms-box{background:var(--teal,#0F766E);border-color:var(--teal,#0F766E);color:#fff}
+.chip-dropdown-menu.ms .chip-option.ms-all{background:color-mix(in srgb,var(--teal,#0F766E) 8%,white);font-weight:850}
+.chip-dropdown-menu.ms .chip-option.ms-all:not(.on) .ms-box{color:transparent}
+.chip-dropdown-menu.ms .ms-sep{height:1px;background:var(--line);margin:4px 2px}
+.chip-dropdown-menu.ms .ms-clear{justify-content:center;color:var(--teal,#0F766E);font-weight:850}
+
+/* Agenda: mode switch com cara de menu */
+.agenda-mode-switch{background:#fff;border:1px solid var(--line);border-radius:13px;padding:4px;box-shadow:var(--shadow)}
+.agenda-mode-switch button{color:#5A7184;padding:9px 14px;border-radius:10px;font-size:12px}
+.agenda-mode-switch button:hover{background:var(--soft)}
+.agenda-mode-switch button.active{background:var(--navy);color:#fff;box-shadow:0 4px 10px rgba(14,42,77,.22)}
+
+/* Agenda: label do periodo abre calendario */
+#agendaPeriodLabel{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+#agendaPeriodLabel:hover{color:var(--blue)}
+.agenda-date-pick{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
+
+/* Agenda: dias clicaveis para criar atividade */
+.mode-month .month-day>div,.month-day>div{cursor:pointer}
+.month-day:hover{outline:2px solid color-mix(in srgb,var(--blue) 45%,transparent);outline-offset:-2px}
+.day-body{cursor:pointer}
+.day-col:hover,.day-focus-body:hover{background:#F4F9FC}
+
+/* Chips coloridos por tipo de atividade (cor vem da coluna COR de CRM_TIPOS_ATIVIDADE) */
+.type-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:900;letter-spacing:.02em;color:color-mix(in srgb,var(--tc,#64748B) 78%,#17354B);background:color-mix(in srgb,var(--tc,#64748B) 14%,white);border:1px solid color-mix(in srgb,var(--tc,#64748B) 28%,white)}
+.type-chip .material-symbols-rounded{font-size:12px;color:var(--tc,#64748B)}
+.type-chip.big{font-size:10.5px;padding:4px 10px}
+.type-chip-grid{display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px}
+
+/* Home executiva (Visao Geral dos socios) */
+.exec-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px}
+.exec-kpis .kpi-card{position:relative;display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid color-mix(in srgb,var(--k-solid,var(--blue)) 22%,var(--line));border-left:5px solid var(--k-solid,var(--blue));border-radius:15px;padding:12px;box-shadow:var(--shadow)}
+.exec-kpis .k-ico{display:grid;place-items:center;width:34px;height:34px;flex:0 0 auto;border-radius:11px;font-size:19px;color:var(--k-solid,var(--blue));background:var(--k-soft,#E2EFF7)}
+.exec-kpis .k-body{min-width:0}
+.exec-kpis .k-body strong{display:block;font-size:24px;letter-spacing:-.05em;font-family:Manrope,Inter,sans-serif;line-height:1.05}
+.exec-kpis .k-body em{display:block;font-style:normal;color:var(--muted);font-size:10px;text-transform:uppercase;font-weight:900;letter-spacing:.06em;margin-top:3px}
+.exec-kpis .k-body small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.kpi-delta{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:850;margin-top:4px}
+.kpi-delta.up{color:var(--green)}
+.kpi-delta.down{color:var(--red)}
+.kpi-delta.flat{color:var(--muted)}
+.home-charts.exec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;align-items:start}
+.stack-bar{display:flex;height:10px;border-radius:999px;overflow:hidden;background:#EAF0F5}
+.stack-bar span{display:block;height:100%}
+.stack-bar.big{height:16px;border-radius:10px}
+.stack-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.stack-legend .li{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:750;color:var(--muted)}
+.stack-legend .dot{width:9px;height:9px;border-radius:3px;flex:0 0 auto}
+
+@media(max-width:620px){.exec-kpis{grid-template-columns:repeat(2,1fr)}.exec-kpis .k-body strong{font-size:20px}.home-charts.exec-grid{grid-template-columns:1fr}}

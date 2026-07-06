@@ -50,7 +50,7 @@ var CRM3_CFG = {
   OPEN_TREATMENT_STATUSES: ['ABERTA', 'PAUSADA'],
   ACTIONABLE_RECOMMENDATIONS: ['CONVERTER', 'RESGATAR', 'FIDELIZAR', 'CANCELAR'],
   MAX_KANBAN_COLS: 6,
-  CACHE_SEC: 300
+  CACHE_SEC: 1800
 };
 
 var CRM3_APPEND_HEADERS = {
@@ -182,6 +182,33 @@ function smokeTestCrmJornadaFase3() {
 }
 
 /* ========================= CONFIG API ========================= */
+
+// AGF perf (Fase A2): boot do CRM em UMA chamada.
+// Antes o front disparava 6 requests (5 em paralelo) que erravam o cache
+// simultaneamente e reliam as mesmas planilhas. Aqui tudo roda numa unica
+// execucao e as leituras compartilham o cache interno.
+function crm3_apiGetBoot_(params) {
+  params = params || {};
+  var resp = crm3_text_(params.responsavelId || '');
+  var start = crm3_text_(params.start || op_getWeekStart_(op_toYmd_(new Date())));
+  var end = crm3_text_(params.end || op_addDays_(start, 6));
+  var agStart = crm3_text_(params.agendaStart || start);
+  var agEnd = crm3_text_(params.agendaEnd || end);
+  // Vencidas: janela de 180 dias (antes buscava desde 2000-01-01, lendo a
+  // AGENDA inteira). Atividade vencida ha mais de 6 meses sai da lista.
+  var hoje = op_toYmd_(new Date());
+  var overdueStart = op_addDays_(hoje, -180);
+  var overdueEnd = op_addDays_(hoje, -1);
+  return {
+    ok: true,
+    config: crm3_apiGetConfig_(),
+    dashboard: crm3_apiGetDashboard_({ start: start, end: end, responsavelId: resp }),
+    journeyClients: crm3_apiGetJornada_({ funilId: 'FUNIL_CLIENTES', tipoEntidade: 'CLIENTE', responsavelId: resp }),
+    journeyProspects: crm3_apiGetJornada_({ funilId: 'FUNIL_PROSPECTS', tipoEntidade: 'PROSPECT', responsavelId: resp }),
+    agenda: crm3_apiGetAgenda_({ start: agStart, end: agEnd, responsavelId: resp }),
+    overdue: crm3_apiGetAgenda_({ start: overdueStart, end: overdueEnd, responsavelId: resp, status: 'PLANEJADO' })
+  };
+}
 
 function crm3_apiGetConfig_() {
   crm3_assertSetupReady_();
