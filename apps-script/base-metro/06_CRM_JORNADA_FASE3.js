@@ -996,7 +996,19 @@ function crm3_eventObject_(x) { x = x || {}; return { EVENTO_ID:'EVT_' + Utiliti
 /* ========================= HELPERS PLANILHA ========================= */
 
 function crm3_assertSetupReady_() { if (PropertiesService.getScriptProperties().getProperty(CRM3_CFG.PROPS.SETUP_VERSION) !== CRM3_CFG.VERSION) throw new Error('CRM Jornada Fase 3 ainda não preparado. Execute setupCrmJornadaFase3() uma vez no editor do Apps Script.'); }
-function crm3_readObjects_(sheetName) { return crm2_readSheetObjects_(op_getSpreadsheet_(), sheetName); }
+function crm3_readObjects_(sheetName) {
+  // AGF perf: cacheia a leitura por aba usando o cache-rev existente.
+  // Acelera o boot (get_crm_jornada_data e chamado ate 4x). As 9 funcoes de
+  // escrita ja chamam crm3_bumpCacheRev_(), invalidando o cache na hora.
+  var _suffix = 'readobj|' + sheetName;
+  try {
+    var _c = crm3_cacheGet_(_suffix);
+    if (_c) return _c;
+  } catch (e) {}
+  var _rows = crm2_readSheetObjects_(op_getSpreadsheet_(), sheetName);
+  try { crm3_cachePut_(_suffix, _rows); } catch (e) {}
+  return _rows;
+}
 function crm3_indexBy_(rows,key) { var out={}; (rows||[]).forEach(function(x){ var id=crm3_text_(x[key]); if(id) out[id]=x; }); return out; }
 function crm3_headerMap_(headers) { var out={}; (headers||[]).forEach(function(h,i){ var k=op_headerKey_(h); if(k && out[k]===undefined) out[k]=i; }); return out; }
 function crm3_cell_(row,hm,names) { names=Array.isArray(names)?names:[names]; for(var i=0;i<names.length;i++){ var k=op_headerKey_(names[i]); if(hm[k]!==undefined) return row[hm[k]]; } return ''; }
