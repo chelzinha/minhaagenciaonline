@@ -38,6 +38,9 @@ function op_doGet(e) {
     if (action === 'get_crm_config_v2') {
       return op_jsonOut_(crm_apiGetConfigV2_());
     }
+    if (action === 'get_crm_boot_v4') {
+      return op_jsonOut_(crm3_apiGetBootV4_(p));
+    }
     if (action === 'get_crm_boot_v3') {
       return op_jsonOut_(crm3_apiGetBoot_(p));
     }

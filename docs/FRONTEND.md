@@ -2,6 +2,38 @@
 
 Documento tecnico em preparacao.
 
+## CRM - boot por view ativa e render sob demanda
+
+Entrada principal:
+- frontend/crm/index.html
+- frontend/crm/app.js
+
+O que mudou em 2026-07-07:
+- O CRM le `view` e `sub` da URL antes de carregar/renderizar os dados.
+- O boot tenta `get_crm_boot_v4` com `view`, `sub`, janela de agenda e responsavel.
+- Se `get_crm_boot_v4` falhar, o frontend cai para `get_crm_boot_v3`.
+- Se o v3 tambem falhar, permanece o fluxo antigo com chamadas separadas.
+- A renderizacao inicial chama apenas a view ativa: Home, Prospects, Clientes ou Agenda.
+- Prospects e Clientes tambem renderizam apenas a subaba ativa.
+- A troca de view/subview renderiza imediatamente com dados existentes e completa blocos ausentes em background.
+
+Lazy data:
+- `get_crm_data` deixou de ser carregado automaticamente no boot comum.
+- Cadastros detalhados carregam sob demanda ao abrir subabas de cadastro, modal de cadastro/edicao ou busca de entidade na Agenda.
+- Enquanto os cadastros detalhados nao chegam, as tabelas mantem o estado local "Carregando cadastros detalhados...".
+
+Kanban:
+- O Kanban renderiza inicialmente no maximo 80 cards por coluna.
+- Colunas com mais itens exibem botao "Ver mais" em blocos de 80.
+- O total real da coluna continua aparecendo no cabecalho.
+- Drag and drop segue limitado aos cards visiveis no DOM.
+
+Debug seguro de performance:
+- Ativar com `/crm/?debugPerf=1` ou `localStorage.agfCrmPerf = '1'`.
+- Logs usam prefixo `[CRM PERF]`.
+- Logs registram apenas etapa tecnica, duracao em ms, contagens agregadas, tamanho aproximado de resposta e view/subview.
+- Nao registrar CPF, CNPJ, telefone, e-mail, endereco, nome de cliente/prospect, tokens ou credenciais.
+
 ## Modulo /nuvem - Minhas Postagens Nuvemshop
 
 Tipo de modulo:

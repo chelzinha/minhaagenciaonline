@@ -21,6 +21,44 @@ Modulos adicionados:
 
 Arquivos .clasp.json permanecem locais e nao devem ser enviados ao GitHub.
 
+## CRM - boot v4 por view
+
+Rota GET adicionada em 2026-07-07:
+- `get_crm_boot_v4`
+
+Arquivos relacionados:
+- `apps-script/base-metro/10_OPERACAO_EXECUCAO_API.js`
+- `apps-script/base-metro/06_CRM_JORNADA_FASE3.js`
+
+Parametros aceitos:
+- `view`: `home`, `prospects`, `clientes` ou `agenda`.
+- `sub`: subview ativa, como `prospects-funil`, `prospects-cadastro`, `clientes-dashboard` ou `clientes-cadastro`.
+- `start` e `end`: janela de dashboard/semana.
+- `agendaStart` e `agendaEnd`: janela de agenda.
+- `responsavelId`: filtro tecnico de responsavel ja usado pelo CRM.
+
+Resposta:
+- Mantem `{ ok: true }`.
+- Retorna sempre `config`.
+- Retorna apenas os blocos necessarios para a primeira tela solicitada.
+- Inclui `meta.version = "4"`, `meta.view`, `meta.sub`, `meta.timings[]` e `meta.counts`.
+
+Regras por view:
+- Home: `config`, `dashboard`, `journeyClients`, `journeyProspects`, `agenda` e `overdue`.
+- Prospects dashboard: `config`, `journeyProspects`, `agenda` e `overdue`.
+- Prospects funil/cadastro: `config` e `journeyProspects`.
+- Clientes: `config` e `journeyClients`.
+- Agenda: `config`, `agenda` e `overdue`.
+
+Compatibilidade:
+- `get_crm_boot_v3` permanece ativo e nao foi removido.
+- O frontend tenta v4, cai para v3 e so entao para o fluxo antigo de chamadas separadas.
+- Se o Apps Script ainda nao estiver publicado, o frontend continua funcional pelo fallback.
+
+Cuidados sensiveis:
+- `meta.timings` e `meta.counts` registram apenas nomes tecnicos de etapas, duracao em ms e quantidades agregadas.
+- Nao registrar dados pessoais, payload completo, nomes de clientes/prospects, tokens ou credenciais.
+
 ## CRM - regra de locais por EXIBIR_EM
 
 Esta secao documenta uma correcao funcional ja aplicada na branch `redesign-crm`.

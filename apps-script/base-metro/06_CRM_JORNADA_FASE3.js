@@ -210,6 +210,86 @@ function crm3_apiGetBoot_(params) {
   };
 }
 
+function crm3_normBootView_(view) {
+  view = crm3_text_(view || 'home').toLowerCase();
+  return ['home', 'prospects', 'clientes', 'agenda'].indexOf(view) >= 0 ? view : 'home';
+}
+
+function crm3_apiGetBootV4_(params) {
+  params = params || {};
+  var view = crm3_normBootView_(params.view);
+  var sub = crm3_text_(params.sub || '');
+  if (view === 'prospects' && !sub) sub = 'prospects-dashboard';
+  if (view === 'clientes' && !sub) sub = 'clientes-dashboard';
+
+  var resp = crm3_text_(params.responsavelId || '');
+  var start = crm3_text_(params.start || op_getWeekStart_(op_toYmd_(new Date())));
+  var end = crm3_text_(params.end || op_addDays_(start, 6));
+  var agStart = crm3_text_(params.agendaStart || start);
+  var agEnd = crm3_text_(params.agendaEnd || end);
+  var hoje = op_toYmd_(new Date());
+  var overdueStart = op_addDays_(hoje, -180);
+  var overdueEnd = op_addDays_(hoje, -1);
+  var out = {
+    ok: true,
+    meta: { version: '4', view: view, sub: sub, timings: [], counts: {} }
+  };
+
+  function timed_(step, fn) {
+    var t0 = new Date().getTime();
+    var value = fn();
+    out.meta.timings.push({ step: step, ms: new Date().getTime() - t0 });
+    return value;
+  }
+  function countItems_(key, block) {
+    out.meta.counts[key] = block && block.items ? block.items.length : 0;
+  }
+
+  out.config = timed_('config', function(){ return crm3_apiGetConfig_(); });
+  out.meta.counts.configFunis = (out.config.funis || []).length;
+  out.meta.counts.configEtapas = (out.config.etapas || []).length;
+
+  if (view === 'home') {
+    out.dashboard = timed_('dashboard', function(){ return crm3_apiGetDashboard_({ start: start, end: end, responsavelId: resp }); });
+    out.journeyClients = timed_('journeyClients', function(){ return crm3_apiGetJornada_({ funilId: 'FUNIL_CLIENTES', tipoEntidade: 'CLIENTE', responsavelId: resp }); });
+    countItems_('journeyClients', out.journeyClients);
+    out.journeyProspects = timed_('journeyProspects', function(){ return crm3_apiGetJornada_({ funilId: 'FUNIL_PROSPECTS', tipoEntidade: 'PROSPECT', responsavelId: resp }); });
+    countItems_('journeyProspects', out.journeyProspects);
+    out.agenda = timed_('agenda', function(){ return crm3_apiGetAgenda_({ start: agStart, end: agEnd, responsavelId: resp }); });
+    countItems_('agenda', out.agenda);
+    out.overdue = timed_('overdue', function(){ return crm3_apiGetAgenda_({ start: overdueStart, end: overdueEnd, responsavelId: resp, status: 'PLANEJADO' }); });
+    countItems_('overdue', out.overdue);
+    return out;
+  }
+
+  if (view === 'prospects') {
+    out.journeyProspects = timed_('journeyProspects', function(){ return crm3_apiGetJornada_({ funilId: 'FUNIL_PROSPECTS', tipoEntidade: 'PROSPECT', responsavelId: resp }); });
+    countItems_('journeyProspects', out.journeyProspects);
+    if (sub === 'prospects-dashboard') {
+      out.agenda = timed_('agenda', function(){ return crm3_apiGetAgenda_({ start: agStart, end: agEnd, responsavelId: resp }); });
+      countItems_('agenda', out.agenda);
+      out.overdue = timed_('overdue', function(){ return crm3_apiGetAgenda_({ start: overdueStart, end: overdueEnd, responsavelId: resp, status: 'PLANEJADO' }); });
+      countItems_('overdue', out.overdue);
+    }
+    return out;
+  }
+
+  if (view === 'clientes') {
+    out.journeyClients = timed_('journeyClients', function(){ return crm3_apiGetJornada_({ funilId: 'FUNIL_CLIENTES', tipoEntidade: 'CLIENTE', responsavelId: resp }); });
+    countItems_('journeyClients', out.journeyClients);
+    return out;
+  }
+
+  if (view === 'agenda') {
+    out.agenda = timed_('agenda', function(){ return crm3_apiGetAgenda_({ start: agStart, end: agEnd, responsavelId: resp }); });
+    countItems_('agenda', out.agenda);
+    out.overdue = timed_('overdue', function(){ return crm3_apiGetAgenda_({ start: overdueStart, end: overdueEnd, responsavelId: resp, status: 'PLANEJADO' }); });
+    countItems_('overdue', out.overdue);
+  }
+
+  return out;
+}
+
 function crm3_apiGetConfig_() {
   crm3_assertSetupReady_();
   return {
