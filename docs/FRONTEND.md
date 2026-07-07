@@ -267,3 +267,19 @@ Foram adicionadas seções de padronização e refinamento:
 
 ### Pendência conhecida
 Os filtros multiple select ainda precisam de revisão futura. A decisão técnica foi não continuar refinando nesta branch para evitar regressão visual.
+
+## CRM - Home layout em colunas independentes
+
+A aba Visao Geral passou a organizar os cards principais em duas colunas independentes no desktop:
+
+- coluna esquerda: funil, carteira por recomendacao, equipe e alertas;
+- coluna direita: jornada de clientes, atividades por tipo e pipeline por responsavel.
+
+No mobile, o layout volta para uma coluna unica.
+
+Escopo do ajuste:
+
+- `frontend/crm/index.html`
+- `frontend/crm/styles.css`
+
+Este ajuste nao altera regras de filtros, carregamento inicial, dados, Apps Script ou integracoes.

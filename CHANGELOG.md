@@ -155,3 +155,14 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Os filtros multiple select ainda precisam de revisão futura.
 - Decisão técnica desta versão: não continuar refinando agora para evitar regressão visual.
 - A revisão dos filtros multiple select deve ser tratada em branch própria futura.
+
+## 2026-07-07 - CRM Home layout
+
+### Corrigido
+- Organizado o layout da aba Visao Geral em duas colunas independentes no desktop.
+- Mantido comportamento responsivo em uma coluna no mobile.
+- Atualizado cache do CSS do CRM para `v=125`.
+
+### Observacao
+- Este ajuste foi visual e isolado.
+- Nao altera filtros, performance, Apps Script ou regras de dados.

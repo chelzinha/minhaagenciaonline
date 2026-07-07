@@ -2816,3 +2816,42 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
     margin:0;
   }
 }
+/* Home layout - colunas independentes */
+.crm-shell #view-home .home-charts.exec-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:var(--crm-gap-3,12px);
+  align-items:start;
+}
+
+.crm-shell #view-home .home-chart-column{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:var(--crm-gap-3,12px);
+  align-content:start;
+  min-width:0;
+}
+
+.crm-shell #view-home .home-chart-column>.chart-card{
+  width:100%;
+  min-width:0;
+}
+
+.crm-shell #view-home .home-chart-column-left{
+  grid-column:1;
+}
+
+.crm-shell #view-home .home-chart-column-right{
+  grid-column:2;
+}
+
+@media(max-width:900px){
+  .crm-shell #view-home .home-charts.exec-grid{
+    grid-template-columns:1fr;
+  }
+
+  .crm-shell #view-home .home-chart-column-left,
+  .crm-shell #view-home .home-chart-column-right{
+    grid-column:auto;
+  }
+}
