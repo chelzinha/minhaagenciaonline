@@ -121,13 +121,54 @@ function msHas(sel,val){const a=msParse(sel);if(!a.length)return true;const nv=n
 function msNormalize(sel,opts){const vals=(opts||[]).map(text).filter(Boolean),a=[],seen=new Set();msParse(sel).forEach(v=>{const key=norm(v);if(!key||seen.has(key))return;if(vals.length&&!vals.some(o=>norm(o)===key))return;seen.add(key);a.push(v);});if(vals.length&&a.length===vals.length)return'';return a.join('|');}
 function msToggle(sel,val,opts){const a=msParse(sel),v=text(val),i=a.findIndex(x=>norm(x)===norm(v));if(i>=0)a.splice(i,1);else if(v)a.push(v);return msNormalize(a.join('|'),opts);}
 function msHasResp(sel,val){const a=msParse(sel);if(!a.length)return true;const nv=norm(responsibleDisplay(val)||val);return a.some(s=>norm(responsibleDisplay(s)||s)===nv);}
-function contextChipMS(attr,scope,icon,allLabel,cur,opts){const vals=(opts||[]).map(([v])=>v),sel=msParse(msNormalize(cur,vals));const optHtml=opts.map(([v,l])=>`<button class="chip-option ms${sel.some(s=>norm(s)===norm(v))?' on':''}" type="button" data-value="${esc(v)}" data-ms-option><span class="ms-box material-symbols-rounded">check</span>${esc(l)}</button>`).join('');return`<div class="chip-filter ms${sel.length?' has-sel':''}" data-chip-filter="${esc(attr)}" data-ms="1"${scope?` data-chip-scope="${esc(scope)}"`:''}><span class="material-symbols-rounded">${icon}</span><span class="chip-value">${esc(allLabel)}</span>${sel.length?`<span class="chip-badge">${sel.length}</span>`:''}<span class="material-symbols-rounded chip-chevron">expand_more</span><div class="chip-dropdown-menu ms" hidden><button class="chip-option ms-all${sel.length?'':' on'}" type="button" data-ms-all><span class="ms-box material-symbols-rounded">check</span>Selecionar todos</button><div class="ms-sep"></div>${optHtml}<div class="ms-sep"></div><button class="chip-option ms-clear" type="button" data-ms-clear>Limpar filtro</button></div></div>`;}
+function contextChipMS(attr,scope,icon,allLabel,cur,opts){
+  const vals=(opts||[]).map(([v])=>text(v)).filter(Boolean);
+  const sel=msParse(msNormalize(cur,vals));
+  const isOn=v=>sel.some(s=>norm(s)===norm(v));
+  const allSelected=vals.length>0&&sel.length===vals.length&&vals.every(v=>isOn(v));
+  const optHtml=(opts||[]).map(([v,l])=>`<button class="chip-option ms${isOn(v)?' on':''}" type="button" data-value="${esc(v)}" data-ms-option aria-checked="${isOn(v)?'true':'false'}"><span class="ms-box material-symbols-rounded" aria-hidden="true">${isOn(v)?'check':''}</span>${esc(l)}</button>`).join('');
+  return`<div class="chip-filter ms${sel.length?' has-sel':''}" data-chip-filter="${esc(attr)}" data-ms="1"${scope?` data-chip-scope="${esc(scope)}"`:''}><span class="material-symbols-rounded">${icon}</span><span class="chip-value">${esc(allLabel)}</span>${sel.length?`<span class="chip-badge">${sel.length}</span>`:''}<span class="material-symbols-rounded chip-chevron">expand_more</span><div class="chip-dropdown-menu ms" hidden><button class="chip-option ms-all${allSelected?' on':''}" type="button" data-ms-all aria-checked="${allSelected?'true':'false'}"><span class="ms-box material-symbols-rounded" aria-hidden="true">${allSelected?'check':''}</span>Selecionar todos</button><div class="ms-sep"></div>${optHtml}<div class="ms-sep"></div><button class="chip-option ms-clear" type="button" data-ms-clear>Limpar filtro</button></div></div>`;
+}
 function chipFilterGet(attr,scope){return attr==='contextLocal'?currentContextLocal(scope||'crm'):text(state.filters[attr]);}
 function chipFilterSet(attr,scope,v){if(attr==='contextLocal')setContextLocal(scope||'crm',v);else state.filters[attr]=text(v);}
 function msChipValues(chip){return[...chip.querySelectorAll('.chip-option.ms[data-value]')].map(o=>o.dataset.value).filter(Boolean);}
-function refreshMsChip(chip){const attr=chip.dataset.chipFilter,scope=chip.dataset.chipScope||'',sel=msParse(msNormalize(chipFilterGet(attr,scope),msChipValues(chip)));chip.classList.toggle('has-sel',!!sel.length);let badge=chip.querySelector('.chip-badge');if(sel.length){if(!badge){badge=document.createElement('span');badge.className='chip-badge';chip.insertBefore(badge,chip.querySelector('.chip-chevron'));}badge.textContent=sel.length;}else if(badge)badge.remove();chip.querySelectorAll('.chip-option.ms').forEach(o=>o.classList.toggle('on',sel.some(s=>norm(s)===norm(o.dataset.value))));const all=chip.querySelector('.chip-option.ms-all');if(all)all.classList.toggle('on',!sel.length);}
+function refreshMsChip(chip){
+  const attr=chip.dataset.chipFilter,scope=chip.dataset.chipScope||'',vals=msChipValues(chip),sel=msParse(msNormalize(chipFilterGet(attr,scope),vals));
+  const isOn=v=>sel.some(s=>norm(s)===norm(v));
+  const allSelected=vals.length>0&&sel.length===vals.length&&vals.every(v=>isOn(v));
+
+  chip.classList.toggle('has-sel',!!sel.length);
+
+  let badge=chip.querySelector('.chip-badge');
+  if(sel.length){
+    if(!badge){
+      badge=document.createElement('span');
+      badge.className='chip-badge';
+      chip.insertBefore(badge,chip.querySelector('.chip-chevron'));
+    }
+    badge.textContent=sel.length;
+  }else if(badge){
+    badge.remove();
+  }
+
+  chip.querySelectorAll('.chip-option.ms[data-value]').forEach(o=>{
+    const on=isOn(o.dataset.value);
+    o.classList.toggle('on',on);
+    o.setAttribute('aria-checked',on?'true':'false');
+    const box=o.querySelector('.ms-box');
+    if(box)box.textContent=on?'check':'';
+  });
+
+  const all=chip.querySelector('.chip-option.ms-all');
+  if(all){
+    all.classList.toggle('on',allSelected);
+    all.setAttribute('aria-checked',allSelected?'true':'false');
+    const box=all.querySelector('.ms-box');
+    if(box)box.textContent=allSelected?'check':'';
+  }
+}
 function rerenderData(){renderHome();renderProspects();renderClients();renderAgenda();updateActionsFrameFilters();}
-function bindChipEvents(){if(bindChipEvents._bound)return;bindChipEvents._bound=true;document.addEventListener('scroll',function(e){if(e.target&&e.target.closest&&e.target.closest('.chip-dropdown-menu'))return;document.querySelectorAll('.chip-filter.open').forEach(function(c){c.classList.remove('open');const mm=c.querySelector('.chip-dropdown-menu');if(mm)mm.hidden=true;});},true);document.addEventListener('click',function(e){const msBtn=e.target.closest('.chip-filter[data-ms] .chip-option');if(msBtn){e.stopPropagation();const chip=msBtn.closest('.chip-filter'),attr=chip.dataset.chipFilter,scope=chip.dataset.chipScope||'',vals=msChipValues(chip);if(msBtn.hasAttribute('data-ms-all')||msBtn.hasAttribute('data-ms-clear'))chipFilterSet(attr,scope,'');else chipFilterSet(attr,scope,msToggle(chipFilterGet(attr,scope),msBtn.dataset.value,vals));refreshMsChip(chip);if(attr==='agendaResponsible'||attr==='agendaType'||attr==='agendaStatus'||attr==='agendaLocal')renderAgenda();else rerenderData();return;}const opt=e.target.closest('.chip-filter .chip-option');if(opt){e.stopPropagation();const chip=opt.closest('.chip-filter'),attr=chip.dataset.chipFilter,val=opt.dataset.value;if(attr==='clientCadSort')state.clientSort={key:val,dir:(val==='valor30d'||val==='diasSemPostar')?'desc':'asc'};else if(attr==='prospectCadSort')state.prospectSort=val;else state.filters[attr]=val;chip.classList.remove('open');const mm=chip.querySelector('.chip-dropdown-menu');if(mm)mm.hidden=true;rerenderContext();return;}const chip=e.target.closest('.chip-filter');document.querySelectorAll('.chip-filter').forEach(function(c){if(c!==chip){c.classList.remove('open');const m=c.querySelector('.chip-dropdown-menu');if(m)m.hidden=true;}});if(chip&&!chip.classList.contains('locked')){const m=chip.querySelector('.chip-dropdown-menu');if(m){const willOpen=m.hidden;m.hidden=!willOpen;chip.classList.toggle('open',willOpen);if(willOpen){const r=chip.getBoundingClientRect();m.style.position='fixed';m.style.left=Math.max(8,Math.min(r.left,window.innerWidth-268))+'px';m.style.top=(r.bottom+6)+'px';m.style.minWidth=Math.max(r.width,200)+'px';}}}});}
+function bindChipEvents(){if(bindChipEvents._bound)return;bindChipEvents._bound=true;document.addEventListener('scroll',function(e){if(e.target&&e.target.closest&&e.target.closest('.chip-dropdown-menu'))return;document.querySelectorAll('.chip-filter.open').forEach(function(c){c.classList.remove('open');const mm=c.querySelector('.chip-dropdown-menu');if(mm)mm.hidden=true;});},true);document.addEventListener('click',function(e){const msBtn=e.target.closest('.chip-filter[data-ms] .chip-option');if(msBtn){e.stopPropagation();const chip=msBtn.closest('.chip-filter'),attr=chip.dataset.chipFilter,scope=chip.dataset.chipScope||'',vals=msChipValues(chip);if(msBtn.hasAttribute('data-ms-all'))chipFilterSet(attr,scope,vals.join('|'));else if(msBtn.hasAttribute('data-ms-clear'))chipFilterSet(attr,scope,'');else chipFilterSet(attr,scope,msToggle(chipFilterGet(attr,scope),msBtn.dataset.value,vals));refreshMsChip(chip);if(attr==='agendaResponsible'||attr==='agendaType'||attr==='agendaStatus'||attr==='agendaLocal')renderAgenda();else rerenderData();return;}const opt=e.target.closest('.chip-filter .chip-option');if(opt){e.stopPropagation();const chip=opt.closest('.chip-filter'),attr=chip.dataset.chipFilter,val=opt.dataset.value;if(attr==='clientCadSort')state.clientSort={key:val,dir:(val==='valor30d'||val==='diasSemPostar')?'desc':'asc'};else if(attr==='prospectCadSort')state.prospectSort=val;else state.filters[attr]=val;chip.classList.remove('open');const mm=chip.querySelector('.chip-dropdown-menu');if(mm)mm.hidden=true;rerenderContext();return;}const chip=e.target.closest('.chip-filter');document.querySelectorAll('.chip-filter').forEach(function(c){if(c!==chip){c.classList.remove('open');const m=c.querySelector('.chip-dropdown-menu');if(m)m.hidden=true;}});if(chip&&!chip.classList.contains('locked')){const m=chip.querySelector('.chip-dropdown-menu');if(m){const willOpen=m.hidden;m.hidden=!willOpen;chip.classList.toggle('open',willOpen);if(willOpen){const r=chip.getBoundingClientRect();m.style.position='fixed';m.style.left=Math.max(8,Math.min(r.left,window.innerWidth-268))+'px';m.style.top=(r.bottom+6)+'px';m.style.minWidth=Math.max(r.width,200)+'px';}}}});}
 function agendaNeedWin(){const c=state.agendaCursor;return{start:addDays(monthStart(c),-7),end:addDays(monthEnd(c),7)};}
 function agendaWinCovers(p){const w=state.agendaWin;return !!(w&&w.items&&w.start<=p.start&&w.end>=p.end);}
 async function ensureAgendaWindow(force){const need=agendaNeedWin();if(!force&&agendaWinCovers(need))return;const resp=responsibleApiValue('');const r=await apiGet('get_crm_agenda_v3',{start:need.start,end:need.end,responsavelId:resp});state.agendaWin={start:need.start,end:need.end,items:r.items||[]};}

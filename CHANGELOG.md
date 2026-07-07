@@ -166,3 +166,17 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 ### Observacao
 - Este ajuste foi visual e isolado.
 - Nao altera filtros, performance, Apps Script ou regras de dados.
+
+## 2026-07-07 - CRM filtros multiple select
+
+### Corrigido
+- Corrigido o comportamento visual dos checkboxes dos filtros multiple select.
+- Opcoes nao selecionadas agora ficam visualmente vazias.
+- Opcoes selecionadas exibem o check corretamente.
+- O botao "Selecionar todos" passa a selecionar todas as opcoes reais.
+- O botao "Limpar filtro" passa a limpar todos os selecionados.
+- O badge do chip passa a refletir a quantidade real de opcoes selecionadas.
+
+### Escopo
+- Ajuste isolado em `frontend/crm/app.js`.
+- Nao altera backend, Apps Script, dados, layout da Home ou performance inicial.
