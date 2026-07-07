@@ -1,4 +1,4 @@
-# REGISTRO_DE_MUDANCAS_SENSIVEIS
+﻿# REGISTRO_DE_MUDANCAS_SENSIVEIS
 
 Documento tecnico em preparacao.
 
@@ -27,6 +27,73 @@ Foram adicionados logs tecnicos opcionais para medir performance do CRM.
 - `frontend/crm/app.js`
 - `apps-script/base-metro/06_CRM_JORNADA_FASE3.js`
 - `apps-script/base-metro/10_OPERACAO_EXECUCAO_API.js`
+## Registro sensivel - 2026-07-07 - CRM importacao em lote pela planilha
+
+Tipo de mudanca:
+- Criacao de rotina Apps Script para transformar cadastros manuais em entidades completas do CRM.
+
+Modulo afetado:
+- Planilha APP Total CF + Metro.
+- Apps Script `apps-script/base-metro`.
+- CRM/funil/jornada comercial.
+
+Dados envolvidos:
+- CPF/CNPJ.
+- Nome de cliente/prospect.
+- Telefone, WhatsApp e e-mail.
+- Endereco cadastral.
+- Responsavel comercial.
+- Status de importacao, funil, etapa e tratativa.
+
+Credenciais envolvidas:
+- Nenhuma credencial nova.
+- A rotina usa permissoes ja existentes do Apps Script sobre a planilha.
+
+Valor sensivel exposto no documento?
+- Nao.
+
+Onde o dado/credencial fica armazenado:
+- Dados cadastrais em `PROSPECTS` e `CLIENTES_CADASTRO`.
+- Relacao de funil em `CRM_TRATATIVAS`.
+- Eventos tecnicos em `CRM_EVENTOS`.
+
+Arquivos alterados:
+- `apps-script/base-metro/11_CRM_IMPORTACAO_LOTE_MENU.js`.
+- `apps-script/base-metro/90_FILTROS.js`.
+- `docs/CRM_IMPORTACAO_LOTE_PLANILHA.md`.
+- `docs/PLANILHAS_E_DADOS.md`.
+- `docs/REGISTRO_DE_MUDANCAS_SENSIVEIS.md`.
+- `CHANGELOG.md`.
+
+Commit/branch:
+- Branch de trabalho: `feature/crm-importacao-lote-menu`.
+
+Risco principal:
+- Criar tratativas indevidas para linhas antigas.
+- Expor dados reais em logs/documentacao.
+- Cliente novo em `CLIENTES_CADASTRO` nao aparecer completo no card se overlay com `CLIENTES_MASTER` estiver desativado.
+- Reprocessar cadastro manual sem necessidade.
+
+Mitigacao aplicada:
+- A rotina processa automaticamente apenas linhas novas sem ID ou linhas marcadas com `SUBIR_FRONT = SIM`.
+- A rotina reaproveita tratativa aberta/pausada quando ja existir para a mesma entidade/funil.
+- Erros sao gravados de forma curta em `ERRO_IMPORTACAO_CRM`, sem payload bruto.
+- Documentacao usa apenas nomes de colunas e fluxos, sem dados reais.
+
+Como testar:
+- Usar linha ficticia em `PROSPECTS` sem `PROSPECT_ID`.
+- Usar linha ficticia em `CLIENTES_CADASTRO` sem `CLIENTE_ID`.
+- Confirmar preenchimento de IDs, `TRATATIVA_ATIVA_ID`, status de importacao e criacao de `CRM_TRATATIVAS`.
+- Confirmar que linha antiga so e reprocessada se `SUBIR_FRONT = SIM`.
+- Confirmar que logs/documentacao nao exibem CPF/CNPJ, telefone, e-mail ou endereco real.
+
+Como reverter:
+- Reverter a branch/commit antes de publicar.
+- Se ja publicado no Apps Script, remover o arquivo `11_CRM_IMPORTACAO_LOTE_MENU.js`, restaurar `90_FILTROS.js` e executar `clasp push`.
+- As colunas auxiliares podem permanecer sem afetar o front, mas devem ser removidas manualmente somente se a base estiver validada.
+
+Observacao para consulta futura:
+- Esta rotina nao habilita automaticamente overlay de `CLIENTES_CADASTRO` para `CLIENTES_MASTER`.
 
 ## Registro sensivel - 2026-07-03 - Nuvemshop apenas pedidos pagos
 
@@ -101,3 +168,4 @@ Risco: exposicao acidental de identificadores, credenciais, tokens, URLs ou dado
 Controle aplicado: arquivos .clasp.json ignorados via .gitignore e verificacao inicial por termos sensiveis antes do commit.
 
 Commit relacionado: badf763.
+
