@@ -44,6 +44,11 @@ function op_doGet(e) {
     if (action === 'get_crm_boot_lite_v5') {
       return op_jsonOut_(crm5x_apiBootLite_(p));
     }
+    // PERF V5: cadastro detalhado dividido por tipo (substitui get_crm_data,
+    // cuja resposta unica estourou o limite de entrega do Apps Script).
+    if (action === 'get_cadastro_v5') {
+      return op_jsonOut_(crm5x_apiGetCadastro_(p));
+    }
     if (action === 'warm_crm_cache_v5') {
       return op_jsonOut_(crm5x_apiWarmup_());
     }

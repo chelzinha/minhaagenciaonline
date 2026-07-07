@@ -300,3 +300,41 @@ function crm5x_apiClearCache_() {
   try { op_invalidateOperationCaches_(); } catch (e) {}
   return { ok: true, cleared: true, dataRev: crm5x_dataRev_(), configRev: crm5x_configRev_() };
 }
+
+/* ============== CADASTRO DETALHADO (substitui get_crm_data) ============== */
+// A rota legada get_crm_data devolvia num JSON so: clientes FULL + prospects
+// FULL + funil + dashboardComercial + filters. O front (loadLegacyData) usa
+// APENAS clients e prospects; o resto era peso morto de CPU e de payload.
+// Com a base crescendo, a resposta estourou o limite de entrega do Apps
+// Script e passou a falhar com pagina HTML 404 no googleusercontent.
+// Correcao: uma chamada por tipo, devolvendo somente items. As projecoes
+// continuam FULL (o modal de edicao preenche os campos a partir delas;
+// enxugar campos aqui causaria risco de apagar dados ao salvar).
+function crm5x_apiGetCadastro_(params) {
+  params = params || {};
+  var tipo = crm3_upper_(params.tipo || 'CLIENTE');
+  if (tipo === 'PROSPECT' || tipo === 'PROSPECTS') {
+    return { ok: true, tipo: 'PROSPECT', items: op_readProspects_().items };
+  }
+  return { ok: true, tipo: 'CLIENTE', items: op_readClientsMaster_({ projection: 'full' }).items };
+}
+
+// Diagnostico: rodar no editor (Executar > crm5x_diagCadastro) para medir o
+// tamanho real dos payloads e confirmar/afastar a hipotese de estouro.
+function crm5x_diagCadastro() {
+  var t0 = new Date().getTime();
+  var c = op_readClientsMaster_({ projection: 'full' }).items;
+  var t1 = new Date().getTime();
+  var p = op_readProspects_().items;
+  var t2 = new Date().getTime();
+  var out = {
+    clientes: c.length,
+    prospects: p.length,
+    jsonClientesKB: Math.round(JSON.stringify(c).length / 1024),
+    jsonProspectsKB: Math.round(JSON.stringify(p).length / 1024),
+    msLeituraClientes: t1 - t0,
+    msLeituraProspects: t2 - t1
+  };
+  Logger.log(JSON.stringify(out));
+  return out;
+}
