@@ -38,6 +38,18 @@ function op_doGet(e) {
     if (action === 'get_crm_config_v2') {
       return op_jsonOut_(crm_apiGetConfigV2_());
     }
+    // PERF V5: boot progressivo. boot_lite devolve config + indicadores em
+    // segundos e aquece os caches compartilhados; o front busca jornadas e
+    // agenda em paralelo na sequencia (rotas v3 existentes, agora rapidas).
+    if (action === 'get_crm_boot_lite_v5') {
+      return op_jsonOut_(crm5x_apiBootLite_(p));
+    }
+    if (action === 'warm_crm_cache_v5') {
+      return op_jsonOut_(crm5x_apiWarmup_());
+    }
+    if (action === 'clear_crm_cache_v5') {
+      return op_jsonOut_(crm5x_apiClearCache_());
+    }
     if (action === 'get_crm_boot_v4') {
       return op_jsonOut_(crm3_apiGetBootV4_(p));
     }

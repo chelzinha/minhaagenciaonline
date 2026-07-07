@@ -292,7 +292,15 @@ function crm3_apiGetBootV4_(params) {
 
 function crm3_apiGetConfig_() {
   crm3_assertSetupReady_();
-  return {
+  // PERF V5: config completa cacheada sob a revisao de config. POSTs do CRM
+  // nao invalidam; edicoes manuais nas abas aparecem em ate 600s ou na hora
+  // via clear_crm_cache_v5. Warm: 1 leitura de cache no lugar de ~10 abas.
+  var _cfgKey = (typeof crm5x_configRev_ === 'function') ? ('crm5x|cfgfull|' + crm5x_configRev_()) : '';
+  if (_cfgKey) {
+    var _cfgHit = crm5x_cacheGet_(_cfgKey);
+    if (_cfgHit) return _cfgHit;
+  }
+  var _cfgOut = {
     ok:true,
     version:CRM3_CFG.VERSION,
     funis:crm3_readObjects_(CRM3_CFG.SHEETS.FUNIS).filter(function(x){ return crm3_isYes_(x.ATIVO); }),
@@ -312,6 +320,8 @@ function crm3_apiGetConfig_() {
     prospectsLocais:crm3_safeConfigList_(function(){ return (typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('PROSPECTS') : []); }, 'prospectsLocais'),
     homeLocais:crm3_safeConfigList_(function(){ return crm3_getHomeLocais_(); }, 'homeLocais')
   };
+  if (_cfgKey) crm5x_cachePut_(_cfgKey, _cfgOut, CRM5X_CFG.TTL_CONFIG_SEC);
+  return _cfgOut;
 }
 
 function crm3_getHomeLocais_() {
@@ -410,7 +420,10 @@ function crm3_apiGetJornada_(params) {
   var tratativas = crm3_readObjects_(CRM3_CFG.SHEETS.TRATATIVAS);
   var stages = crm3_readObjects_(CRM3_CFG.SHEETS.ETAPAS).filter(function(x){ return crm3_isYes_(x.ATIVA); });
   var stageById = crm3_indexBy_(stages, 'ETAPA_ID');
-  var entityMaps = crm3_buildEntityMaps_();
+  // PERF V5: o kanban usa ~12 campos por entidade. Em vez da projecao FULL
+  // de CLIENTES_MASTER (50+ colunas, byId duplicado no cache), usa a
+  // projecao lite cacheada. crm3_projectTreatment_ recebe os mesmos campos.
+  var entityMaps = (typeof crm5x_buildEntityMapsLite_ === 'function') ? crm5x_buildEntityMapsLite_() : crm3_buildEntityMaps_();
   var nextActivityByTreatment = crm3_findNextActivitiesByTreatment_();
 
   var items = tratativas.filter(function(t){
@@ -1036,10 +1049,18 @@ function crm3_findJourneyTransition_(funnelId, currentStage, resultId) {
 
 /* ========================= READERS E HELPERS ========================= */
 
+// PERF V5: nao varre mais a planilha por intervalo. A aba AGENDA_EXECUCAO e
+// lida UMA vez (janela +-400 dias) e cacheada pelo 16_CRM_PERF_V5; cada
+// intervalo (semana, vencidas -180d, proximas +365d) vira filtro em memoria.
+// Antes, um boot frio fazia 3 varreduras completas desta aba.
 function crm3_readAgendaV3_(start, end) {
-  var cacheKey = 'agenda|' + start + '|' + end;
-  var cached = crm3_cacheGet_(cacheKey);
-  if (cached) return cached;
+  if (typeof crm5x_agendaSlice_ === 'function') return crm5x_agendaSlice_(start, end);
+  return crm3_readAgendaV3_scan_(start, end);
+}
+
+// Scan legado (mesma projecao de sempre). Usado pelo V5 para construir o
+// cache da janela e como fallback para consultas fora da janela.
+function crm3_readAgendaV3_scan_(start, end) {
   var sh = op_getSpreadsheet_().getSheetByName(CRM3_CFG.SHEETS.AGENDA);
   if (!sh || sh.getLastRow() < 2) return [];
   var values = sh.getDataRange().getValues();
@@ -1061,7 +1082,6 @@ function crm3_readAgendaV3_(start, end) {
       responsavelId:crm3_text_(crm3_cell_(r,hm,'RESPONSAVEL_ID')), responsavelNome:crm3_text_(crm3_cell_(r,hm,'RESPONSAVEL')), observacao:crm3_text_(crm3_cell_(r,hm,['OBSERVACAO','OBS_EXECUCAO','OBS_PLANEJADA']))
     };
   }).filter(function(x){ return x.agendaId && !crm5_isLegacyColetaText_(x.tipoAtividadeId + ' ' + x.tipoAtividadeNome) && x.dataProgramada >= start && x.dataProgramada <= end; }).sort(function(a,b){ return (a.dataProgramada + '|' + a.horaProgramada).localeCompare(b.dataProgramada + '|' + b.horaProgramada); });
-  crm3_cachePut_(cacheKey, out);
   return out;
 }
 
@@ -1127,11 +1147,40 @@ function crm3_eventObject_(x) { x = x || {}; return { EVENTO_ID:'EVT_' + Utiliti
 
 /* ========================= HELPERS PLANILHA ========================= */
 
-function crm3_assertSetupReady_() { if (PropertiesService.getScriptProperties().getProperty(CRM3_CFG.PROPS.SETUP_VERSION) !== CRM3_CFG.VERSION) throw new Error('CRM Jornada Fase 3 ainda não preparado. Execute setupCrmJornadaFase3() uma vez no editor do Apps Script.'); }
+// PERF V5: memoiza por execucao. O boot chama este assert 6+ vezes e cada
+// PropertiesService.getProperty custa dezenas de ms. Usa o getProperties
+// unico do V5 quando disponivel.
+var CRM3_SETUP_OK_MEMO = false;
+function crm3_assertSetupReady_() {
+  if (CRM3_SETUP_OK_MEMO) return;
+  var v = (typeof crm5x_getProp_ === 'function')
+    ? crm5x_getProp_(CRM3_CFG.PROPS.SETUP_VERSION)
+    : PropertiesService.getScriptProperties().getProperty(CRM3_CFG.PROPS.SETUP_VERSION);
+  if (v !== CRM3_CFG.VERSION) throw new Error('CRM Jornada Fase 3 ainda não preparado. Execute setupCrmJornadaFase3() uma vez no editor do Apps Script.');
+  CRM3_SETUP_OK_MEMO = true;
+}
+
+// PERF V5: abas de CONFIGURACAO (editadas manualmente, nunca por POSTs do
+// CRM) ganham revisao propria: gravar atividade/tratativa NAO derruba mais
+// o cache delas. Invalidacao: TTL curto (600s) ou clear_crm_cache_v5.
+var CRM3_CONFIG_SHEETS = {
+  'CRM_FUNIS': 1, 'CRM_FUNIL_ETAPAS': 1, 'CRM_TIPOS_ATIVIDADE': 1,
+  'CRM_RESULTADOS_ATIVIDADE': 1, 'CRM_RESPONSAVEIS': 1, 'MIDIAS_CRM': 1,
+  'CRM_SEGMENTOS': 1, 'CRM_LOCAIS': 1, 'AGENDA_BLOCOS': 1
+};
 function crm3_readObjects_(sheetName) {
   // AGF perf: cacheia a leitura por aba usando o cache-rev existente.
   // Acelera o boot (get_crm_jornada_data e chamado ate 4x). As 9 funcoes de
   // escrita ja chamam crm3_bumpCacheRev_(), invalidando o cache na hora.
+  // Abas de config: chave propria (crm5x|cfg|rev) que sobrevive a POSTs.
+  if (CRM3_CONFIG_SHEETS[sheetName] && typeof crm5x_cacheGet_ === 'function') {
+    var _ck = 'crm5x|cfg|' + crm5x_configRev_() + '|' + sheetName;
+    var _hit = crm5x_cacheGet_(_ck);
+    if (_hit) return _hit;
+    var _fresh = crm2_readSheetObjects_(op_getSpreadsheet_(), sheetName);
+    crm5x_cachePut_(_ck, _fresh, CRM5X_CFG.TTL_CONFIG_SEC);
+    return _fresh;
+  }
   var _suffix = 'readobj|' + sheetName;
   try {
     var _c = crm3_cacheGet_(_suffix);
@@ -1170,8 +1219,12 @@ function crm3_appendObjects_(sheetName,objects) { if(!objects||!objects.length)r
 function crm3_findRowObject_(sheetName,keyHeader,keyValue) { var sh=op_getSpreadsheet_().getSheetByName(sheetName); if(!sh||sh.getLastRow()<2)return null; var values=sh.getDataRange().getValues(); var hm=crm3_headerMap_(values[0]); var key=op_headerKey_(keyHeader); if(hm[key]===undefined)return null; for(var i=1;i<values.length;i++){ if(crm3_text_(values[i][hm[key]])===crm3_text_(keyValue)){ var obj={}; Object.keys(hm).forEach(function(h){ obj[h]=values[i][hm[h]]; }); return{sheet:sh,rowNumber:i+1,headers:values[0],hm:hm,row:values[i],obj:obj}; } } return null; }
 function crm3_patchRowObject_(record,patch) { var row=record.row.slice(); Object.keys(patch||{}).forEach(function(k){ var hk=op_headerKey_(k); if(record.hm[hk]!==undefined)row[record.hm[hk]]=patch[k]; }); record.sheet.getRange(record.rowNumber,1,1,row.length).setValues([row]); return row; }
 
-function crm3_bumpCacheRev_() { try { var p=PropertiesService.getScriptProperties(); var n=Number(p.getProperty(CRM3_CFG.PROPS.CACHE_REV)||0)+1; p.setProperty(CRM3_CFG.PROPS.CACHE_REV,String(n)); } catch(e){} }
-function crm3_cacheKey_(suffix) { var rev=PropertiesService.getScriptProperties().getProperty(CRM3_CFG.PROPS.CACHE_REV)||'0'; return 'crm3|'+rev+'|'+suffix; }
+// PERF V5: rev memoizada por execucao (antes, 1 chamada a PropertiesService
+// por operacao de cache; um boot fazia dezenas delas). O bump reseta o memo
+// local e os memos do V5, entao a propria execucao que escreveu ja le fresco.
+var CRM3_REV_MEMO = null;
+function crm3_bumpCacheRev_() { try { var p=PropertiesService.getScriptProperties(); var n=Number(p.getProperty(CRM3_CFG.PROPS.CACHE_REV)||0)+1; p.setProperty(CRM3_CFG.PROPS.CACHE_REV,String(n)); CRM3_REV_MEMO=String(n); if (typeof crm5x_bumpDataRev_==='function') crm5x_bumpDataRev_(); } catch(e){} }
+function crm3_cacheKey_(suffix) { if(CRM3_REV_MEMO===null){ CRM3_REV_MEMO=(typeof crm5x_getProp_==='function'?crm5x_getProp_(CRM3_CFG.PROPS.CACHE_REV):PropertiesService.getScriptProperties().getProperty(CRM3_CFG.PROPS.CACHE_REV))||'0'; } return 'crm3|'+CRM3_REV_MEMO+'|'+suffix; }
 function crm3_cacheGet_(suffix) { try{return op_cacheGetJson_(crm3_cacheKey_(suffix));}catch(e){return null;} }
 function crm3_cachePut_(suffix,val) { try{op_cachePutJson_(crm3_cacheKey_(suffix),val,CRM3_CFG.CACHE_SEC);}catch(e){} }
 
