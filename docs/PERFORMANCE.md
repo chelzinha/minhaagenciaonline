@@ -2,6 +2,53 @@
 
 Documento tecnico em preparacao.
 
+## CRM - performance de boot e loading inicial
+
+Data: 2026-07-07
+
+Diagnostico de entrada:
+- Lighthouse anterior indicava performance em torno de 57.
+- FCP era rapido, mas LCP ficava alto, em torno de 15s.
+- Speed Index estava alto.
+- DOM inicial passava de 36 mil elementos em cenarios com Kanban grande.
+- O boot renderizava Home, Prospects, Clientes e Agenda mesmo quando a URL abria uma tela especifica.
+- `get_crm_boot_v3` entregava todos os blocos principais em uma unica resposta.
+
+Mudancas aplicadas:
+- URL `view`/`sub` passa a ser aplicada antes do primeiro render pesado.
+- Boot do frontend tenta `get_crm_boot_v4` por view, com fallback para v3 e fluxo antigo.
+- Render inicial passa a montar somente a view ativa.
+- Prospects e Clientes renderizam somente a subaba ativa.
+- Kanban limita o DOM inicial a 80 cards por coluna e expande em blocos de 80 via "Ver mais".
+- `get_crm_data` passa a carregar sob demanda para cadastros, modal de edicao/cadastro e busca de entidade na Agenda.
+- Instrumentacao opcional de performance foi adicionada via `debugPerf=1` ou `localStorage.agfCrmPerf = '1'`.
+
+Como medir:
+- Abrir `/crm/?view=prospects&sub=prospects-funil&debugPerf=1`.
+- Conferir logs `[CRM PERF]` no console.
+- Medir `boot`, `api:get_crm_boot_v4`, `render:view:*`, `render:board:*`, `render:table:*` e `loadLegacyData`.
+- Conferir contagem aproximada de elementos no DevTools antes/depois em telas de Kanban.
+- Comparar payload/timing entre `get_crm_boot_v4` e fallback v3 quando publicado.
+
+Checklist de teste:
+- `/crm/`
+- `/crm/?view=home`
+- `/crm/?view=prospects&sub=prospects-funil`
+- `/crm/?view=prospects&sub=prospects-cadastro`
+- `/crm/?view=clientes&sub=clientes-dashboard`
+- `/crm/?view=clientes&sub=clientes-cadastro`
+- `/crm/?view=agenda`
+- Filtros multiple select, selecionar todos, limpar filtro e badges.
+- Botao "Ver mais" do Kanban.
+- Drag and drop dos cards visiveis.
+- Modais de cadastro/edicao e busca de entidade na Agenda.
+
+Proximos passos recomendados:
+- Medir LCP e DOM real apos publicar o Apps Script com `get_crm_boot_v4`.
+- Avaliar paginação ou virtualização real do Kanban se o volume continuar crescendo.
+- Avaliar payloads resumidos dedicados para dashboards.
+- Avaliar cache no Apps Script para blocos de config e jornadas quando seguro.
+
 ## Modulo Reverso - pontos de performance
 
 Chamadas que merecem atencao:

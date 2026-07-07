@@ -2,6 +2,20 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-07-07 - CRM performance de boot e loading
+
+### Melhorado
+- Boot do CRM passa a priorizar a view ativa.
+- Renderizacao inicial evita montar telas invisiveis.
+- Kanban passa a limitar cards iniciais por coluna com opcao de "Ver mais".
+- Dados cadastrais detalhados passam a carregar sob demanda quando possivel.
+- Adicionada instrumentacao segura de performance via `debugPerf=1`.
+
+### Escopo
+- Frontend do CRM.
+- Apps Script somente para rota de boot otimizada.
+- Nao altera planilhas, dados ou autenticacao.
+
 ## [nao versionado] - 2026-07-03
 ### Alterado
 - Nuvemshop (/nuvem): tela de Pedidos passou a priorizar pedidos pagos, com chips visuais por pagamento, servico PAC/SEDEX e valor do pedido no card.

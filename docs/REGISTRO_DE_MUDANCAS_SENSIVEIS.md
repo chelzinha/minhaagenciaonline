@@ -2,6 +2,32 @@
 
 Documento tecnico em preparacao.
 
+## 2026-07-07 - Instrumentacao de performance do CRM
+
+### Atencao sensivel
+Foram adicionados logs tecnicos opcionais para medir performance do CRM.
+
+### O que e registrado
+- Tempo em ms por etapa.
+- Nome tecnico da etapa.
+- Quantidades agregadas.
+- Tamanho aproximado da resposta.
+- View/subview.
+
+### O que nao e registrado
+- CPF/CNPJ.
+- Telefone.
+- E-mail.
+- Endereco.
+- Nome de cliente/prospect.
+- Tokens ou credenciais.
+- Conteudo completo das respostas.
+
+### Arquivos envolvidos
+- `frontend/crm/app.js`
+- `apps-script/base-metro/06_CRM_JORNADA_FASE3.js`
+- `apps-script/base-metro/10_OPERACAO_EXECUCAO_API.js`
+
 ## Registro sensivel - 2026-07-03 - Nuvemshop apenas pedidos pagos
 
 Tipo de mudanca:
