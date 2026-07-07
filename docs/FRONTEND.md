@@ -283,3 +283,21 @@ Escopo do ajuste:
 - `frontend/crm/styles.css`
 
 Este ajuste nao altera regras de filtros, carregamento inicial, dados, Apps Script ou integracoes.
+
+## CRM - Filtros multiple select
+
+Os filtros multiple select do CRM usam chips com dropdown e estado interno em `state.filters`.
+
+Comportamento esperado:
+
+- sem filtro aplicado: checkboxes vazios e sem badge;
+- opcoes selecionadas: checkbox marcado e badge com quantidade real;
+- "Selecionar todos": seleciona todas as opcoes disponiveis;
+- "Limpar filtro": remove todos os selecionados;
+- a tela e renderizada novamente apos alteracao do filtro.
+
+Arquivo alterado:
+
+- `frontend/crm/app.js`
+
+Este ajuste nao altera Apps Script, dados, regras de carregamento inicial ou layout da Home.
