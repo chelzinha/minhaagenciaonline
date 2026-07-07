@@ -1,4 +1,4 @@
-﻿# PLANILHAS_E_DADOS
+# PLANILHAS_E_DADOS
 
 Documento tecnico em preparacao.
 
@@ -66,6 +66,36 @@ Cuidados:
 - Nao documentar IDs completos de planilha, links privados reais, tokens ou dados de clientes.
 - Antes de alterar cabecalhos, revisar Apps Script, frontend, cache e endpoints afetados.
 - Alteracoes nesta planilha podem impactar CRM, agenda, visitas, diagnostico, manuais e recomendacao de materiais.
+
+## CRM - importacao em lote pela planilha
+
+Documento principal:
+- `docs/CRM_IMPORTACAO_LOTE_PLANILHA.md`
+
+Abas afetadas:
+- `PROSPECTS`
+- `CLIENTES_CADASTRO`
+- `CRM_TRATATIVAS`
+- `CRM_EVENTOS`
+- `CRM_RESPONSAVEIS`
+
+Colunas auxiliares adicionadas em `PROSPECTS` e `CLIENTES_CADASTRO`:
+- `SUBIR_FRONT`
+- `STATUS_IMPORTACAO_CRM`
+- `IMPORTADO_EM`
+- `ERRO_IMPORTACAO_CRM`
+
+Regra de processamento:
+- Linhas novas sem `PROSPECT_ID` ou sem `CLIENTE_ID` podem ser processadas pelo menu `🚀 CRM > Subir aba atual para o front`.
+- Linhas existentes so devem ser reprocessadas quando `SUBIR_FRONT = SIM`.
+- Apos processar, a rotina marca `SUBIR_FRONT = NAO` e `STATUS_IMPORTACAO_CRM = IMPORTADO`.
+- A rotina cria ou reaproveita tratativa aberta/pausada em `CRM_TRATATIVAS` e grava `TRATATIVA_ATIVA_ID` na entidade.
+
+Cuidados de regressao:
+- Nao alterar os nomes das colunas auxiliares sem revisar `apps-script/base-metro/11_CRM_IMPORTACAO_LOTE_MENU.js`.
+- Nao processar automaticamente todas as linhas antigas da base; usar `SUBIR_FRONT = SIM` para casos especificos.
+- Clientes em `CLIENTES_CADASTRO` dependem da regra de overlay para aparecerem completos em `CLIENTES_MASTER`.
+- Testes e documentacao nao devem conter dados reais de cliente/prospect.
 
 ## Modulo Reverso - dados e planilhas
 
