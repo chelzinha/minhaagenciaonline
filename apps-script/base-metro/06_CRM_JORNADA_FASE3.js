@@ -229,8 +229,33 @@ function crm3_apiGetConfig_() {
     segmentos:crm3_safeConfigList_(function(){ return (typeof crm82_getActiveSegments_ === 'function' ? crm82_getActiveSegments_() : []); }, 'segmentos'),
     locais:crm3_safeConfigList_(function(){ return (typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('CRM') : []); }, 'locais'),
     prospectLocais:crm3_safeConfigList_(function(){ return (typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('PROSPECTS') : []); }, 'prospectLocais'),
-    prospectsLocais:crm3_safeConfigList_(function(){ return (typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('PROSPECTS') : []); }, 'prospectsLocais')
+    prospectsLocais:crm3_safeConfigList_(function(){ return (typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('PROSPECTS') : []); }, 'prospectsLocais'),
+    homeLocais:crm3_safeConfigList_(function(){ return crm3_getHomeLocais_(); }, 'homeLocais')
   };
+}
+
+function crm3_getHomeLocais_() {
+  if (typeof crm83_getActiveLocals_ !== 'function') return [];
+  var rows = [];
+  rows = rows.concat(crm83_getActiveLocals_('CRM') || []);
+  rows = rows.concat(crm83_getActiveLocals_('PROSPECTS') || []);
+  var seen = {};
+  var out = [];
+  rows.forEach(function(x){
+    var key = crm3_homeLocalKey_(x);
+    if (key) {
+      if (seen[key]) return;
+      seen[key] = 1;
+    }
+    out.push(x);
+  });
+  return out;
+}
+
+function crm3_homeLocalKey_(x) {
+  x = x || {};
+  var key = x.nome || x.NOME_EXIBICAO || x.localId || x.LOCAL_ID || '';
+  return (typeof crm3_normResp_ === 'function') ? crm3_normResp_(key) : crm3_text_(key).toLowerCase();
 }
 
 // Fase 8.3 (fix): executa um enriquecimento opcional da config sem deixar

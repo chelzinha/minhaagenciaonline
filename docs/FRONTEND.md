@@ -217,3 +217,69 @@ Cuidados de regressao no frontend:
 - Nao trocar IDs de inputs/templates sem revisar os scripts de tela.
 - Nao mudar a estrutura da resposta sem revisar renderizacao, toasts, loading, tela de sucesso e historico.
 - Nao alterar o fluxo de NF-e sem manter a orientacao de revisar dados antes de gerar etiqueta.
+
+## CRM — Padronização visual 2026-07
+
+### Escopo
+Esta atualização consolida o CRM como base visual para futuras telas da Plataforma Digital AGF.
+
+Arquivos envolvidos:
+- `frontend/crm/app.js`
+- `frontend/crm/styles.css`
+
+### Home / Visão Geral
+- A Home recebeu filtros próprios de Local e Responsável.
+- A Home não deve mais herdar filtros das abas Prospects, Clientes ou Agenda.
+- Os indicadores da Home continuam usando dados reais já carregados no front.
+
+### Agenda
+- `setAgendaCursor` agora renderiza a Agenda imediatamente com os dados disponíveis.
+- Se a janela necessária ainda não estiver carregada, a busca ocorre em background e a Agenda renderiza novamente ao finalizar.
+- A troca de modo Diário/Semanal/Mensal preserva `state.agendaCursor`.
+
+### CSS / UI
+Foram adicionadas seções de padronização e refinamento:
+- `CRM UI Standardization - 2026-07`
+- `CRM UI Refinement 01 - 2026-07`
+- `CRM UI Refinement 02 - 2026-07`
+
+Áreas padronizadas:
+- headers
+- tabs
+- control bars
+- filtros
+- chips
+- botões
+- cards
+- Agenda
+- Home
+- responsividade mobile
+
+### Paleta dos chips de atividade
+- Visita Presencial: `#EA9A06`
+- Ligação: `#1F63DE`
+- WhatsApp: `#079C54`
+- Email: `#B48414`
+- Reunião Online: `#027973`
+- Proposta: `#E0631D`
+- Retorno: `#0677B4`
+- Treinamento: `#804DF5`
+
+### Pendência conhecida
+Os filtros multiple select ainda precisam de revisão futura. A decisão técnica foi não continuar refinando nesta branch para evitar regressão visual.
+
+## CRM - Home layout em colunas independentes
+
+A aba Visao Geral passou a organizar os cards principais em duas colunas independentes no desktop:
+
+- coluna esquerda: funil, carteira por recomendacao, equipe e alertas;
+- coluna direita: jornada de clientes, atividades por tipo e pipeline por responsavel.
+
+No mobile, o layout volta para uma coluna unica.
+
+Escopo do ajuste:
+
+- `frontend/crm/index.html`
+- `frontend/crm/styles.css`
+
+Este ajuste nao altera regras de filtros, carregamento inicial, dados, Apps Script ou integracoes.

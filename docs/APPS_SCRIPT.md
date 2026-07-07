@@ -1,4 +1,4 @@
-﻿# APPS_SCRIPT
+# APPS_SCRIPT
 
 Documento tecnico em preparacao.
 
@@ -222,3 +222,28 @@ Regras de manutencao:
 - crm83_getActiveLocals_ com try/catch total; em erro cai no padrao por escopo.
 - crm3_apiGetConfig_ monta segmentos/locais via crm3_safeConfigList_, sem
   derrubar o bootstrap.
+
+## CRM — `homeLocais` na configuração
+
+### Escopo
+Atualização em `apps-script/base-metro/06_CRM_JORNADA_FASE3.js`.
+
+### O que mudou
+A função `crm3_apiGetConfig_()` passou a expor `homeLocais`.
+
+### Regra
+`homeLocais` combina:
+- locais ativos de CRM
+- locais ativos de PROSPECTS
+
+A lista é deduplicada por:
+- `nome`
+- `NOME_EXIBICAO`
+- `localId`
+- `LOCAL_ID`
+
+### Segurança e dados
+- Não houve alteração de estrutura de planilha.
+- Não houve alteração de credenciais.
+- Não houve exposição de tokens, senhas ou chaves.
+- Não houve alteração em CPF, CNPJ ou dados cadastrais.
