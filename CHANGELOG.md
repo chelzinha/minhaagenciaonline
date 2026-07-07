@@ -125,3 +125,33 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Registrados dados sensiveis envolvidos e riscos de regressao por action.
 - Adicionada relacao entre actions, planilhas, dados e pontos de seguranca.
 - Nenhuma alteracao funcional aplicada.
+
+## 2026-07-06 — CRM Home, Agenda e padronização visual
+
+### Adicionado
+- Exposição de `homeLocais` na configuração do CRM.
+- Filtros próprios de Local e Responsável na Visão Geral/Home.
+- Padronização visual do CRM em CSS:
+  - `CRM UI Standardization - 2026-07`
+  - `CRM UI Refinement 01 - 2026-07`
+  - `CRM UI Refinement 02 - 2026-07`
+
+### Alterado
+- A Visão Geral/Home deixa de herdar filtros das abas Prospects, Clientes e Agenda.
+- A Agenda passa a renderizar imediatamente com dados disponíveis ao trocar período/modo.
+- A troca entre Diário, Semanal e Mensal preserva `state.agendaCursor`.
+- Padronização visual de headers, tabs, control bars, filtros, chips, botões, cards, Agenda, Home e mobile.
+- Inclusão de paleta visual para chips de atividades:
+  - Visita Presencial: `#EA9A06`
+  - Ligação: `#1F63DE`
+  - WhatsApp: `#079C54`
+  - Email: `#B48414`
+  - Reunião Online: `#027973`
+  - Proposta: `#E0631D`
+  - Retorno: `#0677B4`
+  - Treinamento: `#804DF5`
+
+### Pendente
+- Os filtros multiple select ainda precisam de revisão futura.
+- Decisão técnica desta versão: não continuar refinando agora para evitar regressão visual.
+- A revisão dos filtros multiple select deve ser tratada em branch própria futura.

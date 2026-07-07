@@ -1,4 +1,4 @@
-﻿# PERFORMANCE
+# PERFORMANCE
 
 Documento tecnico em preparacao.
 
@@ -68,3 +68,20 @@ Melhorias futuras recomendadas:
 
 Observacao:
 - Nenhuma otimizacao de codigo foi aplicada nesta etapa. Este registro e diagnostico tecnico.
+
+## CRM — melhoria de percepção de performance da Agenda
+
+### Escopo
+Atualização de percepção de performance no frontend do CRM.
+
+### O que mudou
+- A Agenda renderiza imediatamente com os dados já disponíveis.
+- Quando a janela de datas ainda não está carregada, a busca ocorre em background.
+- Ao finalizar a busca, a Agenda e a Home são renderizadas novamente.
+- A troca de modo Diário/Semanal/Mensal preserva a data atual em `state.agendaCursor`.
+
+### Observação
+Esta mudança melhora a sensação de resposta da interface, mas não representa uma migração estrutural de dados nem benchmark formal de performance.
+
+### Pendência futura
+A otimização estrutural de dados ainda deve ser tratada em evolução própria, considerando cache, dados resumidos, pré-processamento ou migração futura para banco de dados.

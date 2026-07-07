@@ -1262,3 +1262,1557 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
 .stack-legend .dot{width:9px;height:9px;border-radius:3px;flex:0 0 auto}
 
 @media(max-width:620px){.exec-kpis{grid-template-columns:repeat(2,1fr)}.exec-kpis .k-body strong{font-size:20px}.home-charts.exec-grid{grid-template-columns:1fr}}
+
+/* CRM UI Standardization - 2026-07 */
+.crm-shell{
+  --crm-control-h:40px;
+  --crm-touch-h:44px;
+  --crm-pad-x:14px;
+  --crm-gap-1:6px;
+  --crm-gap-2:8px;
+  --crm-gap-3:12px;
+  --crm-gap-4:16px;
+  --crm-radius-xs:8px;
+  --crm-radius-sm:10px;
+  --crm-radius-md:14px;
+  --crm-radius-lg:18px;
+  --crm-radius-pill:999px;
+  --crm-border:1px solid color-mix(in srgb,var(--line) 86%,#B7C7D5);
+  --crm-shadow-card:0 1px 2px rgba(15,32,56,.04),0 10px 28px -18px rgba(15,32,56,.32);
+  --crm-shadow-lift:0 14px 34px -22px rgba(15,32,56,.38);
+  --crm-hover:color-mix(in srgb,var(--accent-soft) 54%,#fff);
+  --crm-active:var(--navy);
+  --crm-focus:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent);
+  --crm-font-xs:11px;
+  --crm-font-sm:12px;
+  --crm-font-md:13px;
+  --crm-act-visita-presencial:#EA9A06;
+  --crm-act-ligacao:#1F63DE;
+  --crm-act-whatsapp:#079C54;
+  --crm-act-email:#B48414;
+  --crm-act-reuniao-online:#027973;
+  --crm-act-proposta:#E0631D;
+  --crm-act-retorno:#0677B4;
+  --crm-act-treinamento:#804DF5;
+}
+
+.crm-shell .crm-main{
+  padding-block:20px 30px;
+}
+
+.crm-shell .crm-main .view,
+.crm-shell .crm-main .subview{
+  min-width:0;
+}
+
+.crm-shell .crm-main :where(h1,h2,h3),
+.crm-shell .crm-main :where(.page-heading h1,.card-heading h2,.table-toolbar h2,.dash-head h2){
+  letter-spacing:0;
+}
+
+.crm-shell .crm-main .page-heading{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:var(--crm-gap-4);
+  margin:0 0 12px;
+  min-width:0;
+}
+
+.crm-shell .crm-main .page-heading>div:first-child{
+  min-width:0;
+}
+
+.crm-shell .crm-main .page-heading h1{
+  color:var(--navy);
+  font-family:Manrope,Inter,Arial,sans-serif;
+  font-size:28px;
+  line-height:1.08;
+  font-weight:850;
+}
+
+.crm-shell .crm-main .page-heading p:not(.eyebrow){
+  max-width:680px;
+  color:#617286;
+  font-size:var(--crm-font-md);
+  line-height:1.45;
+}
+
+.crm-shell .crm-main .eyebrow{
+  color:var(--accent);
+  letter-spacing:.08em;
+}
+
+.crm-shell #view-prospects .prospect-heading-compact{
+  margin-bottom:10px;
+}
+
+.crm-shell .heading-actions,
+.crm-shell .tabs-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:var(--crm-gap-2);
+  min-height:var(--crm-control-h);
+}
+
+.crm-shell .page-heading .tabs-actions,
+.crm-shell .tabs-bar .tabs-actions{
+  position:relative;
+  flex:0 0 auto;
+}
+
+.crm-shell .crm-main .tabs-bar{
+  display:flex;
+  align-items:center;
+  gap:var(--crm-gap-2);
+  margin:0 0 12px;
+  padding:5px;
+  border:var(--crm-border);
+  border-radius:var(--crm-radius-md);
+  background:rgba(255,255,255,.86);
+  box-shadow:var(--crm-shadow-card);
+  overflow:visible;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs{
+  flex:1 1 auto;
+  min-width:0;
+  margin:0!important;
+  padding:0!important;
+  gap:4px;
+  border:0;
+  border-radius:var(--crm-radius-sm)!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow-x:auto;
+  overflow-y:visible;
+  scrollbar-width:none;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs::-webkit-scrollbar,
+.crm-shell .context-filter-bar::-webkit-scrollbar,
+.crm-shell .agenda-cb-filters::-webkit-scrollbar,
+.crm-shell .cad-controls::-webkit-scrollbar{
+  display:none;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button{
+  min-height:36px;
+  padding:0 13px!important;
+  border:0;
+  border-bottom:0!important;
+  border-radius:var(--crm-radius-pill)!important;
+  margin-bottom:0!important;
+  background:transparent!important;
+  color:#627487!important;
+  font-size:var(--crm-font-sm);
+  font-weight:800;
+  line-height:1;
+  white-space:nowrap;
+  transition:background .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button:hover{
+  background:var(--crm-hover)!important;
+  color:var(--navy)!important;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button.active{
+  background:var(--crm-active)!important;
+  color:#fff!important;
+  box-shadow:0 7px 18px -12px rgba(15,42,77,.62)!important;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button .material-symbols-rounded{
+  font-size:17px;
+}
+
+.crm-shell .tab-export-btn{
+  min-height:36px;
+  height:36px;
+  padding:0 11px;
+  gap:6px;
+  border:var(--crm-border);
+  border-radius:var(--crm-radius-pill);
+  background:#fff;
+  color:var(--navy);
+  box-shadow:0 1px 0 rgba(15,32,56,.03);
+  font-size:var(--crm-font-sm);
+  font-weight:800;
+  white-space:nowrap;
+  transition:background .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease;
+}
+
+.crm-shell .tab-export-btn:hover{
+  background:var(--crm-hover);
+  border-color:color-mix(in srgb,var(--accent) 34%,var(--line));
+  color:var(--accent);
+  box-shadow:var(--crm-shadow-card);
+}
+
+.crm-shell .tab-export-btn .material-symbols-rounded{
+  font-size:17px;
+}
+
+.crm-shell .tab-export-menu{
+  top:calc(100% + 8px);
+  right:0;
+  min-width:178px;
+  border:var(--crm-border);
+  border-radius:var(--crm-radius-md);
+  background:#fff;
+  box-shadow:0 18px 48px -24px rgba(15,32,56,.42);
+  overflow:hidden;
+}
+
+.crm-shell .tab-export-opt{
+  min-height:42px;
+  padding:10px 13px;
+  color:var(--text);
+  font-size:var(--crm-font-sm);
+  font-weight:750;
+}
+
+.crm-shell .tab-export-opt:hover{
+  background:var(--crm-hover);
+  color:var(--navy);
+}
+
+.crm-shell :where(.primary-btn,.secondary-btn,.danger-btn,.text-btn,.mini-btn,.table-btn,.icon-btn,.close-btn,.agenda-period .period-nav,.agenda-mode-switch button){
+  transition:background .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease,opacity .16s ease;
+}
+
+.crm-shell :where(.primary-btn,.secondary-btn,.danger-btn,.text-btn,.tab-export-btn){
+  min-height:var(--crm-control-h);
+  border-radius:var(--crm-radius-pill);
+  padding-inline:var(--crm-pad-x);
+  font-weight:850;
+}
+
+.crm-shell .primary-btn{
+  background:var(--accent);
+  border-color:transparent;
+  color:#fff;
+  box-shadow:0 10px 22px -16px rgba(14,149,148,.9);
+}
+
+.crm-shell .primary-btn:hover{
+  background:color-mix(in srgb,var(--accent) 88%,#003A3B);
+  box-shadow:0 12px 26px -16px rgba(14,149,148,.92);
+  filter:none;
+}
+
+.crm-shell .secondary-btn{
+  background:#fff;
+  border-color:color-mix(in srgb,var(--line) 76%,#B4C6D3);
+  color:var(--navy);
+  box-shadow:0 1px 0 rgba(15,32,56,.03);
+}
+
+.crm-shell .secondary-btn:hover,
+.crm-shell .table-btn:hover,
+.crm-shell .mini-btn:hover{
+  background:var(--crm-hover);
+  border-color:color-mix(in srgb,var(--accent) 32%,var(--line));
+  color:var(--navy);
+}
+
+.crm-shell .danger-btn{
+  background:#FFF7F6;
+  border-color:#F2C3BE;
+  color:var(--danger);
+}
+
+.crm-shell .danger-btn:hover{
+  background:#FBE7E5;
+}
+
+.crm-shell .text-btn{
+  color:var(--accent);
+  background:transparent;
+  border-color:transparent;
+  padding-inline:8px;
+}
+
+.crm-shell .text-btn:hover{
+  background:var(--accent-soft);
+}
+
+.crm-shell :where(.mini-btn,.table-btn){
+  min-height:34px;
+  padding:0 10px;
+  border-radius:var(--crm-radius-sm);
+  border-color:var(--line);
+  background:#fff;
+  color:var(--navy);
+  font-size:var(--crm-font-xs);
+  font-weight:850;
+}
+
+.crm-shell :where(.icon-btn,.close-btn){
+  width:40px;
+  height:40px;
+  border:var(--crm-border);
+  background:#fff;
+  color:var(--navy);
+  box-shadow:0 1px 0 rgba(15,32,56,.03);
+}
+
+.crm-shell :where(.icon-btn,.close-btn):hover{
+  background:var(--crm-hover);
+  color:var(--accent);
+}
+
+.crm-shell :where(.primary-btn,.secondary-btn,.danger-btn,.text-btn,.mini-btn,.table-btn,.icon-btn,.close-btn,.tab-export-btn,.section-tabs button,.agenda-mode-switch button,.period-nav,.chip-filter,.chip-option):focus-visible{
+  outline:0;
+  box-shadow:var(--crm-focus);
+}
+
+.crm-shell .context-filter-bar{
+  display:flex;
+  align-items:center;
+  gap:var(--crm-gap-2);
+  flex-wrap:nowrap;
+  max-width:100%;
+  margin:0 0 10px;
+  padding:7px!important;
+  border:var(--crm-border)!important;
+  border-radius:var(--crm-radius-md)!important;
+  background:rgba(255,255,255,.9)!important;
+  box-shadow:var(--crm-shadow-card)!important;
+  overflow-x:auto;
+  overflow-y:visible;
+  scrollbar-width:none;
+}
+
+.crm-shell .context-filter-bar::before{
+  content:none;
+}
+
+.crm-shell .context-filter-bar label,
+.crm-shell .chip-filter,
+.crm-shell .chip-search,
+.crm-shell .search-field,
+.crm-shell .filter-row select,
+.crm-shell .filter-row input,
+.crm-shell .agenda-toolbar select{
+  min-height:var(--crm-control-h);
+  border:var(--crm-border);
+  border-radius:var(--crm-radius-pill);
+  background:#fff;
+  color:var(--text);
+  box-shadow:0 1px 0 rgba(15,32,56,.03);
+}
+
+.crm-shell .context-filter-bar label,
+.crm-shell .chip-filter{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  flex:0 0 auto;
+  padding:0 12px!important;
+  font-size:var(--crm-font-sm);
+  font-weight:800;
+  cursor:pointer;
+}
+
+.crm-shell .context-filter-bar label:hover,
+.crm-shell .chip-filter:hover,
+.crm-shell .chip-filter.open,
+.crm-shell .chip-search:focus-within,
+.crm-shell .search-field:focus-within{
+  background:var(--crm-hover)!important;
+  border-color:color-mix(in srgb,var(--accent) 36%,var(--line))!important;
+}
+
+.crm-shell .context-filter-bar .material-symbols-rounded,
+.crm-shell .chip-filter>.material-symbols-rounded,
+.crm-shell .chip-search>.material-symbols-rounded,
+.crm-shell .search-field>.material-symbols-rounded{
+  color:#6A7D91;
+  font-size:17px;
+}
+
+.crm-shell .context-filter-bar select,
+.crm-shell .chip-search input,
+.crm-shell .search-field input{
+  border:0;
+  background:transparent;
+  color:var(--text);
+  font-weight:700;
+  outline:0;
+}
+
+.crm-shell .filter-row{
+  gap:var(--crm-gap-2);
+}
+
+.crm-shell .filter-row select,
+.crm-shell .filter-row input,
+.crm-shell .agenda-toolbar select{
+  padding:0 12px;
+  font-size:var(--crm-font-sm);
+  font-weight:750;
+}
+
+.crm-shell .board-toolbar,
+.crm-shell .cad-toolbar{
+  gap:var(--crm-gap-2);
+}
+
+.crm-shell .prospect-filter-row{
+  gap:var(--crm-gap-2);
+  margin-bottom:12px;
+}
+
+.crm-shell .chip{
+  min-height:24px;
+  gap:5px;
+  padding:4px 9px;
+  border:1px solid color-mix(in srgb,currentColor 14%,transparent);
+  border-radius:var(--crm-radius-pill);
+  background:#F2F6FA;
+  color:#445D72;
+  font-size:10px;
+  font-weight:850;
+  line-height:1;
+}
+
+.crm-shell .chip.board-count{
+  min-height:32px;
+  padding-inline:10px;
+  background:var(--accent-soft);
+  color:var(--accent);
+}
+
+.crm-shell .chip-dropdown-menu{
+  border:var(--crm-border);
+  border-radius:var(--crm-radius-md);
+  background:#fff;
+  box-shadow:0 18px 48px -24px rgba(15,32,56,.42);
+  padding:5px;
+  overflow:auto;
+}
+
+.crm-shell .chip-option{
+  min-height:38px;
+  border-radius:var(--crm-radius-sm);
+  padding:9px 11px;
+  color:var(--text);
+  font-size:var(--crm-font-sm);
+  font-weight:750;
+}
+
+.crm-shell .chip-option:hover,
+.crm-shell .chip-option.active{
+  background:var(--crm-hover);
+  color:var(--accent);
+}
+
+.crm-shell .type-chip{
+  --tc-safe:var(--tc,var(--activity-color,var(--crm-act-retorno)));
+  min-height:24px;
+  padding:4px 9px;
+  gap:5px;
+  border:1px solid color-mix(in srgb,var(--tc-safe) 28%,white);
+  border-radius:var(--crm-radius-pill);
+  background:color-mix(in srgb,var(--tc-safe) 13%,white);
+  color:color-mix(in srgb,var(--tc-safe) 74%,#17354B);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:0;
+  line-height:1;
+}
+
+.crm-shell .type-chip .material-symbols-rounded{
+  color:var(--tc-safe);
+  font-size:13px;
+}
+
+.crm-shell .type-chip.big{
+  min-height:30px;
+  padding:5px 10px;
+  font-size:11px;
+}
+
+.crm-shell .type-chip :where(b){
+  display:inline-grid;
+  place-items:center;
+  min-width:20px;
+  height:20px;
+  padding:0 6px;
+  border-radius:var(--crm-radius-pill);
+  background:color-mix(in srgb,var(--tc-safe) 16%,white);
+  color:color-mix(in srgb,var(--tc-safe) 82%,#17354B);
+}
+
+.crm-shell .type-chip[data-activity-type="visita-presencial"],
+.crm-shell .type-chip[data-tipo="visita-presencial"],
+.crm-shell .type-chip.visita-presencial{--tc:var(--crm-act-visita-presencial)}
+.crm-shell .type-chip[data-activity-type="ligacao"],
+.crm-shell .type-chip[data-tipo="ligacao"],
+.crm-shell .type-chip.ligacao{--tc:var(--crm-act-ligacao)}
+.crm-shell .type-chip[data-activity-type="whatsapp"],
+.crm-shell .type-chip[data-tipo="whatsapp"],
+.crm-shell .type-chip.whatsapp{--tc:var(--crm-act-whatsapp)}
+.crm-shell .type-chip[data-activity-type="email"],
+.crm-shell .type-chip[data-tipo="email"],
+.crm-shell .type-chip.email{--tc:var(--crm-act-email)}
+.crm-shell .type-chip[data-activity-type="reuniao-online"],
+.crm-shell .type-chip[data-tipo="reuniao-online"],
+.crm-shell .type-chip.reuniao-online{--tc:var(--crm-act-reuniao-online)}
+.crm-shell .type-chip[data-activity-type="proposta"],
+.crm-shell .type-chip[data-tipo="proposta"],
+.crm-shell .type-chip.proposta{--tc:var(--crm-act-proposta)}
+.crm-shell .type-chip[data-activity-type="retorno"],
+.crm-shell .type-chip[data-tipo="retorno"],
+.crm-shell .type-chip.retorno{--tc:var(--crm-act-retorno)}
+.crm-shell .type-chip[data-activity-type="treinamento"],
+.crm-shell .type-chip[data-tipo="treinamento"],
+.crm-shell .type-chip.treinamento{--tc:var(--crm-act-treinamento)}
+
+.crm-shell #view-agenda .agenda-controlbar{
+  display:flex;
+  flex-direction:column;
+  gap:var(--crm-gap-2);
+  margin-bottom:12px;
+}
+
+.crm-shell #view-agenda .agenda-cb-top{
+  display:flex;
+  align-items:center;
+  gap:var(--crm-gap-2);
+  flex-wrap:wrap;
+  padding:7px;
+  border:var(--crm-border);
+  border-radius:var(--crm-radius-md);
+  background:rgba(255,255,255,.9);
+  box-shadow:var(--crm-shadow-card);
+}
+
+.crm-shell #view-agenda .agenda-mode-switch{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  width:auto;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:var(--crm-radius-sm);
+  background:#EEF4F8;
+  box-shadow:none;
+}
+
+.crm-shell #view-agenda .agenda-mode-switch button{
+  min-height:36px;
+  padding:0 12px;
+  border-radius:var(--crm-radius-pill);
+  color:#64768A;
+  font-size:var(--crm-font-sm);
+  font-weight:850;
+  white-space:nowrap;
+}
+
+.crm-shell #view-agenda .agenda-mode-switch button:hover{
+  background:#fff;
+  color:var(--navy);
+}
+
+.crm-shell #view-agenda .agenda-mode-switch button.active{
+  background:var(--navy);
+  color:#fff;
+  box-shadow:0 7px 18px -12px rgba(15,42,77,.62);
+}
+
+.crm-shell #view-agenda .agenda-period{
+  min-height:36px;
+  padding:0 4px;
+  border:var(--crm-border);
+  border-radius:var(--crm-radius-pill);
+  background:#fff;
+}
+
+.crm-shell #view-agenda .agenda-period strong{
+  min-width:178px;
+  padding-inline:10px;
+  color:var(--navy);
+  font-size:var(--crm-font-sm);
+  font-weight:850;
+  text-align:center;
+  text-decoration:none;
+}
+
+.crm-shell #view-agenda .agenda-period .period-nav{
+  width:32px;
+  height:32px;
+  color:#627487;
+}
+
+.crm-shell #view-agenda .agenda-period .period-nav:hover{
+  background:var(--crm-hover);
+  color:var(--accent);
+}
+
+.crm-shell #view-agenda .agenda-today-btn,
+.crm-shell #view-agenda .agenda-new-btn{
+  min-height:36px;
+}
+
+.crm-shell #view-agenda .agenda-new-btn{
+  margin-left:auto;
+}
+
+.crm-shell #view-agenda .agenda-cb-filters{
+  display:flex;
+  align-items:center;
+  gap:var(--crm-gap-2);
+  flex-wrap:nowrap;
+  max-width:100%;
+  padding:7px;
+  border:var(--crm-border);
+  border-radius:var(--crm-radius-md);
+  background:rgba(255,255,255,.9);
+  box-shadow:var(--crm-shadow-card);
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+
+.crm-shell #view-agenda .agenda-cb-filters .context-filter-bar,
+.crm-shell #view-agenda .agenda-cb-filters #agendaFilters{
+  display:contents;
+}
+
+.crm-shell #view-agenda .agenda-calendar{
+  padding-bottom:8px;
+}
+
+.crm-shell #view-agenda .day-grid{
+  gap:10px;
+}
+
+.crm-shell #view-agenda .week-grid,
+.crm-shell #view-agenda .month-grid,
+.crm-shell #view-agenda .month-weekdays{
+  gap:8px;
+}
+
+.crm-shell #view-agenda .day-col,
+.crm-shell #view-agenda .day-focus,
+.crm-shell #view-agenda .month-day{
+  border:var(--crm-border);
+  border-radius:var(--crm-radius-md);
+  background:#F7FAFC;
+  box-shadow:var(--crm-shadow-card);
+}
+
+.crm-shell #view-agenda .day-head,
+.crm-shell #view-agenda .day-focus-head,
+.crm-shell #view-agenda .month-day>header{
+  background:#fff;
+  border-bottom:var(--crm-border);
+}
+
+.crm-shell #view-agenda .day-head strong,
+.crm-shell #view-agenda .day-focus-head strong,
+.crm-shell #view-agenda .month-day>header{
+  color:var(--navy);
+  font-size:var(--crm-font-sm);
+  font-weight:900;
+}
+
+.crm-shell #view-agenda .agenda-card{
+  min-height:64px;
+  border:1px solid color-mix(in srgb,var(--activity-color,var(--accent)) 28%,var(--line));
+  border-left:4px solid var(--activity-color,var(--accent));
+  border-radius:var(--crm-radius-md);
+  background:#fff;
+  box-shadow:0 7px 20px -18px rgba(15,32,56,.5);
+}
+
+.crm-shell #view-agenda .agenda-card:hover{
+  transform:translateY(-1px);
+  border-color:color-mix(in srgb,var(--activity-color,var(--accent)) 42%,var(--line));
+  box-shadow:var(--crm-shadow-lift);
+}
+
+.crm-shell #view-agenda .agenda-card .agenda-time{
+  background:color-mix(in srgb,var(--activity-color,var(--accent)) 8%,#F8FBFD);
+}
+
+.crm-shell #view-agenda .agenda-card .agenda-body strong{
+  color:var(--navy);
+  font-size:12.5px;
+  font-weight:850;
+}
+
+.crm-shell #view-agenda .agenda-status{
+  min-height:22px;
+  padding:3px 8px;
+  border-radius:var(--crm-radius-pill);
+  font-size:9.5px;
+  font-weight:900;
+  letter-spacing:0;
+}
+
+.crm-shell #view-agenda .agenda-mini{
+  min-height:30px;
+  border-radius:var(--crm-radius-sm);
+  border-left-color:var(--activity-color,var(--accent));
+  box-shadow:0 1px 0 rgba(15,32,56,.03);
+}
+
+.crm-shell #view-agenda .overdue-card{
+  margin-top:12px;
+}
+
+.crm-shell .surface-card,
+.crm-shell .stat-card,
+.crm-shell .kpi-card,
+.crm-shell .hero-card,
+.crm-shell .queue-card,
+.crm-shell .activity-card,
+.crm-shell .deal-card,
+.crm-shell .cad-card,
+.crm-shell .pcad-card{
+  border-color:color-mix(in srgb,var(--line) 88%,#B9C9D5);
+  border-radius:var(--crm-radius-md);
+  box-shadow:var(--crm-shadow-card);
+}
+
+.crm-shell .surface-card{
+  background:rgba(255,255,255,.94);
+}
+
+.crm-shell .card-heading,
+.crm-shell .table-toolbar{
+  padding:14px 16px;
+  background:linear-gradient(180deg,#fff 0%,#FBFCFE 100%);
+}
+
+.crm-shell .card-heading h2,
+.crm-shell .table-toolbar h2{
+  color:var(--navy);
+  font-size:15px;
+  font-weight:850;
+}
+
+.crm-shell .card-heading p,
+.crm-shell .table-toolbar p{
+  color:#66788B;
+  font-size:var(--crm-font-xs);
+}
+
+.crm-shell #view-home .exec-kpis{
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:var(--crm-gap-3);
+  margin-bottom:12px;
+}
+
+.crm-shell #view-home .exec-kpis .kpi-card{
+  min-height:96px;
+  border-radius:var(--crm-radius-lg);
+  padding:14px;
+}
+
+.crm-shell #view-home .exec-kpis .k-body strong{
+  color:var(--navy);
+  font-size:26px;
+  letter-spacing:0;
+}
+
+.crm-shell #view-home .home-strip{
+  gap:var(--crm-gap-3);
+  margin-bottom:12px;
+  border-radius:var(--crm-radius-lg);
+}
+
+.crm-shell #view-home .home-charts.exec-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:var(--crm-gap-3);
+}
+
+.crm-shell #view-home .type-chip-grid{
+  gap:8px;
+  padding:13px 14px;
+}
+
+.crm-shell #view-prospects .prospect-main-stats .kpi-card,
+.crm-shell #view-clientes .stats-grid .stat-card{
+  border-radius:var(--crm-radius-lg);
+}
+
+.crm-shell #view-prospects .prospect-stage-card .funnel-track,
+.crm-shell .metric-bar,
+.crm-shell .progress-track{
+  height:8px;
+  border-radius:var(--crm-radius-pill);
+  background:#E9EFF5;
+  overflow:visible;
+}
+
+.crm-shell #view-prospects .prospect-stage-card .funnel-fill,
+.crm-shell .metric-bar i,
+.crm-shell .progress-fill{
+  min-height:100%;
+  border-radius:var(--crm-radius-pill);
+}
+
+.crm-shell #view-prospects .prospect-channel-stats .activity-card:nth-child(1){--activity-color:var(--crm-act-ligacao)}
+.crm-shell #view-prospects .prospect-channel-stats .activity-card:nth-child(2){--activity-color:var(--crm-act-whatsapp)}
+.crm-shell #view-prospects .prospect-channel-stats .activity-card:nth-child(3){--activity-color:var(--crm-act-visita-presencial)}
+.crm-shell #view-prospects .prospect-channel-stats .activity-card:nth-child(4){--activity-color:var(--crm-act-proposta)}
+
+.crm-shell #view-prospects .prospect-channel-stats .activity-card .act-ico{
+  background:color-mix(in srgb,var(--activity-color,var(--accent)) 13%,white)!important;
+  color:var(--activity-color,var(--accent))!important;
+}
+
+.crm-shell #view-prospects .prospect-channel-stats .activity-card .progress-fill{
+  background:var(--activity-color,var(--accent))!important;
+}
+
+.crm-shell #view-prospects .queue-item{
+  min-height:64px;
+}
+
+.crm-shell #view-prospects .queue-action{
+  background:color-mix(in srgb,var(--accent) 10%,white);
+  border-color:color-mix(in srgb,var(--accent) 20%,var(--line));
+  color:var(--accent);
+}
+
+.crm-shell .kanban-col{
+  border-radius:var(--crm-radius-md);
+  box-shadow:var(--crm-shadow-card);
+}
+
+.crm-shell .kanban-head{
+  min-height:48px;
+  padding:11px 10px;
+}
+
+.crm-shell .deal-card{
+  border-radius:var(--crm-radius-md);
+  padding:10px;
+}
+
+.crm-shell .deal-card:hover{
+  box-shadow:var(--crm-shadow-lift);
+}
+
+.crm-shell .modal-panel{
+  border-radius:var(--crm-radius-lg);
+}
+
+.crm-shell .entity-section,
+.crm-shell .form-section-title,
+.crm-shell .detail-line,
+.crm-shell .workspace-section{
+  border-radius:var(--crm-radius-md);
+}
+
+.crm-shell .entity-section-grid input,
+.crm-shell .entity-section-grid select,
+.crm-shell .entity-section-grid textarea,
+.crm-shell .form-grid input,
+.crm-shell .form-grid select,
+.crm-shell .form-grid textarea{
+  min-height:var(--crm-touch-h);
+  border-radius:var(--crm-radius-sm);
+}
+
+.crm-shell .entity-actions{
+  gap:var(--crm-gap-2);
+}
+
+.crm-shell .crm-sticker{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:28px;
+  padding:5px 12px;
+  border-radius:var(--crm-radius-pill);
+  background:var(--crm-sticker-bg,#FFC60A);
+  color:var(--crm-sticker-fg,var(--navy));
+  box-shadow:0 10px 24px -16px color-mix(in srgb,var(--crm-sticker-bg,#FFC60A) 70%,#000);
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:0;
+  transform:rotate(4deg);
+  transform-origin:center;
+}
+
+.crm-shell .crm-bar-tag{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:28px;
+  padding:5px 10px;
+  border-radius:var(--crm-radius-pill);
+  background:var(--navy);
+  color:#fff;
+  box-shadow:0 10px 24px -18px rgba(15,42,77,.8);
+  font-size:12px;
+  font-weight:900;
+  transform:rotate(-4deg);
+  transform-origin:center bottom;
+}
+
+.crm-shell .crm-bar-tag::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-5px;
+  width:10px;
+  height:10px;
+  background:inherit;
+  transform:translateX(-50%) rotate(45deg);
+  border-radius:2px;
+}
+
+.crm-shell .crm-progress-track{
+  position:relative;
+  height:12px;
+  border-radius:var(--crm-radius-pill);
+  background:#E7EEF5;
+  overflow:visible;
+}
+
+.crm-shell .crm-progress-fill{
+  position:relative;
+  display:block;
+  height:100%;
+  width:var(--crm-progress,0%);
+  border-radius:inherit;
+  background:var(--crm-progress-color,var(--accent));
+}
+
+.crm-shell .crm-progress-runner{
+  position:absolute;
+  top:50%;
+  left:var(--crm-progress,0%);
+  width:28px;
+  height:28px;
+  border:4px solid #fff;
+  border-radius:50%;
+  background:var(--crm-progress-color,var(--accent));
+  box-shadow:0 10px 24px -16px rgba(15,32,56,.65);
+  transform:translate(-50%,-50%);
+}
+
+.crm-shell .crm-progress-runner::after{
+  content:"";
+  position:absolute;
+  inset:7px;
+  border-radius:50%;
+  background:#fff;
+  opacity:.92;
+}
+
+@media(max-width:900px){
+  .crm-shell .crm-main{
+    padding-inline:14px;
+  }
+  .crm-shell .crm-main .page-heading{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:start;
+    gap:10px;
+  }
+  .crm-shell .heading-actions{
+    justify-content:flex-end;
+  }
+  .crm-shell #view-home .home-charts.exec-grid{
+    grid-template-columns:1fr;
+  }
+  .crm-shell #view-agenda .agenda-cb-top{
+    align-items:stretch;
+  }
+  .crm-shell #view-agenda .agenda-new-btn{
+    margin-left:0;
+  }
+  .crm-shell #view-prospects .prospect-channel-stats .activity-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:720px){
+  .crm-shell .crm-main .tabs-bar{
+    align-items:stretch;
+  }
+  .crm-shell .crm-main .tabs-bar .section-tabs{
+    padding-bottom:1px;
+  }
+  .crm-shell .tab-export-label{
+    display:none;
+  }
+  .crm-shell .tab-export-btn{
+    width:38px;
+    padding-inline:0;
+  }
+  .crm-shell #view-agenda .agenda-mode-switch{
+    flex:1 1 100%;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .crm-shell #view-agenda .agenda-mode-switch button{
+    justify-content:center;
+    padding-inline:8px;
+  }
+  .crm-shell #view-agenda .agenda-period{
+    flex:1 1 auto;
+  }
+  .crm-shell .cad-toolbar{
+    flex-wrap:wrap;
+  }
+}
+
+@media(max-width:620px){
+  .crm-shell{
+    --crm-control-h:42px;
+  }
+  .crm-shell .crm-main{
+    padding:14px 10px 24px;
+  }
+  .crm-shell .crm-main .page-heading{
+    grid-template-columns:minmax(0,1fr) auto;
+    margin-bottom:10px;
+  }
+  .crm-shell .crm-main .page-heading h1{
+    font-size:24px;
+    line-height:1.12;
+  }
+  .crm-shell .crm-main .page-heading p:not(.eyebrow),
+  .crm-shell .crm-main .eyebrow{
+    display:none;
+  }
+  .crm-shell .crm-main .tabs-bar{
+    margin-bottom:10px;
+    padding:4px;
+    border-radius:var(--crm-radius-md);
+  }
+  .crm-shell .crm-main .tabs-bar .section-tabs button{
+    min-height:38px;
+    padding:0 12px;
+  }
+  .crm-shell .context-filter-bar,
+  .crm-shell #view-agenda .agenda-cb-filters{
+    padding:6px;
+  }
+  .crm-shell .chip-filter .chip-value{
+    max-width:42vw;
+  }
+  .crm-shell #view-home .exec-kpis{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  .crm-shell #view-home .exec-kpis .kpi-card{
+    min-height:92px;
+    padding:12px;
+  }
+  .crm-shell #view-home .exec-kpis .k-body strong{
+    font-size:21px;
+  }
+  .crm-shell #view-home .home-strip{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .crm-shell #view-prospects .prospect-channel-stats .activity-grid,
+  .crm-shell #view-prospects .prospect-main-stats .kpi-grid{
+    grid-template-columns:1fr;
+  }
+  .crm-shell #view-agenda .agenda-cb-top{
+    display:grid;
+    grid-template-columns:1fr auto;
+  }
+  .crm-shell #view-agenda .agenda-mode-switch,
+  .crm-shell #view-agenda .agenda-period{
+    grid-column:1/-1;
+  }
+  .crm-shell #view-agenda .agenda-today-btn{
+    justify-self:start;
+  }
+  .crm-shell #view-agenda .agenda-period strong{
+    min-width:0;
+    flex:1;
+  }
+  .crm-shell #view-agenda .week-grid{
+    min-width:690px;
+  }
+  .crm-shell #view-agenda .month-grid,
+  .crm-shell #view-agenda .month-weekdays{
+    min-width:660px;
+  }
+  .crm-shell .entity-actions{
+    padding:10px;
+  }
+  .crm-shell .entity-actions :where(.primary-btn,.secondary-btn,.danger-btn){
+    min-height:var(--crm-touch-h);
+  }
+}
+
+@media(max-width:520px){
+  .crm-shell .crm-main .tabs-bar{
+    gap:5px;
+  }
+  .crm-shell .crm-main .tabs-bar .section-tabs button{
+    gap:0;
+    padding-inline:11px;
+  }
+  .crm-shell .crm-main .tabs-bar .section-tabs button .material-symbols-rounded{
+    display:none;
+  }
+  .crm-shell .context-filter-bar label,
+  .crm-shell .chip-filter{
+    padding-inline:10px;
+  }
+  .crm-shell .chip-filter .chip-value{
+    max-width:48vw;
+  }
+  .crm-shell .search-field,
+  .crm-shell .chip-search{
+    flex:1 1 100%;
+    width:100%;
+    min-width:0;
+  }
+  .crm-shell #view-home .exec-kpis{
+    grid-template-columns:1fr;
+  }
+  .crm-shell #view-home .home-strip{
+    grid-template-columns:1fr;
+  }
+  .crm-shell .crm-sticker,
+  .crm-shell .crm-bar-tag{
+    transform:rotate(0deg);
+  }
+}
+
+/* CRM UI Refinement 01 - 2026-07 */
+.crm-shell #view-home .chart-card>div:not(.card-heading){
+  padding:14px 16px 16px;
+}
+
+.crm-shell #view-home :where(#homeFunnel,#homeClientJourney,#homeDonut,#homeTypes,#homeTeam,#homeOwners,#homeAlerts){
+  display:grid;
+  gap:12px;
+  min-width:0;
+}
+
+.crm-shell #view-home :where(.funnel-row,.team-row,.rep-card,.alert-tile){
+  min-width:0;
+}
+
+.crm-shell #view-home .funnel-row{
+  padding:2px 0 4px;
+}
+
+.crm-shell #view-home .funnel-label-row,
+.crm-shell #view-home .team-top,
+.crm-shell #view-home .rep-top{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  min-width:0;
+}
+
+.crm-shell #view-home .funnel-label-row .name,
+.crm-shell #view-home .team-top span,
+.crm-shell #view-home .rep-top .name{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.crm-shell #view-home :where(.funnel-track,.hbar-track,.team-track,.stack-bar){
+  box-shadow:inset 0 1px 0 rgba(15,32,56,.04);
+}
+
+.crm-shell #view-home .stack-legend,
+.crm-shell #view-home .rep-legend,
+.crm-shell #view-home .donut-legend{
+  min-width:0;
+  padding-top:2px;
+}
+
+.crm-shell #view-home .stack-legend .li,
+.crm-shell #view-home .rep-legend .li{
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.crm-shell #view-home .team-bars{
+  padding-top:2px;
+}
+
+.crm-shell #view-home .team-track{
+  width:100%!important;
+  max-width:100%;
+}
+
+.crm-shell #view-home .rep-card{
+  padding:10px 11px;
+  border:1px solid color-mix(in srgb,var(--line) 86%,#C2D1DC);
+  border-radius:var(--crm-radius-md);
+  background:#fff;
+  box-shadow:0 8px 22px -20px rgba(15,32,56,.38);
+}
+
+.crm-shell #view-home .alert-grid{
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;
+}
+
+.crm-shell #view-home .alert-tile{
+  padding:11px 12px;
+  border:1px solid color-mix(in srgb,var(--line) 84%,#C2D1DC);
+  border-radius:var(--crm-radius-md);
+  background:#fff;
+}
+
+.crm-shell :where(.prospect-filter-row,.board-toolbar,.filter-row,.cad-toolbar,.cad-controls,.context-filter-bar,.agenda-cb-filters){
+  min-width:0;
+  max-width:100%;
+}
+
+.crm-shell .context-filter-bar{
+  width:100%;
+  overscroll-behavior-inline:contain;
+  scroll-padding-inline:8px;
+}
+
+.crm-shell .context-filter-bar .chip-filter,
+.crm-shell .agenda-cb-filters .chip-filter,
+.crm-shell .cad-controls .chip-filter{
+  max-width:min(320px,calc(100vw - 34px));
+}
+
+.crm-shell .chip-filter{
+  font-size:clamp(11px,.82vw,12px);
+  font-weight:780;
+}
+
+.crm-shell .chip-filter .chip-value{
+  min-width:0;
+  max-width:clamp(112px,18vw,210px);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.crm-shell .cad-toolbar{
+  font-size:clamp(11px,.82vw,12px);
+}
+
+.crm-shell .cad-toolbar .search-field{
+  min-width:min(260px,100%);
+}
+
+.crm-shell .cad-toolbar input{
+  font-size:clamp(12px,.9vw,13px);
+  font-weight:650;
+}
+
+.crm-shell .board-toolbar .filter-row{
+  max-width:100%;
+  overflow-x:auto;
+  overflow-y:visible;
+  scrollbar-width:none;
+}
+
+.crm-shell .board-toolbar .filter-row::-webkit-scrollbar{
+  display:none;
+}
+
+.crm-shell .chip-filter.ms{
+  background:color-mix(in srgb,var(--accent-soft) 26%,#fff);
+  border-color:color-mix(in srgb,var(--accent) 16%,var(--line));
+  color:var(--navy);
+  box-shadow:0 1px 0 rgba(15,32,56,.03);
+}
+
+.crm-shell .chip-filter.ms.has-sel{
+  background:color-mix(in srgb,var(--accent-soft) 62%,#fff);
+  border-color:color-mix(in srgb,var(--accent) 30%,var(--line));
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 10%,transparent);
+}
+
+.crm-shell .chip-filter.ms .chip-badge{
+  min-width:18px;
+  height:18px;
+  padding:0 6px;
+  background:var(--accent);
+  color:#fff;
+  font-size:10px;
+  box-shadow:0 5px 14px -10px rgba(14,149,148,.8);
+}
+
+.crm-shell .chip-dropdown-menu.ms{
+  min-width:min(280px,calc(100vw - 24px));
+  max-width:calc(100vw - 24px);
+  padding:6px;
+  border-color:color-mix(in srgb,var(--accent) 12%,var(--line));
+  background:#fff;
+  box-shadow:0 18px 44px -26px rgba(15,32,56,.42),0 1px 0 rgba(15,32,56,.04);
+}
+
+.crm-shell .chip-dropdown-menu.ms .chip-option{
+  min-height:38px;
+  gap:9px;
+  padding:8px 10px;
+  border-radius:var(--crm-radius-sm);
+  color:#40586D;
+  font-size:12px;
+  font-weight:720;
+}
+
+.crm-shell .chip-dropdown-menu.ms .chip-option:hover{
+  background:color-mix(in srgb,var(--accent-soft) 56%,#fff);
+  color:var(--navy);
+}
+
+.crm-shell .chip-dropdown-menu.ms .ms-box{
+  width:18px;
+  height:18px;
+  border-radius:6px;
+  border-color:color-mix(in srgb,var(--accent) 28%,#C3D2DD);
+  background:#fff;
+  color:transparent;
+}
+
+.crm-shell .chip-dropdown-menu.ms .chip-option.on .ms-box{
+  background:color-mix(in srgb,var(--accent-soft) 74%,#fff);
+  border-color:var(--accent);
+  color:var(--accent);
+}
+
+.crm-shell .chip-dropdown-menu.ms .chip-option.ms-all{
+  background:color-mix(in srgb,var(--accent-soft) 52%,#fff);
+  color:var(--navy);
+}
+
+.crm-shell .chip-dropdown-menu.ms .ms-sep{
+  margin:5px 4px;
+  background:color-mix(in srgb,var(--line) 82%,#D6E4ED);
+}
+
+.crm-shell .chip-dropdown-menu.ms .ms-clear{
+  justify-content:center;
+  border:1px solid color-mix(in srgb,var(--accent) 16%,var(--line));
+  background:#fff;
+  color:var(--accent);
+  font-weight:850;
+}
+
+.crm-shell .chip-dropdown-menu.ms .ms-clear:hover{
+  background:color-mix(in srgb,var(--accent-soft) 70%,#fff);
+  border-color:color-mix(in srgb,var(--accent) 30%,var(--line));
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button{
+  position:relative;
+  color:color-mix(in srgb,var(--navy) 68%,#6F7D8A)!important;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button::after{
+  content:"";
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:5px;
+  height:2px;
+  border-radius:999px;
+  background:transparent;
+  opacity:.78;
+  pointer-events:none;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button:hover{
+  background:color-mix(in srgb,var(--accent-soft) 68%,#fff)!important;
+  color:var(--navy)!important;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button:hover::after{
+  background:color-mix(in srgb,#B48414 48%,transparent);
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button.active{
+  background:linear-gradient(135deg,var(--navy),color-mix(in srgb,var(--navy) 78%,var(--accent)))!important;
+  color:#fff!important;
+  box-shadow:0 9px 20px -14px rgba(15,42,77,.72),inset 0 -2px 0 color-mix(in srgb,#B48414 68%,transparent)!important;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button.active .material-symbols-rounded{
+  color:color-mix(in srgb,var(--accent-soft) 80%,#fff);
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button.active::after{
+  background:color-mix(in srgb,#B48414 82%,#fff);
+}
+
+@media(max-width:720px){
+  .crm-shell .context-filter-bar,
+  .crm-shell #view-agenda .agenda-cb-filters{
+    overflow-x:auto;
+    overflow-y:visible;
+  }
+  .crm-shell .context-filter-bar .chip-filter,
+  .crm-shell .agenda-cb-filters .chip-filter,
+  .crm-shell .cad-controls .chip-filter{
+    max-width:min(280px,calc(100vw - 28px));
+  }
+  .crm-shell .chip-filter .chip-value{
+    max-width:clamp(92px,34vw,180px);
+  }
+}
+
+@media(max-width:620px){
+  .crm-shell #view-home .chart-card>div:not(.card-heading){
+    padding:12px;
+  }
+  .crm-shell #view-home .alert-grid{
+    grid-template-columns:1fr;
+  }
+  .crm-shell .context-filter-bar label,
+  .crm-shell .chip-filter{
+    font-size:13px!important;
+    font-weight:740;
+  }
+  .crm-shell .chip-filter .chip-value{
+    max-width:44vw;
+  }
+  .crm-shell .cad-toolbar{
+    gap:7px;
+  }
+}
+
+@media(max-width:520px){
+  .crm-shell .context-filter-bar{
+    gap:6px;
+    padding-inline:6px!important;
+  }
+  .crm-shell .context-filter-bar .chip-filter,
+  .crm-shell .agenda-cb-filters .chip-filter,
+  .crm-shell .cad-controls .chip-filter{
+    max-width:calc(100vw - 24px);
+  }
+  .crm-shell .chip-filter .chip-value{
+    max-width:52vw;
+  }
+  .crm-shell .chip-dropdown-menu.ms{
+    left:8px!important;
+    min-width:calc(100vw - 16px);
+    max-width:calc(100vw - 16px);
+  }
+}
+
+/* CRM UI Refinement 02 - 2026-07 */
+.crm-shell #view-prospects .queue-meta{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  min-width:0;
+}
+
+.crm-shell #view-prospects .queue-type-chip{
+  min-height:22px;
+  padding:3px 8px;
+  font-size:10px;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.crm-shell #view-prospects .queue-type-chip .material-symbols-rounded{
+  font-size:12px;
+}
+
+.crm-shell .activity-grid .act-ico .material-symbols-rounded{
+  font-size:16px;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button::after,
+.crm-shell .crm-main .tabs-bar .section-tabs button:hover::after,
+.crm-shell .crm-main .tabs-bar .section-tabs button.active::after{
+  content:none!important;
+  display:none!important;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button:hover{
+  background:color-mix(in srgb,var(--accent-soft) 72%,#fff)!important;
+  color:var(--navy)!important;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button.active{
+  background:#B48414!important;
+  color:#fff!important;
+  box-shadow:0 9px 20px -15px rgba(93,61,8,.48)!important;
+}
+
+.crm-shell .crm-main .tabs-bar .section-tabs button.active .material-symbols-rounded{
+  color:#fff;
+}
+
+.crm-shell .deal-btn.wapp{
+  text-decoration:none;
+  border-bottom:0;
+  box-shadow:none;
+  background-image:none;
+}
+
+.crm-shell .deal-btn.wapp::after{
+  content:none;
+  display:none;
+}
+
+.crm-shell .deal-btn.wapp:focus-visible{
+  outline:0;
+  box-shadow:0 0 0 3px rgba(37,211,102,.2);
+}
+
+@media(max-width:620px){
+  .crm-shell .context-filter-bar .chip-filter,
+  .crm-shell #view-agenda .agenda-cb-filters .chip-filter{
+    width:42px;
+    min-width:42px;
+    max-width:42px;
+    min-height:42px;
+    justify-content:center;
+    padding-inline:0!important;
+    gap:0;
+  }
+  .crm-shell .context-filter-bar .chip-filter>.material-symbols-rounded:first-child,
+  .crm-shell #view-agenda .agenda-cb-filters .chip-filter>.material-symbols-rounded:first-child{
+    font-size:19px;
+  }
+  .crm-shell .context-filter-bar .chip-filter .chip-value,
+  .crm-shell .context-filter-bar .chip-filter .chip-chevron,
+  .crm-shell #view-agenda .agenda-cb-filters .chip-filter .chip-value,
+  .crm-shell #view-agenda .agenda-cb-filters .chip-filter .chip-chevron{
+    display:none!important;
+  }
+  .crm-shell .context-filter-bar .chip-filter .chip-badge,
+  .crm-shell #view-agenda .agenda-cb-filters .chip-filter .chip-badge{
+    position:absolute;
+    right:-3px;
+    top:-4px;
+    display:inline-grid;
+  }
+  .crm-shell .context-filter-bar .rail-period{
+    width:42px;
+    min-width:42px;
+    max-width:42px;
+    min-height:42px;
+    justify-content:center;
+    padding:0;
+    font-size:0;
+  }
+  .crm-shell .context-filter-bar .rail-period .material-symbols-rounded{
+    font-size:19px;
+    margin:0;
+  }
+}
