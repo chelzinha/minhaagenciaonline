@@ -13,6 +13,12 @@ function onOpen() {
     .addSeparator()
     .addSubMenu(filtrosData)
     .addToUi();
+
+  try {
+    if (typeof crmLoteAdicionarMenu_ === 'function') crmLoteAdicionarMenu_(ui);
+  } catch (err) {
+    Logger.log('[CRM_LOTE] Falha ao adicionar menu CRM: ' + ((err && err.message) || err));
+  }
 }
 
 function limparFiltrosAbaAtual() {
