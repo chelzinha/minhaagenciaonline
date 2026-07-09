@@ -234,6 +234,8 @@ function crm5x_scanProspectsLite_() {
       nomeFantasia: op_norm_(op_getCell_(r, hm, 'NOME_FANTASIA')),
       razaoSocial: op_norm_(op_getCell_(r, hm, 'RAZAO_SOCIAL')),
       local: op_norm_(op_getCell_(r, hm, 'LOCAL')),
+      whatsapp: op_norm_(op_getCell_(r, hm, 'WHATSAPP')),
+      email: op_norm_(op_getCell_(r, hm, 'EMAIL')),
       prioridade: op_norm_(op_getCell_(r, hm, 'PRIORIDADE')),
       responsavel: op_norm_(op_getCell_(r, hm, 'RESPONSAVEL')),
       statusProspect: op_norm_(op_getCell_(r, hm, 'STATUS_PROSPECT'))
