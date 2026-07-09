@@ -1188,12 +1188,26 @@ function forceUpdateClientesMaster(){
 }
 
 function triggerRefreshMaster(){
+  // PERF V5 (cota de acionadores): antes, reconstruia a CLIENTES_MASTER
+  // inteira toda hora (~5 min por execucao = ~2h/dia de cota consumida a
+  // toa). Agora compara a assinatura da BASE_TOTAL com a da ultima
+  // construcao: se nada mudou e a master esta usavel, apenas renova o
+  // selo de frescor e sai em segundos. Reconstroi quando: (1) a base
+  // mudou, (2) alguem pediu refresh manual (propriedade de request), ou
+  // (3) a master esta inutilizavel.
   var baseSig = op_getBaseSheetSignature_();
+  var meta = op_getMasterMeta_();
+  var props = PropertiesService.getScriptProperties();
+  var forced = !!props.getProperty('op_master_refresh_requested_ms');
   var cache = CacheService.getScriptCache();
+  if (!forced && meta.baseSig === baseSig && op_hasUsableMaster_()) {
+    try { cache.put('master_fresh::' + baseSig, '1', OP_CFG.CACHE.MASTER_SEC); } catch (e) {}
+    return { ok: true, status: 'skipped_unchanged', baseSig: baseSig };
+  }
   try { cache.remove('master_fresh::' + baseSig); } catch (e) {}
   var result = op_updateClientesMaster(baseSig);
   try { cache.put('master_fresh::' + baseSig, '1', OP_CFG.CACHE.MASTER_SEC); } catch (e) {}
-  try { PropertiesService.getScriptProperties().deleteProperty('op_master_refresh_requested_ms'); } catch (e) {}
+  try { props.deleteProperty('op_master_refresh_requested_ms'); } catch (e) {}
   return result;
 }
 

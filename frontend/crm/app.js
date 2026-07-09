@@ -134,13 +134,13 @@ function contextChip(attr,scope,icon,allLabel,cur,opts,noAll){const items=noAll?
 function msParse(v){v=text(v);return v?v.split('|').map(text).filter(Boolean):[];}
 function msHas(sel,val){const a=msParse(sel);if(!a.length)return true;const nv=norm(val);return a.some(s=>norm(s)===nv);}
 function msNormalize(sel,opts){const vals=(opts||[]).map(text).filter(Boolean),a=[],seen=new Set();msParse(sel).forEach(v=>{const key=norm(v);if(!key||seen.has(key))return;if(vals.length&&!vals.some(o=>norm(o)===key))return;seen.add(key);a.push(v);});if(vals.length&&a.length===vals.length)return'';return a.join('|');}
-function msToggle(sel,val,opts){const a=msParse(sel),v=text(val),i=a.findIndex(x=>norm(x)===norm(v));if(i>=0)a.splice(i,1);else if(v)a.push(v);return msNormalize(a.join('|'),opts);}
+function msToggle(sel,val,opts){const parsed=msParse(sel),a=parsed.length?parsed:(opts||[]).map(text).filter(Boolean).slice(),v=text(val),i=a.findIndex(x=>norm(x)===norm(v));if(i>=0)a.splice(i,1);else if(v)a.push(v);return msNormalize(a.join('|'),opts);}
 function msHasResp(sel,val){const a=msParse(sel);if(!a.length)return true;const nv=norm(responsibleDisplay(val)||val);return a.some(s=>norm(responsibleDisplay(s)||s)===nv);}
 function contextChipMS(attr,scope,icon,allLabel,cur,opts){
   const vals=(opts||[]).map(([v])=>text(v)).filter(Boolean);
   const sel=msParse(msNormalize(cur,vals));
-  const isOn=v=>sel.some(s=>norm(s)===norm(v));
-  const allSelected=vals.length>0&&sel.length===vals.length&&vals.every(v=>isOn(v));
+  const isOn=v=>sel.length===0?true:sel.some(s=>norm(s)===norm(v));
+  const allSelected=sel.length===0&&vals.length>0;
   const optHtml=(opts||[]).map(([v,l])=>`<button class="chip-option ms${isOn(v)?' on':''}" type="button" data-value="${esc(v)}" data-ms-option aria-checked="${isOn(v)?'true':'false'}"><span class="ms-box material-symbols-rounded" aria-hidden="true">${isOn(v)?'check':''}</span>${esc(l)}</button>`).join('');
   return`<div class="chip-filter ms${sel.length?' has-sel':''}" data-chip-filter="${esc(attr)}" data-ms="1"${scope?` data-chip-scope="${esc(scope)}"`:''}><span class="material-symbols-rounded">${icon}</span><span class="chip-value">${esc(allLabel)}</span>${sel.length?`<span class="chip-badge">${sel.length}</span>`:''}<span class="material-symbols-rounded chip-chevron">expand_more</span><div class="chip-dropdown-menu ms" hidden><button class="chip-option ms-all${allSelected?' on':''}" type="button" data-ms-all aria-checked="${allSelected?'true':'false'}"><span class="ms-box material-symbols-rounded" aria-hidden="true">${allSelected?'check':''}</span>Selecionar todos</button><div class="ms-sep"></div>${optHtml}<div class="ms-sep"></div><button class="chip-option ms-clear" type="button" data-ms-clear>Limpar filtro</button></div></div>`;
 }
@@ -149,8 +149,8 @@ function chipFilterSet(attr,scope,v){if(attr==='contextLocal')setContextLocal(sc
 function msChipValues(chip){return[...chip.querySelectorAll('.chip-option.ms[data-value]')].map(o=>o.dataset.value).filter(Boolean);}
 function refreshMsChip(chip){
   const attr=chip.dataset.chipFilter,scope=chip.dataset.chipScope||'',vals=msChipValues(chip),sel=msParse(msNormalize(chipFilterGet(attr,scope),vals));
-  const isOn=v=>sel.some(s=>norm(s)===norm(v));
-  const allSelected=vals.length>0&&sel.length===vals.length&&vals.every(v=>isOn(v));
+  const isOn=v=>sel.length===0?true:sel.some(s=>norm(s)===norm(v));
+  const allSelected=sel.length===0&&vals.length>0;
 
   chip.classList.toggle('has-sel',!!sel.length);
 
@@ -183,7 +183,7 @@ function refreshMsChip(chip){
   }
 }
 function rerenderData(){renderActiveView('data');updateActionsFrameFilters();}
-function bindChipEvents(){if(bindChipEvents._bound)return;bindChipEvents._bound=true;document.addEventListener('scroll',function(e){if(e.target&&e.target.closest&&e.target.closest('.chip-dropdown-menu'))return;document.querySelectorAll('.chip-filter.open').forEach(function(c){c.classList.remove('open');const mm=c.querySelector('.chip-dropdown-menu');if(mm)mm.hidden=true;});},true);document.addEventListener('click',function(e){const msBtn=e.target.closest('.chip-filter[data-ms] .chip-option');if(msBtn){e.stopPropagation();const chip=msBtn.closest('.chip-filter'),attr=chip.dataset.chipFilter,scope=chip.dataset.chipScope||'',vals=msChipValues(chip);if(msBtn.hasAttribute('data-ms-all'))chipFilterSet(attr,scope,vals.join('|'));else if(msBtn.hasAttribute('data-ms-clear'))chipFilterSet(attr,scope,'');else chipFilterSet(attr,scope,msToggle(chipFilterGet(attr,scope),msBtn.dataset.value,vals));refreshMsChip(chip);if(attr==='agendaResponsible'||attr==='agendaType'||attr==='agendaStatus'||attr==='agendaLocal')renderAgenda();else rerenderData();return;}const opt=e.target.closest('.chip-filter .chip-option');if(opt){e.stopPropagation();const chip=opt.closest('.chip-filter'),attr=chip.dataset.chipFilter,val=opt.dataset.value;if(attr==='clientCadSort')state.clientSort={key:val,dir:(val==='valor30d'||val==='diasSemPostar')?'desc':'asc'};else if(attr==='prospectCadSort')state.prospectSort=val;else state.filters[attr]=val;chip.classList.remove('open');const mm=chip.querySelector('.chip-dropdown-menu');if(mm)mm.hidden=true;rerenderContext();return;}const chip=e.target.closest('.chip-filter');document.querySelectorAll('.chip-filter').forEach(function(c){if(c!==chip){c.classList.remove('open');const m=c.querySelector('.chip-dropdown-menu');if(m)m.hidden=true;}});if(chip&&!chip.classList.contains('locked')){const m=chip.querySelector('.chip-dropdown-menu');if(m){const willOpen=m.hidden;m.hidden=!willOpen;chip.classList.toggle('open',willOpen);if(willOpen){const r=chip.getBoundingClientRect();m.style.position='fixed';m.style.left=Math.max(8,Math.min(r.left,window.innerWidth-268))+'px';m.style.top=(r.bottom+6)+'px';m.style.minWidth=Math.max(r.width,200)+'px';}}}});}
+function bindChipEvents(){if(bindChipEvents._bound)return;bindChipEvents._bound=true;document.addEventListener('scroll',function(e){if(e.target&&e.target.closest&&e.target.closest('.chip-dropdown-menu'))return;document.querySelectorAll('.chip-filter.open').forEach(function(c){c.classList.remove('open');const mm=c.querySelector('.chip-dropdown-menu');if(mm)mm.hidden=true;});},true);document.addEventListener('click',function(e){const msBtn=e.target.closest('.chip-filter[data-ms] .chip-option');if(msBtn){e.stopPropagation();const chip=msBtn.closest('.chip-filter'),attr=chip.dataset.chipFilter,scope=chip.dataset.chipScope||'',vals=msChipValues(chip);if(msBtn.hasAttribute('data-ms-all'))chipFilterSet(attr,scope,'');else if(msBtn.hasAttribute('data-ms-clear'))chipFilterSet(attr,scope,'');else chipFilterSet(attr,scope,msToggle(chipFilterGet(attr,scope),msBtn.dataset.value,vals));refreshMsChip(chip);if(attr==='agendaResponsible'||attr==='agendaType'||attr==='agendaStatus'||attr==='agendaLocal')renderAgenda();else rerenderData();return;}const opt=e.target.closest('.chip-filter .chip-option');if(opt){e.stopPropagation();const chip=opt.closest('.chip-filter'),attr=chip.dataset.chipFilter,val=opt.dataset.value;if(attr==='clientCadSort')state.clientSort={key:val,dir:(val==='valor30d'||val==='diasSemPostar')?'desc':'asc'};else if(attr==='prospectCadSort')state.prospectSort=val;else state.filters[attr]=val;chip.classList.remove('open');const mm=chip.querySelector('.chip-dropdown-menu');if(mm)mm.hidden=true;rerenderContext();return;}const chip=e.target.closest('.chip-filter');document.querySelectorAll('.chip-filter').forEach(function(c){if(c!==chip){c.classList.remove('open');const m=c.querySelector('.chip-dropdown-menu');if(m)m.hidden=true;}});if(chip&&!chip.classList.contains('locked')){const m=chip.querySelector('.chip-dropdown-menu');if(m){const willOpen=m.hidden;m.hidden=!willOpen;chip.classList.toggle('open',willOpen);if(willOpen){const r=chip.getBoundingClientRect();m.style.position='fixed';m.style.left=Math.max(8,Math.min(r.left,window.innerWidth-268))+'px';m.style.top=(r.bottom+6)+'px';m.style.minWidth=Math.max(r.width,200)+'px';}}}});}
 function agendaNeedWin(){const c=state.agendaCursor;return{start:addDays(monthStart(c),-7),end:addDays(monthEnd(c),7)};}
 function agendaWinCovers(p){const w=state.agendaWin;return !!(w&&w.items&&w.start<=p.start&&w.end>=p.end);}
 async function ensureAgendaWindow(force){const need=agendaNeedWin();if(!force&&agendaWinCovers(need))return;const resp=responsibleApiValue('');const r=await apiGet('get_crm_agenda_v3',{start:need.start,end:need.end,responsavelId:resp});state.agendaWin={start:need.start,end:need.end,items:r.items||[]};}
@@ -235,6 +235,17 @@ async function ensureActiveViewData(reason='view'){
 function ensureLegacyForActiveCadastro(){if(!activeCadastroNeedsLegacy()||state.legacyReady)return;if(state.legacyLoadPromise){state.legacyLoadPromise.then(()=>{if(activeCadastroNeedsLegacy())renderActiveView('legacy-ready');});return;}loadLegacyData(true).then(()=>{if(activeCadastroNeedsLegacy())renderActiveView('legacy-ready');});}
 
 async function loadLegacyData(silent=true){if(state.legacyLoadPromise)return state.legacyLoadPromise;const mark=perfStart('loadLegacyData');state.legacyLoadPromise=(async()=>{try{const lopts={timeoutMs:cfg.legacyTimeoutMs||150000};let clients=[],prospects=[];try{const [cli,pro]=await Promise.all([apiGet('get_cadastro_v5',{tipo:'CLIENTE'},lopts),apiGet('get_cadastro_v5',{tipo:'PROSPECT'},lopts)]);clients=cli.items||[];prospects=pro.items||[];}catch(errV5){console.warn('[CRM] get_cadastro_v5 indisponível, usando get_crm_data:',errV5);const legacy=await apiGet('get_crm_data',{},lopts);clients=legacy.clients||[];prospects=legacy.prospects||[];}state.clients=clients;state.prospects=prospects;state.clientsById=Object.fromEntries(state.clients.map(x=>[text(x.clienteId),x]));state.prospectsById=Object.fromEntries(state.prospects.map(x=>[text(x.prospectId),x]));state.legacyReady=true;perfEnd(mark,{clients:state.clients.length,prospects:state.prospects.length});if(state.initialized)renderActiveView('legacy');return{clients:clients,prospects:prospects};}catch(err){state.legacyReady=false;perfEnd(mark,{error:true});console.warn('[CRM] Cadastro detalhado não carregado:',err);if(!silent)toast('Os cadastros detalhados ainda não carregaram. Atualize em instantes.',true);return null;}finally{state.legacyLoadPromise=null;}})();return state.legacyLoadPromise;}
+async function loadRestProgressive(need,options){
+ const resp=responsibleApiValue('');
+ const overdueEnd=addDays(today(),-1),overdueStart=addDays(today(),-180);
+ const applyThenRender=fn=>r=>{fn(r);if(state.initialized)renderActiveView('boot-progressive');return r;};
+ await Promise.all([
+  apiGet('get_crm_jornada_data',{funilId:'FUNIL_CLIENTES',tipoEntidade:'CLIENTE',responsavelId:resp},options).then(applyThenRender(r=>{state.journeyClients=r;state.loadedBlocks.clients=true;})),
+  apiGet('get_crm_jornada_data',{funilId:'FUNIL_PROSPECTS',tipoEntidade:'PROSPECT',responsavelId:resp},options).then(applyThenRender(r=>{state.journeyProspects=r;state.loadedBlocks.prospects=true;})),
+  apiGet('get_crm_agenda_v3',{start:need.start,end:need.end,responsavelId:resp},options).then(applyThenRender(r=>{state.agenda=r;state.agendaWin={start:need.start,end:need.end,items:r.items||[]};state.loadedBlocks.agenda=true;})),
+  apiGet('get_crm_agenda_v3',{start:overdueStart,end:overdueEnd,responsavelId:resp,status:'PLANEJADO'},options).then(applyThenRender(r=>{state.overdue=r.items||[];state.loadedBlocks.overdue=true;}))
+ ]);
+}
 async function loadAll(){
  if(state.loadAllPromise)return state.loadAllPromise;
  state.loadAllPromise=(async()=>{
@@ -247,6 +258,27 @@ async function loadAll(){
    const resp0=responsibleApiValue('');
    const params=bootParamsForActiveView(need,resp0);
    syncViewDom(false);syncSubviewDom('prospects',false);syncSubviewDom('clientes',false);
+   // PERF V5: boot progressivo. boot_lite devolve config + dashboard em
+   // segundos e aquece os caches do servidor; jornadas e agenda chegam em
+   // paralelo na sequencia e renderizam conforme respondem. Se a rota nao
+   // existir no backend, cai na cadeia antiga (v4 > v3 > fluxo bloco a bloco).
+   let liteOk=false;
+   try{
+    const markLite=perfStart('api:get_crm_boot_lite_v5');
+    const lite=await apiGet('get_crm_boot_lite_v5',{responsavelId:resp0,start:weekStart(),end:addDays(weekStart(),6)},options);
+    perfEnd(markLite,{bytes:approxJsonSize(lite)});
+    applyBootPayload(lite,need);
+    state.initialized=true;
+    renderActiveView('boot-lite');
+    setLoading(false);
+    hideError();
+    liteOk=true;
+   }catch(errLite){
+    console.warn('[CRM] get_crm_boot_lite_v5 indisponível, usando boot v4:',errLite);
+   }
+   if(liteOk){
+    await loadRestProgressive(need,options);
+   }else{
    let boot=null;
    try{
     const mark=perfStart('api:get_crm_boot_v4');
@@ -266,6 +298,7 @@ async function loadAll(){
    }
    if(boot&&boot.config)applyBootPayload(boot,need);
    else await loadBootFallback(need,options);
+   }
    state.initialized=true;
    renderActiveView('boot');
    hideError();
