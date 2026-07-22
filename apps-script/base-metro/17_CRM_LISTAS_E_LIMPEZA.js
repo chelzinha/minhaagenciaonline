@@ -209,6 +209,26 @@ function crm6_aplicarValidacoes() {
     aplicadas.push({ campo: campo, coluna: col + 1, opcoes: itens.length });
   });
 
+  // ETAPA_FUNIL: dropdown com os codigos oficiais do funil de prospects,
+  // lidos de CRM_FUNIL_ETAPAS. Permite valor invalido de proposito
+  // (setAllowInvalid true) para nunca bloquear uma gravacao do sistema;
+  // o gatilho de edicao avisa se voce digitar algo fora da lista.
+  var colEtapa = hm['ETAPA_FUNIL'];
+  if (colEtapa !== undefined) {
+    var etapas = crm6_etapasProspect_();
+    var codigos = etapas.map(function (x) { return x.codigo; });
+    if (codigos.length) {
+      var legenda = etapas.map(function (x) { return x.codigo + ' = ' + x.nome; }).join(' | ');
+      var ruleE = SpreadsheetApp.newDataValidation()
+        .requireValueInList(codigos, true)
+        .setAllowInvalid(true)
+        .setHelpText('Etapa do funil. ' + legenda)
+        .build();
+      sh.getRange(2, colEtapa + 1, maxRows, 1).setDataValidation(ruleE);
+      aplicadas.push({ campo: 'ETAPA_FUNIL', coluna: colEtapa + 1, opcoes: codigos.length });
+    }
+  }
+
   var res = { ok: true, validacoes: aplicadas };
   Logger.log(JSON.stringify(res, null, 2));
   return res;
@@ -240,7 +260,192 @@ function crm6_onChangeCrm(e) {
 }
 
 /**
+ * CAMINHO DE VOLTA: editar ETAPA_FUNIL na planilha move o card no funil.
+ *
+ * Ate aqui a sincronia era de mao unica: mover o card no front gravava na
+ * ficha, mas alterar a ficha na planilha NAO movia o card, porque o kanban
+ * le a etapa da aba CRM_TRATATIVAS, nao da ficha. Este gatilho fecha o
+ * circuito: ao editar a coluna ETAPA_FUNIL, a tratativa ativa daquele
+ * prospect e atualizada para a mesma etapa.
+ *
+ * Por que onEdit e nao onChange: o gatilho de edicao dispara apenas em
+ * alteracoes feitas por pessoas. Gravacoes feitas pelo proprio script (o
+ * mover do front, por exemplo) NAO disparam, o que evita o sistema ficar
+ * se auto-atualizando em circulo.
+ *
+ * Aceita tanto o codigo (P_QUALIFICADO) quanto o nome (Qualificado): se
+ * voce digitar o nome, ele converte para o codigo sozinho.
+ */
+function crm6_onEditProspects(e) {
+  try {
+    if (!e || !e.range) return;
+    var sh = e.range.getSheet();
+    if (sh.getName() !== CRM6_CFG.SHEETS.PROSPECTS) return;
+
+    var hm = crm6_headerMap_(sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]);
+    var colEtapa = hm['ETAPA_FUNIL'];
+    if (colEtapa === undefined) return;
+
+    // a edicao tocou a coluna de etapa? (suporta colar em varias linhas)
+    var c1 = e.range.getColumn(), c2 = c1 + e.range.getNumColumns() - 1;
+    if (colEtapa + 1 < c1 || colEtapa + 1 > c2) return;
+
+    var linha1 = e.range.getRow(), nLinhas = e.range.getNumRows();
+    if (linha1 < 2) { linha1 = 2; nLinhas = Math.max(nLinhas - 1, 0); }
+    if (!nLinhas) return;
+
+    var etapas = crm6_etapasProspect_();
+    var porCodigo = {}, porNome = {};
+    etapas.forEach(function (x) { porCodigo[crm6_semAcento_(x.codigo)] = x.codigo; porNome[crm6_semAcento_(x.nome)] = x.codigo; });
+
+    var alvos = [];
+    for (var i = 0; i < nLinhas; i++) {
+      var linha = linha1 + i;
+      var bruto = crm6_txt_(sh.getRange(linha, colEtapa + 1).getValue());
+      if (!bruto) continue;
+      var k = crm6_semAcento_(bruto);
+      var codigo = porCodigo[k] || porNome[k] || '';
+      var celula = sh.getRange(linha, colEtapa + 1);
+      if (!codigo) {
+        // valor desconhecido: avisa na propria celula e nao mexe na tratativa
+        celula.setNote('Etapa nao reconhecida. Use um destes: ' + etapas.map(function (x) { return x.codigo; }).join(', '));
+        continue;
+      }
+      celula.clearNote();
+      // se veio pelo nome, normaliza a celula para o codigo canonico
+      if (bruto !== codigo) celula.setValue(codigo);
+      var pid = hm['PROSPECT_ID'] !== undefined ? crm6_txt_(sh.getRange(linha, hm['PROSPECT_ID'] + 1).getValue()) : '';
+      var tratId = hm['TRATATIVA_ATIVA_ID'] !== undefined ? crm6_txt_(sh.getRange(linha, hm['TRATATIVA_ATIVA_ID'] + 1).getValue()) : '';
+      if (pid) alvos.push({ prospectId: pid, tratativaId: tratId, etapa: codigo });
+    }
+    if (!alvos.length) return;
+
+    crm6_aplicarEtapaNasTratativas_(alvos);
+    crm6_invalidarDados_();
+  } catch (err) {
+    Logger.log('[CRM6] onEdit falhou: ' + err);
+  }
+}
+
+/**
+ * Grava a etapa nas tratativas correspondentes. Uma leitura e uma escrita
+ * da aba inteira, independente de quantas linhas foram editadas.
+ */
+function crm6_aplicarEtapaNasTratativas_(alvos) {
+  var sh = crm6_ss_().getSheetByName(CRM6_CFG.SHEETS.TRATATIVAS);
+  if (!sh || sh.getLastRow() < 2) return { alteradas: 0 };
+  var vals = sh.getDataRange().getValues();
+  var hm = crm6_headerMap_(vals[0]);
+  if (hm['ETAPA_ID'] === undefined) return { alteradas: 0 };
+
+  var porTratativa = {}, porEntidade = {};
+  alvos.forEach(function (a) {
+    if (a.tratativaId) porTratativa[a.tratativaId] = a.etapa;
+    if (a.prospectId) porEntidade[a.prospectId] = a.etapa;
+  });
+
+  var agora = crm6_agora_(), alteradas = 0;
+  for (var i = 1; i < vals.length; i++) {
+    var r = vals[i];
+    if (hm['TIPO_ENTIDADE'] !== undefined && crm6_txt_(r[hm['TIPO_ENTIDADE']]).toUpperCase() !== 'PROSPECT') continue;
+    var tid = hm['TRATATIVA_ID'] !== undefined ? crm6_txt_(r[hm['TRATATIVA_ID']]) : '';
+    var eid = hm['ENTIDADE_ID'] !== undefined ? crm6_txt_(r[hm['ENTIDADE_ID']]) : '';
+    // a tratativa apontada pela ficha tem prioridade sobre a busca por entidade
+    var alvo = (tid && porTratativa[tid]) || (eid && porEntidade[eid]) || '';
+    if (!alvo) continue;
+    if (crm6_txt_(r[hm['ETAPA_ID']]) === alvo) continue;
+    r[hm['ETAPA_ID']] = alvo;
+    if (hm['ETAPA_ATUALIZADA_EM'] !== undefined) r[hm['ETAPA_ATUALIZADA_EM']] = agora;
+    if (hm['ATUALIZADO_EM'] !== undefined) r[hm['ATUALIZADO_EM']] = agora;
+    if (hm['UPDATED_BY'] !== undefined) r[hm['UPDATED_BY']] = 'PLANILHA';
+    alteradas++;
+  }
+  if (alteradas) sh.getRange(1, 1, vals.length, vals[0].length).setValues(vals);
+  return { alteradas: alteradas };
+}
+
+/**
+ * Conserto em lote. Alinha as tratativas a partir da coluna ETAPA_FUNIL da
+ * ficha. Serve para quando a edicao foi feita sem o gatilho ativo (ex.:
+ * colagem grande, importacao, ou antes desta atualizacao).
+ * Modo teste por padrao.
+ */
+function crm6_reconciliarEtapas_(opts) {
+  opts = opts || {};
+  var aplicar = opts.aplicar === true;
+  var sh = crm6_ss_().getSheetByName(CRM6_CFG.SHEETS.PROSPECTS);
+  var vals = sh.getDataRange().getValues();
+  var hm = crm6_headerMap_(vals[0]);
+  var etapas = crm6_etapasProspect_();
+  var porCodigo = {}, porNome = {};
+  etapas.forEach(function (x) { porCodigo[crm6_semAcento_(x.codigo)] = x.codigo; porNome[crm6_semAcento_(x.nome)] = x.codigo; });
+
+  var alvos = [], invalidos = [];
+  for (var i = 1; i < vals.length; i++) {
+    var pid = crm6_txt_(vals[i][hm['PROSPECT_ID']]);
+    if (!pid) continue;
+    var bruto = crm6_txt_(vals[i][hm['ETAPA_FUNIL']]);
+    if (!bruto) continue;
+    var k = crm6_semAcento_(bruto);
+    var codigo = porCodigo[k] || porNome[k] || '';
+    if (!codigo) { invalidos.push({ prospect: pid, valor: bruto }); continue; }
+    alvos.push({
+      prospectId: pid,
+      tratativaId: hm['TRATATIVA_ATIVA_ID'] !== undefined ? crm6_txt_(vals[i][hm['TRATATIVA_ATIVA_ID']]) : '',
+      etapa: codigo
+    });
+  }
+  var rel = { fichasLidas: alvos.length, valoresInvalidos: invalidos.length, exemplosInvalidos: invalidos.slice(0, 10) };
+  if (aplicar) {
+    rel.tratativas = crm6_aplicarEtapaNasTratativas_(alvos);
+    rel.aplicado = true;
+    crm6_invalidarDados_();
+  } else {
+    // conta quantas divergem sem gravar
+    var shT = crm6_ss_().getSheetByName(CRM6_CFG.SHEETS.TRATATIVAS);
+    var vt = shT.getDataRange().getValues(), ht = crm6_headerMap_(vt[0]);
+    var mapa = {};
+    alvos.forEach(function (a) { if (a.tratativaId) mapa[a.tratativaId] = a.etapa; });
+    var divergem = 0;
+    for (var j = 1; j < vt.length; j++) {
+      var tid = crm6_txt_(vt[j][ht['TRATATIVA_ID']]);
+      if (mapa[tid] && crm6_txt_(vt[j][ht['ETAPA_ID']]) !== mapa[tid]) divergem++;
+    }
+    rel.tratativasQueMudariam = divergem;
+    rel.aplicado = false;
+    rel.aviso = 'MODO TESTE - nada foi gravado. Rode crm6_reconciliarEtapasAplicar para aplicar.';
+  }
+  Logger.log(JSON.stringify(rel, null, 2));
+  return rel;
+}
+function crm6_reconciliarEtapasTeste() { return crm6_reconciliarEtapas_({ aplicar: false }); }
+function crm6_reconciliarEtapasAplicar() { return crm6_reconciliarEtapas_({ aplicar: true }); }
+
+/** Etapas ativas do funil de prospects, na ordem, lidas de CRM_FUNIL_ETAPAS. */
+function crm6_etapasProspect_() {
+  var out = [];
+  try {
+    var sh = crm6_ss_().getSheetByName('CRM_FUNIL_ETAPAS');
+    if (!sh || sh.getLastRow() < 2) return out;
+    var vals = sh.getDataRange().getValues();
+    var hm = crm6_headerMap_(vals[0]);
+    for (var i = 1; i < vals.length; i++) {
+      var r = vals[i];
+      if (crm6_txt_(r[hm['FUNIL_ID']]) !== CRM6_CFG.FUNIL_PROSPECTS) continue;
+      if (hm['ATIVA'] !== undefined && crm6_semAcento_(r[hm['ATIVA']]) === 'NAO') continue;
+      var cod = crm6_txt_(r[hm['ETAPA_ID']]);
+      if (!cod) continue;
+      out.push({ codigo: cod, nome: crm6_txt_(r[hm['NOME_EXIBICAO']]) || cod, ordem: Number(r[hm['ORDEM']]) || 0 });
+    }
+  } catch (e) {}
+  out.sort(function (a, b) { return a.ordem - b.ordem; });
+  return out;
+}
+
+/**
  * Instala os gatilhos necessarios (idempotente: nao duplica).
+ * - onChange: qualquer edicao avisa o cache (planilha -> front)
+ * - onEdit:   edicao da coluna ETAPA_FUNIL move o card no funil
  */
 function crm6_instalarGatilhos() {
   var ss = crm6_ss_();
@@ -250,6 +455,10 @@ function crm6_instalarGatilhos() {
   if (!existentes.crm6_onChangeCrm) {
     ScriptApp.newTrigger('crm6_onChangeCrm').forSpreadsheet(ss).onChange().create();
     criados.push('crm6_onChangeCrm (onChange)');
+  }
+  if (!existentes.crm6_onEditProspects) {
+    ScriptApp.newTrigger('crm6_onEditProspects').forSpreadsheet(ss).onEdit().create();
+    criados.push('crm6_onEditProspects (onEdit)');
   }
   var res = { ok: true, criados: criados, jaExistiam: Object.keys(existentes) };
   Logger.log(JSON.stringify(res, null, 2));
