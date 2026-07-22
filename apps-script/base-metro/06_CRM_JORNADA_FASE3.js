@@ -300,9 +300,19 @@ function crm3_apiGetConfig_() {
     var _cfgHit = crm5x_cacheGet_(_cfgKey);
     if (_cfgHit) return _cfgHit;
   }
+  // LISTAS OFICIAIS (17_CRM_LISTAS_E_LIMPEZA): antes, POTENCIAL/PRIORIDADE/
+  // ORIGEM_LEAD/STATUS_PROSPECT nao tinham lista canonica, entao o front
+  // caia numa lista fixa escrita no proprio JavaScript e os dropdowns
+  // mostravam dois vocabularios ao mesmo tempo ("Media" junto de "Medio").
+  var _listas = {};
+  try { if (typeof crm6_listasParaConfig_ === 'function') _listas = crm6_listasParaConfig_(); } catch (eL) { _listas = {}; }
   var _cfgOut = {
     ok:true,
     version:CRM3_CFG.VERSION,
+    prospectPotenciais:_listas.prospectPotenciais||[],
+    prospectPrioridades:_listas.prospectPrioridades||[],
+    prospectOrigens:_listas.prospectOrigens||[],
+    prospectStatus:_listas.prospectStatus||[],
     funis:crm3_readObjects_(CRM3_CFG.SHEETS.FUNIS).filter(function(x){ return crm3_isYes_(x.ATIVO); }),
     etapas:crm3_readObjects_(CRM3_CFG.SHEETS.ETAPAS).filter(function(x){ return crm3_isYes_(x.ATIVA); }),
     tiposAtividade:crm3_readObjects_(CRM3_CFG.SHEETS.TIPOS_ATIVIDADE).filter(function(x){ return crm3_isYes_(x.ATIVA) && !crm5_isLegacyColetaText_(crm3_text_(x.TIPO_ATIVIDADE_ID) + ' ' + crm3_text_(x.NOME_EXIBICAO) + ' ' + crm3_text_(x.CATEGORIA)); }).sort(crm3_sortOrder_),
@@ -518,6 +528,14 @@ function crm3_apiMoveTratativa_(payload) {
   var patch = { ETAPA_ID:destination, ETAPA_ATUALIZADA_EM:now, STATUS_TRATATIVA:status, UPDATED_BY:crm3_text_(payload.updatedBy || payload.responsavelId || 'CRM_PORTAL'), ATUALIZADO_EM:now };
   if (status === 'CONCLUIDA' || status === 'ENCERRADA') { patch.ENCERRADA_EM = now; patch.FECHADA_POR = patch.UPDATED_BY; patch.MOTIVO_ENCERRAMENTO = crm3_text_(payload.motivo || stage.NOME_EXIBICAO); }
   crm3_patchRowObject_(record, patch);
+  // FIM DA DIVERGENCIA FUNIL x CADASTRO: a etapa vivia so na tratativa, e a
+  // ficha do prospect (coluna ETAPA_FUNIL) ficava congelada no valor do
+  // cadastro. Agora o mover grava a etapa nos DOIS lugares, na mesma
+  // operacao, usando sempre o codigo canonico (P_NOVO), nunca o rotulo.
+  if (crm3_upper_(crm3_text_(record.obj.TIPO_ENTIDADE)) === 'PROSPECT') {
+    try { crm3_updateEntityTreatmentSnapshot_('PROSPECT', crm3_text_(record.obj.ENTIDADE_ID), { ETAPA_FUNIL: destination }); }
+    catch (eSync) { Logger.log('[CRM3] Falha ao sincronizar ETAPA_FUNIL na ficha: ' + eSync); }
+  }
   if (status === 'CONCLUIDA' || status === 'ENCERRADA') crm3_updateEntityTreatmentSnapshot_(crm3_text_(record.obj.TIPO_ENTIDADE), crm3_text_(record.obj.ENTIDADE_ID), { TRATATIVA_ATIVA_ID:'' });
   crm3_appendEvent_({ entidadeTipo:record.obj.TIPO_ENTIDADE, entidadeId:record.obj.ENTIDADE_ID, tratativaId:treatmentId, tipoEvento:'ETAPA_ALTERADA', valorAnterior:current, valorNovo:destination, responsavelId:crm3_text_(payload.responsavelId), origem:'CRM_PORTAL', metadata:{ statusTratativa:status } });
   crm3_bumpCacheRev_();

@@ -112,7 +112,10 @@ function boardCountText(type,items){const isProspect=String(type||'CLIENTE').toU
 function prospectWeekRange(){const start=weekStart(today());return{start,end:addDays(start,6)};}
 function inRangeDate(value,start,end){const d=text(value).slice(0,10);return d&&d>=start&&d<=end;}
 function isDoneStatus(v){const n=norm(v);return['concluido','concluida','feito','feita','realizado','realizada','executado','executada'].includes(n);}
-function prospectStageName(x){const col=(state.journeyProspects.columns||[]).find(c=>text(c.etapaId)===text(x&&x.etapaId));return text((col&&(col.nome||col.etapaId))||x&&x.etapaNome||x&&x.etapaId);}
+// A etapa pode chegar como codigo (P_NOVO, ficha e tratativa) ou, em dados
+// legados, como rotulo ("Novo lead"). Procura a coluna do funil pelo codigo
+// e devolve sempre o nome de exibicao; se nao achar, devolve o que veio.
+function prospectStageName(x){const key=text(x&&(x.etapaId||x.etapaFunil));const col=(state.journeyProspects.columns||[]).find(c=>text(c.etapaId)===key);return text((col&&(col.nome||col.etapaId))||x&&x.etapaNome||key);}
 function isConvertedProspect(x){const n=norm([x&&x.etapaId,prospectStageName(x),x&&x.statusTratativa].join(' '));return n.includes('convertid')||n.includes('cliente conquistado');}
 function isHotProspect(x){const n=norm([x&&x.etapaId,prospectStageName(x),x&&x.statusTratativa,x&&x.prioridade,x&&x.potencial].join(' '));return n.includes('oportunidade')||n.includes('qualificad')||n.includes('negociac')||n.includes('quente')||n.includes('alto');}
 function prospectHasNextAction(x){return Boolean(x&&(x.proximaAtividade||text(x.proximoFollowupEm)||text(x.proximaAcaoManual)));}
@@ -643,8 +646,25 @@ renderProspectTable=function(){const mark=perfStart('render:table:prospects');tr
 function configOptionValues(keys=[]){const cfg=state.config||{};for(const key of keys){const rows=cfg[key];if(Array.isArray(rows)&&rows.length){const vals=rows.map(optionTextFromRow).filter(Boolean);if(vals.length)return vals;}}return[];}
 function dataOptionValues(keys=[]){const rows=state.prospects||[],vals=[];rows.forEach(r=>keys.forEach(k=>{if(r&&r[k]!=null)vals.push(r[k]);}));return vals;}
 function genericOptions(values,current='',empty='Selecione…'){const currentText=text(current),currentNorm=norm(currentText);const list=uniqueOptionValues(values,currentText);return`<option value="">${esc(empty)}</option>${list.map(v=>`<option value="${esc(v)}" ${currentNorm&&norm(v)===currentNorm?'selected':''}>${esc(v)}</option>`).join('')}`;}
-function prospectSelectDefaultValue(key,entity={}){if(key==='STATUS_PROSPECT'&&!text(entityValue(entity,key)))return'Novo';return entityValue(entity,key);}
-function prospectSelectOptions(key,current=''){const cfg=PROSPECT_SELECT_CONFIG[key]||{};return genericOptions([...(configOptionValues(cfg.config)||[]),...(dataOptionValues(cfg.data)||[]),...(cfg.fallback||[])],current);}
+// LISTA OFICIAL (aba CRM_LISTAS): devolve pares [codigo, nomeExibicao].
+// O codigo e o que fica gravado na planilha; o nome e o que aparece na tela.
+// Ex.: PRIORIDADE grava 'P2' e exibe 'P2 - média'.
+function configOptionPairs(keys=[]){const cfg=state.config||{};for(const key of keys){const rows=cfg[key];if(Array.isArray(rows)&&rows.length){const pairs=rows.map(r=>{if(r&&typeof r==='object'){const cod=text(r.codigo||r.CODIGO||r.valor||r.VALOR||r.id||r.ID);const nome=text(r.nome||r.NOME_EXIBICAO||r.nomeExibicao||r.label||r.LABEL)||cod;if(cod)return[cod,nome];return null;}const v=text(r);return v?[v,v]:null;}).filter(Boolean);if(pairs.length)return pairs;}}return[];}
+function genericOptionsPairs(pairs,current='',empty='Selecione…'){const currentText=text(current),currentNorm=norm(currentText);const seen=new Set(),list=[];pairs.forEach(([cod,nome])=>{const k=norm(cod);if(cod&&!seen.has(k)){seen.add(k);list.push([cod,nome]);}});
+// valor gravado que nao esta mais na lista oficial: mantem visivel para
+// nao apagar dado antigo sem a pessoa perceber
+if(currentText&&!seen.has(currentNorm))list.unshift([currentText,currentText+' (fora da lista)']);
+return`<option value="">${esc(empty)}</option>${list.map(([cod,nome])=>`<option value="${esc(cod)}" ${currentNorm&&norm(cod)===currentNorm?'selected':''}>${esc(nome)}</option>`).join('')}`;}
+function prospectSelectDefaultValue(key,entity={}){const atual=text(entityValue(entity,key));if(atual)return atual;const cfg=PROSPECT_SELECT_CONFIG[key]||{};const pairs=configOptionPairs(cfg.config);if(key==='STATUS_PROSPECT'&&pairs.length)return pairs[0][0];return atual;}
+function prospectSelectOptions(key,current=''){const cfg=PROSPECT_SELECT_CONFIG[key]||{};
+// Quando a lista oficial existe, ela e a UNICA fonte. Antes somava-se
+// config + valores dos dados + uma lista fixa do JS, e isso fazia
+// aparecerem dois vocabularios juntos ("Média" com "Médio") e criava
+// variantes novas a cada salvamento.
+const pairs=configOptionPairs(cfg.config);
+if(pairs.length)return genericOptionsPairs(pairs,current);
+// Sem lista oficial (aba CRM_LISTAS ainda nao criada): comportamento antigo.
+return genericOptions([...(dataOptionValues(cfg.data)||[]),...(cfg.fallback||[])],current);}
 function renderEntityField(entity,key,label,kind){const value=kind==='prospectSelect'?prospectSelectDefaultValue(key,entity):entityValue(entity,key),placeholder=FIELD_PLACEHOLDERS[key]||`Informe ${label.toLowerCase()}`;if(kind==='textarea')return`<label class="full"><span>${esc(label)}</span><textarea data-field="${esc(key)}" rows="3" placeholder="${esc(placeholder)}">${esc(value)}</textarea></label>`;if(kind==='segment')return`<label><span>${esc(label)}</span><select data-field="${esc(key)}">${segmentOptions(value)}</select></label>`;if(kind==='local')return`<label><span>${esc(label)}</span><select data-field="${esc(key)}">${localOptions(value,'prospect')}</select></label>`;if(kind==='prospectSelect')return`<label><span>${esc(label)}</span><select data-field="${esc(key)}">${prospectSelectOptions(key,value)}</select></label>`;if(kind==='responsible')return`<label><span>${esc(label)}</span><select data-field="${esc(key)}">${responsibleOptions(value,false)}</select></label>`;const inputType=key==='EMAIL'?'email':key.includes('WHATSAPP')||key.includes('TELEFONE')?'tel':'text';return`<label><span>${esc(label)}</span><input type="${inputType}" data-field="${esc(key)}" value="${esc(value)}" placeholder="${esc(placeholder)}"></label>`;}
 function renderEntityFieldsGrouped(type,entity){const groups=entityFieldGroups[type];if(!groups)return fields[type].map(([key,label,kind])=>renderEntityField(entity,key,label,kind)).join('');return groups.map(g=>`<section class="entity-section full"><header><span class="material-symbols-rounded">${esc(g.icon||'article')}</span><div><strong>${esc(g.title)}</strong><small>${esc(g.desc||'')}</small></div></header><div class="entity-section-grid">${g.fields.map(([key,label,kind])=>renderEntityField(entity,key,label,kind)).join('')}</div></section>`).join('');}
 function entityDraftSnapshot(){const form=$('#entityForm');if(!form)return'';const f={};$$('[data-field]',$('#entityFields')).forEach(x=>f[x.dataset.field]=x.value);return JSON.stringify({type:$('#entityFormType').value,id:$('#entityFormId').value,fields:f});}
