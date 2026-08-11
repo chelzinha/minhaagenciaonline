@@ -7,6 +7,8 @@
 
 var OP_CFG = {
   TZ: Session.getScriptTimeZone() || 'America/Fortaleza',
+  // ID da planilha de PRODUCAO. Nao editar aqui para trocar de ambiente.
+  // Ver op_resolveSpreadsheetId_() logo abaixo.
   SPREADSHEET_ID: '1zJUYkvWzcTdHrgqdIMWOY2pm3qDoJoRlu9u43lV7QDA',
   SHEETS: {
     BASE: 'BASE_TOTAL',
@@ -113,10 +115,46 @@ var OP_CFG = {
 };
 
 var _op_ss_cache_ = null;
+/**
+ * AMBIENTES (producao x homologacao)
+ * ----------------------------------
+ * O MESMO codigo roda nos dois ambientes. O que muda e a planilha alvo,
+ * definida pela Script Property 'AGF_SPREADSHEET_ID':
+ *
+ *   - Projeto de PRODUCAO: propriedade AUSENTE -> usa OP_CFG.SPREADSHEET_ID
+ *   - Projeto de HOMOLOGACAO: propriedade = ID da COPIA da planilha
+ *
+ * Assim o codigo de homologacao e byte a byte igual ao que vai para
+ * producao: o que se valida no teste e exatamente o que sobe depois.
+ * Nunca editar OP_CFG.SPREADSHEET_ID para trocar de ambiente.
+ */
+function op_resolveSpreadsheetId_() {
+  try {
+    var override = PropertiesService.getScriptProperties().getProperty('AGF_SPREADSHEET_ID');
+    if (override && String(override).trim()) return String(override).trim();
+  } catch (e) {}
+  return String(OP_CFG.SPREADSHEET_ID || '').trim();
+}
+
+/** Diz em qual ambiente este projeto esta rodando. Util para conferir. */
+function op_ambienteAtual() {
+  var id = op_resolveSpreadsheetId_();
+  var ehProd = id === String(OP_CFG.SPREADSHEET_ID || '').trim();
+  var info = {
+    ambiente: ehProd ? 'PRODUCAO' : 'HOMOLOGACAO',
+    spreadsheetId: id,
+    nomePlanilha: ''
+  };
+  try { info.nomePlanilha = SpreadsheetApp.openById(id).getName(); } catch (e) { info.nomePlanilha = '(sem acesso)'; }
+  Logger.log(JSON.stringify(info, null, 2));
+  return info;
+}
+
 function op_getSpreadsheet_(){
   if (_op_ss_cache_) return _op_ss_cache_;
-  if (OP_CFG.SPREADSHEET_ID && String(OP_CFG.SPREADSHEET_ID).trim()) {
-    _op_ss_cache_ = SpreadsheetApp.openById(String(OP_CFG.SPREADSHEET_ID).trim());
+  var id = op_resolveSpreadsheetId_();
+  if (id) {
+    _op_ss_cache_ = SpreadsheetApp.openById(id);
   } else {
     _op_ss_cache_ = SpreadsheetApp.getActiveSpreadsheet();
   }

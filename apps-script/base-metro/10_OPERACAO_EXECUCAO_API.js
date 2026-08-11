@@ -936,6 +936,26 @@ function op_apiUpdateProspect_(payload) {
       rowValues[hm[k]] = payload[k];
     }
   });
+
+  // CORRECAO (troca de responsavel): o <select> do formulario usa o
+  // RESPONSAVEL_ID como value, entao o payload chega com 'RESPONSAVEL' =
+  // 'RSP_XXXXXXXX'. Antes, esse codigo cru era gravado na coluna do NOME e
+  // a coluna RESPONSAVEL_ID nunca era atualizada - por isso trocar o
+  // responsavel "nao funcionava": o filtro por responsavel compara por
+  // RESPONSAVEL_ID e continuava vendo o dono antigo.
+  // Agora resolve o par (id, nome) e grava nas DUAS colunas.
+  if (payload['RESPONSAVEL'] !== undefined || payload['RESPONSAVEL_ID'] !== undefined) {
+    var respBruto = op_norm_(payload['RESPONSAVEL_ID'] || payload['RESPONSAVEL']);
+    var ehId = /^RSP_/i.test(respBruto);
+    var resolvido = { id: '', nome: '' };
+    try {
+      resolvido = crm3_resolveResponsible_(ehId ? respBruto : '', ehId ? '' : respBruto);
+    } catch (eR) {
+      resolvido = ehId ? { id: respBruto, nome: '' } : { id: '', nome: respBruto };
+    }
+    if (hm['RESPONSAVEL'] !== undefined) rowValues[hm['RESPONSAVEL']] = resolvido.nome || (ehId ? '' : respBruto);
+    if (hm['RESPONSAVEL_ID'] !== undefined) rowValues[hm['RESPONSAVEL_ID']] = resolvido.id || (ehId ? respBruto : '');
+  }
   if (hm['UPDATED_AT'] !== undefined) rowValues[hm['UPDATED_AT']] = op_nowIso_();
   sh.getRange(rowIndex, 1, 1, rowValues.length).setValues([rowValues]);
   op_cacheRemoveSafe_('op_prospects_v1');

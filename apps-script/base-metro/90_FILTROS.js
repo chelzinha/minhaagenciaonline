@@ -21,41 +21,11 @@ function onOpen() {
   }
 }
 
-function limparFiltrosAbaAtual() {
-  const sheet = SpreadsheetApp.getActiveSheet();
-  limparFiltrosDaAba_(sheet);
-
-  SpreadsheetApp.getActive().toast(
-    'Filtros limpos na aba: ' + sheet.getName(),
-    'OK',
-    4
-  );
-}
-
-function limparFiltrosTodasAbas() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  ss.getSheets().forEach(sheet => {
-    limparFiltrosDaAba_(sheet);
-  });
-
-  ss.toast('Filtros limpos em todas as abas.', 'OK', 4);
-}
-
-function limparFiltrosDaAba_(sheet) {
-  const filter = sheet.getFilter();
-  if (!filter) return;
-
-  const range = filter.getRange();
-
-  const row = range.getRow();
-  const col = range.getColumn();
-  const numRows = range.getNumRows();
-  const numCols = range.getNumColumns();
-
-  // Remove o filtro inteiro
-  filter.remove();
-
-  // Recria o filtro no mesmo intervalo
-  sheet.getRange(row, col, numRows, numCols).createFilter();
-}
+// ETAPA 1 (higiene): as funcoes limparFiltrosAbaAtual, limparFiltrosTodasAbas
+// e o helper limparFiltrosDaAba_ viviam aqui E em 95_FiltroData.js. No Apps
+// Script, quando duas funcoes tem o mesmo nome, a do arquivo carregado por
+// ultimo vence silenciosamente - entao estas aqui nunca rodavam, e era esse
+// conflito que gerava o aviso amarelo "funcoes com o mesmo nome" ao criar
+// acionadores. As versoes que valem continuam em 95_FiltroData.js (que faz o
+// mesmo, com SpreadsheetApp.flush() no fim). O menu onOpen acima permanece:
+// ele e o ponto de entrada da planilha e segue chamando as versoes do 95.
