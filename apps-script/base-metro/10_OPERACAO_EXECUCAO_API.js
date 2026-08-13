@@ -44,6 +44,11 @@ function op_doGet(e) {
     if (action === 'get_crm_boot_lite_v5') {
       return op_jsonOut_(crm5x_apiBootLite_(p));
     }
+    // Checagem de frescor: resposta minima, usada pelo front para saber se a
+    // tela ficou velha (inclusive por edicao feita direto na planilha).
+    if (action === 'get_data_rev_v5') {
+      return op_jsonOut_(crm5x_apiDataRev_());
+    }
     // PERF V5: cadastro detalhado dividido por tipo (substitui get_crm_data,
     // cuja resposta unica estourou o limite de entrega do Apps Script).
     if (action === 'get_cadastro_v5') {

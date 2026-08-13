@@ -44,6 +44,7 @@ function approxJsonSize(obj){try{return JSON.stringify(obj||{}).length;}catch(er
 const state={
  initialized:false,booting:false,bound:false,loadAllPromise:null,legacyLoadPromise:null,legacyReady:false,
  clientsReady:false,prospectsReady:false,clientsLoadPromise:null,prospectsLoadPromise:null,
+ dataRev:null,autoRefreshOn:false,autoRefreshBusy:false,
  entityDraftInitial:'',entityDraftDirty:false,entitySaving:false,
  user:null,config:null,dashboard:null,clients:[],prospects:[],clientsById:{},prospectsById:{},
  journeyClients:{items:[],columns:[]},journeyProspects:{items:[],columns:[]},agenda:{items:[]},agendaWin:{start:'',end:'',items:null},overdue:[],
@@ -199,7 +200,7 @@ function renderContextFilters(){const f=state.filters;$$('[data-context-filters]
 function rerenderContext(){renderActiveView('context');updateActionsFrameFilters();}
 
 async function apiGet(action,params={},options={}){const u=new URL(cfg.apiUrl);u.searchParams.set('action',action);const _tok=(window.AgfAuth&&window.AgfAuth.getToken)?window.AgfAuth.getToken():'';if(_tok)u.searchParams.set('st',_tok);Object.entries(params).forEach(([k,v])=>{if(v!==''&&v!=null)u.searchParams.set(k,v);});const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),Number(options.timeoutMs||cfg.requestTimeoutMs||60000));try{const res=await fetch(u,{signal:ctl.signal,cache:'no-store'}),data=await res.json();if(!data||data.ok===false)throw new Error((data&&data.error)||'A API retornou erro.');return data;}catch(err){if(err.name==='AbortError')throw new Error('O servidor demorou para responder.');throw err;}finally{clearTimeout(timer);}}
-async function apiPost(action,payload={},options={}){const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),Number(options.timeoutMs||cfg.requestTimeoutMs||60000));try{const _tok=(window.AgfAuth&&window.AgfAuth.getToken)?window.AgfAuth.getToken():'';const res=await fetch(`${cfg.apiUrl}?action=${encodeURIComponent(action)}${_tok?`&st=${encodeURIComponent(_tok)}`:''}`,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),signal:ctl.signal}),data=await res.json();if(!data||data.ok===false)throw new Error((data&&data.error)||'A API retornou erro.');return data;}catch(err){if(err.name==='AbortError')throw new Error('O servidor demorou para responder.');throw err;}finally{clearTimeout(timer);}}
+async function apiPost(action,payload={},options={}){const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),Number(options.timeoutMs||cfg.requestTimeoutMs||60000));try{const _tok=(window.AgfAuth&&window.AgfAuth.getToken)?window.AgfAuth.getToken():'';const res=await fetch(`${cfg.apiUrl}?action=${encodeURIComponent(action)}${_tok?`&st=${encodeURIComponent(_tok)}`:''}`,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),signal:ctl.signal}),data=await res.json();if(!data||data.ok===false)throw new Error((data&&data.error)||'A API retornou erro.');state.dataRev=null;/* nossa propria gravacao sobe a revisao no servidor; zerar aqui faz a proxima checagem apenas se sincronizar, sem disparar recarga a toa */return data;}catch(err){if(err.name==='AbortError')throw new Error('O servidor demorou para responder.');throw err;}finally{clearTimeout(timer);}}
 
 function bootParamsForActiveView(need,resp){return{view:state.view,sub:activeSubview(),start:weekStart(),end:addDays(weekStart(),6),agendaStart:need.start,agendaEnd:need.end,responsavelId:resp};}
 function markLoadedBlocks(boot){if(boot.config)state.loadedBlocks.config=true;if(boot.dashboard)state.loadedBlocks.dashboard=true;if(boot.journeyClients)state.loadedBlocks.clients=true;if(boot.journeyProspects)state.loadedBlocks.prospects=true;if(boot.agenda)state.loadedBlocks.agenda=true;if(boot.overdue)state.loadedBlocks.overdue=true;}
@@ -312,7 +313,7 @@ async function loadAll(){
    if(boot&&boot.config)applyBootPayload(boot,need);
    else await loadBootFallback(need,options);
    }
-   state.initialized=true;
+   state.initialized=true;try{iniciarAutoRefresh();}catch(e){console.warn('[CRM] auto-refresh nao iniciou:',e);}
    renderActiveView('boot');
    hideError();
    ensureLegacyForActiveCadastro();
@@ -325,6 +326,53 @@ async function loadAll(){
 }
 async function reloadJourney(){const resp=responsibleApiValue('');const [clients,prospects]=await Promise.all([apiGet('get_crm_jornada_data',{funilId:'FUNIL_CLIENTES',tipoEntidade:'CLIENTE',responsavelId:resp}),apiGet('get_crm_jornada_data',{funilId:'FUNIL_PROSPECTS',tipoEntidade:'PROSPECT',responsavelId:resp})]);state.journeyClients=clients;state.journeyProspects=prospects;renderActiveView('journey');}
 async function reloadAgenda(){await ensureAgendaWindow(true);renderActiveView('agenda-refresh');}
+
+/* ===== ATUALIZACAO AUTOMATICA (planilha -> tela aberta) =====
+   O gatilho onChange da planilha ja avisa o servidor a cada edicao manual,
+   mas a tela que ja estava aberta continuava mostrando o dado antigo ate
+   alguem apertar F5. Aqui o front passa a perguntar "mudou alguma coisa?"
+   pelo endpoint get_data_rev_v5 (resposta minima, nao le planilha) e, se a
+   revisao subiu, recarrega os dados sozinho.
+
+   Quando ele checa:
+   - ao voltar para a aba do CRM (o caso tipico: editou a planilha, voltou)
+   - a cada 2 minutos, somente com a aba visivel
+   Nao checa com a aba em segundo plano, para nao gastar execucao a toa. */
+const AUTO_REFRESH_MS=120000;
+async function checarAtualizacoes(motivo='foco'){
+ if(!state.initialized||state.booting||state.autoRefreshBusy)return;
+ if(document.hidden)return;
+ state.autoRefreshBusy=true;
+ try{
+  const r=await apiGet('get_data_rev_v5',{},{timeoutMs:15000});
+  const rev=text(r&&r.dataRev);
+  if(!rev)return;
+  if(state.dataRev===null||state.dataRev===undefined){state.dataRev=rev;return;}
+  if(rev===state.dataRev)return;
+  state.dataRev=rev;
+  perfLog('auto-refresh',{motivo,rev});
+  await recarregarDadosVisiveis();
+  toast('Dados atualizados a partir da planilha.');
+ }catch(err){
+  // silencioso de proposito: falha de checagem nao pode atrapalhar o uso
+  console.warn('[CRM] checagem de atualizacao falhou:',err);
+ }finally{state.autoRefreshBusy=false;}
+}
+// Recarrega o que a tela precisa agora, nao o CRM inteiro.
+async function recarregarDadosVisiveis(){
+ const tarefas=[reloadJourney(),ensureAgendaWindow(true)];
+ if(state.clientsReady)tarefas.push(loadCadastroClientes(true));
+ if(state.prospectsReady)tarefas.push(loadCadastroProspects(true));
+ await Promise.all(tarefas.map(p=>Promise.resolve(p).catch(e=>console.warn('[CRM] recarga parcial falhou:',e))));
+ renderActiveView('auto-refresh');
+}
+function iniciarAutoRefresh(){
+ if(state.autoRefreshOn)return;
+ state.autoRefreshOn=true;
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)checarAtualizacoes('voltou-para-aba');});
+ window.addEventListener('focus',()=>checarAtualizacoes('foco-janela'));
+ setInterval(()=>checarAtualizacoes('intervalo'),AUTO_REFRESH_MS);
+}
 
 function renderAll(){renderActiveView('all');}
 function renderActiveView(reason=''){const mark=perfStart('render:view:'+state.view);applyPermissions();syncViewDom(false);syncSubviewDom('prospects',false);syncSubviewDom('clientes',false);renderContextFilters();if(state.view==='agenda')renderAgendaFilters();if(state.view==='home')renderHome();else if(state.view==='prospects')renderProspects();else if(state.view==='clientes')renderClients();else if(state.view==='agenda')renderAgenda();state.renderedViews[activeViewKey()]=true;perfEnd(mark,{reason,sub:activeSubview(),items:activeRenderItemCount()});}

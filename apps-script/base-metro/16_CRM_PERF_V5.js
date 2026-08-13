@@ -294,6 +294,24 @@ function crm5x_apiWarmup_() {
 
 function crm5x_warmupTrigger() { return crm5x_apiWarmup_(); }
 
+/**
+ * Endpoint ULTRALEVE de revisao. Nao le nenhuma planilha e nao monta cache:
+ * so devolve os contadores que mudam a cada escrita. Serve para o front
+ * perguntar "mudou alguma coisa?" sem baixar dados.
+ *
+ * Como a revisao de dados sobe a cada gravacao - inclusive nas edicoes
+ * feitas direto na planilha, via gatilho onChange - basta comparar o numero
+ * com o da ultima carga para saber se a tela esta velha.
+ */
+function crm5x_apiDataRev_() {
+  return {
+    ok: true,
+    dataRev: crm5x_dataRev_(),
+    configRev: crm5x_configRev_(),
+    serverTime: new Date().getTime()
+  };
+}
+
 // Invalidacao manual: derruba dados E config (usar quando editar as abas
 // de configuracao direto na planilha e quiser ver na hora).
 function crm5x_apiClearCache_() {
