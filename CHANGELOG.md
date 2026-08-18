@@ -2,6 +2,16 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-08-18 - Acesso ao emissor DC-e
+
+### Criado
+- Adicionada a rota publica `/dce`, que redireciona temporariamente para o projeto isolado `agf-dce-facil` no Netlify.
+- O redirecionamento usa HTTP 302 para permitir futura troca por um subdominio proprio sem cache permanente.
+
+### Escopo
+- Apenas roteamento do site principal.
+- Nao altera autenticacao existente, Apps Script, planilhas, dados, regras fiscais ou o codigo do emissor.
+
 ## 2026-07-07 - CRM performance de boot e loading
 
 ### Melhorado
