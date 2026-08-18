@@ -2,6 +2,13 @@
 
 Documento tecnico em preparacao.
 
+## Rota /dce
+
+- `/dce` e `/dce/*` redirecionam para o projeto Netlify isolado `agf-dce-facil`.
+- O emissor permanece separado do frontend principal para preservar Netlify Identity, Functions e configuracoes fiscais.
+- O redirecionamento e temporario (HTTP 302) para permitir futura migracao para `dce.minhaagenciaonline.com.br`.
+- Nenhum token, certificado ou dado fiscal trafega pelo site principal.
+
 ## CRM - boot por view ativa e render sob demanda
 
 Entrada principal:
