@@ -2,3 +2,14 @@
   publish = "."
   functions = "netlify/functions"
 
+[[redirects]]
+  from = "/dce"
+  to = "https://agf-dce-facil.netlify.app"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/dce/*"
+  to = "https://agf-dce-facil.netlify.app/:splat"
+  status = 302
+  force = true
