@@ -29,3 +29,14 @@
 ## Resultado final
 
 passed
+
+## Complemento - cabeçalho interativo e totalizadores
+
+- As 36 colunas de dados possuem ordenação crescente/decrescente pelo cabeçalho.
+- As 36 colunas possuem controle de largura por arraste, duplo clique para restaurar e ajuste por teclado.
+- A largura inicial foi validada em 54 px para `QTD` e 86 px para `Valor` nos meses.
+- Um ajuste de 54 px para 62 px foi preservado após recarregar o preview.
+- `Total QTD` e `Total faturado` aparecem em colunas distintas e alinhadas lado a lado.
+- A primeira linha validada exibiu `1.200` objetos e `R$ 85.000,00` em células separadas.
+- A página permanece sem overflow horizontal global; somente a tabela usa rolagem horizontal interna.
+- A ordenação de cliente foi validada nos dois sentidos: `Cliente sintético 01` em A-Z e `Cliente sintético 42` em Z-A.
