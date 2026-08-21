@@ -28,8 +28,8 @@
  *    requests chegam frios em paralelo, so 1 constroi; os outros esperam
  *    e leem do cache (evita o "estouro de manada" que motivou o boot v3).
  * 6. Novas actions GET:
- *    - get_crm_boot_lite_v5  -> config + dashboard (primeiro paint rapido)
- *                               e aquece os caches compartilhados.
+ *    - get_crm_boot_lite_v5  -> config + dashboard para o primeiro paint;
+ *                               nao faz mais aquecimento pesado antes de responder.
  *    - warm_crm_cache_v5     -> aquece tudo (usar tambem em gatilho de tempo).
  *    - clear_crm_cache_v5    -> invalida dados + config (forcar atualizacao).
  *
@@ -252,8 +252,9 @@ function crm5x_buildEntityMapsLite_() {
 
 /* ============== NOVAS ACTIONS ============== */
 
-// Primeiro paint: config + indicadores. Tambem aquece agenda e entidades,
-// para as chamadas paralelas seguintes (jornadas/agenda) baterem cache quente.
+// Primeiro paint: devolve somente os dados do boot. O aquecimento pesado de
+// entidades fica para o gatilho de warmup ou para a primeira rota que de fato
+// precisar delas; nao deve bloquear a resposta do usuario.
 function crm5x_apiBootLite_(params) {
   params = params || {};
   var resp = crm3_text_(params.responsavelId || '');
@@ -270,8 +271,6 @@ function crm5x_apiBootLite_(params) {
   var dashboard = timed_('dashboard', function () {
     return crm3_apiGetDashboard_({ start: start, end: end, responsavelId: resp });
   });
-  // dashboard ja construiu o cache de agenda; aquece o de entidades:
-  timed_('warm_entities', function () { crm5x_entitiesLite_(); return true; });
   return { ok: true, meta: meta, config: config, dashboard: dashboard };
 }
 
