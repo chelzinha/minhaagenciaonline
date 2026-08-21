@@ -1,4 +1,4 @@
-const CACHE='agf-crm-v86-static';
+const CACHE='agf-crm-v87-safe-cache';
 const STATIC=['/crm/','/crm/index.html','/crm/styles.css','/crm/config.js','/crm/app.js','/shared/ui/agf-ui.css','/shared/ui/agf-ui.js','/shared/auth/agf-auth-client.js'];
 
 self.addEventListener('install',e=>{
@@ -45,11 +45,11 @@ self.addEventListener('fetch',e=>{
     return;
   }
 
-  // app.js/styles.css usam ?v= no HTML. Quando a URL esta versionada, ela e
-  // imutavel para aquela versao e pode ser cache-first sem risco de servir a
-  // versao anterior apos um deploy (o proximo deploy muda o ?v=).
+  // app.js/styles.css nao usam mais no-store. O navegador/CDN pode reaproveitar
+  // validadores HTTP normalmente, enquanto o Cache Storage funciona apenas como
+  // fallback offline. Assim um deploy novo nunca fica preso a um JS antigo.
   if(url.pathname==='/crm/app.js'||url.pathname==='/crm/styles.css'){
-    e.respondWith(url.searchParams.has('v')?cacheFirst(req):networkFirst(req));
+    e.respondWith(networkFirst(req));
     return;
   }
 
