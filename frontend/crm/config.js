@@ -137,7 +137,7 @@
     // Mantem nome e ID do responsavel coerentes no cadastro de Prospects e
     // aplica Manu como responsavel padrao quando nenhum outro for escolhido.
     var r = document.createElement('script');
-    r.src = '/crm/prospect-responsavel-fix.js?v=2';
+    r.src = '/crm/prospect-responsavel-fix.js?v=3';
     r.defer = true;
     document.body.appendChild(r);
 
