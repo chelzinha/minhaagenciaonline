@@ -9,7 +9,10 @@
  * payload.responsavel diretamente na coluna RESPONSAVEL; por isso este shim
  * separa explicitamente nome e ID sem alterar o app.js.
  *
- * Regra de negocio: novo Prospect sem escolha explicita nasce com Manu.
+ * Regra de negocio: Manu e o responsavel PADRAO de um novo Prospect. A
+ * selecao e aplicada uma unica vez ao montar o formulario; se o usuario
+ * escolher depois outro responsavel (inclusive "Sem responsavel"), a escolha
+ * manual e preservada.
  */
 
 function norm(v){
@@ -64,12 +67,15 @@ function prepareResponsible(){
   }
 
   var hidden=ensureHiddenId(fields);
-  var manu=Array.prototype.slice.call(select.options||[]).find(function(opt){
-    return norm(opt.textContent)==='manu';
-  });
 
-  if(isNewProspect() && !String(select.value||'').trim() && manu){
-    select.value=manu.value;
+  if(isNewProspect() && select.dataset.defaultApplied!=='1'){
+    select.dataset.defaultApplied='1';
+    if(!String(select.value||'').trim()){
+      var manu=Array.prototype.slice.call(select.options||[]).find(function(opt){
+        return norm(opt.textContent)==='manu';
+      });
+      if(manu)select.value=manu.value;
+    }
   }
 
   function sync(){
@@ -84,28 +90,11 @@ function prepareResponsible(){
   }
 }
 
-function ensureDefaultBeforeSubmit(e){
-  var form=e.target;
-  if(!form||form.id!=='entityForm'||!isNewProspect())return;
-  var select=responsibleSelect();
-  if(!select)return;
-  if(!String(select.value||'').trim()){
-    var manu=Array.prototype.slice.call(select.options||[]).find(function(opt){
-      return norm(opt.textContent)==='manu';
-    });
-    if(manu){
-      select.value=manu.value;
-      select.dispatchEvent(new Event('change',{bubbles:false}));
-    }
-  }
-}
-
 function start(){
   var fields=document.getElementById('entityFields');
   if(!fields)return;
   var observer=new MutationObserver(function(){prepareResponsible();});
   observer.observe(fields,{childList:true,subtree:true});
-  document.addEventListener('submit',ensureDefaultBeforeSubmit,true);
   prepareResponsible();
 }
 
