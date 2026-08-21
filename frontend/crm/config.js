@@ -61,6 +61,13 @@
     r.defer = true;
     document.body.appendChild(r);
 
+    // Estabiliza digitacao nos filtros dinamicos e adiciona X para limpar
+    // os campos de busca do CRM sem alterar o app.js principal.
+    var q = document.createElement('script');
+    q.src = '/crm/search-fix.js?v=1';
+    q.defer = true;
+    document.body.appendChild(q);
+
     // Faixa visual: deixa impossivel confundir a tela de teste com a real.
     if (!ehProducao) {
       var b = document.createElement('div');
