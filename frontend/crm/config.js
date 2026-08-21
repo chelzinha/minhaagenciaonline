@@ -45,14 +45,22 @@
     legacyTimeoutMs: 150000
   });
 
-  // Faixa visual: deixa impossivel confundir a tela de teste com a real.
-  if (!ehProducao) {
-    document.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener('DOMContentLoaded', function () {
+    // Correcao isolada: o script inline do index tenta capturar o modal de
+    // senha antes de ele existir no DOM. Este arquivo e carregado no momento
+    // correto e religa apenas esse fluxo, sem alterar o restante do CRM.
+    var s = document.createElement('script');
+    s.src = '/crm/password-fix.js?v=1';
+    s.defer = true;
+    document.body.appendChild(s);
+
+    // Faixa visual: deixa impossivel confundir a tela de teste com a real.
+    if (!ehProducao) {
       var b = document.createElement('div');
       b.textContent = API_HOMOLOG ? 'HOMOLOGACAO - dados de teste' : 'HOMOLOGACAO - backend nao configurado';
       b.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#B45309;color:#fff;'
         + 'font:600 12px/1.6 Inter,system-ui,sans-serif;text-align:center;letter-spacing:.04em;padding:4px 8px;';
       document.body.appendChild(b);
-    });
-  }
+    }
+  });
 })();
