@@ -39,13 +39,17 @@ function optionIdentity(opt){
 function hiddenIdInput(select){
   var host=select&&select.closest('#entityFields');
   if(!host)return null;
-  var input=host.querySelector('[data-field="RESPONSAVEL_ID"],input[name="responsavelId"]');
+  var input=host.querySelector('[data-field="responsavelId"],[data-field="RESPONSAVEL_ID"],input[name="responsavelId"]');
   if(!input){
     input=document.createElement('input');
     input.type='hidden';
     input.name='responsavelId';
     host.appendChild(input);
   }
+  /* saveEntity serializa somente elementos com data-field. Usar camelCase
+   * aqui entrega o ID diretamente no formato que o backend da tratativa ja
+   * consome, sem trocar o valor legivel do select RESPONSAVEL. */
+  input.dataset.field='responsavelId';
   return input;
 }
 function setSelect(select,name,id){
