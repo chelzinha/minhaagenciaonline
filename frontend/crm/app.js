@@ -756,8 +756,102 @@ function clearEntityDraftLocal(){try{localStorage.removeItem(ENTITY_DRAFT_KEY);}
 function restoreEntityDraftLocal(){try{const raw=localStorage.getItem(ENTITY_DRAFT_KEY);if(!raw)return false;const draft=JSON.parse(raw);if(draft.type!=='PROSPECT'||draft.id)return false;Object.entries(draft.fields||{}).forEach(([k,v])=>{const el=$(`[data-field="${k}"]`,$('#entityFields'));if(el)el.value=v;});state.entityDraftInitial='';updateEntityDirty();toast('Rascunho do prospect restaurado.');return true;}catch(_){return false;}}
 async function openEntityModal(type,id=''){const isProspect=type==='PROSPECT';if(type==='CLIENTE'&&!can('canEditClients')&&id)return toast('Você não possui permissão para editar clientes.',true);if(type==='PROSPECT'&&!can('canEditProspects'))return toast('Você não possui permissão para editar prospects.',true);if(!state.legacyReady)await loadLegacyData(false);const entity=id?(isProspect?state.prospectsById[id]:state.clientsById[id]):{};$('#entityEyebrow').textContent=isProspect?'Cadastro de prospect':'Cadastro de cliente';$('#entityModalTitle').textContent=id?entityName(entity):(isProspect?'Novo prospect':'Novo cliente');$('#entityFormType').value=type;$('#entityFormId').value=id;$('#entityFields').innerHTML=renderEntityFieldsGrouped(type,entity);$('#deleteEntityBtn')?.classList.toggle('hidden',!(isProspect&&id&&can('canEditProspects')));state.entitySaving=false;state.entityDraftInitial=entityDraftSnapshot();state.entityDraftDirty=false;if(isProspect&&!id)restoreEntityDraftLocal();openModal('entityModal');}
 function applyCreateAliases(payload){const aliases={CLIENTE:'cliente',NOME_FANTASIA:'nomeFantasia',RAZAO_SOCIAL:'razaoSocial',CNPJ_CPF:'cnpjCpf',LOCAL:'local',SEGMENTO:'segmento',SEGMENTO_PREDOMINANTE:'segmento',PESSOA_CONTATO:'pessoaContato',CONTATO:'contato',WHATSAPP:'whatsapp',EMAIL:'email',ENDERECO:'endereco',NUMERO:'numero',COMPLEMENTO:'complemento',BAIRRO:'bairro',CEP:'cep',CIDADE:'cidade',UF:'uf',RESPONSAVEL:'responsavel',OBS:'obs',OBSERVACOES:'observacoes',NUMERO_CONTRATO:'numeroContrato',CARTAO_POSTAGEM:'cartaoPostagem'};Object.entries(aliases).forEach(([src,dst])=>{if(payload[src]!==undefined)payload[dst]=payload[src];});return payload;}
-async function saveEntity(e){e.preventDefault();if(state.entitySaving)return;const type=$('#entityFormType').value,id=$('#entityFormId').value,payload={};$$('[data-field]',$('#entityFields')).forEach(x=>payload[x.dataset.field]=x.value);if(!text(payload.CLIENTE))return toast(type==='PROSPECT'?'Informe o nome do prospect.':'Informe o nome do cliente.',true);try{state.entitySaving=true;$('#saveEntityBtn').disabled=true;if(type==='PROSPECT'){if(id){payload.prospectId=id;await apiPost('update_prospect',payload);}else{const initialStage=prospectInitialStageId();payload.ETAPA_FUNIL=payload.ETAPA_FUNIL||initialStage;payload.etapaFunil=payload.etapaFunil||initialStage;payload.STATUS_PROSPECT=payload.STATUS_PROSPECT||'Novo';applyCreateAliases(payload);await apiPost('create_prospect',payload);}}else{if(id){payload.clienteId=id;await apiPost('update_cliente',payload);}else{applyCreateAliases(payload);await apiPost('create_cliente',payload);}}state.entityDraftDirty=false;clearEntityDraftLocal();requestCloseModal('entityModal',true);toast('Cadastro salvo.');state.legacyReady=false;state.clientsReady=false;state.prospectsReady=false;await Promise.all([loadLegacyData(false),reloadJourney()]);}catch(err){toast(err.message,true);}finally{state.entitySaving=false;$('#saveEntityBtn').disabled=false;}}
-async function deleteEntity(){const type=$('#entityFormType').value,id=$('#entityFormId').value;if(type!=='PROSPECT'||!id)return toast('A exclusão está disponível apenas para prospects cadastrados.',true);if(!confirm('Excluir este prospect da visão do CRM? O registro será marcado como EXCLUÍDO na planilha para manter histórico.'))return;try{$('#deleteEntityBtn').disabled=true;await apiPost('update_prospect',{prospectId:id,STATUS_PROSPECT:'EXCLUIDO',statusProspect:'EXCLUIDO'});state.prospects=state.prospects.filter(x=>text(x.prospectId)!==text(id));delete state.prospectsById[id];requestCloseModal('entityModal',true);toast('Prospect excluído da visão do CRM.');state.legacyReady=false;state.clientsReady=false;state.prospectsReady=false;await Promise.all([loadLegacyData(false),reloadJourney()]);}catch(err){toast(err.message,true);}finally{$('#deleteEntityBtn').disabled=false;}}
+/* Recarrega em segundo plano apenas o tipo afetado. Nao bloqueia a tela. */
+function bgRefreshEntity_(isProspect){
+  state.legacyReady=false;
+  if(isProspect){state.prospectsReady=false;loadCadastroProspects(true).catch(function(){});}
+  else{state.clientsReady=false;loadCadastroClientes(true).catch(function(){});}
+  reloadJourney().catch(function(){});
+}
+/* Salvamento otimista: edicao reflete na hora; criacao fecha o modal sem esperar recarga. */
+async function saveEntity(e){
+  e.preventDefault();
+  if(state.entitySaving)return;
+  const type=$('#entityFormType').value,id=$('#entityFormId').value,payload={};
+  $$('[data-field]',$('#entityFields')).forEach(x=>payload[x.dataset.field]=x.value);
+  if(!text(payload.CLIENTE))return toast(type==='PROSPECT'?'Informe o nome do prospect.':'Informe o nome do cliente.',true);
+  const isProspect=type==='PROSPECT';
+
+  /* --- EDICAO de item que ja esta no estado local: otimista --- */
+  if(id){
+    const mapa=isProspect?state.prospectsById:state.clientsById;
+    const entidade=mapa&&mapa[id];
+    if(entidade){
+      const dados=applyCreateAliases(Object.assign({},payload));
+      const anterior={};
+      Object.keys(dados).forEach(function(k){anterior[k]=entidade[k];});
+      /* 1. aplica local, fecha o modal e renderiza na hora */
+      Object.assign(entidade,dados);
+      state.entityDraftDirty=false;
+      clearEntityDraftLocal();
+      requestCloseModal('entityModal',true);
+      renderActiveView('entity:otimista');
+      toast('Cadastro salvo.');
+      /* 2. grava em segundo plano */
+      try{
+        if(isProspect){payload.prospectId=id;await apiPost('update_prospect',payload);}
+        else{payload.clienteId=id;await apiPost('update_cliente',payload);}
+        bgRefreshEntity_(isProspect);
+      }catch(err){
+        /* 3. falhou: devolve os valores anteriores */
+        Object.assign(entidade,anterior);
+        renderActiveView('entity:revertido');
+        toast('Não foi possível salvar o cadastro: '+err.message,true);
+      }
+      return;
+    }
+  }
+
+  /* --- CRIACAO (ou item fora do estado local) --- */
+  try{
+    state.entitySaving=true;$('#saveEntityBtn').disabled=true;
+    if(isProspect){
+      if(id){payload.prospectId=id;await apiPost('update_prospect',payload);}
+      else{const initialStage=prospectInitialStageId();payload.ETAPA_FUNIL=payload.ETAPA_FUNIL||initialStage;payload.etapaFunil=payload.etapaFunil||initialStage;payload.STATUS_PROSPECT=payload.STATUS_PROSPECT||'Novo';applyCreateAliases(payload);await apiPost('create_prospect',payload);}
+    }else{
+      if(id){payload.clienteId=id;await apiPost('update_cliente',payload);}
+      else{applyCreateAliases(payload);await apiPost('create_cliente',payload);}
+    }
+    state.entityDraftDirty=false;
+    clearEntityDraftLocal();
+    requestCloseModal('entityModal',true);
+    toast('Cadastro salvo.');
+    bgRefreshEntity_(isProspect); /* recarrega so o tipo afetado, sem travar a tela */
+  }catch(err){
+    toast(err.message,true);
+  }finally{
+    state.entitySaving=false;$('#saveEntityBtn').disabled=false;
+  }
+}
+async function deleteEntity(){
+  const type=$('#entityFormType').value,id=$('#entityFormId').value;
+  if(type!=='PROSPECT'||!id)return toast('A exclusão está disponível apenas para prospects cadastrados.',true);
+  if(!confirm('Excluir este prospect da visão do CRM? O registro será marcado como EXCLUÍDO na planilha para manter histórico.'))return;
+  const removido=state.prospectsById[id]||null;
+  const indice=state.prospects.findIndex(x=>text(x.prospectId)===text(id));
+  try{
+    $('#deleteEntityBtn').disabled=true;
+    /* 1. remove local e fecha na hora */
+    state.prospects=state.prospects.filter(x=>text(x.prospectId)!==text(id));
+    delete state.prospectsById[id];
+    requestCloseModal('entityModal',true);
+    renderActiveView('entity:excluido');
+    toast('Prospect excluído da visão do CRM.');
+    /* 2. grava em segundo plano */
+    await apiPost('update_prospect',{prospectId:id,STATUS_PROSPECT:'EXCLUIDO',statusProspect:'EXCLUIDO'});
+    bgRefreshEntity_(true);
+  }catch(err){
+    /* 3. falhou: devolve o prospect para a lista */
+    if(removido){
+      if(indice>=0)state.prospects.splice(indice,0,removido);else state.prospects.push(removido);
+      state.prospectsById[id]=removido;
+      renderActiveView('entity:exclusao-revertida');
+    }
+    toast('Não foi possível excluir: '+err.message,true);
+  }finally{
+    $('#deleteEntityBtn').disabled=false;
+  }
+}
 
 function openTreatmentModal(id){const t=treatmentById(id);if(!t)return;state.selectedTreatment=t;const entity=t.tipoEntidade==='PROSPECT'?state.prospectsById[t.entidadeId]:state.clientsById[t.entidadeId];$('#treatmentTitle').textContent=t.cliente||entityName(entity)||t.entidadeId;$('#treatmentEyebrow').textContent=t.tipoEntidade==='PROSPECT'?'Jornada do prospect':'Jornada do cliente';renderTreatmentSummary(t,entity||{});renderChecklistForm(t,entity||{});$('#treatmentHistory').innerHTML='<div class="empty-state">Carregando checklists…</div>';setTreatmentTab('treatment-summary');openModal('treatmentModal');Promise.all([loadChecklists(t),loadNotesForEntity(t,'treatment')]).catch(e=>{$('#treatmentHistory').innerHTML='<div class="empty-state">Não foi possível carregar o histórico.</div>';console.warn(e);});}
 function renderTreatmentSummary(t,e){const rows=[['Etapa da jornada',t.etapaNome||t.etapaId,'route'],['Recomendação do sistema',t.recomendacao||'—',ACTION_ICONS[text(t.recomendacao).toUpperCase()]||'label'],['Prioridade',t.prioridade||'—','priority_high'],['Responsável',responsibleDisplay(first(entityResponsibleValue(t),entityResponsibleValue(e)))||'Sem responsável','person'],['Local',t.local||e.local||'—','location_on'],['Última postagem',t.diasSemPostar?`${t.diasSemPostar} dias sem postar`:(e.ultimaPostagemLabel||'—'),'history'],['Próxima atividade',t.proximaAtividade?`${t.proximaAtividade.tipoAtividadeNome||'Atividade'} · ${fmtDate(t.proximaAtividade.dataProgramada)}`:'Sem agenda futura','event']];const journey=journeyForTreatment(t),move=can('canMoveFunnel')?`<div class="detail-line journey-move"><small><span class="material-symbols-rounded">drag_indicator</span>Mover etapa</small><div class="journey-move-row"><select id="treatmentStageSelect">${(journey.columns||[]).map(c=>`<option value="${esc(c.etapaId)}" ${text(c.etapaId)===text(t.etapaId)?'selected':''}>${esc(c.nome||c.etapaId)}</option>`).join('')}</select><button class="secondary-btn" type="button" id="treatmentMoveStageBtn"><span class="material-symbols-rounded">sync_alt</span>Mover</button></div></div>`:'';$('#treatmentSummary').innerHTML=rows.map(([k,v,i])=>`<div class="detail-line"><small><span class="material-symbols-rounded">${esc(i)}</span>${esc(k)}</small><strong>${esc(v)}</strong></div>`).join('')+move;$('#treatmentAgendaBtn').onclick=()=>{closeModal('treatmentModal');openAgendaForTreatment(t.tratativaId);};$('#treatmentEditBtn').classList.toggle('hidden',t.tipoEntidade==='CLIENTE'?!can('canEditClients'):!can('canEditProspects'));$('#treatmentEditBtn').onclick=()=>{closeModal('treatmentModal');if(!state.legacyReady)return loadLegacyData(false).then(()=>openEntityModal(t.tipoEntidade,t.entidadeId));openEntityModal(t.tipoEntidade,t.entidadeId);};const moveBtn=$('#treatmentMoveStageBtn');if(moveBtn)moveBtn.onclick=async()=>{const stage=$('#treatmentStageSelect').value;if(stage&&stage!==t.etapaId){await moveTreatmentToStage(t.tratativaId,stage);closeModal('treatmentModal');}};}
