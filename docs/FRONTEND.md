@@ -358,6 +358,9 @@ Comportamento:
 - usa o login central da plataforma e a autorização do aplicativo CRM, sem entrar na navegação do CRM;
 - mantém no DOM somente 25, 50 ou 100 clientes por página;
 - exibe os 12 meses em pares `QTD` e `Valor`;
+- inicia as colunas mensais em formato compacto e permite redimensioná-las pelo cabeçalho, com persistência da preferência no navegador;
+- permite ordenar A-Z, Z-A, crescente ou decrescente ao clicar em qualquer cabeçalho;
+- separa os totalizadores em `Total QTD` e `Total faturado`;
 - usa fundo `#8F1D1D` nos pares mensais sem postagem;
 - marca o mês corrente como parcial;
 - permite filtrar e exportar apenas os resultados visíveis no filtro;

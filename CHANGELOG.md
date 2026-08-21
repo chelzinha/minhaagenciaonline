@@ -226,3 +226,15 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 ### Escopo
 - Ajuste isolado em `frontend/crm/app.js`.
 - Nao altera backend, Apps Script, dados, layout da Home ou performance inicial.
+
+## 2026-08-21 - Curva ABC com tabela interativa
+
+### Alterado
+- Reduzida a largura inicial das colunas mensais de quantidade e faturamento.
+- Adicionado redimensionamento manual das colunas pelo cabeçalho, com persistência local.
+- Adicionada ordenação crescente e decrescente ao clicar nos cabeçalhos.
+- Separados os totalizadores de quantidade de objetos e valor faturado.
+
+### Escopo
+- Ajuste restrito ao aplicativo independente `/curva`.
+- Nao altera o CRM central, a planilha fonte ou as regras da Curva ABC.

@@ -10,3 +10,26 @@
 
 @media print{.abc-filter-card,.abc-pagination,.abc-heading-actions .secondary-btn{display:none!important}.abc-table-wrap{max-height:none;overflow:visible}.abc-table-wrap table{min-width:0;font-size:7px}.abc-month-up,.abc-month-down,.abc-month-stable,.abc-no-post{print-color-adjust:exact;-webkit-print-color-adjust:exact}.abc-no-post{background:#B42318!important;color:#fff!important}}
 .curva-standalone-main{padding-bottom:32px}
+
+/* Tabela mensal interativa */
+.abc-table-wrap table{min-width:100%;width:max-content;table-layout:fixed}
+.abc-table-wrap th,.abc-table-wrap td{padding-left:7px;padding-right:7px;overflow:hidden;text-overflow:ellipsis}
+.abc-table-wrap thead th{overflow:visible;letter-spacing:.04em}
+.abc-table-wrap .abc-sticky-client{min-width:0;max-width:none}
+.abc-table-wrap .abc-sticky-curve{left:var(--abc-client-width,210px);min-width:0}
+.abc-table-wrap tbody .abc-sticky-client strong,.abc-table-wrap tbody .abc-sticky-client small{max-width:100%}
+.abc-action{max-width:none}
+.abc-month-cell{min-width:0;padding-left:4px!important;padding-right:4px!important}
+.abc-month-value{gap:0}
+.abc-month-value .material-symbols-rounded{font-size:16px}
+.abc-month-value b{font-size:8.5px}
+.abc-sortable-header{cursor:pointer;user-select:none}
+.abc-header-label{display:flex;align-items:center;justify-content:center;gap:2px;min-width:0}
+.abc-header-label>.material-symbols-rounded{flex:0 0 auto;font-size:13px;color:#87A0B0}
+.abc-sortable-header[aria-sort="ascending"] .abc-header-label>.material-symbols-rounded,.abc-sortable-header[aria-sort="descending"] .abc-header-label>.material-symbols-rounded{color:#006EA6}
+.abc-col-resizer{position:absolute;top:0;right:-4px;bottom:0;z-index:10;width:8px;cursor:col-resize;touch-action:none}
+.abc-col-resizer:after{content:"";position:absolute;top:7px;right:3px;bottom:7px;width:1px;background:#D6E1E8}
+.abc-col-resizer:hover:after,.abc-col-resizer:focus:after,.abc-col-resizer.is-resizing:after{width:2px;background:#168AC0}
+.abc-col-resizer:focus{outline:0}
+.abc-col-resizer.is-resizing{background:rgba(0,110,166,.06)}
+@media(max-width:760px){.abc-table-wrap .abc-sticky-client{min-width:0;max-width:none}.abc-table-wrap .abc-sticky-curve{left:var(--abc-client-width,210px)}.abc-table-wrap tbody .abc-sticky-client strong,.abc-table-wrap tbody .abc-sticky-client small{max-width:100%}}

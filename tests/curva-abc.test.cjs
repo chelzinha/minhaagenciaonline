@@ -106,3 +106,14 @@ test('classifica a evolução mensal e protege o mês parcial',()=>{
   assert.equal(classify(4,10,{partial:true}),'stable');
   assert.equal(classify(4,10,{first:true}),'stable');
 });
+
+test('ordena as colunas mensais e os totalizadores de forma independente',()=>{
+  const {columnSortValue,compareColumnValues}=frontendContext.window.CurvaABC._test;
+  const a={client:'Cliente A',months:{'2026-07':{qtd:5,value:900}},totals:{qtd:30,value:5000}};
+  const b={client:'Cliente B',months:{'2026-07':{qtd:12,value:700}},totals:{qtd:20,value:7000}};
+  assert.equal(columnSortValue(a,'month:2026-07:qtd'),5);
+  assert.equal(compareColumnValues(a,b,'month:2026-07:qtd','asc')<0,true);
+  assert.equal(compareColumnValues(a,b,'totalQtd','desc')<0,true);
+  assert.equal(compareColumnValues(a,b,'totalValue','desc')>0,true);
+  assert.equal(compareColumnValues(a,b,'client','asc')<0,true);
+});

@@ -1,7 +1,8 @@
 (function(global){
 'use strict';
 
-const state={data:null,loading:false,error:'',promise:null,page:1,pageSize:25,sort:'priority',filters:{search:'',curve:'',status:'',signal:'',priority:'',intermediary:'',cadastro:''}};
+const WIDTHS_KEY='curvaAbcColumnWidthsV1';
+const state={data:null,loading:false,error:'',promise:null,page:1,pageSize:25,sort:'priority',columnSort:{key:'',dir:'asc'},columnWidths:readColumnWidths(),filters:{search:'',curve:'',status:'',signal:'',priority:'',intermediary:'',cadastro:''}};
 let apiGet=null,notify=()=>{};
 const root=()=>document.getElementById('curvaAbcRoot');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -13,6 +14,36 @@ const integer=v=>Math.round(num(v)).toLocaleString('pt-BR');
 const pct=v=>v==null?'—':`${num(v)*100>=0?'+':''}${(num(v)*100).toLocaleString('pt-BR',{maximumFractionDigits:1})}%`;
 const monthLabel=key=>{const m=text(key).match(/^(\d{4})-(\d{2})$/);return m?`${m[2]}/${m[1]}`:key;};
 const priorityRank=v=>({'CRÍTICA':5,'CRITICA':5,'ALTA':4,'MÉDIA':3,'MEDIA':3,'OPORTUNIDADE':2,'BAIXA':1})[text(v).toUpperCase()]||0;
+const curveRank=v=>({A:1,B:2,C:3})[text(v).toUpperCase()]||9;
+
+function readColumnWidths(){
+  try{return JSON.parse(global.localStorage&&global.localStorage.getItem(WIDTHS_KEY)||'{}')||{};}catch(_err){return {};}
+}
+function saveColumnWidths(){
+  try{if(global.localStorage)global.localStorage.setItem(WIDTHS_KEY,JSON.stringify(state.columnWidths));}catch(_err){}
+}
+function columnSortValue(c,key){
+  const monthMatch=text(key).match(/^month:(\d{4}-\d{2}):(qtd|value)$/);
+  if(monthMatch)return num(c.months&&c.months[monthMatch[1]]&&c.months[monthMatch[1]][monthMatch[2]]);
+  if(key==='client')return norm(c.client);
+  if(key==='curve')return curveRank(c.curve);
+  if(key==='status')return norm(c.status);
+  if(key==='signal')return norm(c.signal);
+  if(key==='priority')return priorityRank(c.priority);
+  if(key==='totalQtd')return num(c.totals&&c.totals.qtd);
+  if(key==='totalValue')return num(c.totals&&c.totals.value);
+  if(key==='ticket')return num(c.totals&&c.totals.ticket);
+  if(key==='intermediary')return norm(c.intermediary);
+  if(key==='contract')return norm([c.contract,c.card].join(' '));
+  if(key==='cadastro')return norm([c.cadastroStatus,c.loginPpn,c.cwsMessage].join(' '));
+  if(key==='action')return norm(c.recommendedAction);
+  return '';
+}
+function compareColumnValues(a,b,key,dir='asc'){
+  const av=columnSortValue(a,key),bv=columnSortValue(b,key),factor=dir==='desc'?-1:1;
+  if(typeof av==='number'&&typeof bv==='number')return(av-bv)*factor;
+  return String(av).localeCompare(String(bv),'pt-BR',{numeric:true,sensitivity:'base'})*factor;
+}
 
 function init(options={}){
   apiGet=options.apiGet||apiGet;
@@ -51,6 +82,7 @@ function filteredClients(){
     return true;
   });
   return rows.sort((a,b)=>{
+    if(state.sort==='column')return compareColumnValues(a,b,state.columnSort.key,state.columnSort.dir)||text(a.client).localeCompare(text(b.client),'pt-BR');
     if(state.sort==='client')return text(a.client).localeCompare(text(b.client),'pt-BR');
     if(state.sort==='value')return num(b.totals&&b.totals.value)-num(a.totals&&a.totals.value);
     if(state.sort==='curve')return text(a.curve).localeCompare(text(b.curve))||num(b.totals&&b.totals.value)-num(a.totals&&a.totals.value);
@@ -119,19 +151,35 @@ function rulesHtml(data){const r=data.rules||{};return `<article class="surface-
 
 function filtersHtml(data,count){
   const f=state.filters,filters=data.filters||{};
-  return `<section class="abc-filter-card surface-card"><div class="abc-filter-head"><div><strong>Clientes</strong><small>${count.toLocaleString('pt-BR')} resultado(s)</small></div><button class="text-btn" type="button" data-abc-clear>Limpar filtros</button></div><div class="abc-filters"><label class="abc-search"><span class="material-symbols-rounded">search</span><input data-abc-filter="search" value="${esc(f.search)}" placeholder="Buscar cliente, fantasia ou contrato"></label>${selectFilter('curve','Curva',f.curve,filters.curves)}${selectFilter('status','Status',f.status,filters.statuses)}${selectFilter('signal','Sinal comercial',f.signal,filters.signals)}${selectFilter('priority','Prioridade',f.priority,filters.priorities)}${selectFilter('intermediary','Intermediador',f.intermediary,filters.intermediaries)}${selectFilter('cadastro','Cadastro',f.cadastro,filters.cadastroStatuses)}<label><span>Ordenar</span><select data-abc-sort><option value="priority" ${state.sort==='priority'?'selected':''}>Prioridade</option><option value="value" ${state.sort==='value'?'selected':''}>Maior faturamento</option><option value="curve" ${state.sort==='curve'?'selected':''}>Curva</option><option value="client" ${state.sort==='client'?'selected':''}>Cliente A-Z</option></select></label></div></section>`;
+  return `<section class="abc-filter-card surface-card"><div class="abc-filter-head"><div><strong>Clientes</strong><small>${count.toLocaleString('pt-BR')} resultado(s)</small></div><button class="text-btn" type="button" data-abc-clear>Limpar filtros</button></div><div class="abc-filters"><label class="abc-search"><span class="material-symbols-rounded">search</span><input data-abc-filter="search" value="${esc(f.search)}" placeholder="Buscar cliente, fantasia ou contrato"></label>${selectFilter('curve','Curva',f.curve,filters.curves)}${selectFilter('status','Status',f.status,filters.statuses)}${selectFilter('signal','Sinal comercial',f.signal,filters.signals)}${selectFilter('priority','Prioridade',f.priority,filters.priorities)}${selectFilter('intermediary','Intermediador',f.intermediary,filters.intermediaries)}${selectFilter('cadastro','Cadastro',f.cadastro,filters.cadastroStatuses)}<label><span>Ordenar</span><select data-abc-sort>${state.sort==='column'?'<option value="column" selected>Coluna selecionada</option>':''}<option value="priority" ${state.sort==='priority'?'selected':''}>Prioridade</option><option value="value" ${state.sort==='value'?'selected':''}>Maior faturamento</option><option value="curve" ${state.sort==='curve'?'selected':''}>Curva</option><option value="client" ${state.sort==='client'?'selected':''}>Cliente A-Z</option></select></label></div></section>`;
 }
 function selectFilter(key,label,value,items=[]){return `<label><span>${esc(label)}</span><select data-abc-filter="${esc(key)}"><option value="">Todos</option>${(items||[]).map(x=>`<option value="${esc(x)}" ${text(value)===text(x)?'selected':''}>${esc(x)}</option>`).join('')}</select></label>`;}
 
+function tableColumns(months){
+  return [
+    {id:'client',width:210},{id:'curve',width:58},{id:'status',width:88},{id:'signal',width:118},{id:'priority',width:94},
+    ...months.flatMap(m=>[{id:`${m.key}-qtd`,width:54},{id:`${m.key}-value`,width:86}]),
+    {id:'totalQtd',width:82},{id:'totalValue',width:104},{id:'ticket',width:92},{id:'intermediary',width:116},{id:'contract',width:165},{id:'cadastro',width:195},{id:'action',width:230}
+  ];
+}
+function columnWidth(id,fallback){return Math.max(42,Math.min(520,num(state.columnWidths[id])||fallback));}
+function sortIndicator(key){
+  if(state.sort==='column'&&state.columnSort.key===key)return state.columnSort.dir==='asc'?'arrow_upward':'arrow_downward';
+  return 'unfold_more';
+}
+function sortableHeader(label,key,id,extra=''){
+  return `<th ${extra} class="abc-sortable-header${id==='client'?' abc-sticky-client':id==='curve'?' abc-sticky-curve':''}" data-abc-sort-key="${esc(key)}" aria-sort="${state.sort==='column'&&state.columnSort.key===key?(state.columnSort.dir==='asc'?'ascending':'descending'):'none'}"><span class="abc-header-label">${esc(label)}<span class="material-symbols-rounded" aria-hidden="true">${sortIndicator(key)}</span></span><span class="abc-col-resizer" data-abc-resize="${esc(id)}" role="separator" tabindex="0" aria-label="Redimensionar coluna ${esc(label)}" title="Arraste para redimensionar. Duplo clique restaura."></span></th>`;
+}
 function tableHtml(data,rows,total,start,pages){
   const months=(data.period&&data.period.months)||[];
-  return `<article class="surface-card abc-table-card"><div class="abc-table-top"><div><strong>Detalhamento mensal</strong><small>Verde: cresceu · vermelho claro: diminuiu · azul: estável ou parcial · vermelho escuro: sem postagem.</small></div><label>Linhas <select data-abc-page-size><option ${state.pageSize===25?'selected':''}>25</option><option ${state.pageSize===50?'selected':''}>50</option><option ${state.pageSize===100?'selected':''}>100</option></select></label></div><div class="abc-table-wrap"><table><thead><tr><th rowspan="2" class="abc-sticky-client">Cliente</th><th rowspan="2" class="abc-sticky-curve">Curva</th><th rowspan="2">Status</th><th rowspan="2">Sinal comercial</th><th rowspan="2">Prioridade</th>${months.map(m=>`<th colspan="2" class="abc-month-head${m.partial?' is-partial':''}">${esc(m.label)}${m.partial?'<small>parcial</small>':''}</th>`).join('')}<th rowspan="2">Total 12m</th><th rowspan="2">Ticket</th><th rowspan="2">Intermediador</th><th rowspan="2">Contrato / cartão</th><th rowspan="2">Cadastro / PPN / CWS</th><th rowspan="2">Ação recomendada</th></tr><tr>${months.map(()=>'<th>QTD</th><th>Valor</th>').join('')}</tr></thead><tbody>${rows.length?rows.map(c=>clientRow(c,months)).join(''):`<tr><td colspan="${5+months.length*2+6}" class="abc-empty">Nenhum cliente corresponde aos filtros.</td></tr>`}</tbody></table></div><div class="abc-pagination"><span>${total?`${start+1}-${Math.min(start+state.pageSize,total)} de ${total}`:'0 resultados'}</span><div><button type="button" data-abc-page="prev" ${state.page<=1?'disabled':''}><span class="material-symbols-rounded">chevron_left</span></button><strong>Página ${state.page} de ${pages}</strong><button type="button" data-abc-page="next" ${state.page>=pages?'disabled':''}><span class="material-symbols-rounded">chevron_right</span></button></div></div></article>`;
+  const columns=tableColumns(months),clientWidth=columnWidth('client',210);
+  return `<article class="surface-card abc-table-card"><div class="abc-table-top"><div><strong>Detalhamento mensal</strong><small>Clique no cabeçalho para ordenar. Arraste a divisória para ajustar a largura. Verde: cresceu · vermelho claro: diminuiu · azul: estável ou parcial · vermelho escuro: sem postagem.</small></div><label>Linhas <select data-abc-page-size><option ${state.pageSize===25?'selected':''}>25</option><option ${state.pageSize===50?'selected':''}>50</option><option ${state.pageSize===100?'selected':''}>100</option></select></label></div><div class="abc-table-wrap"><table style="--abc-client-width:${clientWidth}px"><colgroup>${columns.map(c=>`<col data-abc-col="${esc(c.id)}" style="width:${columnWidth(c.id,c.width)}px">`).join('')}</colgroup><thead><tr>${sortableHeader('Cliente','client','client','rowspan="2"')}${sortableHeader('Curva','curve','curve','rowspan="2"')}${sortableHeader('Status','status','status','rowspan="2"')}${sortableHeader('Sinal comercial','signal','signal','rowspan="2"')}${sortableHeader('Prioridade','priority','priority','rowspan="2"')}${months.map(m=>`<th colspan="2" class="abc-month-head${m.partial?' is-partial':''}">${esc(m.label)}${m.partial?'<small>parcial</small>':''}</th>`).join('')}${sortableHeader('Total QTD','totalQtd','totalQtd','rowspan="2"')}${sortableHeader('Total faturado','totalValue','totalValue','rowspan="2"')}${sortableHeader('Ticket','ticket','ticket','rowspan="2"')}${sortableHeader('Intermediador','intermediary','intermediary','rowspan="2"')}${sortableHeader('Contrato / cartão','contract','contract','rowspan="2"')}${sortableHeader('Cadastro / PPN / CWS','cadastro','cadastro','rowspan="2"')}${sortableHeader('Ação recomendada','action','action','rowspan="2"')}</tr><tr>${months.map(m=>`${sortableHeader('QTD',`month:${m.key}:qtd`,`${m.key}-qtd`)}${sortableHeader('Valor',`month:${m.key}:value`,`${m.key}-value`)}`).join('')}</tr></thead><tbody>${rows.length?rows.map(c=>clientRow(c,months)).join(''):`<tr><td colspan="${5+months.length*2+7}" class="abc-empty">Nenhum cliente corresponde aos filtros.</td></tr>`}</tbody></table></div><div class="abc-pagination"><span>${total?`${start+1}-${Math.min(start+state.pageSize,total)} de ${total}`:'0 resultados'}</span><div><button type="button" data-abc-page="prev" ${state.page<=1?'disabled':''}><span class="material-symbols-rounded">chevron_left</span></button><strong>Página ${state.page} de ${pages}</strong><button type="button" data-abc-page="next" ${state.page>=pages?'disabled':''}><span class="material-symbols-rounded">chevron_right</span></button></div></div></article>`;
 }
 function clientRow(c,months){
   const cadastro=[c.cadastroStatus,c.loginPpn?`PPN: ${c.loginPpn}`:'',c.cwsMessage?`CWS: ${c.cwsMessage}`:''].filter(Boolean).join(' · ');
   const contract=[c.contract,c.card].filter(Boolean).join(' · ');
   const isNew=text(c.status).toUpperCase()==='NOVO';
-  return `<tr><td class="abc-sticky-client"><div class="abc-client-name-line"><strong>${esc(c.client)}</strong>${isNew?'<span class="abc-new-chip">NOVO</span>':''}</div>${c.fantasy?`<small>${esc(c.fantasy)}</small>`:''}</td><td class="abc-sticky-curve"><span class="abc-curve abc-curve-${text(c.curve).toLowerCase()}">${esc(c.curve)}</span></td><td><span class="abc-status">${esc(c.status||'—')}</span></td><td><span class="abc-signal">${esc(c.signal||'—')}</span></td><td><span class="abc-priority abc-priority-${norm(c.priority).replace(/\s+/g,'-')}">${esc(c.priority||'—')}</span></td>${months.map((m,index)=>{const v=c.months&&c.months[m.key]||{};const previous=index>0&&c.months&&c.months[months[index-1].key]||{};const empty=num(v.qtd)<=0&&num(v.value)<=0;return `${monthCell(v.qtd,previous.qtd,{empty,partial:m.partial,first:index===0,format:integer,label:'objetos'})}${monthCell(v.value,previous.value,{empty,partial:m.partial,first:index===0,format:money,label:'faturamento'})}`;}).join('')}<td class="abc-num"><strong>${money(c.totals&&c.totals.value)}</strong><small>${integer(c.totals&&c.totals.qtd)} obj.</small></td><td class="abc-num">${money(c.totals&&c.totals.ticket)}</td><td>${esc(c.intermediary||'—')}</td><td>${esc(contract||'—')}</td><td class="abc-long">${esc(cadastro||'—')}</td><td class="abc-action">${esc(c.recommendedAction||'—')}</td></tr>`;
+  return `<tr><td class="abc-sticky-client"><div class="abc-client-name-line"><strong>${esc(c.client)}</strong>${isNew?'<span class="abc-new-chip">NOVO</span>':''}</div>${c.fantasy?`<small>${esc(c.fantasy)}</small>`:''}</td><td class="abc-sticky-curve"><span class="abc-curve abc-curve-${text(c.curve).toLowerCase()}">${esc(c.curve)}</span></td><td><span class="abc-status">${esc(c.status||'—')}</span></td><td><span class="abc-signal">${esc(c.signal||'—')}</span></td><td><span class="abc-priority abc-priority-${norm(c.priority).replace(/\s+/g,'-')}">${esc(c.priority||'—')}</span></td>${months.map((m,index)=>{const v=c.months&&c.months[m.key]||{};const previous=index>0&&c.months&&c.months[months[index-1].key]||{};const empty=num(v.qtd)<=0&&num(v.value)<=0;return `${monthCell(v.qtd,previous.qtd,{empty,partial:m.partial,first:index===0,format:integer,label:'objetos'})}${monthCell(v.value,previous.value,{empty,partial:m.partial,first:index===0,format:money,label:'faturamento'})}`;}).join('')}<td class="abc-num"><strong>${integer(c.totals&&c.totals.qtd)}</strong></td><td class="abc-num"><strong>${money(c.totals&&c.totals.value)}</strong></td><td class="abc-num">${money(c.totals&&c.totals.ticket)}</td><td>${esc(c.intermediary||'—')}</td><td>${esc(contract||'—')}</td><td class="abc-long">${esc(cadastro||'—')}</td><td class="abc-action">${esc(c.recommendedAction||'—')}</td></tr>`;
 }
 
 function monthlyMetricState(value,previous,{empty=false,partial=false,first=false}={}){
@@ -153,9 +201,40 @@ function bind(){
   const exportBtn=host.querySelector('[data-abc-export]');if(exportBtn)exportBtn.onclick=exportCsv;
   const clear=host.querySelector('[data-abc-clear]');if(clear)clear.onclick=()=>{state.filters={search:'',curve:'',status:'',signal:'',priority:'',intermediary:'',cadastro:''};state.page=1;render();};
   host.querySelectorAll('[data-abc-filter]').forEach(el=>{const event=el.tagName==='INPUT'?'input':'change';el.addEventListener(event,()=>{state.filters[el.dataset.abcFilter]=el.value;state.page=1;render();});});
-  const sort=host.querySelector('[data-abc-sort]');if(sort)sort.onchange=()=>{state.sort=sort.value;state.page=1;render();};
+  const sort=host.querySelector('[data-abc-sort]');if(sort)sort.onchange=()=>{if(sort.value!=='column')state.sort=sort.value;state.page=1;render();};
+  host.querySelectorAll('[data-abc-sort-key]').forEach(th=>th.onclick=()=>{
+    const key=th.dataset.abcSortKey,same=state.sort==='column'&&state.columnSort.key===key;
+    const numeric=/^(month:|total|ticket|priority|curve)/.test(key);
+    state.columnSort={key,dir:same?(state.columnSort.dir==='asc'?'desc':'asc'):(numeric?'desc':'asc')};
+    state.sort='column';state.page=1;render();
+  });
+  bindColumnResize(host);
   const size=host.querySelector('[data-abc-page-size]');if(size)size.onchange=()=>{state.pageSize=Number(size.value)||25;state.page=1;render();};
   host.querySelectorAll('[data-abc-page]').forEach(btn=>btn.onclick=()=>{state.page+=btn.dataset.abcPage==='next'?1:-1;render();root().scrollIntoView({behavior:'smooth',block:'start'});});
+}
+
+function bindColumnResize(host){
+  host.querySelectorAll('[data-abc-resize]').forEach(handle=>{
+    const adjust=delta=>{
+      const id=handle.dataset.abcResize,col=host.querySelector(`[data-abc-col="${id}"]`);if(!col)return;
+      const next=Math.max(42,Math.min(520,col.getBoundingClientRect().width+delta));
+      col.style.width=`${next}px`;state.columnWidths[id]=Math.round(next);
+      if(id==='client'){const table=col.closest('table');if(table)table.style.setProperty('--abc-client-width',`${next}px`);}
+      saveColumnWidths();
+    };
+    handle.onclick=event=>event.stopPropagation();
+    handle.ondblclick=event=>{event.preventDefault();event.stopPropagation();delete state.columnWidths[handle.dataset.abcResize];saveColumnWidths();render();};
+    handle.onkeydown=event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();event.stopPropagation();adjust(event.key==='ArrowLeft'?-8:8);}};
+    handle.onpointerdown=event=>{
+      event.preventDefault();event.stopPropagation();
+      const id=handle.dataset.abcResize,col=host.querySelector(`[data-abc-col="${id}"]`);if(!col)return;
+      const startX=event.clientX,startWidth=col.getBoundingClientRect().width,table=col.closest('table');
+      handle.classList.add('is-resizing');handle.setPointerCapture&&handle.setPointerCapture(event.pointerId);
+      const move=moveEvent=>{const next=Math.max(42,Math.min(520,startWidth+moveEvent.clientX-startX));col.style.width=`${next}px`;state.columnWidths[id]=Math.round(next);if(id==='client'&&table)table.style.setProperty('--abc-client-width',`${next}px`);};
+      const finish=()=>{handle.classList.remove('is-resizing');saveColumnWidths();handle.removeEventListener('pointermove',move);handle.removeEventListener('pointerup',finish);handle.removeEventListener('pointercancel',finish);};
+      handle.addEventListener('pointermove',move);handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish);
+    };
+  });
 }
 
 function exportCsv(){
@@ -171,5 +250,5 @@ function compactMoney(v){const n=num(v);if(Math.abs(n)>=1000000)return `R$ ${(n/
 function shortMonth(label){return text(label).slice(0,2);}
 function count(){return(state.data&&state.data.clients||[]).length;}
 
-global.CurvaABC={init,ensureLoaded,refresh,render,count,exportCsv,_state:state,_test:{monthlyMetricState}};
+global.CurvaABC={init,ensureLoaded,refresh,render,count,exportCsv,_state:state,_test:{monthlyMetricState,columnSortValue,compareColumnValues}};
 })(window);
