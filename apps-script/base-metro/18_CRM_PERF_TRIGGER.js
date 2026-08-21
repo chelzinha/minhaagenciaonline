@@ -208,13 +208,17 @@ function crm5x_warmupBuildDashboard_(agendaRows, tratRows, start, end, resp, res
   };
 }
 
-function crm5x_warmupDashboardKey_(start, end, resp) {
-  return 'crm5x|dash|' + crm5x_dataRev_() + '|' + crm5x_configRev_() + '|' + start + '|' + end + '|' + crm3_text_(resp || '');
+function crm5x_warmupDashboardKey_(start, end, resp, dataRev, configRev) {
+  var dRev = dataRev == null ? crm5x_dataRev_() : dataRev;
+  var cRev = configRev == null ? crm5x_configRev_() : configRev;
+  return 'crm5x|dash|' + dRev + '|' + cRev + '|' + start + '|' + end + '|' + crm3_text_(resp || '');
 }
 
 function crm5x_apiWarmupFast_() {
   var started = new Date().getTime();
-  var meta = { version: 'fast-login-v2', timings: [], warmedDashboards: [] };
+  var dataRev = crm5x_dataRev_();
+  var configRev = crm5x_configRev_();
+  var meta = { version: 'fast-login-v2', timings: [], warmedDashboards: [], dataRev: dataRev, configRev: configRev };
   function timed_(step, fn) {
     var t0 = new Date().getTime();
     var value = fn();
@@ -232,7 +236,7 @@ function crm5x_apiWarmupFast_() {
 
   targets.forEach(function (resp) {
     var dash = crm5x_warmupBuildDashboard_(agendaRows, tratRows, start, end, resp, respIdx);
-    crm5x_cachePut_(crm5x_warmupDashboardKey_(start, end, resp), dash, CRM5X_CFG.TTL_DATA_SEC);
+    crm5x_cachePut_(crm5x_warmupDashboardKey_(start, end, resp, dataRev, configRev), dash, CRM5X_CFG.TTL_DATA_SEC);
     meta.warmedDashboards.push(resp || 'TODOS');
   });
 
