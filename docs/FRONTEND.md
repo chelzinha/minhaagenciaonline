@@ -361,3 +361,5 @@ Comportamento:
 - não incorpora a planilha por iframe e não escreve na fonte.
 
 O módulo é exposto como `window.CrmCurvaABC` para manter a implementação desacoplada do arquivo monolítico `app.js`.
+
+Preview sem autenticação e sem dados reais: `frontend/crm/preview-curva-abc.html`.
