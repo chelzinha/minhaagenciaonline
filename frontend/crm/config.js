@@ -3,35 +3,38 @@
  *
  * O ambiente e escolhido pela URL, nunca editando este arquivo a mao:
  *
- *   minhaagenciaonline.com.br        -> backend de PRODUCAO
- *   homolog--agfjb.netlify.app       -> backend de HOMOLOGACAO
- *   localhost / 127.0.0.1            -> backend de HOMOLOGACAO
+ *   minhaagenciaonline.com.br / www.minhaagenciaonline.com.br -> PRODUCAO
+ *   previews Netlify/Cloudflare e localhost                    -> HOMOLOGACAO
  *
- * Assim o mesmo commit funciona nos dois lugares e nao existe o risco de
- * publicar em producao um arquivo apontando para o backend de teste.
- *
- * PASSO PENDENTE: depois de criar o projeto de homologacao no Apps Script,
- * cole a URL /exec dele em API_HOMOLOG abaixo. Enquanto estiver vazio, a
- * homologacao cai no backend de producao (e avisa no console).
+ * REGRA DE SEGURANCA:
+ * ambiente de homologacao sem API_HOMOLOG configurada NAO pode cair no
+ * backend de producao. Nesse caso o CRM fica sem endpoint e exibe erro,
+ * evitando que testes alterem dados reais.
  */
 (function () {
   var API_PRODUCAO = 'https://script.google.com/macros/s/AKfycbytPcqQl8Rk62YclOVx0BH-zEgHtYFv0b-aUrTfyR_QKKr0VmjGbJc9GpX19rJ-1YV0OA/exec';
   var API_HOMOLOG = ''; // <<< colar aqui a URL /exec do projeto de homologacao
 
   var host = String(location.hostname || '').toLowerCase();
-  var ehHomolog = host.indexOf('homolog') === 0
-    || host.indexOf('homolog--') >= 0
-    || host === 'localhost'
-    || host === '127.0.0.1'
-    || host.indexOf('deploy-preview') >= 0;
+  var ehProducao = host === 'minhaagenciaonline.com.br'
+    || host === 'www.minhaagenciaonline.com.br';
+  var ehLocal = host === 'localhost' || host === '127.0.0.1';
+  var ehNetlifyPreview = host.indexOf('deploy-preview') >= 0
+    || host.indexOf('homolog') === 0
+    || host.indexOf('homolog--') >= 0;
+  var ehCloudflarePreview = host.endsWith('.pages.dev');
+  var ehHomolog = !ehProducao && (ehLocal || ehNetlifyPreview || ehCloudflarePreview);
 
-  var api = API_PRODUCAO;
-  if (ehHomolog) {
-    if (API_HOMOLOG) api = API_HOMOLOG;
-    else console.warn('[CRM] Ambiente de homologação sem backend próprio configurado. Usando produção. Preencha API_HOMOLOG em config.js.');
+  // Hosts desconhecidos sao tratados como homologacao por seguranca. Um novo
+  // dominio de producao precisa ser explicitamente incluido em ehProducao.
+  if (!ehProducao && !ehHomolog) ehHomolog = true;
+
+  var api = ehProducao ? API_PRODUCAO : API_HOMOLOG;
+  if (ehHomolog && !API_HOMOLOG) {
+    console.error('[CRM] Ambiente de homologacao/preview sem backend proprio. Acesso ao backend de producao foi bloqueado por seguranca.');
   }
 
-  window.CRM_AMBIENTE = ehHomolog ? 'homologacao' : 'producao';
+  window.CRM_AMBIENTE = ehProducao ? 'producao' : 'homologacao';
   window.CRM_APP_CONFIG = Object.freeze({
     apiUrl: api,
     ambiente: window.CRM_AMBIENTE,
@@ -43,10 +46,10 @@
   });
 
   // Faixa visual: deixa impossivel confundir a tela de teste com a real.
-  if (ehHomolog) {
+  if (!ehProducao) {
     document.addEventListener('DOMContentLoaded', function () {
       var b = document.createElement('div');
-      b.textContent = 'HOMOLOGAÇÃO - dados de teste';
+      b.textContent = API_HOMOLOG ? 'HOMOLOGACAO - dados de teste' : 'HOMOLOGACAO - backend nao configurado';
       b.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#B45309;color:#fff;'
         + 'font:600 12px/1.6 Inter,system-ui,sans-serif;text-align:center;letter-spacing:.04em;padding:4px 8px;';
       document.body.appendChild(b);
