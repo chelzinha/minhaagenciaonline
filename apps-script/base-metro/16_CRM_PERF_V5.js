@@ -250,6 +250,21 @@ function crm5x_buildEntityMapsLite_() {
   return crm5x_entitiesLite_();
 }
 
+/* ============== DASHBOARD CACHEADO ============== */
+// O dashboard e derivado apenas de dados cobertos por dataRev e da configuracao
+// de responsaveis coberta por configRev. Cachear o resultado final evita
+// repetir filtros/contagens em reloads sem alterar nenhuma regra de calculo.
+// Nao usa crm5x_buildOnce_ para evitar lock aninhado: o calculo do dashboard
+// pode construir o cache da agenda, que possui o proprio single-flight.
+function crm5x_dashboardCached_(start, end, responsavelId) {
+  var key = 'crm5x|dash|' + crm5x_dataRev_() + '|' + crm5x_configRev_() + '|' + start + '|' + end + '|' + crm3_text_(responsavelId || '');
+  var hit = crm5x_cacheGet_(key);
+  if (hit) return hit;
+  var out = crm3_apiGetDashboard_({ start: start, end: end, responsavelId: responsavelId });
+  crm5x_cachePut_(key, out, CRM5X_CFG.TTL_DATA_SEC);
+  return out;
+}
+
 /* ============== NOVAS ACTIONS ============== */
 
 // Primeiro paint: devolve somente os dados do boot. O aquecimento pesado de
@@ -269,7 +284,7 @@ function crm5x_apiBootLite_(params) {
   }
   var config = timed_('config', function () { return crm3_apiGetConfig_(); });
   var dashboard = timed_('dashboard', function () {
-    return crm3_apiGetDashboard_({ start: start, end: end, responsavelId: resp });
+    return crm5x_dashboardCached_(start, end, resp);
   });
   return { ok: true, meta: meta, config: config, dashboard: dashboard };
 }
