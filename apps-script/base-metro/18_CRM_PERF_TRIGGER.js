@@ -88,6 +88,7 @@ function crm5x_warmupAgendaRows_(config, start, end) {
   var cDate = crm5x_warmupHeaderIndex_(hm, ['DATA_PROGRAMADA', 'DATA']);
   var cStatus = crm5x_warmupHeaderIndex_(hm, ['STATUS_ATIVIDADE', 'STATUS_AGENDA']);
   var cType = crm5x_warmupHeaderIndex_(hm, 'TIPO_ATIVIDADE_ID');
+  var cTypeName = crm5x_warmupHeaderIndex_(hm, 'TIPO_ATIVIDADE');
   var cRespId = crm5x_warmupHeaderIndex_(hm, 'RESPONSAVEL_ID');
   var cRespName = crm5x_warmupHeaderIndex_(hm, 'RESPONSAVEL');
 
@@ -95,11 +96,13 @@ function crm5x_warmupAgendaRows_(config, start, end) {
   var dates = crm5x_warmupReadColumn_(sh, cDate, n);
   var statuses = crm5x_warmupReadColumn_(sh, cStatus, n);
   var types = crm5x_warmupReadColumn_(sh, cType, n);
+  var legacyTypeNames = crm5x_warmupReadColumn_(sh, cTypeName, n);
   var respIds = crm5x_warmupReadColumn_(sh, cRespId, n);
   var respNames = crm5x_warmupReadColumn_(sh, cRespName, n);
 
   var typeNames = {};
-  (config && config.tiposAtividade || []).forEach(function (x) {
+  var allTypes = (typeof crm3_readObjects_ === 'function') ? crm3_readObjects_(CRM3_CFG.SHEETS.TIPOS_ATIVIDADE) : (config && config.tiposAtividade || []);
+  (allTypes || []).forEach(function (x) {
     var id = crm3_text_(x.TIPO_ATIVIDADE_ID || x.tipoAtividadeId);
     if (id) typeNames[id] = crm3_text_(x.NOME_EXIBICAO || x.nome || id);
   });
@@ -111,7 +114,7 @@ function crm5x_warmupAgendaRows_(config, start, end) {
     var date = op_dateValueToYmd_(dates[i]);
     if (!date || date < start || date > end) continue;
     var typeId = crm3_text_(types[i]);
-    var typeName = typeNames[typeId] || typeId;
+    var typeName = typeNames[typeId] || crm3_text_(legacyTypeNames[i]) || typeId;
     if (typeof crm5_isLegacyColetaText_ === 'function' && crm5_isLegacyColetaText_(typeId + ' ' + typeName)) continue;
     out.push({
       statusAtividade: crm3_text_(statuses[i]),
