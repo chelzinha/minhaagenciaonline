@@ -459,7 +459,10 @@ function op_apiCreateCliente_(payload){
   sh.appendRow(row);
   try { if (typeof crm_upsertCadastroFromMasterRow_ === 'function') crm_upsertCadastroFromMasterRow_(row, op_buildHeaderMap_(headers), { origem:'CRM_API_CREATE' }); } catch (e) { Logger.log('[CRM2] Cadastro sync create: ' + e); }
   op_invalidateOperationCaches_();
-  return { ok:true, clienteId:id };
+
+  /* Mesma correcao do prospect: sem tratativa o cliente nao entra no funil. */
+  var tratativaIdCli = op_criarTratativaDeCadastro_('CLIENTE', id, payload);
+  return { ok:true, clienteId:id, tratativaId:tratativaIdCli };
 }
 
 /* ========================= READERS ========================= */
@@ -908,7 +911,47 @@ function op_apiCreateProspect_(payload) {
   sh.appendRow(row);
   op_cacheRemoveSafe_('op_prospects_v1');
   op_invalidateOperationCaches_();
-  return { ok: true, prospectId: id };
+
+  /* Cria a tratativa: sem ela o prospect fica so na aba PROSPECTS e nunca
+   * aparece no funil, que le a aba CRM_TRATATIVAS.
+   * Tolerante a falha: o prospect ja foi gravado e nao pode ser perdido. */
+  var tratativaId = op_criarTratativaDeCadastro_('PROSPECT', id, payload);
+  return { ok: true, prospectId: id, tratativaId: tratativaId };
+}
+
+/* ============================================================
+ * Cria a tratativa inicial de um cadastro recem-criado.
+ * Compartilhado por op_apiCreateProspect_ e op_apiCreateCliente_.
+ * Nunca lanca: o cadastro ja foi gravado na planilha.
+ * ============================================================ */
+function op_criarTratativaDeCadastro_(tipoEntidade, entidadeId, payload) {
+  payload = payload || {};
+  try {
+    if (typeof crm3_apiCreateTratativa_ !== 'function') return '';
+    var ehProspect = String(tipoEntidade).toUpperCase() === 'PROSPECT';
+    var funilId = ehProspect ? CRM3_CFG.FUNIL_PROSPECTS : CRM3_CFG.FUNIL_CLIENTES;
+    var etapa = op_norm_(payload.etapaFunil || payload.ETAPA_FUNIL || '');
+    if (!etapa) etapa = crm3_defaultStageForFunnel_(funilId);
+    /* Se a etapa enviada nao pertence ao funil, cai para a padrao em vez de falhar. */
+    try {
+      crm3_validateStageForFunnel_(etapa, funilId);
+    } catch (eEtapa) {
+      etapa = crm3_defaultStageForFunnel_(funilId);
+    }
+    var criada = crm3_apiCreateTratativa_({
+      tipoEntidade: ehProspect ? 'PROSPECT' : 'CLIENTE',
+      entidadeId: entidadeId,
+      funilId: funilId,
+      etapaId: etapa,
+      responsavelId: op_norm_(payload.responsavelId || payload.responsavel || ''),
+      origem: 'CRM_PORTAL_CADASTRO',
+      createdBy: op_norm_(payload.updatedBy || payload.createdBy || 'CRM_PORTAL')
+    });
+    return (criada && criada.tratativaId) ? criada.tratativaId : '';
+  } catch (err) {
+    Logger.log('[op_criarTratativaDeCadastro_] ' + tipoEntidade + ' ' + entidadeId + ': ' + err);
+    return '';
+  }
 }
 
 function op_apiUpdateProspect_(payload) {

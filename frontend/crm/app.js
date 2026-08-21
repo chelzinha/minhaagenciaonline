@@ -324,7 +324,40 @@ async function loadAll(){
  })();
  return state.loadAllPromise;
 }
-async function reloadJourney(){const resp=responsibleApiValue('');const [clients,prospects]=await Promise.all([apiGet('get_crm_jornada_data',{funilId:'FUNIL_CLIENTES',tipoEntidade:'CLIENTE',responsavelId:resp}),apiGet('get_crm_jornada_data',{funilId:'FUNIL_PROSPECTS',tipoEntidade:'PROSPECT',responsavelId:resp})]);state.journeyClients=clients;state.journeyProspects=prospects;renderActiveView('journey');}
+/* Recarrega a jornada. escopo: 'CLIENTE', 'PROSPECT' ou vazio para as duas.
+ * Antes recarregava sempre os dois funis, mesmo quando so um mudou. */
+async function reloadJourney(escopo){
+  const resp=responsibleApiValue('');
+  const alvo=text(escopo).toUpperCase();
+  const tarefas=[];
+  if(alvo!=='PROSPECT')tarefas.push(apiGet('get_crm_jornada_data',{funilId:'FUNIL_CLIENTES',tipoEntidade:'CLIENTE',responsavelId:resp}).then(r=>{state.journeyClients=r;}));
+  if(alvo!=='CLIENTE')tarefas.push(apiGet('get_crm_jornada_data',{funilId:'FUNIL_PROSPECTS',tipoEntidade:'PROSPECT',responsavelId:resp}).then(r=>{state.journeyProspects=r;}));
+  await Promise.all(tarefas);
+  renderActiveView('journey');
+}
+/* Remove uma atividade de todas as listas locais da agenda. Devolve o que tirou. */
+function agendaRemoverLocal_(agendaId){
+  const alvo=text(agendaId);
+  if(!alvo)return null;
+  const guardado={win:null,winPos:-1,ag:null,agPos:-1,ov:null,ovPos:-1};
+  const win=(state.agendaWin&&state.agendaWin.items)||null;
+  if(win){const p=win.findIndex(x=>text(x.agendaId)===alvo);if(p>=0){guardado.win=win[p];guardado.winPos=p;win.splice(p,1);}}
+  const ag=(state.agenda&&state.agenda.items)||null;
+  if(ag){const p=ag.findIndex(x=>text(x.agendaId)===alvo);if(p>=0){guardado.ag=ag[p];guardado.agPos=p;ag.splice(p,1);}}
+  const ov=state.overdue||null;
+  if(ov){const p=ov.findIndex(x=>text(x.agendaId)===alvo);if(p>=0){guardado.ov=ov[p];guardado.ovPos=p;ov.splice(p,1);}}
+  return guardado;
+}
+/* Devolve a atividade para as listas de onde ela saiu. */
+function agendaRestaurarLocal_(g){
+  if(!g)return;
+  const win=(state.agendaWin&&state.agendaWin.items)||null;
+  if(g.win&&win){if(g.winPos>=0&&g.winPos<=win.length)win.splice(g.winPos,0,g.win);else win.push(g.win);}
+  const ag=(state.agenda&&state.agenda.items)||null;
+  if(g.ag&&ag){if(g.agPos>=0&&g.agPos<=ag.length)ag.splice(g.agPos,0,g.ag);else ag.push(g.ag);}
+  const ov=state.overdue||null;
+  if(g.ov&&ov){if(g.ovPos>=0&&g.ovPos<=ov.length)ov.splice(g.ovPos,0,g.ov);else ov.push(g.ov);}
+}
 async function reloadAgenda(){await ensureAgendaWindow(true);renderActiveView('agenda-refresh');}
 
 /* ===== ATUALIZACAO AUTOMATICA (planilha -> tela aberta) =====
@@ -705,12 +738,59 @@ function renderTreatmentNotes(){$('#treatmentNotes').innerHTML=(state.notes||[])
 function renderActivityNotes(){$('#activityNotesHistory').innerHTML=(state.activityNotes||[]).length?state.activityNotes.slice(0,5).map(noteCard).join(''):'<div class="empty-state">Nenhuma anotação registrada.</div>';}
 async function saveEntityNote(source){const t=source==='activity'?treatmentForActivity(state.selectedActivity):state.selectedTreatment,textarea=$(source==='activity'?'#activityNoteText':'#treatmentNoteText'),txt=text(textarea&&textarea.value);if(!t||!t.entidadeId)return;if(!txt)return toast('Digite uma anotação.',true);const item=source==='activity'?state.selectedActivity:null;try{await apiPost('save_entity_note_v8',{requestId:requestId(),tipoEntidade:t.tipoEntidade,entidadeId:t.entidadeId,tratativaId:t.tratativaId,agendaId:item&&item.agendaId,texto:txt,responsavelId:ownResponsible(),responsavelNome:crmProfile().displayName||state.user?.displayName||state.user?.username||''});textarea.value='';toast('Anotação registrada.');await loadNotesForEntity(t,source);}catch(err){toast(err.message,true);}}
 async function loadActivityWorkspace(item){const t=treatmentForActivity(item),e=entityByTreatment(t);renderActivityMaterials(item,t,e);$('#activityChecklistFields').innerHTML='<div class="empty-state full">Carregando checklist…</div>';$('#activityNotesHistory').innerHTML='<div class="empty-state">Carregando anotações…</div>';try{const [checks]=await Promise.all([apiGet('get_entity_checklists_v7',{tipoEntidade:t.tipoEntidade,entidadeId:t.entidadeId,limit:15}),loadNotesForEntity(t,'activity')]);state.activityChecklists=checks.items||[];renderActivityChecklistForm(t,e,checks.latest||{});}catch(err){console.warn(err);$('#activityChecklistFields').innerHTML='<div class="empty-state full">Não foi possível carregar o checklist.</div>';}}
-async function saveActivityChecklist(e){e.preventDefault();const item=state.selectedActivity,t=treatmentForActivity(item);if(!item||!t.entidadeId)return;const payload=collectChecklistPayload($('#activityChecklistFields'),$('#activityChecklistRequestId').value,t,{agendaId:item.agendaId,tipoAtividadeId:item.tipoAtividadeId}),error=validateChecklistPayload(payload);if(error)return toast(error,true);try{await apiPost('save_checklist',payload);toast('Checklist salvo.');await loadActivityWorkspace(item);await reloadJourney();}catch(err){toast(err.message,true);}}
+/* Checklist da atividade: mesma logica, sem travar a tela na recarga. */
+async function saveActivityChecklist(e){
+  e.preventDefault();
+  const item=state.selectedActivity,t=treatmentForActivity(item);
+  if(!item||!t.entidadeId)return;
+  const payload=collectChecklistPayload($('#activityChecklistFields'),$('#activityChecklistRequestId').value,t,{agendaId:item.agendaId,tipoAtividadeId:item.tipoAtividadeId}),error=validateChecklistPayload(payload);
+  if(error)return toast(error,true);
+  try{
+    await apiPost('save_checklist',payload);
+    toast('Checklist salvo.');
+    loadActivityWorkspace(item).catch(function(){});
+    reloadJourney(t.tipoEntidade).catch(function(){});
+  }catch(err){
+    toast(err.message,true);
+  }
+}
 function openActivityModal(id){const item=(state.agenda.items||[]).find(x=>x.agendaId===id)||state.overdue.find(x=>x.agendaId===id);if(!item)return;state.selectedActivity=item;$('#completeAgendaId').value=id;$('#activityTitle').textContent=item.cliente||'Atividade';$('#activitySummary').innerHTML=[['Tipo',`<span class="material-symbols-rounded inline-icon">${esc(activityIcon(item))}</span>${esc(item.tipoAtividadeNome||item.tipoAtividadeId)}`],['Data',`${fmtDate(item.dataProgramada)} ${fmtTime(item.horaProgramada)}`],['Responsável',esc(item.responsavelNome||'Sem responsável')],['Status',esc(item.statusAtividade||'')]].map(([k,v])=>`<div class="detail-line"><small>${k}</small><strong>${v}</strong></div>`).join('');const results=(state.config&&state.config.resultados)||[];$('#completeResult').innerHTML=results.filter(x=>text(x.TIPO_ATIVIDADE_ID)==='TODOS'||text(x.TIPO_ATIVIDADE_ID)===text(item.tipoAtividadeId)).map(x=>`<option value="${esc(x.RESULTADO_ID)}">${esc(x.NOME_EXIBICAO)}</option>`).join('');$('#completeObs').value='';$('#completeFollowup').value='';$('#activityNoteText').value='';const done=norm(item.statusAtividade)==='concluido';$('#completeActivityBtn').classList.toggle('hidden',done||!can('canCompleteActivities'));$('#cancelActivityBtn').classList.toggle('hidden',done);$('#deleteActivityBtn').classList.toggle('hidden',done);openModal('activityModal');loadActivityWorkspace(item);}
 
 async function completeActivity(e){e.preventDefault();try{await apiPost('complete_atividade',{agendaId:$('#completeAgendaId').value,resultadoId:$('#completeResult').value,observacao:$('#completeObs').value,proximoFollowupEm:$('#completeFollowup').value,responsavelId:ownResponsible()});closeModal('activityModal');toast('Atividade concluída.');bgRefreshAgendaJourney();}catch(err){toast(err.message,true);}}
-async function cancelActivity(){if(!state.selectedActivity)return;try{await apiPost('cancel_atividade',{agendaId:state.selectedActivity.agendaId,motivo:'Cancelado pelo portal CRM',responsavelId:ownResponsible()});closeModal('activityModal');toast('Atividade cancelada.');await reloadAgenda();}catch(err){toast(err.message,true);}}
-async function deleteActivity(){if(!state.selectedActivity||!confirm('Excluir esta atividade planejada?'))return;try{await apiPost('delete_agenda_item',{agendaId:state.selectedActivity.agendaId,motivo:'Excluído pelo portal CRM',responsavelId:ownResponsible()});closeModal('activityModal');toast('Atividade removida.');await reloadAgenda();}catch(err){toast(err.message,true);}}
+/* Cancelar atividade: some da agenda na hora; volta se a gravacao falhar. */
+async function cancelActivity(){
+  if(!state.selectedActivity)return;
+  const item=state.selectedActivity,agendaId=text(item.agendaId);
+  const guardado=agendaRemoverLocal_(agendaId);
+  closeModal('activityModal');
+  renderActiveView('agenda:cancelada');
+  toast('Atividade cancelada.');
+  try{
+    await apiPost('cancel_atividade',{agendaId:agendaId,motivo:'Cancelado pelo portal CRM',responsavelId:ownResponsible()});
+    ensureAgendaWindow(true).then(function(){renderActiveView('agenda-refresh');}).catch(function(){});
+  }catch(err){
+    agendaRestaurarLocal_(guardado);
+    renderActiveView('agenda:cancelamento-revertido');
+    toast('Não foi possível cancelar: '+err.message,true);
+  }
+}
+/* Excluir atividade planejada: some na hora; volta se a gravacao falhar. */
+async function deleteActivity(){
+  if(!state.selectedActivity||!confirm('Excluir esta atividade planejada?'))return;
+  const item=state.selectedActivity,agendaId=text(item.agendaId);
+  const guardado=agendaRemoverLocal_(agendaId);
+  closeModal('activityModal');
+  renderActiveView('agenda:excluida');
+  toast('Atividade removida.');
+  try{
+    await apiPost('delete_agenda_item',{agendaId:agendaId,motivo:'Excluído pelo portal CRM',responsavelId:ownResponsible()});
+    ensureAgendaWindow(true).then(function(){renderActiveView('agenda-refresh');}).catch(function(){});
+  }catch(err){
+    agendaRestaurarLocal_(guardado);
+    renderActiveView('agenda:exclusao-revertida');
+    toast('Não foi possível excluir: '+err.message,true);
+  }
+}
 
 const fields={CLIENTE:[['CLIENTE','Nome do cliente'],['NOME_FANTASIA','Nome fantasia'],['RAZAO_SOCIAL','Razão social'],['CNPJ_CPF','CNPJ / CPF'],['SEGMENTO_PREDOMINANTE','Segmento','segment'],['PESSOA_CONTATO','Pessoa de contato'],['WHATSAPP','WhatsApp'],['EMAIL','E-mail'],['ENDERECO','Endereço'],['NUMERO','Número'],['COMPLEMENTO','Complemento'],['BAIRRO','Bairro'],['CEP','CEP'],['NUMERO_CONTRATO','Contrato'],['CARTAO_POSTAGEM','Cartão de postagem'],['STATUS_COMERCIAL','Status comercial'],['RESPONSAVEL_CARTEIRA','Responsável'],['PROXIMA_ACAO_MANUAL','Próxima ação'],['OBSERVACOES','Observações','textarea']],PROSPECT:[['CLIENTE','Nome / Razão Social'],['NOME_FANTASIA','Nome fantasia'],['CNPJ_CPF','CNPJ / CPF'],['LOCAL','Local','local'],['SEGMENTO','Segmento','segment'],['CONTATO','Contato'],['WHATSAPP','WhatsApp'],['EMAIL','E-mail'],['INSTAGRAM','Instagram'],['ENDERECO','Endereço'],['NUMERO','Número'],['COMPLEMENTO','Complemento'],['BAIRRO','Bairro'],['CEP','CEP'],['CIDADE','Cidade'],['UF','UF'],['ORIGEM_LEAD','Origem do lead','prospectSelect'],['POTENCIAL','Potencial','prospectSelect'],['PRIORIDADE','Prioridade','prospectSelect'],['STATUS_PROSPECT','Status','prospectSelect'],['RESPONSAVEL','Responsável','responsible'],['OBS','Observações','textarea']]};
 const entityFieldGroups={PROSPECT:[{title:'Dados principais',icon:'badge',desc:'Identificação comercial e classificação básica do prospect.',fields:[['CLIENTE','Nome / Razão Social'],['NOME_FANTASIA','Nome fantasia'],['CNPJ_CPF','CNPJ / CPF'],['LOCAL','Local','local'],['SEGMENTO','Segmento','segment']]},{title:'Contatos',icon:'contacts',desc:'Canais para abordagem comercial e acompanhamento.',fields:[['CONTATO','Contato'],['WHATSAPP','WhatsApp'],['EMAIL','E-mail'],['INSTAGRAM','Instagram']]},{title:'Endereço',icon:'location_on',desc:'Endereço completo para visita, rota e referência de localidade.',fields:[['ENDERECO','Endereço'],['NUMERO','Número'],['COMPLEMENTO','Complemento'],['BAIRRO','Bairro'],['CEP','CEP'],['CIDADE','Cidade'],['UF','UF']]},{title:'Gestão comercial',icon:'monitoring',desc:'Origem, potencial, prioridade, status e responsável pelo acompanhamento.',fields:[['ORIGEM_LEAD','Origem do lead','prospectSelect'],['POTENCIAL','Potencial','prospectSelect'],['PRIORIDADE','Prioridade','prospectSelect'],['STATUS_PROSPECT','Status','prospectSelect'],['RESPONSAVEL','Responsável','responsible']]},{title:'Observações',icon:'edit_note',desc:'Informações livres, contexto da abordagem e histórico relevante.',fields:[['OBS','Observações','textarea']]}]};
@@ -761,7 +841,7 @@ function bgRefreshEntity_(isProspect){
   state.legacyReady=false;
   if(isProspect){state.prospectsReady=false;loadCadastroProspects(true).catch(function(){});}
   else{state.clientsReady=false;loadCadastroClientes(true).catch(function(){});}
-  reloadJourney().catch(function(){});
+  reloadJourney(isProspect?'PROSPECT':'CLIENTE').catch(function(){});
 }
 /* Salvamento otimista: edicao reflete na hora; criacao fecha o modal sem esperar recarga. */
 async function saveEntity(e){
@@ -958,7 +1038,26 @@ async function loadChecklists(t){const data=await apiGet('get_entity_checklists_
 function checklistDetailPairs(x){return[['Status do contato',x.statusVisita],['Resultado comercial',x.resultadoVisita],['Como chega',x.postagemComoChega],['Origem postagem',x.origemPostagem],['Solicitação de retirada',x.solicitaColetaPor],['Portal Postal apresentado',x.apresentouPortalColeta],['Canais de venda',x.canaisVenda||x.canalVenda],['Com quem posta',x.postaComQuem],['Canal de envio',x.canalEnvioAtual],['Intermediador',x.intermediadorQual],['Frequência',x.frequenciaEnvio],['Volume médio semanal',x.volumeMedio],['Usa coleta',x.usaColetaCorreios],['Agência da coleta',x.agenciaColeta],['Interesse em coleta',x.interesseColeta],['Dor principal',x.dorPrincipal],['Oportunidade sugerida',x.oportunidadePrincipal]].filter(x=>text(x[1]));}
 function checklistHistoryCard(x){const pairs=checklistDetailPairs(x);return`<article class="history-card"><div><span class="material-symbols-rounded">checklist</span><strong>${esc(x.resultadoVisita||x.statusVisita||'Checklist de Contato')}</strong></div><small>${fmtDate(x.data)} · ${esc(x.responsavel||'Sem responsável')}</small><p>${esc(x.observacaoCurta||x.oportunidadePrincipal||'Sem observações')}</p>${x.nivelEsteira?`<div class="chip-row"><span class="chip">${esc(x.nivelEsteira)}</span>${x.entradaSugerida?`<span class="chip">${esc(x.entradaSugerida)}</span>`:''}</div>`:''}${pairs.length?`<details><summary>Ver respostas do checklist</summary><div class="history-detail-grid">${pairs.map(([k,v])=>`<div><small>${esc(k)}</small><strong>${esc(v)}</strong></div>`).join('')}</div></details>`:''}</article>`;}
 function renderTreatmentHistory(){const rows=[...(state.checklists||[]).map(x=>({kind:'checklist',at:x.criadoEm||x.data,data:x})),...(state.notes||[]).map(x=>({kind:'note',at:x.dataHora,data:x}))].sort((a,b)=>String(b.at||'').localeCompare(String(a.at||'')));$('#treatmentHistory').innerHTML=rows.length?rows.map(x=>x.kind==='note'?noteCard(x.data):checklistHistoryCard(x.data)).join(''):'<div class="empty-state">Nenhum histórico registrado.</div>';}
-async function saveChecklist(e){e.preventDefault();const t=state.selectedTreatment;if(!t)return;const payload=collectChecklistPayload($('#checklistFields'),$('#checklistRequestId').value,t),error=validateChecklistPayload(payload);if(error)return toast(error,true);try{$('#saveChecklistBtn').disabled=true;await apiPost('save_checklist',payload);toast('Checklist salvo.');await loadChecklists(t);await reloadJourney();setTreatmentTab('treatment-history');}catch(err){toast(err.message,true);}finally{$('#saveChecklistBtn').disabled=false;}}
+/* Checklist: fecha o passo na hora; historico e funil atualizam em segundo plano. */
+async function saveChecklist(e){
+  e.preventDefault();
+  const t=state.selectedTreatment;
+  if(!t)return;
+  const payload=collectChecklistPayload($('#checklistFields'),$('#checklistRequestId').value,t),error=validateChecklistPayload(payload);
+  if(error)return toast(error,true);
+  try{
+    $('#saveChecklistBtn').disabled=true;
+    await apiPost('save_checklist',payload);
+    toast('Checklist salvo.');
+    setTreatmentTab('treatment-history');
+    loadChecklists(t).catch(function(){});
+    reloadJourney(t.tipoEntidade).catch(function(){});
+  }catch(err){
+    toast(err.message,true);
+  }finally{
+    $('#saveChecklistBtn').disabled=false;
+  }
+}
 
 function setTreatmentTab(id){$$('[data-treatment-tab]').forEach(b=>b.classList.toggle('active',b.dataset.treatmentTab===id));$$('.treatment-pane').forEach(p=>p.classList.toggle('active',p.id===id));}
 
