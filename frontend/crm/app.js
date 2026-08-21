@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 45309)
-Total output lines: 1088
-
 (function(){
 'use strict';
 const cfg=window.CRM_APP_CONFIG||{};
@@ -443,7 +440,323 @@ function homeTeamBars(map){
   const entries=Object.entries(map).sort((a,b)=>b[1].p-a[1].p);
   if(!entries.length)return'<div class="empty-state">Sem atividades no período.</div>';
   const max=Math.max(1,...entries.map(([,v])=>v.p));
-  return`<div class="team-bars">${entries.map(([k,v])=>{const pct=v.p?Math.round(v.c/v.p*100):0;return`<div class="team-row"><div class="team-top"><span>${esc(k)}</span><b class="num">${v.c}…15309 tokens truncated…efreshAgendaJourney();}catch(err){toast(err.message,true);}}
+  return`<div class="team-bars">${entries.map(([k,v])=>{const pct=v.p?Math.round(v.c/v.p*100):0;return`<div class="team-row"><div class="team-top"><span>${esc(k)}</span><b class="num">${v.c}<small>/${v.p}</small></b></div><div class="team-track" style="width:${Math.max(6,Math.round(v.p/max*100))}%"><div class="team-fill" style="width:${pct}%"></div></div></div>`;}).join('')}</div>`;
+}
+function renderHome(){
+  const heroHost=$('#homeHero');if(!heroHost)return;
+  const weekS=weekStart(),weekE=addDays(weekS,6);
+  const win=(state.agendaWin&&state.agendaWin.items!=null)?state.agendaWin.items:((state.agenda&&state.agenda.items)||[]);
+  const homeLocal=state.filters.homeLocal,homeResponsible=state.filters.homeResponsible;
+  const homeEntityMatch=x=>(!homeLocal||msHas(homeLocal,localOf(x)))&&(!homeResponsible||msHasResp(homeResponsible,responsibleTextOf(x)));
+  const homeActivityMatch=x=>{const entity=entityForActivity(x)||{},resp=first(entityResponsibleValue(x),entityResponsibleValue(entity));return homeEntityMatch(Object.assign({},entity,{local:localOf(x)||localOf(entity),responsavelId:resp,responsavelNome:resp}));};
+  const homeJourneyItems=(journey,type)=>{const isProspect=String(type||'CLIENTE').toUpperCase()==='PROSPECT';return(journey.items||[]).map(x=>journeyItemView(x,type)).filter(x=>(!isProspect||isActiveProspectItem(x))&&homeEntityMatch(x));};
+  const weekItems=win.filter(x=>x.dataProgramada>=weekS&&x.dataProgramada<=weekE).filter(homeActivityMatch);
+  const prevS=addDays(weekS,-7),prevE=addDays(weekS,-1);
+  const covPrev=state.agendaWin&&state.agendaWin.items!=null&&state.agendaWin.start<=prevS;
+  const prevItems=covPrev?win.filter(x=>x.dataProgramada>=prevS&&x.dataProgramada<=prevE).filter(homeActivityMatch):null;
+  const isDone=x=>text(x.statusAtividade).toUpperCase().indexOf('CONCLU')===0;
+  const planned=weekItems.length,concl=weekItems.filter(isDone).length,exec=planned?Math.round(concl/planned*100):0;
+  const prevConcl=prevItems?prevItems.filter(isDone).length:null;
+  const visibleOverdue=(state.overdue||[]).filter(homeActivityMatch);
+  const prospects=homeJourneyItems(state.journeyProspects,'PROSPECT');
+  const clientsJ=homeJourneyItems(state.journeyClients,'CLIENTE');
+  const pCols=state.journeyProspects.columns||[],cCols=state.journeyClients.columns||[];
+  const pColor=stageColors(state.journeyProspects),cColor=stageColors(state.journeyClients);
+  const convN=prospects.filter(isConvertedProspect).length;
+  const convPct=prospects.length?Math.round(convN/prospects.length*1000)/10:0;
+  const hojeN=weekItems.filter(x=>text(x.dataProgramada)===today()).length;
+  const full=can('canViewIndicators');
+  const delta=(cur,prev)=>prev==null?'':(cur===prev?'<small class="kpi-delta flat">= semana anterior</small>':cur>prev?`<small class="kpi-delta up">▲ +${cur-prev} vs semana anterior</small>`:`<small class="kpi-delta down">▼ ${cur-prev} vs semana anterior</small>`);
+  const kpi=(icon,solid,soft,label,value,cap,extra='')=>`<article class="kpi-card" style="--k-solid:${solid};--k-soft:${soft}"><span class="k-ico material-symbols-rounded">${icon}</span><div class="k-body"><strong>${value}</strong><em>${esc(label)}</em>${cap?`<small>${esc(cap)}</small>`:''}${extra}</div></article>`;
+  const chartsWrap=document.querySelector('.home-charts'),strip=$('#homeStrip');
+  if(!full){heroHost.innerHTML=kpi('calendar_month','#0E7BC0','#E2EFF7','Minha agenda na semana',planned,'atividades planejadas')+kpi('task_alt','var(--green)','var(--green-soft)','Concluídas',concl,exec+'% de execução');if(chartsWrap)chartsWrap.style.display='none';if(strip)strip.innerHTML='';return;}
+  heroHost.innerHTML=[
+    kpi('person_search','#7C3AED','#F1EAFE','Prospects no funil',prospects.length,pCols.length?('distribuídos em '+pCols.length+' etapas'):''),
+    kpi('conversion_path','#0E7BC0','#E2EFF7','Conversão do funil',String(convPct).replace('.',',')+'%',convN+' prospects convertidos'),
+    kpi('handshake','var(--green)','var(--green-soft)','Clientes em jornada',clientsJ.length,'tratativas ativas na carteira'),
+    kpi('event_available','var(--navy)','#E8EDF5','Execução da semana',exec+'%',concl+' de '+planned+' concluídas',delta(concl,prevConcl)),
+    kpi('warning','var(--danger)','var(--danger-soft)','Vencidas',visibleOverdue.length,'atividades a regularizar')
+  ].join('');
+  if(chartsWrap)chartsWrap.style.display='';
+  const fp=$('#homeFunnel');
+  if(fp){const counts=pCols.map(c=>{const name=text(c.nome||c.etapaId);return{name,n:prospects.filter(x=>text(x.etapaId)===text(c.etapaId)).length,color:pColor[name]||'#94A3B8'};});const max=Math.max(1,...counts.map(x=>x.n));fp.innerHTML=counts.length?counts.map((sg,i)=>{const w=Math.max(4,Math.round(sg.n/max*100));let out=`<div class="funnel-row"><div class="funnel-label-row"><span class="name"><span class="dot" style="background:${sg.color}"></span>${esc(sg.name)}</span><span class="count">${sg.n}</span></div><div class="funnel-track"><div class="funnel-fill" style="width:${w}%;background:${sg.color}"></div></div></div>`;if(i<counts.length-1){const nx=counts[i+1],pct=sg.n?Math.round(nx.n/sg.n*100):0;out+=`<div class="funnel-connector"><b>${pct}%</b> avançam</div>`;}return out;}).join(''):'<div class="empty-state">Sem etapas configuradas.</div>';}
+  const cj=$('#homeClientJourney');
+  if(cj){const counts=cCols.map(c=>{const name=text(c.nome||c.etapaId);return{name,n:clientsJ.filter(x=>text(x.etapaId)===text(c.etapaId)).length,color:cColor[name]||'#94A3B8'};});const tot=counts.reduce((a,b)=>a+b.n,0)||1;cj.innerHTML=counts.length?('<div class="stack-bar big">'+counts.filter(x=>x.n).map(sg=>`<span style="width:${Math.max(2,Math.round(sg.n/tot*100))}%;background:${sg.color}" title="${esc(sg.name)}: ${sg.n}"></span>`).join('')+'</div><div class="stack-legend">'+counts.map(sg=>`<span class="li"><span class="dot" style="background:${sg.color}"></span>${esc(sg.name)} <b>${sg.n}</b></span>`).join('')+'</div>'):'<div class="empty-state">Sem jornada configurada.</div>';}
+  const rec={};clientsJ.forEach(x=>{const k=text(x.recomendacao)||'Sem recomendação';rec[k]=(rec[k]||0)+1;});
+  const hd=$('#homeDonut');if(hd)hd.innerHTML=homeDonutChart(rec,k=>ACTION_COLORS[text(k).toUpperCase()]||'#94A3B8');
+  const ht=$('#homeTypes');
+  if(ht){const types=(state.config&&state.config.tiposAtividade)||[];const cnt={};weekItems.forEach(x=>{const k=text(x.tipoAtividadeId);cnt[k]=(cnt[k]||0)+1;});const rows=types.map(t=>({nome:text(t.NOME_EXIBICAO||t.TIPO_ATIVIDADE_ID),cor:text(t.COR)||'#64748B',icone:text(t.ICONE)||'event',n:cnt[text(t.TIPO_ATIVIDADE_ID)]||0}));ht.innerHTML=rows.length?('<div class="type-chip-grid">'+rows.map(r=>`<span class="type-chip big" style="--tc:${r.cor}"><span class="material-symbols-rounded">${esc(r.icone)}</span>${esc(r.nome)}<b>${r.n}</b></span>`).join('')+'</div>'):'<div class="empty-state">Sem tipos configurados.</div>';}
+  const team={};weekItems.forEach(x=>{const k=text(x.responsavelNome)||'Sem responsável';team[k]=team[k]||{p:0,c:0};team[k].p++;if(isDone(x))team[k].c++;});
+  const htm=$('#homeTeam');if(htm)htm.innerHTML=homeTeamBars(team);
+  const ho=$('#homeOwners');
+  if(ho){const map=new Map();prospects.forEach(x=>{const name=text(responsibleTextOf(x))||'Sem responsável';if(!map.has(name))map.set(name,{name,total:0,stages:{}});const r=map.get(name);r.total++;const sname=text(prospectStageName(x))||'—';r.stages[sname]=(r.stages[sname]||0)+1;});const rows=[...map.values()].sort((a,b)=>b.total-a.total).slice(0,8);ho.innerHTML=rows.length?rows.map(r=>{const segs=Object.keys(r.stages).map(sname=>`<span style="width:${Math.round(r.stages[sname]/r.total*100)}%;background:${pColor[sname]||'#94A3B8'}" title="${esc(sname)}: ${r.stages[sname]}"></span>`).join('');return `<div class="rep-card"><div class="rep-top"><span class="name">${esc(r.name)}</span><span class="total">${r.total} no funil</span></div><div class="stack-bar">${segs}</div></div>`;}).join(''):'<div class="empty-state">Nenhum prospect no filtro atual.</div>';}
+  const ha=$('#homeAlerts');
+  if(ha){const noNext=prospects.filter(x=>!prospectHasNextAction(x)).length,noResp=prospects.filter(x=>!text(responsibleTextOf(x))).length,newLead=prospects.filter(x=>norm(prospectStageName(x)).includes('novo lead')).length;const tiles=[['event_busy','Prospects sem próxima ação',noNext,'var(--danger)','var(--danger-soft)'],['person_alert','Sem responsável definido',noResp,'var(--purple)','var(--purple-soft)'],['start','Parados em Novo lead',newLead,'var(--amber)','var(--amber-soft)'],['warning','Atividades vencidas',visibleOverdue.length,'var(--danger)','var(--danger-soft)']];ha.innerHTML='<div class="alert-grid">'+tiles.map(([ic,l,v,solid,soft])=>`<div class="alert-tile"><span class="ico" style="background:${soft};color:${solid}"><span class="material-symbols-rounded">${ic}</span></span><span class="txt"><span class="n">${v}</span><br><span class="t">${esc(l)}</span></span></div>`).join('')+'</div>';}
+  if(strip)strip.innerHTML=[['today','Hoje',hojeN],['date_range','Semana',planned],['task_alt','Concluídas',concl],['warning','Vencidas',visibleOverdue.length]].map(([ic,l,v])=>`<div class="strip-item"><span class="material-symbols-rounded">${ic}</span><b class="num">${v}</b><em>${l}</em></div>`).join('');
+}
+function activityListItem(x){return`<button type="button" class="list-item agenda-open" data-agenda-id="${esc(x.agendaId)}"><span class="activity-icon material-symbols-rounded" style="--activity-color:${esc(x.cor||'#006EA6')}">${esc(activityIcon(x))}</span><span class="list-content"><strong>${esc(x.cliente||'Atividade')}</strong><p>${esc(x.tipoAtividadeNome||x.tipoAtividadeId||'Atividade')} · ${fmtDate(x.dataProgramada)} ${esc(fmtTime(x.horaProgramada))}</p></span><span class="chip">${esc(x.responsavelNome||'Sem responsável')}</span></button>`;}
+function journeyStageMetrics(journey,items){const out={};(journey.columns||[]).forEach(c=>out[c.nome||c.etapaId]=0);(items||journey.items||[]).forEach(x=>{const col=(journey.columns||[]).find(c=>text(c.etapaId)===text(x.etapaId)),key=col?(col.nome||col.etapaId):(text(x.etapaId)||'Sem etapa');out[key]=(out[key]||0)+1;});return out;}
+function renderProspectFunnel(items){const host=$('#prospectsStageMetrics');if(!host)return;const cols=state.journeyProspects.columns||[],colorOf=stageColors(state.journeyProspects),counts=cols.map(c=>{const name=text(c.nome||c.etapaId);return{name,n:items.filter(x=>text(x.etapaId)===text(c.etapaId)).length,color:colorOf[name]||'#94A3B8'};});if(!counts.length){host.innerHTML='<div class="empty-state">Sem etapas configuradas.</div>';return;}const max=Math.max(1,...counts.map(s=>s.n));let html='';counts.forEach((s,i)=>{const w=Math.max(4,Math.round(s.n/max*100));html+=`<div class="funnel-row"><div class="funnel-label-row"><span class="name"><span class="material-symbols-rounded" style="font-size:11px;color:${s.color};vertical-align:-1px;margin-right:5px">circle</span>${esc(s.name)}</span><span class="count">${esc(s.n)}</span></div><div class="funnel-track"><div class="funnel-fill" style="width:${w}%;background:${s.color}"></div></div></div>`;if(i<counts.length-1){const nx=counts[i+1],pct=s.n?Math.round(nx.n/s.n*100):0,last=i===counts.length-2;html+=`<div class="funnel-connector"><span class="material-symbols-rounded" style="font-size:13px">south</span><b>${pct}%</b> ${last?'convertem':'avançam para '+esc(nx.name)}</div>`;}});host.innerHTML=html;}
+function renderProspectQueue(){const host=$('#prospectQueue');if(!host)return;const td=today(),rank={urgent:0,today:1,scheduled:2},seen=new Set(),rows=[];const add=(a,kind)=>{const ref=activityEntityRef(a);if(!ref||ref.type!=='PROSPECT')return;const key=ref.id||a;if(seen.has(key))return;seen.add(key);const ent=entityForActivity(a)||{},activity=activityTypeUi(a);rows.push({kind,id:text(a.agendaId),name:entityName(ent)||'—',date:a.dataProgramada,activity});};(state.overdue||[]).filter(activityMatchesContext).forEach(a=>add(a,'urgent'));(state.agenda.items||[]).filter(activityMatchesContext).forEach(a=>{const d=text(a.dataProgramada).slice(0,10);add(a,d&&d<td?'urgent':d===td?'today':'scheduled');});rows.sort((x,y)=>rank[x.kind]-rank[y.kind]);if(!rows.length){host.innerHTML='<div class="queue-footer" style="background:transparent;color:var(--muted)">Sem ações pendentes para os prospects no filtro.</div>';return;}const top=rows.slice(0,4),rest=rows.length-top.length,lab={urgent:'atrasado',today:'hoje',scheduled:'agendado'};host.innerHTML=top.map(r=>`<button type="button" class="queue-item agenda-open" data-agenda-id="${esc(r.id)}"><span class="queue-bar ${r.kind}"></span><span class="queue-mid"><span class="name">${esc(r.name)}</span><span class="meta queue-meta"><span class="type-chip queue-type-chip" style="--tc:${esc(r.activity.color)}"><span class="material-symbols-rounded">${esc(r.activity.icon)}</span>${esc(r.activity.label)}</span>${r.date?`<span class="dot"></span><span>${esc(fmtDate(r.date))}</span>`:''}</span></span><span class="badge ${r.kind}">${lab[r.kind]}</span><span class="queue-action" aria-hidden="true"><span class="material-symbols-rounded" style="font-size:16px">${esc(r.activity.icon)}</span></span></button>`).join('')+(rest>0?`<div class="queue-footer">+${rest} prospects aguardando ação esta semana</div>`:'');wireAgendaCards();}function renderProspects(){const items=visibleProspectItems(),done=doneProspectActivitiesThisWeek(),withNext=items.filter(prospectHasNextAction).length,noNext=items.length-withNext,hot=items.filter(isHotProspect).length;const period=$('#prospectsPeriodLabel');if(period)period.innerHTML=`<span class="material-symbols-rounded">calendar_month</span>${prospectPeriodLabel()}`;const conv=items.length?Math.round(items.filter(isConvertedProspect).length/items.length*1000)/10:0,kpi=(l,v,icon,solid,soft)=>`<div class="kpi-card" style="--kpi-solid:${solid};--kpi-soft:${soft}"><span class="kpi-ico material-symbols-rounded">${esc(icon)}</span><div class="kpi-body"><span class="label">${esc(l)}</span><span class="value num">${esc(v)}</span></div></div>`;$('#prospectsStats').innerHTML='<div class="kpi-grid">'+kpi('Prospects ativos',items.length,'groups','#0E7BC0','#E2EFF7')+kpi('Conversão',String(conv).replace('.',',')+'%','trending_up','var(--green)','var(--green-soft)')+kpi('Leads quentes',hot,'local_fire_department','var(--amber)','var(--amber-soft)')+kpi('Sem próxima ação',noNext,'event_busy','var(--red)','var(--red-soft)')+'</div>';renderProspectQueue();renderProspectChannelStats(done);renderProspectAttention(items,done);renderProspectResponsibleSummary(items,done);renderProspectFunnel(items);renderBoard('prospectBoard',state.journeyProspects,'PROSPECT');renderProspectTable();renderBoardFilters('prospectBoardFilters','PROSPECT');}
+function renderProspects(){
+ const sub=state.subviews.prospects;
+ const items=visibleProspectItems();
+ if(sub==='prospects-dashboard'){
+  const done=doneProspectActivitiesThisWeek(),withNext=items.filter(prospectHasNextAction).length,noNext=items.length-withNext,hot=items.filter(isHotProspect).length;
+  const period=$('#prospectsPeriodLabel');if(period)period.innerHTML=`<span class="material-symbols-rounded">calendar_month</span>${prospectPeriodLabel()}`;
+  const conv=items.length?Math.round(items.filter(isConvertedProspect).length/items.length*1000)/10:0,kpi=(l,v,icon,solid,soft)=>`<div class="kpi-card" style="--kpi-solid:${solid};--kpi-soft:${soft}"><span class="kpi-ico material-symbols-rounded">${esc(icon)}</span><div class="kpi-body"><span class="label">${esc(l)}</span><span class="value num">${esc(v)}</span></div></div>`;
+  $('#prospectsStats').innerHTML='<div class="kpi-grid">'+kpi('Prospects ativos',items.length,'groups','#0E7BC0','#E2EFF7')+kpi('Conversão',String(conv).replace('.',',')+'%','trending_up','var(--green)','var(--green-soft)')+kpi('Leads quentes',hot,'local_fire_department','var(--amber)','var(--amber-soft)')+kpi('Sem próxima ação',noNext,'event_busy','var(--red)','var(--red-soft)')+'</div>';
+  renderProspectQueue();renderProspectChannelStats(done);renderProspectAttention(items,done);renderProspectResponsibleSummary(items,done);renderProspectFunnel(items);
+ }else if(sub==='prospects-funil'){
+  renderBoard('prospectBoard',state.journeyProspects,'PROSPECT');
+  renderBoardFilters('prospectBoardFilters','PROSPECT');
+ }else if(sub==='prospects-cadastro'){
+  renderProspectTable();
+  ensureLegacyForActiveCadastro();
+ }
+}
+function renderClients(){
+ const sub=state.subviews.clientes;
+ const items=filterContextItems(state.journeyClients.items,'CLIENTE');
+ if(sub==='clientes-dashboard'){
+  const rec={};items.forEach(x=>{const k=text(x.recomendacao)||'Sem recomendação';rec[k]=(rec[k]||0)+1;});
+  $('#clientsStats').innerHTML=[stat('Tratativas',items.length,'Clientes acompanhados','badge','purple'),stat('Em follow-up',items.filter(x=>text(x.proximoFollowupEm)).length,'Com retorno programado','schedule','amber'),stat('Agenda planejada',items.filter(x=>x.proximaAtividade).length,'Próximos compromissos','event_available','blue'),stat('Sem responsável',items.filter(x=>!text(x.responsavelId)).length,'Precisam de atribuição','person_alert','red')].join('');
+  $('#clientRecommendationMetrics').innerHTML=metricRows(rec,k=>ACTION_COLORS[text(k).toUpperCase()]);
+  $('#clientStageMetrics').innerHTML=metricRows(journeyStageMetrics(state.journeyClients,items),k=>stageColors(state.journeyClients)[k]);
+ }else if(sub==='clientes-funil'){
+  renderBoard('clientBoard',state.journeyClients,'CLIENTE');
+  renderBoardFilters('clientBoardFilters','CLIENTE');
+ }else if(sub==='clientes-cadastro'){
+  renderClientTable();
+  ensureLegacyForActiveCadastro();
+ }
+}
+function filteredJourney(journey,type){const isProspect=String(type||'CLIENTE').toUpperCase()==='PROSPECT',field=type==='CLIENTE'?'clientBoardResponsible':'prospectBoardResponsible',searchField=type==='CLIENTE'?'clientBoardSearch':'prospectBoardSearch',responsible=effectiveResponsible(state.filters[field]),q=norm(state.filters[searchField]);return(journey.items||[]).map(x=>journeyItemView(x,type)).filter(x=>(!isProspect||isActiveProspectItem(x))&&matchesContext(x,type)&&(!responsible||text(x.responsavelId)===responsible||norm(responsibleTextOf(x))===norm(responsible))&&(!q||norm([x.cliente,x.entidadeId,x.local,x.recomendacao,x.nomeFantasia,x.segmento,x.whatsapp,responsibleTextOf(x)].join(' ')).includes(q)));}
+function boardLimitKey(type,col){return String(type||'CLIENTE').toUpperCase()+'|'+text(col&&col.etapaId||col&&col.nome);}
+function boardLimitFor(type,col){return state.boardLimits[boardLimitKey(type,col)]||DEFAULT_BOARD_LIMIT;}
+function resetBoardLimits(type){const prefix=String(type||'CLIENTE').toUpperCase()+'|';Object.keys(state.boardLimits).forEach(k=>{if(k.indexOf(prefix)===0)delete state.boardLimits[k];});}
+function bindBoardMore(host,id,journey,type){$$('[data-board-more]',host).forEach(btn=>btn.onclick=()=>{const key=btn.dataset.boardMore;state.boardLimits[key]=(state.boardLimits[key]||DEFAULT_BOARD_LIMIT)+BOARD_LIMIT_STEP;renderBoard(id,journey,type);});}
+function renderBoard(id,journey,type){const mark=perfStart('render:board:'+String(type||'CLIENTE').toLowerCase()),items=filteredJourney(journey,type),host=$(`#${id}`),cols=journey.columns||[];if(!host)return;host.style.setProperty('--kanban-cols',String(Math.max(1,cols.length)));let visibleCount=0;host.innerHTML=cols.map((col,index)=>{const cards=items.filter(x=>text(x.etapaId)===text(col.etapaId)),stageColor=kanbanStageColor(index,col),limit=boardLimitFor(type,col),visible=cards.slice(0,limit),remaining=cards.length-visible.length,next=Math.min(BOARD_LIMIT_STEP,remaining),more=remaining>0?`<button class="secondary-btn kanban-more" type="button" data-board-more="${esc(boardLimitKey(type,col))}">Ver mais ${esc(next)} de ${esc(cards.length)}</button>`:'';visibleCount+=visible.length;return`<section class="kanban-col" style="--stage-color:${esc(stageColor)}"><header class="kanban-head"><span class="stage-icon material-symbols-rounded">${esc(col.icone||'view_kanban')}</span><h3>${esc(col.nome||col.etapaId)}</h3><small>${cards.length}</small></header><div class="kanban-body" data-stage="${esc(col.etapaId)}" data-type="${type}">${cards.length?visible.map(card=>dealCard(card,type)).join('')+more:'<div class="empty-state">Sem cards</div>'}</div></section>`;}).join('')||'<div class="empty-state">Nenhuma etapa configurada.</div>';wireBoard(host);bindBoardMore(host,id,journey,type);syncKanbanScroll(id);perfEnd(mark,{items:items.length,visible:visibleCount,columns:cols.length});}
+function dealCard(x,type='CLIENTE'){const view=journeyItemView(x,type),next=view.proximaAtividade,drag=can('canMoveFunnel'),resp=responsibleTextOf(view),wa=whatsappMetaLine(view.whatsapp),dealTitle=type==='PROSPECT'?first(view.nomeFantasia,view.cliente,view.entidadeId):first(view.cliente,view.nomeFantasia,view.entidadeId);return`<article class="deal-card${x&&x._salvando?' deal-card-salvando':''}" tabindex="0" role="button" draggable="${drag?'true':'false'}" data-treatment-id="${esc(view.tratativaId)}" aria-label="Abrir ${esc(dealTitle)}"><div class="deal-card-top"><div class="deal-title">${esc(dealTitle)}</div><div class="deal-card-tools">${drag?`<span class="material-symbols-rounded deal-drag-handle" title="Arraste para mover de etapa" aria-hidden="true">drag_indicator</span>`:''}<span class="material-symbols-rounded deal-open-icon">open_in_new</span></div></div><div class="chip-row">${view.local?`<span class="chip loc"><span class="material-symbols-rounded">location_on</span>${esc(view.local)}</span>`:''}${view.recomendacao?`<span class="chip ${actionClass(view.recomendacao)}"><span class="material-symbols-rounded">${esc(ACTION_ICONS[text(view.recomendacao).toUpperCase()]||'label')}</span>${esc(view.recomendacao)}</span>`:''}${view.prioridade?`<span class="chip high">${esc(view.prioridade)}</span>`:''}${view.curva?`<span class="curva-chip" data-curva="${esc(view.curva)}">${text(view.curva).toUpperCase()==='TOP'?'<span class="material-symbols-rounded">star</span>':''}Curva ${esc(view.curva)}</span>`:''}</div><div class="deal-meta">${resp?`<span class="meta-line"><span class="material-symbols-rounded">person</span>${esc(resp)}</span>`:''}${view.diasSemPostar?`<span class="meta-line"><span class="material-symbols-rounded">history</span>${esc(view.diasSemPostar)} dias sem postar</span>`:''}${next?`<span class="meta-line"><span class="material-symbols-rounded">event</span>${esc(next.tipoAtividadeNome||'Atividade')} · ${fmtDate(next.dataProgramada)}</span>`:''}</div><div class="deal-actions">${whatsappHref(view.whatsapp)?`<a class="deal-btn wapp" href="${esc(whatsappHref(view.whatsapp))}" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp"><span class="material-symbols-rounded">chat</span></a>`:''}<button class="deal-btn cal" type="button" data-card-agenda="${esc(view.tratativaId)}" title="Agendar" aria-label="Agendar"><span class="material-symbols-rounded">calendar_month</span></button></div></article>`;}
+function wireBoard(host){let dragged='';$$('.deal-card',host).forEach(card=>{card.addEventListener('click',e=>{if(e.target.closest('[data-card-agenda],a'))return;openTreatmentModal(card.dataset.treatmentId);});card.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('button')){e.preventDefault();openTreatmentModal(card.dataset.treatmentId);}});if(card.draggable){card.addEventListener('dragstart',e=>{dragged=card.dataset.treatmentId;card.classList.add('dragging');if(e.dataTransfer){e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragged);}});card.addEventListener('dragend',()=>{dragged='';card.classList.remove('dragging');$$('.drop-hover',host).forEach(x=>x.classList.remove('drop-hover'));});}});$$('.kanban-body',host).forEach(zone=>{zone.addEventListener('dragover',e=>{if(!can('canMoveFunnel'))return;e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move';zone.classList.add('drop-hover');});zone.addEventListener('dragleave',()=>zone.classList.remove('drop-hover'));zone.addEventListener('drop',async e=>{e.preventDefault();zone.classList.remove('drop-hover');const id=dragged||(e.dataTransfer&&e.dataTransfer.getData('text/plain'));if(!id)return;await moveTreatmentToStage(id,zone.dataset.stage);});});$$('[data-card-agenda]',host).forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openAgendaForTreatment(btn.dataset.cardAgenda);}));}
+/* Localiza uma tratativa nas jornadas carregadas (clientes e prospects). */
+function findJourneyTreatment_(tratativaId){const alvo=text(tratativaId);if(!alvo)return null;const fontes=[state.journeyClients,state.journeyProspects];for(let i=0;i<fontes.length;i++){const journey=fontes[i];const items=(journey&&journey.items)||[];for(let j=0;j<items.length;j++){if(text(items[j].tratativaId)===alvo)return{item:items[j],journey:journey};}}return null;}
+/* Movimentacao otimista: pinta a tela primeiro, grava depois, reverte se falhar. */
+async function moveTreatmentToStage(tratativaId,etapaId){
+  if(!can('canMoveFunnel'))return toast('Você não possui permissão para movimentar o funil.',true);
+  const id=text(tratativaId),novaEtapa=text(etapaId);
+  if(!id||!novaEtapa)return;
+  const alvo=findJourneyTreatment_(id);
+  if(!alvo){/* item fora do estado local: mantem o caminho antigo */
+    try{await apiPost('move_tratativa',{tratativaId:id,etapaId:novaEtapa,responsavelId:ownResponsible()});toast('Etapa atualizada.');await reloadJourney();}
+    catch(err){toast(err.message,true);}
+    return;
+  }
+  const item=alvo.item,journey=alvo.journey;
+  const etapaAnterior=text(item.etapaId);
+  if(etapaAnterior===novaEtapa)return;
+  const nomeAnterior=item.etapaNome;
+  const colNova=(journey.columns||[]).find(c=>text(c.etapaId)===novaEtapa);
+  /* 1. aplica local e renderiza na hora */
+  item.etapaId=novaEtapa;
+  if(colNova)item.etapaNome=text(colNova.nome||colNova.etapaId);
+  item._salvando=true;
+  renderActiveView('journey:otimista');
+  /* 2. grava em segundo plano */
+  try{
+    await apiPost('move_tratativa',{tratativaId:id,etapaId:novaEtapa,responsavelId:ownResponsible()});
+    delete item._salvando;
+    renderActiveView('journey:confirmado');
+    toast('Etapa atualizada.');
+  }catch(err){
+    /* 3. falhou: devolve o card para a etapa anterior */
+    item.etapaId=etapaAnterior;
+    item.etapaNome=nomeAnterior;
+    delete item._salvando;
+    renderActiveView('journey:revertido');
+    toast('Não foi possível mover o card: '+err.message,true);
+  }
+}
+function journeyForTreatment(t){return t&&t.tipoEntidade==='PROSPECT'?state.journeyProspects:state.journeyClients;}
+function syncKanbanScroll(id){const board=$(`#${id}`),wrap=board?.closest('.kanban-wrap'),top=wrap?.previousElementSibling;if(!board||!wrap||!top||!top.classList.contains('kanban-top-scroll'))return;const inner=top.firstElementChild;const resize=()=>{inner.style.width=`${board.scrollWidth}px`;top.classList.toggle('hidden',board.scrollWidth<=wrap.clientWidth+2);};top.onscroll=()=>{if(!top._sync){wrap._sync=true;wrap.scrollLeft=top.scrollLeft;wrap._sync=false;}};wrap.onscroll=()=>{if(!wrap._sync){top._sync=true;top.scrollLeft=wrap.scrollLeft;top._sync=false;}};requestAnimationFrame(resize);if(window.ResizeObserver){if(top._ro)top._ro.disconnect();top._ro=new ResizeObserver(resize);top._ro.observe(board);top._ro.observe(wrap);}else setTimeout(resize,100);}
+function responsibleOptions(value='',includeAll=false){const rows=responsibleRows(),selected=resolveResponsibleId(value),selectedNorm=norm(selected);let html=includeAll?'<option value="">Todos os responsáveis</option>':'<option value="">Sem responsável</option>';const seen=new Set();html+=rows.map(x=>{const id=responsibleIdFromRow(x),label=responsibleNameFromRow(x)||id;if(!id)return'';seen.add(norm(id));return`<option value="${esc(id)}" ${selectedNorm&&norm(id)===selectedNorm?'selected':''}>${esc(label)}</option>`;}).join('');if(selected&&!seen.has(selectedNorm)){html+=`<option value="${esc(selected)}" selected>${esc(responsibleDisplay(value)||selected)}</option>`;}return html;}
+function renderBoardFilters(id,type){const host=$(`#${id}`),field=type==='CLIENTE'?'clientBoardResponsible':'prospectBoardResponsible',searchField=type==='CLIENTE'?'clientBoardSearch':'prospectBoardSearch',own=text(crmProfile().agendaScope).toUpperCase()==='OWN',items=filteredJourney(type==='CLIENTE'?state.journeyClients:state.journeyProspects,type);host.innerHTML=`<label class="search-field compact"><span class="material-symbols-rounded">search</span><input data-board-search="${type}" value="${esc(state.filters[searchField])}" placeholder="Pesquisar por nome…"></label><span class="chip board-count" title="${esc(boardCountText(type,items))}"><span class="material-symbols-rounded">filter_alt</span>${esc(items.length)}</span>`;const sel=$('select',host),input=$('input',host);if(sel){if(own)sel.value=ownResponsible();sel.onchange=()=>{state.filters[field]=sel.value;resetBoardLimits(type);renderBoard(type==='CLIENTE'?'clientBoard':'prospectBoard',type==='CLIENTE'?state.journeyClients:state.journeyProspects,type);renderBoardFilters(id,type);};}if(input)input.oninput=()=>{state.filters[searchField]=input.value;resetBoardLimits(type);renderBoard(type==='CLIENTE'?'clientBoard':'prospectBoard',type==='CLIENTE'?state.journeyClients:state.journeyProspects,type);renderBoardFilters(id,type);};}
+
+function entityName(x){return first(x&&x.cliente,x&&x.nomeFantasia,x&&x.razaoSocial,'Sem nome');}
+function clientSortValue(x,key){const vals={cliente:entityName(x),contato:x.pessoaContato,whatsapp:x.whatsapp,local:x.local,segmento:x.segmento,curva:x.curva,recomendacao:x.acaoEngine||x.acao,ultimaPostagem:x.dataUltimaPostagem,diasSemPostar:num(x.diasSemPostar),valor30d:num(x.valor30d),contrato:first(x.numeroContrato,x.cartao)};return vals[key]??'';}
+function sortClients(rows){const {key,dir}=state.clientSort,m=dir==='asc'?1:-1;return rows.slice().sort((a,b)=>{const av=clientSortValue(a,key),bv=clientSortValue(b,key);if(typeof av==='number'||typeof bv==='number')return(num(av)-num(bv))*m;return String(av||'').localeCompare(String(bv||''),'pt-BR',{numeric:true,sensitivity:'base'})*m;});}
+function updateClientSortHeaders(){$$('[data-client-sort]').forEach(btn=>{const active=btn.dataset.clientSort===state.clientSort.key;btn.classList.toggle('active',active);const icon=$('.material-symbols-rounded',btn);if(icon)icon.textContent=active?(state.clientSort.dir==='asc'?'arrow_upward':'arrow_downward'):'unfold_more';});}
+function renderClientTable(){const ctrl=$('#clientCadControls');if(ctrl){const acoes=[...new Set(state.clients.map(x=>text(x.acaoEngine||x.acao)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(x=>[x,x]);ctrl.innerHTML=contextChip('clientCadSort','','swap_vert','Ordenar',state.clientSort.key,[['cliente','Nome (A-Z)'],['curva','Curva'],['valor30d','Faturamento 30D'],['diasSemPostar','Dias sem postar']],true)+contextChip('contextCurve','','leaderboard','Todas as curvas',state.filters.contextCurve,CURVE_OPTIONS.map(x=>[x,'Curva '+x]))+contextChip('contextAction','','bolt','Todas as ações',state.filters.contextAction,acoes);}const setCount=n=>{const cc=$('#clientCadCount');if(cc)cc.innerHTML='<span class="material-symbols-rounded">filter_alt</span>'+esc(n);};if(!state.clientsReady){$('#clientTableBody').innerHTML='<tr><td colspan="12">Carregando cadastros detalhados…</td></tr>';setCount(0);return;}const q=norm($('#clientSearch').value),all=sortClients(state.clients.filter(x=>matchesContext(x,'CLIENTE')&&(!q||norm([x.cliente,x.nomeFantasia,x.razaoSocial,x.cnpjCpf,x.whatsapp,x.numeroContrato,x.cartao].join(' ')).includes(q)))),rows=all.slice(0,500);setCount(all.length);$('#clientTableBody').innerHTML=rows.length?rows.map(x=>`<tr><td colspan="12" class="cad-cell"><article class="cad-card" data-curva="${esc(x.curva||'')}"><div class="cad-main"><div class="cad-row1"><strong class="cad-name">${esc(entityName(x))}</strong>${x.curva?`<span class="curva-chip" data-curva="${esc(x.curva)}">${text(x.curva).toUpperCase()==='TOP'?'<span class="material-symbols-rounded">star</span>':''}Curva ${esc(x.curva)}</span>`:''}<span class="chip ${actionClass(x.acaoEngine||x.acao)}">${esc(x.acaoEngine||x.acao||'—')}</span></div><div class="cad-sub">${esc(x.cnpjCpf||'')}${x.pessoaContato?` · ${esc(x.pessoaContato)}`:''}</div><div class="cad-meta"><span class="cad-mi"><span class="material-symbols-rounded">payments</span>${fmtMoney(x.valor30d)} <em>30D</em></span><span class="cad-mi"><span class="material-symbols-rounded">photo_camera</span>${fmtDate(x.dataUltimaPostagem)}</span><span class="cad-mi"><span class="material-symbols-rounded">event_busy</span>${esc(x.diasSemPostar||0)} dias s/p</span><span class="cad-mi"><span class="material-symbols-rounded">store</span>${esc(x.segmento||'—')} · ${esc(x.local||'—')}</span><span class="cad-mi"><span class="material-symbols-rounded">description</span>${esc(x.numeroContrato||'—')}${x.cartao?` · ${esc(x.cartao)}`:''}</span></div></div><div class="cad-actions">${can('canEditClients')?`<button class="table-btn icon-only" data-edit-client="${esc(x.clienteId)}" title="Editar" aria-label="Editar"><span class="material-symbols-rounded">edit</span></button>`:''}</div></article></td></tr>`).join(''):'<tr><td colspan="12">Nenhum cliente encontrado.</td></tr>';$$('[data-edit-client]').forEach(b=>b.onclick=()=>openEntityModal('CLIENTE',b.dataset.editClient));}
+function renderProspectTable(){
+  const canBulk=can('canMoveFunnel');
+  if(!canBulk&&state.prospectSelectMode){state.prospectSelectMode=false;state.prospectSelection.clear();}
+  const ctrl=$('#prospectCadControls');
+  if(ctrl){
+    const sortChip=contextChip('prospectCadSort','','swap_vert','Ordenar',state.prospectSort,[['nome','Nome (A-Z)'],['etapa','Estágio do funil']],true);
+    const selBtn=canBulk?`<button type="button" class="cad-select-toggle${state.prospectSelectMode?' active':''}" id="prospectSelectToggle"><span class="material-symbols-rounded">${state.prospectSelectMode?'close':'checklist'}</span>${state.prospectSelectMode?'Cancelar':'Selecionar'}</button>`:'';
+    ctrl.innerHTML=sortChip+selBtn;
+    const tg=$('#prospectSelectToggle');if(tg)tg.onclick=prospectToggleSelectMode;
+  }
+  const setCount=n=>{const cc=$('#prospectCadCount');if(cc)cc.innerHTML='<span class="material-symbols-rounded">filter_alt</span>'+esc(n);};
+  if(!state.prospectsReady){$('#prospectTableBody').innerHTML='<tr><td colspan="9">Carregando cadastros detalhados…</td></tr>';setCount(0);updateProspectBulkBar();return;}
+  const stageOrder={};(state.journeyProspects.columns||[]).forEach((c,i)=>{stageOrder[text(c.nome||c.etapaId)]=i;});
+  const q=norm($('#prospectSearch').value),all=state.prospects.filter(x=>!isDeletedProspect(x)&&matchesContext(x,'PROSPECT')&&(!q||norm([x.cliente,x.nomeFantasia,x.razaoSocial,x.segmento,x.whatsapp,x.email,x.potencial,x.etapaFunil,x.responsavel].join(' ')).includes(q)));
+  all.sort((a,b)=>state.prospectSort==='etapa'?((stageOrder[text(a.etapaFunil)]??999)-(stageOrder[text(b.etapaFunil)]??999)||String(entityName(a)).localeCompare(entityName(b),'pt-BR')):String(entityName(a)).localeCompare(String(entityName(b)),'pt-BR'));
+  state.prospectFilteredIds=all.map(x=>text(x.prospectId)).filter(Boolean);
+  const rows=all.slice(0,500);setCount(all.length);
+  const sel=state.prospectSelection,selMode=state.prospectSelectMode;
+  $('#prospectTableBody').innerHTML=rows.length?rows.map(x=>{
+    const pid=text(x.prospectId),checked=sel.has(pid)?' checked':'';
+    const check=selMode?`<label class="pcad-check"><input type="checkbox" data-sel-prospect="${esc(pid)}"${checked} aria-label="Selecionar ${esc(entityName(x))}"></label>`:'';
+    return `<tr><td colspan="9" class="pcad-cell"><article class="pcad-card${selMode?' selectable':''}" data-pot="${esc(x.potencial||'')}">${check}<div class="pcad-main"><div class="pcad-row1"><strong class="pcad-name">${esc(entityName(x))}</strong>${x.etapaFunil?`<span class="chip">${esc(x.etapaFunil)}</span>`:''}${x.potencial?`<span class="pcad-pot">${esc(x.potencial)}</span>`:''}</div><div class="pcad-sub">${esc(x.cnpjCpf||'')}${x.nomeFantasia?` · ${esc(x.nomeFantasia)}`:''}</div><div class="pcad-meta"><span class="pcad-mi"><span class="material-symbols-rounded">category</span>${esc(x.segmento||'—')}</span><span class="pcad-mi"><span class="material-symbols-rounded">person</span>${esc(x.responsavel||'—')}</span></div></div><div class="pcad-actions">${can('canEditProspects')?`<button class="table-btn icon-only" data-edit-prospect="${esc(pid)}" title="Editar" aria-label="Editar"><span class="material-symbols-rounded">edit</span></button>`:''}</div></article></td></tr>`;
+  }).join(''):'<tr><td colspan="9">Nenhum prospect encontrado.</td></tr>';
+  $$('[data-edit-prospect]').forEach(b=>b.onclick=()=>openEntityModal('PROSPECT',b.dataset.editProspect));
+  wireProspectSelection();
+  updateProspectBulkBar();
+}
+/* ── Edição em lote de prospects (seleção múltipla + mover para etapa) ── */
+function wireProspectSelection(){
+  if(wireProspectSelection._bound)return;wireProspectSelection._bound=true;
+  const body=$('#prospectTableBody');
+  if(body)body.addEventListener('change',e=>{
+    const cb=e.target.closest('input[data-sel-prospect]');if(!cb)return;
+    const pid=cb.getAttribute('data-sel-prospect');
+    if(cb.checked)state.prospectSelection.add(pid);else state.prospectSelection.delete(pid);
+    updateProspectBulkBar();
+  });
+}
+function prospectToggleSelectMode(){
+  state.prospectSelectMode=!state.prospectSelectMode;
+  if(!state.prospectSelectMode)state.prospectSelection.clear();
+  renderProspectTable();
+}
+function prospectSelectAllFiltered(){
+  const ids=state.prospectFilteredIds||[];
+  const allSelected=ids.length>0&&ids.every(id=>state.prospectSelection.has(id));
+  if(allSelected)ids.forEach(id=>state.prospectSelection.delete(id));
+  else ids.forEach(id=>state.prospectSelection.add(id));
+  renderProspectTable();
+}
+function ensureProspectBulkBar(){
+  let bar=$('#prospectBulkBar');if(bar)return bar;
+  bar=document.createElement('div');bar.id='prospectBulkBar';
+  bar.innerHTML='<button type="button" class="bulk-all" id="prospectBulkAll"><span class="material-symbols-rounded">select_all</span><span id="prospectBulkAllLabel">Todos</span></button><span class="count" id="prospectBulkCount">0 selecionados</span><select id="prospectBulkStage" aria-label="Etapa de destino"></select><button type="button" class="bulk-test" id="prospectBulkTest">Testar</button><button type="button" class="bulk-move" id="prospectBulkMove"><span class="material-symbols-rounded">move_down</span>Mover</button><button type="button" class="bulk-cancel" id="prospectBulkCancel" aria-label="Sair da seleção"><span class="material-symbols-rounded">close</span></button>';
+  document.body.appendChild(bar);
+  $('#prospectBulkAll',bar).onclick=prospectSelectAllFiltered;
+  $('#prospectBulkCancel',bar).onclick=()=>{state.prospectSelectMode=false;state.prospectSelection.clear();renderProspectTable();};
+  $('#prospectBulkTest',bar).onclick=()=>prospectBulkMove(true);
+  $('#prospectBulkMove',bar).onclick=()=>prospectBulkMove(false);
+  document.addEventListener('click',e=>{if(e.target.closest('[data-nav],[data-subview]'))setTimeout(updateProspectBulkBar,0);});
+  return bar;
+}
+function updateProspectBulkBar(){
+  const bar=ensureProspectBulkBar();
+  const cad=document.getElementById('prospects-cadastro'),view=document.getElementById('view-prospects');
+  const visible=state.prospectSelectMode&&cad&&cad.classList.contains('active')&&view&&!view.classList.contains('hidden');
+  bar.classList.toggle('show',!!visible);
+  if(!visible)return;
+  const n=state.prospectSelection.size;
+  $('#prospectBulkCount').textContent=n+(n===1?' selecionado':' selecionados');
+  const stage=$('#prospectBulkStage'),cur=stage.value,cols=state.journeyProspects.columns||[];
+  stage.innerHTML='<option value="">Mover para etapa…</option>'+cols.map(c=>`<option value="${esc(c.etapaId)}">${esc(c.nome||c.etapaId)}</option>`).join('');
+  if(cur)stage.value=cur;
+  const ids=state.prospectFilteredIds||[],allSelected=ids.length>0&&ids.every(id=>state.prospectSelection.has(id));
+  const lbl=$('#prospectBulkAllLabel');if(lbl)lbl.textContent=allSelected?'Limpar':('Todos ('+ids.length+')');
+  const moveBtn=$('#prospectBulkMove'),testBtn=$('#prospectBulkTest'),disabled=n===0;
+  if(moveBtn)moveBtn.disabled=disabled;if(testBtn)testBtn.disabled=disabled;
+}
+async function prospectBulkMove(dryRun){
+  const stage=$('#prospectBulkStage'),etapaId=stage&&stage.value;
+  if(!etapaId){toast('Escolha a etapa de destino.',true);return;}
+  const ids=[...state.prospectSelection];
+  if(!ids.length){toast('Selecione ao menos um prospect.',true);return;}
+  const col=(state.journeyProspects.columns||[]).find(c=>text(c.etapaId)===text(etapaId)),nome=col?text(col.nome||col.etapaId):etapaId;
+  if(!dryRun&&!confirm(`Mover ${ids.length} prospect(s) para "${nome}"?`))return;
+  const moveBtn=$('#prospectBulkMove'),testBtn=$('#prospectBulkTest'),busyBtn=dryRun?testBtn:moveBtn,orig=busyBtn?busyBtn.innerHTML:'';
+  if(busyBtn){busyBtn.disabled=true;busyBtn.textContent=dryRun?'Testando…':'Movendo…';}
+  try{
+    const res=await apiPost('move_tratativas_lote',{modo:dryRun?'TESTE':'APLICAR',etapaId,prospectIds:ids,responsavelId:responsibleApiValue('')},{timeoutMs:120000});
+    const resumo=`${res.movidos||0} movido(s), ${res.criados||0} criado(s), ${res.pulados||0} pulado(s), ${res.erros||0} com erro`;
+    if(dryRun){toast('Teste: '+resumo);}
+    else{
+      toast('Concluído: '+resumo,(res.erros||0)>0);
+      state.prospectSelection.clear();state.prospectSelectMode=false;
+      await reloadJourney();await loadLegacyData(true);renderProspectTable();
+    }
+  }catch(err){toast(err.message||'Falha ao mover em lote.',true);}
+  finally{if(busyBtn){busyBtn.disabled=false;busyBtn.innerHTML=orig;}updateProspectBulkBar();}
+}
+
+function agendaLocalMatch(x){const sel=msParse(state.filters.agendaLocal);if(!sel.length)return true;const ent=entityForActivity(x)||{};const v=norm(localOf(x)||localOf(ent));return sel.some(s=>norm(s)===v);}
+function renderAgenda(){const p=agendaPeriod();$('#agendaPeriodLabel').textContent=agendaPeriodLabel();const pick=$('#agendaDatePick');if(pick)pick.value=state.agendaCursor;$$('[data-agenda-mode]').forEach(b=>b.classList.toggle('active',b.dataset.agendaMode===state.agendaMode));const f=state.filters,items=agendaWinItems().filter(x=>activityMatchesContext(x)&&agendaLocalMatch(x)&&msHas(f.agendaType,x.tipoAtividadeId)&&msHas(f.agendaStatus,x.statusAtividade)&&msHasResp(f.agendaResponsible,first(x.responsavelNome,x.responsavelId))),host=$('#agendaCalendar');host.className=`agenda-calendar mode-${state.agendaMode}`;if(state.agendaMode==='day')host.innerHTML=renderAgendaDay(p.start,items);else if(state.agendaMode==='month')host.innerHTML=renderAgendaMonth(p.start,items);else host.innerHTML=renderAgendaWeek(p.start,items);const overdue=(state.overdue||[]).filter(x=>activityMatchesContext(x)&&agendaLocalMatch(x)&&msHasResp(f.agendaResponsible,first(x.responsavelNome,x.responsavelId)));$('#overdueList').innerHTML=overdue.length?overdue.map(activityListItem).join(''):'<div class="empty-state">Nenhuma atividade vencida.</div>';wireAgendaCards();}
+function renderAgendaWeek(start,items){const td=today();return`<div class="week-grid">${Array.from({length:5},(_,i)=>{const date=addDays(start,i),dayItems=items.filter(x=>x.dataProgramada===date),isToday=date===td;return`<section class="day-col${isToday?' today':''}" data-day="${date}"><header class="day-head"><div><strong>${['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'][i]}${isToday?'<span class="today-tag">hoje</span>':''}</strong><small>${fmtDate(date)}</small></div>${dayItems.length?`<span class="day-count">${dayItems.length}</span>`:''}</header><div class="day-body">${dayItems.length?dayItems.map(agendaCard).join(''):'<div class="empty-state slim">Sem atividades</div>'}</div></section>`;}).join('')}</div>`;}
+function renderAgendaDay(date,items){const dayItems=items.filter(x=>x.dataProgramada===date);return`<section class="day-focus" data-day="${date}"><header class="day-focus-head"><span class="material-symbols-rounded">today</span><div><strong>${new Intl.DateTimeFormat('pt-BR',{weekday:'long'}).format(toDate(date))}</strong><small>${fmtDate(date)}</small></div>${dayItems.length?`<span class="day-count">${dayItems.length} atividade${dayItems.length>1?'s':''}</span>`:''}</header><div class="day-focus-body">${dayItems.length?dayItems.map(agendaCard).join(''):'<div class="empty-state">Nenhuma atividade neste dia.</div>'}</div></section>`;}
+function renderAgendaMonth(start,items){const td=today(),firstDay=toDate(start),offset=(firstDay.getDay()+6)%7,gridStart=addDays(start,-offset);const days=Array.from({length:42},(_,i)=>addDays(gridStart,i)).filter(d=>{const g=toDate(d).getDay();return g!==0&&g!==6;});return`<div class="month-weekdays">${['Seg','Ter','Qua','Qui','Sex'].map(x=>`<strong>${x}</strong>`).join('')}</div><div class="month-grid">${days.map(date=>{const inside=date.slice(0,7)===start.slice(0,7),isToday=date===td,dayItems=items.filter(x=>x.dataProgramada===date),visible=dayItems.slice(0,3);return`<section class="month-day ${inside?'':'outside'}${isToday?' today':''}" data-day="${date}"><header>${toDate(date).getDate()}</header><div>${visible.map(agendaCardMini).join('')}${dayItems.length>3?`<small class="more-count">+${dayItems.length-3} atividades</small>`:''}</div></section>`;}).join('')}</div>`;}
+function agendaCard(x){const t1=fmtTime(x.horaProgramada),t2=fmtTime(x.horaFimProgramada),st=text(x.statusAtividade);return`<button type="button" class="agenda-card agenda-open" style="--activity-color:${esc(x.cor||'#006EA6')}" data-agenda-id="${esc(x.agendaId)}" data-status="${esc(st.toUpperCase())}"><span class="agenda-time">${t1?`<b>${esc(t1)}</b>${t2?`<i>${esc(t2)}</i>`:''}`:`<span class="material-symbols-rounded nt" aria-hidden="true">schedule</span><i>sem hora</i>`}</span><span class="agenda-body"><strong>${esc(x.cliente||'Atividade')}</strong><small><span class="type-chip" style="--tc:${esc(x.cor||'#006EA6')}"><span class="material-symbols-rounded">${esc(activityIcon(x))}</span>${esc(x.tipoAtividadeNome||x.tipoAtividadeId||'Atividade')}</span>${x.responsavelNome?` <span class="agenda-resp">${esc(x.responsavelNome)}</span>`:''}</small>${st?`<span class="agenda-status">${esc(st)}</span>`:''}</span></button>`;}
+function agendaCardMini(x){return`<button type="button" class="agenda-mini agenda-open" style="--activity-color:${esc(x.cor||'#006EA6')}" data-agenda-id="${esc(x.agendaId)}" title="${esc((x.tipoAtividadeNome||'Atividade')+' · '+(x.cliente||''))}"><span class="material-symbols-rounded">${esc(activityIcon(x))}</span><small>${esc(fmtTime(x.horaProgramada))} ${esc(x.cliente||'Atividade')}</small></button>`;}
+function renderAgendaFilters(){
+  const host=$('#agendaFilters');if(!host)return;
+  const p=crmProfile(),own=!can('canViewTeam')||text(p.agendaScope).toUpperCase()==='OWN',types=(state.config&&state.config.tiposAtividade)||[];
+  const typeOpts=types.map(x=>[text(x.TIPO_ATIVIDADE_ID),text(x.NOME_EXIBICAO||x.TIPO_ATIVIDADE_ID)]).filter(x=>x[0]);
+  const statusOpts=['PLANEJADO','CONCLUÍDO','CANCELADO','REAGENDADO'].map(x=>[x,x.charAt(0)+x.slice(1).toLowerCase()]);
+  let respChip;
+  if(own){
+    if(state.filters.agendaResponsible!==ownResponsible())state.filters.agendaResponsible=ownResponsible();
+    const name=responsibleDisplay(ownResponsible())||ownResponsible()||'Minha agenda';
+    respChip=`<div class="chip-filter locked" title="Sua visão está limitada à própria agenda" aria-disabled="true"><span class="material-symbols-rounded">person</span><span class="chip-value">${esc(name)}</span></div>`;
+  }else{
+    const seen=new Set(),respOpts=[];
+    responsibleRows().forEach(x=>{const id=text(responsibleIdFromRow(x)),label=text(responsibleNameFromRow(x))||id;if(id&&!seen.has(norm(id))){seen.add(norm(id));respOpts.push([id,label]);}});
+    respOpts.sort((a,b)=>a[1].localeCompare(b[1],'pt-BR'));
+    respChip=contextChipMS('agendaResponsible','','person','Todos os responsáveis',state.filters.agendaResponsible,respOpts);
+  }
+  host.innerHTML=respChip
+    +contextChipMS('agendaType','','category','Todos os tipos',state.filters.agendaType,typeOpts)
+    +contextChipMS('agendaStatus','','flag','Todos os status',state.filters.agendaStatus,statusOpts);
+}
+function wireAgendaCards(){$$('.agenda-open').forEach(b=>b.onclick=e=>{e.stopPropagation();openActivityModal(b.dataset.agendaId);});const cal=$('#agendaCalendar');if(cal&&!cal._dayBound){cal._dayBound=true;cal.addEventListener('click',e=>{if(e.target.closest('.agenda-open'))return;const day=e.target.closest('[data-day]');if(day)openAgendaModal({date:day.dataset.day});});}}
+function changeAgendaPeriod(delta){const d=toDate(state.agendaCursor);if(state.agendaMode==='day')d.setDate(d.getDate()+delta);else if(state.agendaMode==='month')d.setMonth(d.getMonth()+delta);else d.setDate(d.getDate()+(delta*7));setAgendaCursor(ymd(d));}
+
+function treatmentById(id){const client=(state.journeyClients.items||[]).find(x=>text(x.tratativaId)===text(id));if(client)return journeyItemView(client,'CLIENTE');const prospect=(state.journeyProspects.items||[]).find(x=>text(x.tratativaId)===text(id));if(!prospect)return null;const view=journeyItemView(prospect,'PROSPECT');return isActiveProspectItem(view)?view:null;}
+function openAgendaForTreatment(id){const treatment=treatmentById(id);openAgendaModal(treatment?{treatment,entityType:treatment.tipoEntidade,entityId:treatment.entidadeId}:{});}
+function fillAgendaTypeOptions(){const rows=(state.config&&state.config.tiposAtividade)||[];$('#agendaType').innerHTML=rows.map(x=>`<option value="${esc(x.TIPO_ATIVIDADE_ID)}">${esc(x.NOME_EXIBICAO)}</option>`).join('');}
+function fillAgendaBlocks(){const rows=(state.config&&state.config.blocos)||[];$('#agendaBlock').innerHTML='<option value="">Horário livre</option>'+rows.map(x=>`<option value="${esc(x.blocoId)}">${esc(x.nomeBloco||x.nome||x.blocoId)} · ${esc(fmtTime(x.horaInicio))}–${esc(fmtTime(x.horaFim))}</option>`).join('');}
+function fillAgendaMedia(selected=''){const rows=(state.config&&state.config.midias)||[];$('#agendaMedia').innerHTML='<option value="">Sem material</option>'+rows.map(x=>`<option value="${esc(x.codigo)}" ${text(x.codigo)===text(selected)?'selected':''}>${esc(x.nome||x.codigo)}</option>`).join('');updateMediaLink();}
+function openAgendaModal(prefill={}){state.selectedEntity=null;$('#agendaForm').reset();$('#agendaTratativaId').value=text(prefill.treatment&&prefill.treatment.tratativaId);$('#agendaEntityType').value=text(prefill.entityType);$('#agendaEntityId').value=text(prefill.entityId);$('#agendaRequestId').value=requestId();$('#agendaDate').value=text(prefill.date)||today();$('#agendaDuration').value='30';fillAgendaTypeOptions();fillAgendaBlocks();$('#agendaResponsible').innerHTML=responsibleOptions(ownResponsible(),false);if(ownResponsible())$('#agendaResponsible').value=ownResponsible();const entity=prefill.entityType==='PROSPECT'?state.prospectsById[prefill.entityId]:state.clientsById[prefill.entityId];if(entity)selectAgendaEntity(prefill.entityType,prefill.entityId,entity);else $('#agendaEntitySearch').value=prefill.treatment?text(prefill.treatment.cliente):'';fillAgendaMedia(entity&&first(entity.midia,entity.conteudoSugerido));openModal('agendaModal');}
+function selectAgendaEntity(type,id,entity){state.selectedEntity={type,id,entity};$('#agendaEntityType').value=type;$('#agendaEntityId').value=id;$('#agendaEntitySearch').value=entityName(entity);$('#agendaEntityOptions').classList.remove('open');fillAgendaMedia(first(entity.midia,entity.conteudoSugerido));}
+function updateMediaLink(){const code=$('#agendaMedia').value,row=((state.config&&state.config.midias)||[]).find(x=>text(x.codigo)===text(code)),link=row&&text(row.link);$('#agendaMediaLink').classList.toggle('hidden',!link);if(link)$('#agendaMediaLink').href=link;else $('#agendaMediaLink').removeAttribute('href');}
+function filterEntityOptions(q){q=norm(q);if(!q)return[];return state.clients.map(x=>({type:'CLIENTE',id:x.clienteId,entity:x})).concat(state.prospects.map(x=>({type:'PROSPECT',id:x.prospectId,entity:x}))).filter(x=>norm([entityName(x.entity),x.entity.cnpjCpf,x.entity.whatsapp].join(' ')).includes(q)).slice(0,12);}
+async function renderEntityOptions(){const q=$('#agendaEntitySearch').value;if(text(q)&&!state.legacyReady)await loadLegacyData(true);const box=$('#agendaEntityOptions'),rows=filterEntityOptions(q);box.innerHTML=rows.map(x=>`<button type="button" data-entity-type="${x.type}" data-entity-id="${esc(x.id)}"><strong>${esc(entityName(x.entity))}</strong><br><small>${x.type==='CLIENTE'?'Cliente':'Prospect'} · ${esc(x.entity.local||'')}</small></button>`).join('');box.classList.toggle('open',rows.length>0);$$('button',box).forEach(b=>b.onclick=()=>selectAgendaEntity(b.dataset.entityType,b.dataset.entityId,b.dataset.entityType==='PROSPECT'?state.prospectsById[b.dataset.entityId]:state.clientsById[b.dataset.entityId]));}
+async function saveAgenda(e){e.preventDefault();const type=$('#agendaEntityType').value,id=$('#agendaEntityId').value;if(!id)return toast('Selecione um cliente ou prospect.',true);const payload={requestId:$('#agendaRequestId').value,tratativaId:$('#agendaTratativaId').value,tipoEntidade:type,entidadeId:id,tipoAtividadeId:$('#agendaType').value,responsavelId:$('#agendaResponsible').value,dataProgramada:$('#agendaDate').value,blocoId:$('#agendaBlock').value,horaProgramada:$('#agendaTime').value,duracaoMin:$('#agendaDuration').value,midiaRecomendadaCodigo:$('#agendaMedia').value,observacao:$('#agendaObs').value,updatedBy:ownResponsible()};try{$('#saveAgendaBtn').disabled=true;await apiPost('save_atividade',payload);closeModal('agendaModal');toast('Atividade registrada na Agenda.');bgRefreshAgendaJourney();}catch(err){toast(err.message,true);}finally{$('#saveAgendaBtn').disabled=false;}}
+function treatmentForActivity(item){const ref=activityEntityRef(item);return treatmentById(item&&item.tratativaId)||{tratativaId:text(item&&item.tratativaId),tipoEntidade:ref.type,entidadeId:ref.id,cliente:text(item&&item.cliente),recomendacao:'',subAcao:''};}
+function entityByTreatment(t){return t&&t.tipoEntidade==='PROSPECT'?(state.prospectsById[t.entidadeId]||{}):(state.clientsById[t&&t.entidadeId]||{});}
+function recommendedMaterials(item,t,e){const rows=(state.config&&state.config.midias)||[],codes=new Set([item&&item.midiaRecomendadaCodigo,item&&item.midiaUsadaCodigo,e&&e.midia,e&&e.conteudoSugerido].map(text).filter(Boolean)),action=text(t&&t.recomendacao||e&&e.acaoEngine||e&&e.acao).toUpperCase(),sub=text(t&&t.subAcao||e&&e.subAcao);const chosen=[];rows.forEach(r=>{const code=text(r.codigo);if(!code)return;const explicit=codes.has(code),sameAction=action&&text(r.acao).toUpperCase()===action,sameSub=!sub||text(r.subcategoria)===sub;if(explicit||(sameAction&&sameSub))chosen.push(Object.assign({explicit},r));});if(!chosen.length&&codes.size)rows.forEach(r=>{if(codes.has(text(r.codigo)))chosen.push(Object.assign({explicit:true},r));});const seen=new Set();return chosen.filter(r=>{const k=text(r.codigo);if(seen.has(k))return false;seen.add(k);return true;}).sort((a,b)=>(b.explicit?1:0)-(a.explicit?1:0)).slice(0,8);}
+function renderActivityMaterials(item,t,e){const rows=recommendedMaterials(item,t,e);$('#activityMaterials').innerHTML=rows.length?rows.map(r=>{const link=text(r.link);return link?`<a class="material-card" href="${esc(link)}" target="_blank" rel="noopener"><span class="material-symbols-rounded">${text(r.tipo).toUpperCase()==='PDF'?'picture_as_pdf':'folder_open'}</span><span><strong>${esc(r.nome||r.codigo)}</strong><small>${esc(r.quandoUsar||r.descricao||'Material recomendado')}</small><em>Abrir material</em></span></a>`:`<div class="material-card disabled"><span class="material-symbols-rounded">link_off</span><span><strong>${esc(r.nome||r.codigo)}</strong><small>${esc(r.quandoUsar||r.descricao||'Material recomendado')}</small><em>Link não cadastrado</em></span></div>`;}).join(''):'<div class="empty-state">Nenhum material recomendado para esta atividade.</div>';}
+async function loadNotesForEntity(t,target='treatment'){if(!t||!t.entidadeId)return[];const data=await apiGet('get_entity_notes_v8',{tipoEntidade:t.tipoEntidade,entidadeId:t.entidadeId,limit:30});const rows=data.items||[];if(target==='activity'){state.activityNotes=rows;renderActivityNotes();}else{state.notes=rows;renderTreatmentNotes();renderTreatmentHistory();}return rows;}
+function noteCard(x){return`<article class="note-card"><header><span class="material-symbols-rounded">sticky_note_2</span><strong>Anotação</strong></header><small>${esc(x.dataHora||'')} · ${esc(x.responsavelNome||x.responsavelId||'Sem responsável')}</small><p>${esc(x.texto||'')}</p></article>`;}
+function renderTreatmentNotes(){$('#treatmentNotes').innerHTML=(state.notes||[]).length?state.notes.map(noteCard).join(''):'<div class="empty-state">Nenhuma anotação registrada.</div>';}
+function renderActivityNotes(){$('#activityNotesHistory').innerHTML=(state.activityNotes||[]).length?state.activityNotes.slice(0,5).map(noteCard).join(''):'<div class="empty-state">Nenhuma anotação registrada.</div>';}
+async function saveEntityNote(source){const t=source==='activity'?treatmentForActivity(state.selectedActivity):state.selectedTreatment,textarea=$(source==='activity'?'#activityNoteText':'#treatmentNoteText'),txt=text(textarea&&textarea.value);if(!t||!t.entidadeId)return;if(!txt)return toast('Digite uma anotação.',true);const item=source==='activity'?state.selectedActivity:null;try{await apiPost('save_entity_note_v8',{requestId:requestId(),tipoEntidade:t.tipoEntidade,entidadeId:t.entidadeId,tratativaId:t.tratativaId,agendaId:item&&item.agendaId,texto:txt,responsavelId:ownResponsible(),responsavelNome:crmProfile().displayName||state.user?.displayName||state.user?.username||''});textarea.value='';toast('Anotação registrada.');await loadNotesForEntity(t,source);}catch(err){toast(err.message,true);}}
+async function loadActivityWorkspace(item){const t=treatmentForActivity(item),e=entityByTreatment(t);renderActivityMaterials(item,t,e);$('#activityChecklistFields').innerHTML='<div class="empty-state full">Carregando checklist…</div>';$('#activityNotesHistory').innerHTML='<div class="empty-state">Carregando anotações…</div>';try{const [checks]=await Promise.all([apiGet('get_entity_checklists_v7',{tipoEntidade:t.tipoEntidade,entidadeId:t.entidadeId,limit:15}),loadNotesForEntity(t,'activity')]);state.activityChecklists=checks.items||[];renderActivityChecklistForm(t,e,checks.latest||{});}catch(err){console.warn(err);$('#activityChecklistFields').innerHTML='<div class="empty-state full">Não foi possível carregar o checklist.</div>';}}
+/* Checklist da atividade: mesma logica, sem travar a tela na recarga. */
+async function saveActivityChecklist(e){
+  e.preventDefault();
+  const item=state.selectedActivity,t=treatmentForActivity(item);
+  if(!item||!t.entidadeId)return;
+  const payload=collectChecklistPayload($('#activityChecklistFields'),$('#activityChecklistRequestId').value,t,{agendaId:item.agendaId,tipoAtividadeId:item.tipoAtividadeId}),error=validateChecklistPayload(payload);
+  if(error)return toast(error,true);
+  try{
+    await apiPost('save_checklist',payload);
+    toast('Checklist salvo.');
+    loadActivityWorkspace(item).catch(function(){});
+    reloadJourney(t.tipoEntidade).catch(function(){});
+  }catch(err){
+    toast(err.message,true);
+  }
+}
+function openActivityModal(id){const item=(state.agenda.items||[]).find(x=>x.agendaId===id)||state.overdue.find(x=>x.agendaId===id);if(!item)return;state.selectedActivity=item;$('#completeAgendaId').value=id;$('#activityTitle').textContent=item.cliente||'Atividade';$('#activitySummary').innerHTML=[['Tipo',`<span class="material-symbols-rounded inline-icon">${esc(activityIcon(item))}</span>${esc(item.tipoAtividadeNome||item.tipoAtividadeId)}`],['Data',`${fmtDate(item.dataProgramada)} ${fmtTime(item.horaProgramada)}`],['Responsável',esc(item.responsavelNome||'Sem responsável')],['Status',esc(item.statusAtividade||'')]].map(([k,v])=>`<div class="detail-line"><small>${k}</small><strong>${v}</strong></div>`).join('');const results=(state.config&&state.config.resultados)||[];$('#completeResult').innerHTML=results.filter(x=>text(x.TIPO_ATIVIDADE_ID)==='TODOS'||text(x.TIPO_ATIVIDADE_ID)===text(item.tipoAtividadeId)).map(x=>`<option value="${esc(x.RESULTADO_ID)}">${esc(x.NOME_EXIBICAO)}</option>`).join('');$('#completeObs').value='';$('#completeFollowup').value='';$('#activityNoteText').value='';const done=norm(item.statusAtividade)==='concluido';$('#completeActivityBtn').classList.toggle('hidden',done||!can('canCompleteActivities'));$('#cancelActivityBtn').classList.toggle('hidden',done);$('#deleteActivityBtn').classList.toggle('hidden',done);openModal('activityModal');loadActivityWorkspace(item);}
+
+async function completeActivity(e){e.preventDefault();try{await apiPost('complete_atividade',{agendaId:$('#completeAgendaId').value,resultadoId:$('#completeResult').value,observacao:$('#completeObs').value,proximoFollowupEm:$('#completeFollowup').value,responsavelId:ownResponsible()});closeModal('activityModal');toast('Atividade concluída.');bgRefreshAgendaJourney();}catch(err){toast(err.message,true);}}
 /* Cancelar atividade: some da agenda na hora; volta se a gravacao falhar. */
 async function cancelActivity(){
   if(!state.selectedActivity)return;
