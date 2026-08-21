@@ -205,15 +205,15 @@ Cuidados obrigatorios no mapa de payloads:
 - Nao registrar URL completa, ID real, token, senha, credencial, PDF, NF-e ou dado pessoal.
 - Ao revisar logs ou diagnostico, copiar apenas conclusoes anonimas.
 
-## Curva ABC no CRM
+## Aplicativo Curva ABC
 
 Classificação de risco: médio.
 
 Controles aplicados:
 
 - endpoint somente leitura;
-- autenticação herdada do gate já usado pelo CRM;
-- navegação e view limitadas no frontend a perfis com `canViewIndicators`;
+- autenticação herdada do gate central já usado pelo CRM;
+- rota independente `/curva`, sem item de navegação ou alteração funcional no `/crm`;
 - ID da fonte mantido em Script Properties;
 - nenhum ID de planilha ou dado real de cliente incluído no frontend, testes ou documentação;
 - testes usam nomes e valores sintéticos;

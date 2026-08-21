@@ -171,7 +171,7 @@ Commit relacionado: badf763.
 
 ## 2026-08-21 - Fonte adicional da Curva ABC
 
-Mudança sensível: o backend do CRM passa a poder ler uma segunda planilha para consolidar faturamento e quantidade por cliente.
+Mudança sensível: o backend passa a poder ler uma segunda planilha para servir o aplicativo independente Curva ABC.
 
 Riscos:
 
@@ -192,5 +192,5 @@ Controles:
 Reversão:
 
 - remover o roteamento `get_curva_abc_v1` e o arquivo `18_CURVA_ABC_API.js`;
-- remover a view `curva` do frontend;
+- remover a rota `/curva` do frontend;
 - apagar as Script Properties `ABC_*` se não forem mais necessárias.

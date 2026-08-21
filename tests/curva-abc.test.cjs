@@ -28,7 +28,7 @@ const context = {
 vm.createContext(context);
 vm.runInContext(source, context);
 
-const frontendSource = fs.readFileSync(path.join(__dirname, '..', 'frontend', 'crm', 'curva-abc.js'), 'utf8');
+const frontendSource = fs.readFileSync(path.join(__dirname, '..', 'frontend', 'curva', 'curva-abc.js'), 'utf8');
 const frontendContext = {window:{},console,Intl,Number,String,Math,Array,Object,Date};
 vm.createContext(frontendContext);
 vm.runInContext(frontendSource, frontendContext);
@@ -98,7 +98,7 @@ test('valida os quatro cabeçalhos mínimos da fonte RAW',()=>{
 });
 
 test('classifica a evolução mensal e protege o mês parcial',()=>{
-  const classify=frontendContext.window.CrmCurvaABC._test.monthlyMetricState;
+  const classify=frontendContext.window.CurvaABC._test.monthlyMetricState;
   assert.equal(classify(12,10),'up');
   assert.equal(classify(8,10),'down');
   assert.equal(classify(10,10),'stable');

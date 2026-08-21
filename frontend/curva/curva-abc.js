@@ -171,5 +171,5 @@ function compactMoney(v){const n=num(v);if(Math.abs(n)>=1000000)return `R$ ${(n/
 function shortMonth(label){return text(label).slice(0,2);}
 function count(){return(state.data&&state.data.clients||[]).length;}
 
-global.CrmCurvaABC={init,ensureLoaded,refresh,render,count,exportCsv,_state:state,_test:{monthlyMetricState}};
+global.CurvaABC={init,ensureLoaded,refresh,render,count,exportCsv,_state:state,_test:{monthlyMetricState}};
 })(window);

@@ -1,7 +1,7 @@
 /**
  * 18_CURVA_ABC_API.gs
  * ------------------------------------------------------------
- * Fonte de dados da aba Curva ABC do CRM.
+ * Fonte de dados do aplicativo independente Curva ABC.
  *
  * Modo inicial (SNAPSHOT): lê a planilha gerencial já consolidada.
  * Modo futuro (RAW): agrega a base operacional por cliente e mês.

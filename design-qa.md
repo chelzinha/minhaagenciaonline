@@ -4,7 +4,7 @@
 
 - Componente: tabela mensal da view Curva ABC.
 - Referências: `00169de8-66b0-4ed2-bb17-d3e0fb8b09e0.png` e `a1ef5926-2e51-4ea2-ac3e-e360c2672a08.png`.
-- Implementação verificada: `https://deploy-preview-28--agfjb.netlify.app/crm/preview-curva-abc.html`.
+- Implementação verificada: `https://deploy-preview-28--agfjb.netlify.app/curva/preview.html`.
 - Viewport verificado: 1363 × 936.
 
 ## Comparação focada

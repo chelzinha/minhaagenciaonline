@@ -341,20 +341,21 @@ Arquivo alterado:
 
 Este ajuste nao altera Apps Script, dados, regras de carregamento inicial ou layout da Home.
 
-## CRM - View Curva ABC
+## Aplicativo independente Curva ABC
 
 Arquivos:
 
-- `frontend/crm/curva-abc.js`: estado, leitura da API, filtros, indicadores, tabela e CSV.
-- `frontend/crm/curva-abc.css`: layout responsivo e cores da análise.
+- `frontend/curva/index.html`: rota autenticada independente `/curva`.
+- `frontend/curva/app.js`: inicialização, autenticação, atualização e leitura da API.
+- `frontend/curva/curva-abc.js`: estado, filtros, indicadores, tabela e CSV.
+- `frontend/curva/curva-abc.css`: layout responsivo e cores da análise.
 - A tabela compara cada QTD e VALOR ao mês anterior: alta em verde, queda em vermelho claro, estabilidade em azul e ausência de postagem em vermelho escuro com X. O mês parcial é azul para evitar sinal de queda antes do fechamento.
 - O filtro `Status` permite selecionar `NOVO`; o mesmo status aparece como tag azul ao lado do nome do cliente.
-- `frontend/crm/index.html`: view e item de navegação.
 
 Comportamento:
 
-- carrega sob demanda ao abrir `?view=curva`;
-- aparece somente para perfis com `canViewIndicators`;
+- abre diretamente em `/curva`;
+- usa o login central da plataforma e a autorização do aplicativo CRM, sem entrar na navegação do CRM;
 - mantém no DOM somente 25, 50 ou 100 clientes por página;
 - exibe os 12 meses em pares `QTD` e `Valor`;
 - usa fundo `#8F1D1D` nos pares mensais sem postagem;
@@ -362,6 +363,6 @@ Comportamento:
 - permite filtrar e exportar apenas os resultados visíveis no filtro;
 - não incorpora a planilha por iframe e não escreve na fonte.
 
-O módulo é exposto como `window.CrmCurvaABC` para manter a implementação desacoplada do arquivo monolítico `app.js`.
+O módulo é exposto como `window.CurvaABC` e permanece desacoplado do arquivo monolítico do CRM.
 
-Preview sem autenticação e sem dados reais: `frontend/crm/preview-curva-abc.html`.
+Preview sem autenticação e sem dados reais: `frontend/curva/preview.html`.

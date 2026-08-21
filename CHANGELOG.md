@@ -1,9 +1,9 @@
 # Changelog
 
-## 2026-08-21 - Curva ABC integrada ao CRM
+## 2026-08-21 - Aplicativo independente Curva ABC
 
 ### Adicionado
-- Nova view responsiva `Curva ABC` no CRM, sem iframe.
+- Nova aplicação responsiva em `/curva`, sem iframe e sem alterar a navegação do CRM.
 - Dashboard com evolução de faturamento, clientes novos, distribuição A/B/C e indicadores mensais.
 - Filtros, paginação, exportação CSV e tabela com QTD/VALOR dos últimos 12 meses.
 - Comparativo mensal com verde para crescimento, vermelho claro para queda, azul para estabilidade/parcial e vermelho escuro com X quando não houve postagem.
@@ -20,6 +20,7 @@
 ### Segurança e publicação
 - IDs de planilha ficam em Script Properties e não no frontend ou repositório.
 - A mudança foi preparada em branch isolada e não altera a planilha fonte.
+- A rota usa a autenticação já existente, mas permanece independente do `/crm` nesta etapa.
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
