@@ -204,3 +204,20 @@ Cuidados obrigatorios no mapa de payloads:
 - Nao colar resposta integral de Web App.
 - Nao registrar URL completa, ID real, token, senha, credencial, PDF, NF-e ou dado pessoal.
 - Ao revisar logs ou diagnostico, copiar apenas conclusoes anonimas.
+
+## Curva ABC no CRM
+
+Classificação de risco: médio.
+
+Controles aplicados:
+
+- endpoint somente leitura;
+- autenticação herdada do gate já usado pelo CRM;
+- navegação e view limitadas no frontend a perfis com `canViewIndicators`;
+- ID da fonte mantido em Script Properties;
+- nenhum ID de planilha ou dado real de cliente incluído no frontend, testes ou documentação;
+- testes usam nomes e valores sintéticos;
+- CSV é gerado localmente no navegador, sob ação explícita do usuário autenticado;
+- a resposta não inclui linhas operacionais individuais, apenas consolidação mensal por cliente.
+
+Antes de publicar, confirmar que a planilha configurada não possui compartilhamento público indevido e que a conta executora do Apps Script possui apenas os acessos necessários.

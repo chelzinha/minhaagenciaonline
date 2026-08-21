@@ -78,6 +78,9 @@ function op_doGet(e) {
     if (action === 'get_crm_dashboard_v3') {
       return op_jsonOut_(crm3_apiGetDashboard_(p));
     }
+    if (action === 'get_curva_abc_v1') {
+      return op_jsonOut_(abc_apiGetCurva_(p));
+    }
     if (action === 'get_entity_checklists_v7') {
       return op_jsonOut_(crm7_apiGetEntityChecklists_(p));
     }

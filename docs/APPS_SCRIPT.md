@@ -285,3 +285,46 @@ A lista é deduplicada por:
 - Não houve alteração de credenciais.
 - Não houve exposição de tokens, senhas ou chaves.
 - Não houve alteração em CPF, CNPJ ou dados cadastrais.
+
+## Curva ABC - endpoint de leitura
+
+Action GET:
+
+- `get_curva_abc_v1`
+
+Implementação:
+
+- `apps-script/base-metro/18_CURVA_ABC_API.js`
+- roteamento em `apps-script/base-metro/10_OPERACAO_EXECUCAO_API.js`
+
+### Configuração inicial
+
+No projeto Apps Script do CRM, criar as Script Properties:
+
+```text
+ABC_SOURCE_MODE=SNAPSHOT
+ABC_SNAPSHOT_SPREADSHEET_ID=<ID_DA_PLANILHA_GERENCIAL>
+ABC_SNAPSHOT_SHEET=BASE
+```
+
+Também é possível executar uma vez, pelo editor:
+
+```javascript
+abc_configurarFonteSnapshot('ID_DA_PLANILHA_GERENCIAL', 'BASE');
+```
+
+### Migração futura para a base operacional
+
+```text
+ABC_SOURCE_MODE=RAW
+ABC_RAW_SPREADSHEET_ID=<ID_DA_PLANILHA_FONTE>
+ABC_RAW_SHEET=BASE_TOTAL
+```
+
+Ou executar:
+
+```javascript
+abc_configurarFonteRaw('ID_DA_PLANILHA_FONTE', 'BASE_TOTAL');
+```
+
+O modo `RAW` exige `DATA` ou `DATA FORMAT`, `NOME_REMETENTE`, `QTD` e `VALOR`. As demais colunas operacionais são lidas quando presentes. A rota herda o mesmo controle de autenticação do Web App do CRM.

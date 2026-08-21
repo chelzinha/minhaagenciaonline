@@ -340,3 +340,24 @@ Arquivo alterado:
 - `frontend/crm/app.js`
 
 Este ajuste nao altera Apps Script, dados, regras de carregamento inicial ou layout da Home.
+
+## CRM - View Curva ABC
+
+Arquivos:
+
+- `frontend/crm/curva-abc.js`: estado, leitura da API, filtros, indicadores, tabela e CSV.
+- `frontend/crm/curva-abc.css`: layout responsivo e cores da análise.
+- `frontend/crm/index.html`: view e item de navegação.
+
+Comportamento:
+
+- carrega sob demanda ao abrir `?view=curva`;
+- aparece somente para perfis com `canViewIndicators`;
+- mantém no DOM somente 25, 50 ou 100 clientes por página;
+- exibe os 12 meses em pares `QTD` e `Valor`;
+- usa fundo `#8F1D1D` nos pares mensais sem postagem;
+- marca o mês corrente como parcial;
+- permite filtrar e exportar apenas os resultados visíveis no filtro;
+- não incorpora a planilha por iframe e não escreve na fonte.
+
+O módulo é exposto como `window.CrmCurvaABC` para manter a implementação desacoplada do arquivo monolítico `app.js`.

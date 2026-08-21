@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-08-21 - Curva ABC integrada ao CRM
+
+### Adicionado
+- Nova view responsiva `Curva ABC` no CRM, sem iframe.
+- Dashboard com evolução de faturamento, clientes novos, distribuição A/B/C e indicadores mensais.
+- Filtros, paginação, exportação CSV e tabela com QTD/VALOR dos últimos 12 meses.
+- Fundo vermelho escuro para meses sem postagem e aviso de mês atual parcial.
+- Endpoint `get_curva_abc_v1` com fonte `SNAPSHOT` e adaptador futuro `RAW`.
+- Reconhecimento de aliases já consolidados no modo `RAW`.
+
+### Regras
+- A até 80% do faturamento acumulado.
+- B até 95% ou faturamento total mínimo de R$ 5.000.
+- C para os demais clientes.
+- NOVO quando a primeira postagem observada ocorreu a partir de 03/2026.
+
+### Segurança e publicação
+- IDs de planilha ficam em Script Properties e não no frontend ou repositório.
+- A mudança foi preparada em branch isolada e não altera a planilha fonte.
+
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
 ## 2026-08-18 - Acesso ao emissor DC-e

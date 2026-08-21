@@ -15,6 +15,7 @@
   <link rel="manifest" href="/crm/manifest.webmanifest">
   <link rel="stylesheet" href="/shared/ui/agf-ui.css">
   <link rel="stylesheet" href="/crm/styles.css?v=125">
+  <link rel="stylesheet" href="/crm/curva-abc.css?v=1">
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
   <script>window.AGF_ACCESS={roles:['admin','manager','user'],app:'crm'};</script>
@@ -99,6 +100,10 @@
       <div class="agenda-calendar" id="agendaCalendar"></div>
       <article class="surface-card overdue-card"><div class="card-heading"><div><h2><span class="material-symbols-rounded">notification_important</span>Pendências vencidas</h2><p>Atividades planejadas com data anterior a hoje.</p></div></div><div class="list-stack" id="overdueList"></div></article>
     </section>
+
+    <section class="view hidden" data-view="curva" id="view-curva">
+      <div id="curvaAbcRoot" class="abc-root" aria-live="polite"></div>
+    </section>
   </main>
 
   <nav class="crm-bottom-nav" aria-label="Navegação CRM">
@@ -106,6 +111,7 @@
     <button data-nav="prospects"><span class="material-symbols-rounded">explore</span><small>Prospects</small></button>
     <button data-nav="clientes"><span class="material-symbols-rounded">badge</span><small>Clientes</small></button>
     <button data-nav="agenda"><span class="material-symbols-rounded">calendar_month</span><small>Agenda</small></button>
+    <button data-nav="curva"><span class="material-symbols-rounded">leaderboard</span><small>Curva ABC</small></button>
   </nav>
 </div>
 
@@ -128,7 +134,8 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="/crm/config.js?v=82"></script>
-<script src="/crm/app.js?v=132"></script>
+<script src="/crm/curva-abc.js?v=1"></script>
+<script src="/crm/app.js?v=133"></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/crm/sw.js').catch(()=>{}));}</script>
 <script>
 /* Conta do usuário na topbar: avatar com foto, troca de senha e Sair (usa AgfAuth). */
