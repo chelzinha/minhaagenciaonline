@@ -1,4 +1,4 @@
-const CACHE='agf-crm-v86-curva-abc';
+const CACHE='agf-crm-v87-curva-abc-month-states';
 const STATIC=['/crm/','/crm/index.html','/crm/styles.css','/crm/curva-abc.css','/crm/config.js','/crm/curva-abc.js','/crm/app.js','/shared/ui/agf-ui.css','/shared/ui/agf-ui.js','/shared/auth/agf-auth-client.js'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>Promise.all(STATIC.map(u=>c.add(u).catch(()=>{})))));});
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE&&k.startsWith('agf-crm-')).map(k=>caches.delete(k)))),self.clients.claim()])));

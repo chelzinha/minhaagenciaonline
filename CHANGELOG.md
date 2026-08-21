@@ -6,7 +6,8 @@
 - Nova view responsiva `Curva ABC` no CRM, sem iframe.
 - Dashboard com evolução de faturamento, clientes novos, distribuição A/B/C e indicadores mensais.
 - Filtros, paginação, exportação CSV e tabela com QTD/VALOR dos últimos 12 meses.
-- Fundo vermelho escuro para meses sem postagem e aviso de mês atual parcial.
+- Comparativo mensal com verde para crescimento, vermelho claro para queda, azul para estabilidade/parcial e vermelho escuro com X quando não houve postagem.
+- Filtro de status e tag azul `NOVO` ao lado do cliente.
 - Endpoint `get_curva_abc_v1` com fonte `SNAPSHOT` e adaptador futuro `RAW`.
 - Reconhecimento de aliases já consolidados no modo `RAW`.
 

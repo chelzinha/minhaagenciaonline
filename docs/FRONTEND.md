@@ -347,6 +347,8 @@ Arquivos:
 
 - `frontend/crm/curva-abc.js`: estado, leitura da API, filtros, indicadores, tabela e CSV.
 - `frontend/crm/curva-abc.css`: layout responsivo e cores da análise.
+- A tabela compara cada QTD e VALOR ao mês anterior: alta em verde, queda em vermelho claro, estabilidade em azul e ausência de postagem em vermelho escuro com X. O mês parcial é azul para evitar sinal de queda antes do fechamento.
+- O filtro `Status` permite selecionar `NOVO`; o mesmo status aparece como tag azul ao lado do nome do cliente.
 - `frontend/crm/index.html`: view e item de navegação.
 
 Comportamento:

@@ -28,6 +28,11 @@ const context = {
 vm.createContext(context);
 vm.runInContext(source, context);
 
+const frontendSource = fs.readFileSync(path.join(__dirname, '..', 'frontend', 'crm', 'curva-abc.js'), 'utf8');
+const frontendContext = {window:{},console,Intl,Number,String,Math,Array,Object,Date};
+vm.createContext(frontendContext);
+vm.runInContext(frontendSource, frontendContext);
+
 function months(){
   return Array.from({length:12},(_,i)=>{
     const d=new Date(2025,8+i,1);
@@ -90,4 +95,14 @@ test('valida os quatro cabeçalhos mínimos da fonte RAW',()=>{
   assert.doesNotThrow(()=>context.abc_requireRawHeaders_(valid));
   const invalid=context.abc_headerMap_(['DATA','NOME_REMETENTE','VALOR']);
   assert.throws(()=>context.abc_requireRawHeaders_(invalid),/QTD ou QUANTIDADE/);
+});
+
+test('classifica a evolução mensal e protege o mês parcial',()=>{
+  const classify=frontendContext.window.CrmCurvaABC._test.monthlyMetricState;
+  assert.equal(classify(12,10),'up');
+  assert.equal(classify(8,10),'down');
+  assert.equal(classify(10,10),'stable');
+  assert.equal(classify(0,10,{empty:true}),'no-post');
+  assert.equal(classify(4,10,{partial:true}),'stable');
+  assert.equal(classify(4,10,{first:true}),'stable');
 });

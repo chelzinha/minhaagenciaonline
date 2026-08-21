@@ -1,7 +1,7 @@
 (function(global){
 'use strict';
 
-const state={data:null,loading:false,error:'',promise:null,page:1,pageSize:25,sort:'priority',filters:{search:'',curve:'',signal:'',priority:'',intermediary:'',cadastro:''}};
+const state={data:null,loading:false,error:'',promise:null,page:1,pageSize:25,sort:'priority',filters:{search:'',curve:'',status:'',signal:'',priority:'',intermediary:'',cadastro:''}};
 let apiGet=null,notify=()=>{};
 const root=()=>document.getElementById('curvaAbcRoot');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -43,6 +43,7 @@ function filteredClients(){
   const rows=(data.clients||[]).filter(c=>{
     if(f.search&&!norm([c.client,c.fantasy,c.contract,c.intermediary].join(' ')).includes(norm(f.search)))return false;
     if(f.curve&&text(c.curve)!==f.curve)return false;
+    if(f.status&&text(c.status)!==f.status)return false;
     if(f.signal&&text(c.signal)!==f.signal)return false;
     if(f.priority&&text(c.priority)!==f.priority)return false;
     if(f.intermediary&&text(c.intermediary)!==f.intermediary)return false;
@@ -118,25 +119,39 @@ function rulesHtml(data){const r=data.rules||{};return `<article class="surface-
 
 function filtersHtml(data,count){
   const f=state.filters,filters=data.filters||{};
-  return `<section class="abc-filter-card surface-card"><div class="abc-filter-head"><div><strong>Clientes</strong><small>${count.toLocaleString('pt-BR')} resultado(s)</small></div><button class="text-btn" type="button" data-abc-clear>Limpar filtros</button></div><div class="abc-filters"><label class="abc-search"><span class="material-symbols-rounded">search</span><input data-abc-filter="search" value="${esc(f.search)}" placeholder="Buscar cliente, fantasia ou contrato"></label>${selectFilter('curve','Curva',f.curve,filters.curves)}${selectFilter('signal','Sinal comercial',f.signal,filters.signals)}${selectFilter('priority','Prioridade',f.priority,filters.priorities)}${selectFilter('intermediary','Intermediador',f.intermediary,filters.intermediaries)}${selectFilter('cadastro','Cadastro',f.cadastro,filters.cadastroStatuses)}<label><span>Ordenar</span><select data-abc-sort><option value="priority" ${state.sort==='priority'?'selected':''}>Prioridade</option><option value="value" ${state.sort==='value'?'selected':''}>Maior faturamento</option><option value="curve" ${state.sort==='curve'?'selected':''}>Curva</option><option value="client" ${state.sort==='client'?'selected':''}>Cliente A-Z</option></select></label></div></section>`;
+  return `<section class="abc-filter-card surface-card"><div class="abc-filter-head"><div><strong>Clientes</strong><small>${count.toLocaleString('pt-BR')} resultado(s)</small></div><button class="text-btn" type="button" data-abc-clear>Limpar filtros</button></div><div class="abc-filters"><label class="abc-search"><span class="material-symbols-rounded">search</span><input data-abc-filter="search" value="${esc(f.search)}" placeholder="Buscar cliente, fantasia ou contrato"></label>${selectFilter('curve','Curva',f.curve,filters.curves)}${selectFilter('status','Status',f.status,filters.statuses)}${selectFilter('signal','Sinal comercial',f.signal,filters.signals)}${selectFilter('priority','Prioridade',f.priority,filters.priorities)}${selectFilter('intermediary','Intermediador',f.intermediary,filters.intermediaries)}${selectFilter('cadastro','Cadastro',f.cadastro,filters.cadastroStatuses)}<label><span>Ordenar</span><select data-abc-sort><option value="priority" ${state.sort==='priority'?'selected':''}>Prioridade</option><option value="value" ${state.sort==='value'?'selected':''}>Maior faturamento</option><option value="curve" ${state.sort==='curve'?'selected':''}>Curva</option><option value="client" ${state.sort==='client'?'selected':''}>Cliente A-Z</option></select></label></div></section>`;
 }
 function selectFilter(key,label,value,items=[]){return `<label><span>${esc(label)}</span><select data-abc-filter="${esc(key)}"><option value="">Todos</option>${(items||[]).map(x=>`<option value="${esc(x)}" ${text(value)===text(x)?'selected':''}>${esc(x)}</option>`).join('')}</select></label>`;}
 
 function tableHtml(data,rows,total,start,pages){
   const months=(data.period&&data.period.months)||[];
-  return `<article class="surface-card abc-table-card"><div class="abc-table-top"><div><strong>Detalhamento mensal</strong><small>Meses sem postagem aparecem em vermelho escuro.</small></div><label>Linhas <select data-abc-page-size><option ${state.pageSize===25?'selected':''}>25</option><option ${state.pageSize===50?'selected':''}>50</option><option ${state.pageSize===100?'selected':''}>100</option></select></label></div><div class="abc-table-wrap"><table><thead><tr><th rowspan="2" class="abc-sticky-client">Cliente</th><th rowspan="2" class="abc-sticky-curve">Curva</th><th rowspan="2">Status</th><th rowspan="2">Sinal comercial</th><th rowspan="2">Prioridade</th>${months.map(m=>`<th colspan="2" class="abc-month-head${m.partial?' is-partial':''}">${esc(m.label)}${m.partial?'<small>parcial</small>':''}</th>`).join('')}<th rowspan="2">Total 12m</th><th rowspan="2">Ticket</th><th rowspan="2">Intermediador</th><th rowspan="2">Contrato / cartão</th><th rowspan="2">Cadastro / PPN / CWS</th><th rowspan="2">Ação recomendada</th></tr><tr>${months.map(()=>'<th>QTD</th><th>Valor</th>').join('')}</tr></thead><tbody>${rows.length?rows.map(c=>clientRow(c,months)).join(''):`<tr><td colspan="${5+months.length*2+6}" class="abc-empty">Nenhum cliente corresponde aos filtros.</td></tr>`}</tbody></table></div><div class="abc-pagination"><span>${total?`${start+1}-${Math.min(start+state.pageSize,total)} de ${total}`:'0 resultados'}</span><div><button type="button" data-abc-page="prev" ${state.page<=1?'disabled':''}><span class="material-symbols-rounded">chevron_left</span></button><strong>Página ${state.page} de ${pages}</strong><button type="button" data-abc-page="next" ${state.page>=pages?'disabled':''}><span class="material-symbols-rounded">chevron_right</span></button></div></div></article>`;
+  return `<article class="surface-card abc-table-card"><div class="abc-table-top"><div><strong>Detalhamento mensal</strong><small>Verde: cresceu · vermelho claro: diminuiu · azul: estável ou parcial · vermelho escuro: sem postagem.</small></div><label>Linhas <select data-abc-page-size><option ${state.pageSize===25?'selected':''}>25</option><option ${state.pageSize===50?'selected':''}>50</option><option ${state.pageSize===100?'selected':''}>100</option></select></label></div><div class="abc-table-wrap"><table><thead><tr><th rowspan="2" class="abc-sticky-client">Cliente</th><th rowspan="2" class="abc-sticky-curve">Curva</th><th rowspan="2">Status</th><th rowspan="2">Sinal comercial</th><th rowspan="2">Prioridade</th>${months.map(m=>`<th colspan="2" class="abc-month-head${m.partial?' is-partial':''}">${esc(m.label)}${m.partial?'<small>parcial</small>':''}</th>`).join('')}<th rowspan="2">Total 12m</th><th rowspan="2">Ticket</th><th rowspan="2">Intermediador</th><th rowspan="2">Contrato / cartão</th><th rowspan="2">Cadastro / PPN / CWS</th><th rowspan="2">Ação recomendada</th></tr><tr>${months.map(()=>'<th>QTD</th><th>Valor</th>').join('')}</tr></thead><tbody>${rows.length?rows.map(c=>clientRow(c,months)).join(''):`<tr><td colspan="${5+months.length*2+6}" class="abc-empty">Nenhum cliente corresponde aos filtros.</td></tr>`}</tbody></table></div><div class="abc-pagination"><span>${total?`${start+1}-${Math.min(start+state.pageSize,total)} de ${total}`:'0 resultados'}</span><div><button type="button" data-abc-page="prev" ${state.page<=1?'disabled':''}><span class="material-symbols-rounded">chevron_left</span></button><strong>Página ${state.page} de ${pages}</strong><button type="button" data-abc-page="next" ${state.page>=pages?'disabled':''}><span class="material-symbols-rounded">chevron_right</span></button></div></div></article>`;
 }
 function clientRow(c,months){
   const cadastro=[c.cadastroStatus,c.loginPpn?`PPN: ${c.loginPpn}`:'',c.cwsMessage?`CWS: ${c.cwsMessage}`:''].filter(Boolean).join(' · ');
   const contract=[c.contract,c.card].filter(Boolean).join(' · ');
-  return `<tr><td class="abc-sticky-client"><strong>${esc(c.client)}</strong>${c.fantasy?`<small>${esc(c.fantasy)}</small>`:''}</td><td class="abc-sticky-curve"><span class="abc-curve abc-curve-${text(c.curve).toLowerCase()}">${esc(c.curve)}</span></td><td><span class="abc-status">${esc(c.status||'—')}</span></td><td><span class="abc-signal">${esc(c.signal||'—')}</span></td><td><span class="abc-priority abc-priority-${norm(c.priority).replace(/\s+/g,'-')}">${esc(c.priority||'—')}</span></td>${months.map(m=>{const v=c.months&&c.months[m.key]||{};const empty=num(v.qtd)<=0&&num(v.value)<=0;return `<td class="abc-num ${empty?'abc-no-post':''}">${empty?'—':integer(v.qtd)}</td><td class="abc-num ${empty?'abc-no-post':''}">${empty?'—':money(v.value)}</td>`;}).join('')}<td class="abc-num"><strong>${money(c.totals&&c.totals.value)}</strong><small>${integer(c.totals&&c.totals.qtd)} obj.</small></td><td class="abc-num">${money(c.totals&&c.totals.ticket)}</td><td>${esc(c.intermediary||'—')}</td><td>${esc(contract||'—')}</td><td class="abc-long">${esc(cadastro||'—')}</td><td class="abc-action">${esc(c.recommendedAction||'—')}</td></tr>`;
+  const isNew=text(c.status).toUpperCase()==='NOVO';
+  return `<tr><td class="abc-sticky-client"><div class="abc-client-name-line"><strong>${esc(c.client)}</strong>${isNew?'<span class="abc-new-chip">NOVO</span>':''}</div>${c.fantasy?`<small>${esc(c.fantasy)}</small>`:''}</td><td class="abc-sticky-curve"><span class="abc-curve abc-curve-${text(c.curve).toLowerCase()}">${esc(c.curve)}</span></td><td><span class="abc-status">${esc(c.status||'—')}</span></td><td><span class="abc-signal">${esc(c.signal||'—')}</span></td><td><span class="abc-priority abc-priority-${norm(c.priority).replace(/\s+/g,'-')}">${esc(c.priority||'—')}</span></td>${months.map((m,index)=>{const v=c.months&&c.months[m.key]||{};const previous=index>0&&c.months&&c.months[months[index-1].key]||{};const empty=num(v.qtd)<=0&&num(v.value)<=0;return `${monthCell(v.qtd,previous.qtd,{empty,partial:m.partial,first:index===0,format:integer,label:'objetos'})}${monthCell(v.value,previous.value,{empty,partial:m.partial,first:index===0,format:money,label:'faturamento'})}`;}).join('')}<td class="abc-num"><strong>${money(c.totals&&c.totals.value)}</strong><small>${integer(c.totals&&c.totals.qtd)} obj.</small></td><td class="abc-num">${money(c.totals&&c.totals.ticket)}</td><td>${esc(c.intermediary||'—')}</td><td>${esc(contract||'—')}</td><td class="abc-long">${esc(cadastro||'—')}</td><td class="abc-action">${esc(c.recommendedAction||'—')}</td></tr>`;
+}
+
+function monthlyMetricState(value,previous,{empty=false,partial=false,first=false}={}){
+  if(empty)return 'no-post';
+  if(partial||first||num(value)===num(previous))return 'stable';
+  return num(value)>num(previous)?'up':'down';
+}
+function monthCell(value,previous,options={}){
+  const metricState=monthlyMetricState(value,previous,options),formatted=options.format?options.format(value):String(value??'');
+  if(metricState==='no-post')return `<td class="abc-num abc-month-cell abc-no-post" aria-label="Sem postagem"><span class="material-symbols-rounded abc-month-x" aria-hidden="true">close</span></td>`;
+  const icon=metricState==='up'?'arrow_drop_up':metricState==='down'?'arrow_drop_down':'';
+  const comparison=metricState==='stable'?(options.partial?'mês parcial':'estável'):metricState==='up'?'cresceu':'diminuiu';
+  return `<td class="abc-num abc-month-cell abc-month-${metricState}" title="${esc(options.label||'Valor')} ${esc(comparison)}"><span class="abc-month-value">${icon?`<span class="material-symbols-rounded" aria-hidden="true">${icon}</span>`:''}<b>${esc(formatted)}</b></span></td>`;
 }
 
 function bind(){
   const host=root();if(!host)return;
   const retry=host.querySelector('[data-abc-retry]');if(retry)retry.onclick=()=>refresh();
   const exportBtn=host.querySelector('[data-abc-export]');if(exportBtn)exportBtn.onclick=exportCsv;
-  const clear=host.querySelector('[data-abc-clear]');if(clear)clear.onclick=()=>{state.filters={search:'',curve:'',signal:'',priority:'',intermediary:'',cadastro:''};state.page=1;render();};
+  const clear=host.querySelector('[data-abc-clear]');if(clear)clear.onclick=()=>{state.filters={search:'',curve:'',status:'',signal:'',priority:'',intermediary:'',cadastro:''};state.page=1;render();};
   host.querySelectorAll('[data-abc-filter]').forEach(el=>{const event=el.tagName==='INPUT'?'input':'change';el.addEventListener(event,()=>{state.filters[el.dataset.abcFilter]=el.value;state.page=1;render();});});
   const sort=host.querySelector('[data-abc-sort]');if(sort)sort.onchange=()=>{state.sort=sort.value;state.page=1;render();};
   const size=host.querySelector('[data-abc-page-size]');if(size)size.onchange=()=>{state.pageSize=Number(size.value)||25;state.page=1;render();};
@@ -156,5 +171,5 @@ function compactMoney(v){const n=num(v);if(Math.abs(n)>=1000000)return `R$ ${(n/
 function shortMonth(label){return text(label).slice(0,2);}
 function count(){return(state.data&&state.data.clients||[]).length;}
 
-global.CrmCurvaABC={init,ensureLoaded,refresh,render,count,exportCsv,_state:state};
+global.CrmCurvaABC={init,ensureLoaded,refresh,render,count,exportCsv,_state:state,_test:{monthlyMetricState}};
 })(window);
