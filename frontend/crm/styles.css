@@ -2855,3 +2855,11 @@ h1,h2,h3{font-family:Manrope,Inter,sans-serif}
     grid-column:auto;
   }
 }
+
+/* ============================================================
+   Estado "salvando" do card do funil (movimentacao otimista)
+   ============================================================ */
+.deal-card-salvando{opacity:.62;position:relative;pointer-events:none}
+.deal-card-salvando::after{content:"";position:absolute;top:8px;right:8px;width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;opacity:.65;animation:deal-card-girando .7s linear infinite}
+@keyframes deal-card-girando{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.deal-card-salvando::after{animation:none;opacity:.4}}
