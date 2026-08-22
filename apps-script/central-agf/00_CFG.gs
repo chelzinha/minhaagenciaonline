@@ -1,5 +1,5 @@
 const CENTRAL_AGF_CFG = Object.freeze({
-  VERSION: '0.3.0',
+  VERSION: '0.3.1',
   TIMEZONE: 'America/Sao_Paulo',
   PROPS: Object.freeze({
     QUERY_SPREADSHEET_ID: 'CENTRAL_AGF_QUERY_SPREADSHEET_ID',
