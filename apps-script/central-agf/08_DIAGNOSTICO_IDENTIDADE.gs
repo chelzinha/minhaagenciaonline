@@ -125,6 +125,9 @@ function centralAgfGerarDiagnosticoIdentidade() {
 
     const groups = Object.create(null);
     let sourceRows = 0;
+    let eligibleRows = 0;
+    let skippedSpecial = 0;
+    let skippedOtherNoSro = 0;
 
     partitions.forEach(function(partition) {
       const ss = SpreadsheetApp.openById(partition.spreadsheetId);
@@ -133,13 +136,25 @@ function centralAgfGerarDiagnosticoIdentidade() {
       const values = sheet.getDataRange().getValues();
       if (values.length < 2) return;
       const map = centralAgfHeaderMap_(values[0]);
-      ['DATA', 'QTD', 'VALOR', 'NOME_REMETENTE', 'RAZAO_SOCIAL'].forEach(function(name) {
+      ['DATA', 'OBJETO', 'QTD', 'VALOR', 'NOME_REMETENTE', 'RAZAO_SOCIAL'].forEach(function(name) {
         if (map[name] == null) throw new Error('Coluna ' + name + ' ausente em ' + partition.name + '.');
       });
 
       for (let i = 1; i < values.length; i++) {
         const row = values[i];
         sourceRows++;
+
+        const object = centralAgfNormalizeText_(row[map.OBJETO]);
+        if (CENTRAL_AGF_CFG.AUDIT.SPECIAL_OBJECTS.indexOf(object) >= 0) {
+          skippedSpecial++;
+          continue;
+        }
+        if (!CENTRAL_AGF_CFG.AUDIT.SRO_REGEX.test(object)) {
+          skippedOtherNoSro++;
+          continue;
+        }
+        eligibleRows++;
+
         const classified = centralAgfClassificarIdentidade_(row, map);
         const norm = classified.normalizedName || '(SEM_NOME)';
         const key = classified.type + '|' + classified.centerSuggested + '|' + norm;
@@ -238,13 +253,16 @@ function centralAgfGerarDiagnosticoIdentidade() {
     const elapsedMs = Date.now() - startedAt;
     centralAgfSetPanelStatus_(
       'DIAGNOSTICO_IDENTIDADE_PRONTO',
-      items.length + ' candidatos agrupados a partir de ' + sourceRows + ' fatos em ' + Math.round(elapsedMs / 1000) + 's.'
+      items.length + ' candidatos; ' + eligibleRows + ' fatos SRO elegíveis; ' + skippedSpecial + ' especiais excluídos; ' + skippedOtherNoSro + ' outros sem SRO.'
     );
 
     return {
       ok: true,
       candidates: items.length,
       sourceRows: sourceRows,
+      eligibleRows: eligibleRows,
+      skippedSpecial: skippedSpecial,
+      skippedOtherNoSro: skippedOtherNoSro,
       elapsedMs: elapsedMs
     };
   });
