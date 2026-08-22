@@ -117,3 +117,12 @@ test('ordena as colunas mensais e os totalizadores de forma independente',()=>{
   assert.equal(compareColumnValues(a,b,'totalValue','desc')>0,true);
   assert.equal(compareColumnValues(a,b,'client','asc')<0,true);
 });
+
+test('calcula a menor largura padrão sem cortar o maior conteúdo',()=>{
+  const fit=frontendContext.window.CurvaABC._test.fittedColumnWidth;
+  const qtd=fit('QTD',['1','125','12.500'],{min:44,max:82,bodyIcon:true,bodyPadding:8});
+  const value=fit('Valor',['R$ 10,00','R$ 125.000,00'],{min:58,max:118,bodyIcon:true,bodyPadding:8});
+  assert.equal(qtd>=44&&qtd<=82,true);
+  assert.equal(value>=58&&value<=118,true);
+  assert.equal(value>qtd,true);
+});

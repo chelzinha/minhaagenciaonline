@@ -238,3 +238,10 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 ### Escopo
 - Ajuste restrito ao aplicativo independente `/curva`.
 - Nao altera o CRM central, a planilha fonte ou as regras da Curva ABC.
+
+## 2026-08-22 - Autoajuste das colunas da Curva ABC
+
+### Alterado
+- A largura inicial de QTD, Valor e totalizadores passa a considerar o maior conteúdo existente em toda a carteira.
+- Mantidos limites mínimos e máximos para evitar cortes e colunas excessivamente largas.
+- Reiniciada a preferência local de largura para aplicar o novo padrão compacto no preview ainda não publicado.

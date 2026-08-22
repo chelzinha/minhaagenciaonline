@@ -1,7 +1,7 @@
 (function(global){
 'use strict';
 
-const WIDTHS_KEY='curvaAbcColumnWidthsV1';
+const WIDTHS_KEY='curvaAbcColumnWidthsV2';
 const state={data:null,loading:false,error:'',promise:null,page:1,pageSize:25,sort:'priority',columnSort:{key:'',dir:'asc'},columnWidths:readColumnWidths(),filters:{search:'',curve:'',status:'',signal:'',priority:'',intermediary:'',cadastro:''}};
 let apiGet=null,notify=()=>{};
 const root=()=>document.getElementById('curvaAbcRoot');
@@ -155,11 +155,34 @@ function filtersHtml(data,count){
 }
 function selectFilter(key,label,value,items=[]){return `<label><span>${esc(label)}</span><select data-abc-filter="${esc(key)}"><option value="">Todos</option>${(items||[]).map(x=>`<option value="${esc(x)}" ${text(value)===text(x)?'selected':''}>${esc(x)}</option>`).join('')}</select></label>`;}
 
-function tableColumns(months){
+let widthMeasureContext=null;
+function measureTextWidth(value,font='700 9px Arial'){
+  if(typeof document!=='undefined'&&document.createElement){
+    if(!widthMeasureContext)widthMeasureContext=document.createElement('canvas').getContext('2d');
+    if(widthMeasureContext){widthMeasureContext.font=font;return Math.ceil(widthMeasureContext.measureText(text(value)).width);}
+  }
+  return Math.ceil(text(value).length*5.2);
+}
+function fittedColumnWidth(label,values,{min=42,max=180,bodyIcon=false,bodyPadding=14}={}){
+  const headerWidth=measureTextWidth(text(label).toUpperCase(),'850 8px Arial')+13+2+14;
+  const bodyWidth=Math.max(0,...(values||[]).map(value=>measureTextWidth(value,'850 8.5px Arial')))+(bodyIcon?16:0)+bodyPadding;
+  return Math.max(min,Math.min(max,Math.ceil(Math.max(headerWidth,bodyWidth))));
+}
+function tableColumns(months,clients=[]){
+  const monthColumns=months.flatMap(m=>{
+    const values=clients.map(c=>c.months&&c.months[m.key]||{});
+    return [
+      {id:`${m.key}-qtd`,width:fittedColumnWidth('QTD',values.map(v=>integer(v.qtd)),{min:44,max:82,bodyIcon:true,bodyPadding:8})},
+      {id:`${m.key}-value`,width:fittedColumnWidth('Valor',values.map(v=>money(v.value)),{min:58,max:118,bodyIcon:true,bodyPadding:8})}
+    ];
+  });
   return [
     {id:'client',width:210},{id:'curve',width:58},{id:'status',width:88},{id:'signal',width:118},{id:'priority',width:94},
-    ...months.flatMap(m=>[{id:`${m.key}-qtd`,width:54},{id:`${m.key}-value`,width:86}]),
-    {id:'totalQtd',width:82},{id:'totalValue',width:104},{id:'ticket',width:92},{id:'intermediary',width:116},{id:'contract',width:165},{id:'cadastro',width:195},{id:'action',width:230}
+    ...monthColumns,
+    {id:'totalQtd',width:fittedColumnWidth('Total QTD',clients.map(c=>integer(c.totals&&c.totals.qtd)),{min:72,max:100})},
+    {id:'totalValue',width:fittedColumnWidth('Total faturado',clients.map(c=>money(c.totals&&c.totals.value)),{min:96,max:132})},
+    {id:'ticket',width:fittedColumnWidth('Ticket',clients.map(c=>money(c.totals&&c.totals.ticket)),{min:72,max:110})},
+    {id:'intermediary',width:116},{id:'contract',width:165},{id:'cadastro',width:195},{id:'action',width:230}
   ];
 }
 function columnWidth(id,fallback){return Math.max(42,Math.min(520,num(state.columnWidths[id])||fallback));}
@@ -172,8 +195,8 @@ function sortableHeader(label,key,id,extra=''){
 }
 function tableHtml(data,rows,total,start,pages){
   const months=(data.period&&data.period.months)||[];
-  const columns=tableColumns(months),clientWidth=columnWidth('client',210);
-  return `<article class="surface-card abc-table-card"><div class="abc-table-top"><div><strong>Detalhamento mensal</strong><small>Clique no cabeçalho para ordenar. Arraste a divisória para ajustar a largura. Verde: cresceu · vermelho claro: diminuiu · azul: estável ou parcial · vermelho escuro: sem postagem.</small></div><label>Linhas <select data-abc-page-size><option ${state.pageSize===25?'selected':''}>25</option><option ${state.pageSize===50?'selected':''}>50</option><option ${state.pageSize===100?'selected':''}>100</option></select></label></div><div class="abc-table-wrap"><table style="--abc-client-width:${clientWidth}px"><colgroup>${columns.map(c=>`<col data-abc-col="${esc(c.id)}" style="width:${columnWidth(c.id,c.width)}px">`).join('')}</colgroup><thead><tr>${sortableHeader('Cliente','client','client','rowspan="2"')}${sortableHeader('Curva','curve','curve','rowspan="2"')}${sortableHeader('Status','status','status','rowspan="2"')}${sortableHeader('Sinal comercial','signal','signal','rowspan="2"')}${sortableHeader('Prioridade','priority','priority','rowspan="2"')}${months.map(m=>`<th colspan="2" class="abc-month-head${m.partial?' is-partial':''}">${esc(m.label)}${m.partial?'<small>parcial</small>':''}</th>`).join('')}${sortableHeader('Total QTD','totalQtd','totalQtd','rowspan="2"')}${sortableHeader('Total faturado','totalValue','totalValue','rowspan="2"')}${sortableHeader('Ticket','ticket','ticket','rowspan="2"')}${sortableHeader('Intermediador','intermediary','intermediary','rowspan="2"')}${sortableHeader('Contrato / cartão','contract','contract','rowspan="2"')}${sortableHeader('Cadastro / PPN / CWS','cadastro','cadastro','rowspan="2"')}${sortableHeader('Ação recomendada','action','action','rowspan="2"')}</tr><tr>${months.map(m=>`${sortableHeader('QTD',`month:${m.key}:qtd`,`${m.key}-qtd`)}${sortableHeader('Valor',`month:${m.key}:value`,`${m.key}-value`)}`).join('')}</tr></thead><tbody>${rows.length?rows.map(c=>clientRow(c,months)).join(''):`<tr><td colspan="${5+months.length*2+7}" class="abc-empty">Nenhum cliente corresponde aos filtros.</td></tr>`}</tbody></table></div><div class="abc-pagination"><span>${total?`${start+1}-${Math.min(start+state.pageSize,total)} de ${total}`:'0 resultados'}</span><div><button type="button" data-abc-page="prev" ${state.page<=1?'disabled':''}><span class="material-symbols-rounded">chevron_left</span></button><strong>Página ${state.page} de ${pages}</strong><button type="button" data-abc-page="next" ${state.page>=pages?'disabled':''}><span class="material-symbols-rounded">chevron_right</span></button></div></div></article>`;
+  const columns=tableColumns(months,data.clients||[]),clientWidth=columnWidth('client',210);
+  return `<article class="surface-card abc-table-card"><div class="abc-table-top"><div><strong>Detalhamento mensal</strong><small>Largura inicial ajustada ao conteúdo. Clique no cabeçalho para ordenar e arraste a divisória para redimensionar. Verde: cresceu · vermelho claro: diminuiu · azul: estável ou parcial · vermelho escuro: sem postagem.</small></div><label>Linhas <select data-abc-page-size><option ${state.pageSize===25?'selected':''}>25</option><option ${state.pageSize===50?'selected':''}>50</option><option ${state.pageSize===100?'selected':''}>100</option></select></label></div><div class="abc-table-wrap"><table style="--abc-client-width:${clientWidth}px"><colgroup>${columns.map(c=>`<col data-abc-col="${esc(c.id)}" style="width:${columnWidth(c.id,c.width)}px">`).join('')}</colgroup><thead><tr>${sortableHeader('Cliente','client','client','rowspan="2"')}${sortableHeader('Curva','curve','curve','rowspan="2"')}${sortableHeader('Status','status','status','rowspan="2"')}${sortableHeader('Sinal comercial','signal','signal','rowspan="2"')}${sortableHeader('Prioridade','priority','priority','rowspan="2"')}${months.map(m=>`<th colspan="2" class="abc-month-head${m.partial?' is-partial':''}">${esc(m.label)}${m.partial?'<small>parcial</small>':''}</th>`).join('')}${sortableHeader('Total QTD','totalQtd','totalQtd','rowspan="2"')}${sortableHeader('Total faturado','totalValue','totalValue','rowspan="2"')}${sortableHeader('Ticket','ticket','ticket','rowspan="2"')}${sortableHeader('Intermediador','intermediary','intermediary','rowspan="2"')}${sortableHeader('Contrato / cartão','contract','contract','rowspan="2"')}${sortableHeader('Cadastro / PPN / CWS','cadastro','cadastro','rowspan="2"')}${sortableHeader('Ação recomendada','action','action','rowspan="2"')}</tr><tr>${months.map(m=>`${sortableHeader('QTD',`month:${m.key}:qtd`,`${m.key}-qtd`)}${sortableHeader('Valor',`month:${m.key}:value`,`${m.key}-value`)}`).join('')}</tr></thead><tbody>${rows.length?rows.map(c=>clientRow(c,months)).join(''):`<tr><td colspan="${5+months.length*2+7}" class="abc-empty">Nenhum cliente corresponde aos filtros.</td></tr>`}</tbody></table></div><div class="abc-pagination"><span>${total?`${start+1}-${Math.min(start+state.pageSize,total)} de ${total}`:'0 resultados'}</span><div><button type="button" data-abc-page="prev" ${state.page<=1?'disabled':''}><span class="material-symbols-rounded">chevron_left</span></button><strong>Página ${state.page} de ${pages}</strong><button type="button" data-abc-page="next" ${state.page>=pages?'disabled':''}><span class="material-symbols-rounded">chevron_right</span></button></div></div></article>`;
 }
 function clientRow(c,months){
   const cadastro=[c.cadastroStatus,c.loginPpn?`PPN: ${c.loginPpn}`:'',c.cwsMessage?`CWS: ${c.cwsMessage}`:''].filter(Boolean).join(' · ');
@@ -250,5 +273,5 @@ function compactMoney(v){const n=num(v);if(Math.abs(n)>=1000000)return `R$ ${(n/
 function shortMonth(label){return text(label).slice(0,2);}
 function count(){return(state.data&&state.data.clients||[]).length;}
 
-global.CurvaABC={init,ensureLoaded,refresh,render,count,exportCsv,_state:state,_test:{monthlyMetricState,columnSortValue,compareColumnValues}};
+global.CurvaABC={init,ensureLoaded,refresh,render,count,exportCsv,_state:state,_test:{monthlyMetricState,columnSortValue,compareColumnValues,fittedColumnWidth}};
 })(window);
