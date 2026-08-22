@@ -4,7 +4,7 @@
 
 Estrutura inicial criada em homologacao em 2026-08-22. Nenhuma planilha atual de producao foi desativada ou alterada por esta etapa.
 
-Motor de homologacao atual: `v0.3.0`, na branch `feat/central-agf-motor-v1`.
+Motor de homologacao atual: `v0.3.1`, na branch `feat/central-agf-motor-v1`.
 
 ## Objetivo
 
@@ -25,6 +25,7 @@ Separar o processamento de postagens, o cadastro mestre de clientes, o historico
 - O Consolidador continua sendo a referencia da quantidade de linhas e do faturamento do processamento diario.
 - O Atende enriquece registros rastreaveis pelo codigo SRO.
 - `SEM_REGISTRO` e `PRODUTO_ECT` permanecem fatos validos; podem ter quantidade, valor e razao social, mesmo sem SRO real.
+- `SEM_REGISTRO`, `PRODUTO_ECT` e outros fatos sem SRO real nao entram na identificacao nem na contagem de clientes; continuam integralmente no faturamento e historico.
 - O historico mensal nao deve recalcular nem inventar identidade de cliente.
 - Campos finais de `CLIENTE_ID`, `CENTRO_ID_FINAL` e `LOCAL_ID_FINAL` permanecem pendentes ate a homologacao do Cadastro Mestre.
 - Cadastro confirmado manualmente deve vencer fallbacks automaticos.
@@ -60,10 +61,12 @@ Depois do historico homologado, `centralAgfGerarDiagnosticoIdentidade()` gera a 
 
 Objetivo: transformar 150k+ fatos em um inventario menor de candidatos de identidade, variantes e excecoes sem criar `CLIENTE_ID` automaticamente.
 
+**Elegibilidade:** somente fatos com SRO real entram como evidencia/candidato de cliente. Linhas `SEM_REGISTRO`, `PRODUTO_ECT` e outros registros sem SRO permanecem na base financeira, mas sao ignoradas nessa etapa de identidade.
+
 Regras preliminares documentadas:
 
-- `RAZAO_SOCIAL = BALCÃO`: tratar como carteira AGF Balcao e diagnosticar `NOME_REMETENTE`.
-- `RAZAO_SOCIAL = GAS SHOPPING METRO`: contexto forte Metro e diagnostico por `NOME_REMETENTE`.
+- `RAZAO_SOCIAL = BALCÃO`: tratar como carteira AGF Balcao e diagnosticar `NOME_REMETENTE`, desde que exista SRO real.
+- `RAZAO_SOCIAL = GAS SHOPPING METRO`: contexto forte Metro e diagnostico por `NOME_REMETENTE`, desde que exista SRO real.
 - Cliente AGF fora do Balcao: identidade preliminar baseada em `RAZAO_SOCIAL`.
 - Cliente Metro: identidade preliminar baseada em `NOME_REMETENTE`.
 - Centro observado no historico fora dessas regras e apenas evidencia provisoria; nao substitui Cadastro Mestre confirmado.
