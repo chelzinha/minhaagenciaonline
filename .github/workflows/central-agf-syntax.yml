@@ -1,0 +1,32 @@
+name: Central AGF syntax
+
+on:
+  pull_request:
+    paths:
+      - 'apps-script/central-agf/**'
+      - '.github/workflows/central-agf-syntax.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Apps Script JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/central-agf-js
+          while IFS= read -r -d '' file; do
+            target="/tmp/central-agf-js/$(basename "$file").js"
+            cp "$file" "$target"
+            node --check "$target"
+          done < <(find apps-script/central-agf -maxdepth 1 -type f -name '*.gs' -print0 | sort -z)
+
+      - name: Validate manifest JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('apps-script/central-agf/appsscript.json','utf8')); console.log('manifest ok')"
