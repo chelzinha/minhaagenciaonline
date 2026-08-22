@@ -15,6 +15,11 @@ function centralAgfMesmoDia_(a, b) {
   return centralAgfDateKey_(a) === centralAgfDateKey_(b);
 }
 
+/**
+ * Audita a copia mensal derivada do legado contra o catalogo atual.
+ * IMPORTANTE: isto NAO comprova reconciliacao contra os arquivos fonte
+ * do Consolidador. A reconciliacao da fonte vive em 09_RECONCILIACAO_FONTES.
+ */
 function centralAgfValidarHistorico() {
   return centralAgfWithScriptLock_(function() {
     const startedAt = Date.now();
@@ -26,15 +31,21 @@ function centralAgfValidarHistorico() {
     const target = querySs.getSheetByName(CENTRAL_AGF_CFG.SHEETS.HOMOLOGATION);
     if (!target) throw new Error('Aba não encontrada: ' + CENTRAL_AGF_CFG.SHEETS.HOMOLOGATION);
 
-    centralAgfSetPanelStatus_('AUDITANDO_HISTORICO', partitions.length + ' partições.');
+    centralAgfSetPanelStatus_('AUDITANDO_PARTICOES_LEGADO', partitions.length + ' partições.');
 
     const sroOwner = Object.create(null);
     const fatoOwner = Object.create(null);
     const results = [];
     let totalRows = 0;
     let totalBilling = 0;
-    let totalSpecial = 0;
+    let totalSemRegistro = 0;
+    let totalProdutoEct = 0;
     let totalOtherNoSro = 0;
+    let totalSro = 0;
+    let totalDupSroLocal = 0;
+    let totalDupSroCrossLater = 0;
+    let totalDupFatoLocal = 0;
+    let totalDupFatoCrossLater = 0;
 
     partitions.forEach(function(partition, partitionIndex) {
       const sourceSs = SpreadsheetApp.openById(partition.spreadsheetId);
@@ -92,11 +103,11 @@ function centralAgfValidarHistorico() {
           }
           if (sroOwner[object] != null && sroOwner[object] !== partitionIndex) {
             result.dupSroCross++;
-            results[sroOwner[object]].dupSroCross++;
+            totalDupSroCrossLater++;
           } else if (sroOwner[object] == null) {
             sroOwner[object] = partitionIndex;
           }
-        } else {
+        } else if (object) {
           result.otherNoSro++;
         }
 
@@ -110,7 +121,7 @@ function centralAgfValidarHistorico() {
             }
             if (fatoOwner[fatoId] != null && fatoOwner[fatoId] !== partitionIndex) {
               result.dupFatoCross++;
-              results[fatoOwner[fatoId]].dupFatoCross++;
+              totalDupFatoCrossLater++;
             } else if (fatoOwner[fatoId] == null) {
               fatoOwner[fatoId] = partitionIndex;
             }
@@ -120,8 +131,12 @@ function centralAgfValidarHistorico() {
 
       totalRows += result.rowsReal;
       totalBilling += result.billingReal;
-      totalSpecial += result.semRegistro + result.produtoEct;
+      totalSemRegistro += result.semRegistro;
+      totalProdutoEct += result.produtoEct;
       totalOtherNoSro += result.otherNoSro;
+      totalSro += result.realSro;
+      totalDupSroLocal += result.dupSroLocal;
+      totalDupFatoLocal += result.dupFatoLocal;
     });
 
     const headerOut = [
@@ -136,7 +151,7 @@ function centralAgfValidarHistorico() {
     ];
 
     const out = [headerOut];
-    let okCount = 0;
+    let legacyOkCount = 0;
     let alertCount = 0;
 
     results.forEach(function(r) {
@@ -145,15 +160,16 @@ function centralAgfValidarHistorico() {
       const billingDiff = p.billing == null ? 0 : Math.round((r.billingReal - Number(p.billing)) * 100) / 100;
       const billingOk = p.billing == null || Math.abs(billingDiff) <= CENTRAL_AGF_CFG.AUDIT.BILLING_TOLERANCE;
       const periodOk = centralAgfMesmoDia_(p.start, r.minDate) && centralAgfMesmoDia_(p.end, r.maxDate);
-      const identityOk = r.dupSroLocal === 0 && r.dupSroCross === 0 && r.dupFatoLocal === 0 && r.dupFatoCross === 0;
-      const generalOk = rowsOk && billingOk && periodOk && identityOk;
+      const duplicateAlert = r.dupSroLocal > 0 || r.dupSroCross > 0 || r.dupFatoLocal > 0 || r.dupFatoCross > 0;
+      const legacyOk = rowsOk && billingOk && periodOk && !duplicateAlert;
 
-      if (generalOk) okCount++; else alertCount++;
-      if (!rowsOk) r.notes.push('contagem diferente do catálogo');
-      if (!billingOk) r.notes.push('faturamento diferente do catálogo');
-      if (!periodOk) r.notes.push('período real diferente do catálogo');
-      if (!identityOk) r.notes.push('duplicidade técnica/SRO detectada');
+      if (legacyOk) legacyOkCount++; else alertCount++;
+      if (!rowsOk) r.notes.push('contagem diferente do catálogo legado');
+      if (!billingOk) r.notes.push('faturamento diferente do catálogo legado');
+      if (!periodOk) r.notes.push('período real diferente do catálogo legado');
+      if (duplicateAlert) r.notes.push('SRO/FATO_ID repetido: preservar fatos e reconciliar com fonte; não deduplicar automaticamente');
       if (r.otherNoSro) r.notes.push(r.otherNoSro + ' objetos sem padrão SRO/especial');
+      if (legacyOk) r.notes.push('cópia interna consistente; reconciliação com Consolidador ainda é etapa separada');
 
       out.push([
         p.anoMes, p.name,
@@ -163,7 +179,7 @@ function centralAgfValidarHistorico() {
         r.realSro, r.dupSroLocal, r.dupSroCross,
         r.dupFatoLocal, r.dupFatoCross,
         r.semRegistro, r.produtoEct, r.otherNoSro,
-        generalOk ? 'OK' : 'REVISAR', r.notes.join('; ')
+        legacyOk ? 'OK_LEGADO' : 'REVISAR', r.notes.join('; ')
       ]);
     });
 
@@ -172,9 +188,11 @@ function centralAgfValidarHistorico() {
       '', totalRows, '',
       '', Math.round(totalBilling * 100) / 100, '', '',
       '', '', '', '', '',
-      '', '', '', '', '',
-      '', totalSpecial, totalOtherNoSro,
-      alertCount === 0 ? 'OK' : 'REVISAR', okCount + ' partições OK; ' + alertCount + ' com alerta.'
+      totalSro, totalDupSroLocal, totalDupSroCrossLater,
+      totalDupFatoLocal, totalDupFatoCrossLater,
+      totalSemRegistro, totalProdutoEct, totalOtherNoSro,
+      alertCount === 0 ? 'OK_LEGADO' : 'REVISAR',
+      legacyOkCount + ' partições internamente consistentes; ' + alertCount + ' com alerta. Fonte Consolidador deve ser reconciliada em 09_RECONCILIACAO_FONTES.'
     ]);
 
     target.clearContents();
@@ -190,12 +208,13 @@ function centralAgfValidarHistorico() {
 
     const elapsedMs = Date.now() - startedAt;
     centralAgfSetPanelStatus_(
-      alertCount === 0 ? 'HISTORICO_HOMOLOGADO' : 'HISTORICO_COM_ALERTAS',
-      totalRows + ' fatos auditados em ' + Math.round(elapsedMs / 1000) + 's; ' + alertCount + ' partições com alerta.'
+      alertCount === 0 ? 'PARTICOES_LEGADO_AUDITADAS' : 'PARTICOES_LEGADO_COM_ALERTAS',
+      totalRows + ' fatos auditados em ' + Math.round(elapsedMs / 1000) + 's; ' + alertCount + ' partições com alerta. Reconciliação de fonte continua obrigatória.'
     );
 
     return {
-      ok: alertCount === 0,
+      okLegacy: alertCount === 0,
+      sourceReconciled: false,
       partitions: partitions.length,
       rows: totalRows,
       billing: Math.round(totalBilling * 100) / 100,
