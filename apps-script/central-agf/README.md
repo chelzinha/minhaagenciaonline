@@ -2,7 +2,7 @@
 
 Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS`.
 
-## Escopo atual - v0.3.0
+## Escopo atual - v0.3.1
 
 - Descobrir por nome, uma unica vez, as planilhas tecnicas e salvar seus IDs em Script Properties.
 - Sincronizar o catalogo de particoes mensais a partir de `CONTROLE_CARGAS_POSTAGENS!03_PARTICOES`.
@@ -29,7 +29,9 @@ O resultado e gravado em `07_HOMOLOGACAO`. A auditoria e somente leitura sobre o
 
 A funcao `centralAgfGerarDiagnosticoIdentidade()` so executa depois de todas as particoes estarem homologadas.
 
-Ela le os fatos e grava uma visao rebuildable em `CADASTRO_MESTRE_CLIENTES!13_DIAGNOSTICO_IDENTIDADE`, agrupando candidatos por regras preliminares:
+Somente fatos com **SRO real** entram no diagnostico de candidatos a cliente. `SEM_REGISTRO`, `PRODUTO_ECT` e outros registros sem SRO continuam integralmente preservados no faturamento/historico, mas ficam fora da identificacao e contagem de clientes.
+
+A rotina grava uma visao rebuildable em `CADASTRO_MESTRE_CLIENTES!13_DIAGNOSTICO_IDENTIDADE`, agrupando candidatos por regras preliminares:
 
 - `RAZAO_SOCIAL = BALCÃO` -> candidato AGF Balcao baseado em `NOME_REMETENTE`;
 - `RAZAO_SOCIAL = GAS SHOPPING METRO` -> candidato Metro baseado em `NOME_REMETENTE`;
