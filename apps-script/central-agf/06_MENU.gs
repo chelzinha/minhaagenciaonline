@@ -4,6 +4,7 @@ function onOpen() {
       .createMenu('CENTRAL AGF')
       .addItem('Configurar ambiente', 'centralAgfAutoConfigurar')
       .addItem('Sincronizar catálogo de partições', 'centralAgfSincronizarCatalogoParticoes')
+      .addItem('Auditar histórico mensal', 'centralAgfValidarHistorico')
       .addSeparator()
       .addItem('Atualizar visão conforme parâmetros', 'centralAgfAtualizarVisao')
       .addItem('Materializar todas as postagens filtradas', 'centralAgfMaterializarPostagens')
