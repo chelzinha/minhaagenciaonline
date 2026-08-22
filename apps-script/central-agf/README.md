@@ -2,13 +2,14 @@
 
 Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS`.
 
-## Escopo atual - v0.2.0
+## Escopo atual - v0.3.0
 
 - Descobrir por nome, uma unica vez, as planilhas tecnicas e salvar seus IDs em Script Properties.
 - Sincronizar o catalogo de particoes mensais a partir de `CONTROLE_CARGAS_POSTAGENS!03_PARTICOES`.
 - Auditar as particoes historicas antes de qualquer substituicao da producao.
 - Materializar, sob demanda, todos os fatos de um periodo em `03_POSTAGENS`, preservando todas as colunas.
 - Permitir filtros por periodo, centro, local, cliente e grupo analitico.
+- Gerar um diagnostico derivado de identidade no Cadastro Mestre sem alterar fatos nem criar clientes automaticamente.
 - Materializar `01_CLIENTES_MASTER` em `02_CLIENTES` quando o cadastro estiver pronto.
 
 ## Auditoria historica
@@ -24,11 +25,26 @@ A funcao `centralAgfValidarHistorico()` valida, para cada particao:
 
 O resultado e gravado em `07_HOMOLOGACAO`. A auditoria e somente leitura sobre os fatos mensais.
 
+## Diagnostico de identidade
+
+A funcao `centralAgfGerarDiagnosticoIdentidade()` so executa depois de todas as particoes estarem homologadas.
+
+Ela le os fatos e grava uma visao rebuildable em `CADASTRO_MESTRE_CLIENTES!13_DIAGNOSTICO_IDENTIDADE`, agrupando candidatos por regras preliminares:
+
+- `RAZAO_SOCIAL = BALCÃO` -> candidato AGF Balcao baseado em `NOME_REMETENTE`;
+- `RAZAO_SOCIAL = GAS SHOPPING METRO` -> candidato Metro baseado em `NOME_REMETENTE`;
+- AGF fora do Balcao -> candidato baseado em `RAZAO_SOCIAL`;
+- Metro -> candidato baseado em `NOME_REMETENTE`;
+- casos sem regra forte -> `INDEFINIDO` para revisao.
+
+A aba diagnostica variantes de nome, volume, faturamento, primeira/ultima postagem, centros/locais/atendentes observados. Ela nao grava `CLIENTE_ID`, nao corrige Centro/Local e nao vira fonte de verdade.
+
 ## Nao faz nesta versao
 
 - Nao altera APP MODELO_AGF atual.
 - Nao processa Atende + Consolidador.
-- Nao resolve aliases/identidade.
+- Nao resolve aliases automaticamente.
+- Nao cria Cliente Master automaticamente.
 - Nao altera Centro/Local no historico.
 - Nao publica nada em producao.
 
@@ -54,6 +70,8 @@ Datas em branco significam todo o historico disponivel.
 4. Materializar primeiro um unico mes.
 5. Comparar linhas e faturamento.
 6. Somente depois testar periodo total.
+7. Com o historico homologado, executar `centralAgfGerarDiagnosticoIdentidade()`.
+8. Usar o diagnostico para definir a migracao do Cadastro Mestre, sem editar os fatos mensais.
 
 ## Seguranca
 
