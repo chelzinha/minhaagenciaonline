@@ -5,6 +5,7 @@
   "description": "Projeto tecnico da Plataforma Digital AGF Jose Bonifacio",
   "scripts": {
     "start": "netlify dev",
-    "preview": "netlify dev"
+    "preview": "netlify dev",
+    "test": "node --test tests/*.test.cjs"
   }
 }

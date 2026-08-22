@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-08-21 - Aplicativo independente Curva ABC
+
+### Adicionado
+- Nova aplicação responsiva em `/curva`, sem iframe e sem alterar a navegação do CRM.
+- Dashboard com evolução de faturamento, clientes novos, distribuição A/B/C e indicadores mensais.
+- Filtros, paginação, exportação CSV e tabela com QTD/VALOR dos últimos 12 meses.
+- Comparativo mensal com verde para crescimento, vermelho claro para queda, azul para estabilidade/parcial e vermelho escuro com X quando não houve postagem.
+- Filtro de status e tag azul `NOVO` ao lado do cliente.
+- Endpoint `get_curva_abc_v1` com fonte `SNAPSHOT` e adaptador futuro `RAW`.
+- Reconhecimento de aliases já consolidados no modo `RAW`.
+
+### Regras
+- A até 80% do faturamento acumulado.
+- B até 95% ou faturamento total mínimo de R$ 5.000.
+- C para os demais clientes.
+- NOVO quando a primeira postagem observada ocorreu a partir de 03/2026.
+
+### Segurança e publicação
+- IDs de planilha ficam em Script Properties e não no frontend ou repositório.
+- A mudança foi preparada em branch isolada e não altera a planilha fonte.
+- A rota usa a autenticação já existente, mas permanece independente do `/crm` nesta etapa.
+
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
 ## 2026-08-18 - Acesso ao emissor DC-e
@@ -204,3 +226,22 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 ### Escopo
 - Ajuste isolado em `frontend/crm/app.js`.
 - Nao altera backend, Apps Script, dados, layout da Home ou performance inicial.
+
+## 2026-08-21 - Curva ABC com tabela interativa
+
+### Alterado
+- Reduzida a largura inicial das colunas mensais de quantidade e faturamento.
+- Adicionado redimensionamento manual das colunas pelo cabeçalho, com persistência local.
+- Adicionada ordenação crescente e decrescente ao clicar nos cabeçalhos.
+- Separados os totalizadores de quantidade de objetos e valor faturado.
+
+### Escopo
+- Ajuste restrito ao aplicativo independente `/curva`.
+- Nao altera o CRM central, a planilha fonte ou as regras da Curva ABC.
+
+## 2026-08-22 - Autoajuste das colunas da Curva ABC
+
+### Alterado
+- A largura inicial de QTD, Valor e totalizadores passa a considerar o maior conteúdo existente em toda a carteira.
+- Mantidos limites mínimos e máximos para evitar cortes e colunas excessivamente largas.
+- Reiniciada a preferência local de largura para aplicar o novo padrão compacto no preview ainda não publicado.

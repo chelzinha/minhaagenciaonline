@@ -195,3 +195,34 @@ Riscos se payload ou resposta mudar:
 
 Regra de documentacao:
 - Qualquer mudanca futura em action, payload, resposta, aba ou cabecalho deve atualizar este documento e o mapa de actions em docs/APPS_SCRIPT.md.
+
+## Fonte da Curva ABC
+
+### Modo SNAPSHOT
+
+- Planilha gerencial configurada por `ABC_SNAPSHOT_SPREADSHEET_ID`.
+- Aba padrão: `BASE`.
+- Cabeçalho mensal em três linhas, com pares `QTD` e `VALOR`.
+- Leitura somente dos 12 meses mais recentes.
+- A planilha não é editada pelo endpoint.
+
+### Modo RAW
+
+O adaptador aceita a estrutura operacional abaixo e agrega por cliente e mês:
+
+`DATA`, `DATA FORMAT`, `ANO`, `MÊS`, `DIA`, `OBJETO`, `CODIGO_ECT`, `NOME_SERVICO`, `CATEGORIA`, `SEGMENTO`, `TIPO_SERVICO`, `CX_PREFIXO`, `USUARIO_PADRAO`, `CENTRO_NOME`, `LOCAL`, `GRUPO`, `NUMERO_CONTRATO`, `CARTAO_POSTAGEM`, `ETIQUETA_CONTRATO`, `IF ETIQUETA`, `INTERMEDIADOR`, `NOME_REMETENTE`, `RAZAO_SOCIAL`, `QTD`, `VALOR` e `AD_CODIGO`.
+
+Campos mínimos: data, nome do remetente, quantidade e valor.
+
+### Consolidação de clientes
+
+No modo `RAW`, `CLIENTES_ALIAS` resolve o nome original para `CLIENTE_ID`. O nome final vem de `CLIENTES_MASTER`. Assim, duas ou mais linhas já mescladas entram no mesmo cliente consolidado antes do cálculo mensal.
+
+### Regras de negócio
+
+- janela: mês corrente e 11 meses anteriores;
+- A: participação acumulada até 80%;
+- B: participação acumulada até 95% ou total de pelo menos R$ 5.000;
+- C: demais clientes;
+- NOVO: primeira postagem observada a partir de 03/2026;
+- mês corrente: parcial enquanto não estiver encerrado.

@@ -340,3 +340,32 @@ Arquivo alterado:
 - `frontend/crm/app.js`
 
 Este ajuste nao altera Apps Script, dados, regras de carregamento inicial ou layout da Home.
+
+## Aplicativo independente Curva ABC
+
+Arquivos:
+
+- `frontend/curva/index.html`: rota autenticada independente `/curva`.
+- `frontend/curva/app.js`: inicialização, autenticação, atualização e leitura da API.
+- `frontend/curva/curva-abc.js`: estado, filtros, indicadores, tabela e CSV.
+- `frontend/curva/curva-abc.css`: layout responsivo e cores da análise.
+- A tabela compara cada QTD e VALOR ao mês anterior: alta em verde, queda em vermelho claro, estabilidade em azul e ausência de postagem em vermelho escuro com X. O mês parcial é azul para evitar sinal de queda antes do fechamento.
+- O filtro `Status` permite selecionar `NOVO`; o mesmo status aparece como tag azul ao lado do nome do cliente.
+
+Comportamento:
+
+- abre diretamente em `/curva`;
+- usa o login central da plataforma e a autorização do aplicativo CRM, sem entrar na navegação do CRM;
+- mantém no DOM somente 25, 50 ou 100 clientes por página;
+- exibe os 12 meses em pares `QTD` e `Valor`;
+- calcula a menor largura inicial das colunas mensais a partir do maior conteúdo da carteira e permite redimensioná-las pelo cabeçalho, com persistência da preferência no navegador;
+- permite ordenar A-Z, Z-A, crescente ou decrescente ao clicar em qualquer cabeçalho;
+- separa os totalizadores em `Total QTD` e `Total faturado`;
+- usa fundo `#8F1D1D` nos pares mensais sem postagem;
+- marca o mês corrente como parcial;
+- permite filtrar e exportar apenas os resultados visíveis no filtro;
+- não incorpora a planilha por iframe e não escreve na fonte.
+
+O módulo é exposto como `window.CurvaABC` e permanece desacoplado do arquivo monolítico do CRM.
+
+Preview sem autenticação e sem dados reais: `frontend/curva/preview.html`.

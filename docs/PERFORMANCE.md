@@ -132,3 +132,12 @@ Esta mudança melhora a sensação de resposta da interface, mas não representa
 
 ### Pendência futura
 A otimização estrutural de dados ainda deve ser tratada em evolução própria, considerando cache, dados resumidos, pré-processamento ou migração futura para banco de dados.
+
+## Aplicativo Curva ABC
+
+- O payload é calculado no Apps Script e não na tela.
+- A revisão do arquivo fonte participa da chave de cache.
+- O cache dura 15 minutos e é dividido em blocos de aproximadamente 70 KB para respeitar o limite por item do CacheService.
+- A rota independente carrega somente o módulo Curva ABC e pagina a tabela no cliente.
+- Os gráficos usam HTML/CSS, sem biblioteca adicional.
+- A tabela renderiza no máximo 100 clientes por vez, embora o filtro considere toda a carteira carregada.

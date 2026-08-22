@@ -169,3 +169,28 @@ Controle aplicado: arquivos .clasp.json ignorados via .gitignore e verificacao i
 
 Commit relacionado: badf763.
 
+## 2026-08-21 - Fonte adicional da Curva ABC
+
+Mudança sensível: o backend passa a poder ler uma segunda planilha para servir o aplicativo independente Curva ABC.
+
+Riscos:
+
+- configurar o ID incorreto e exibir dados de outra planilha;
+- expor informações comerciais a um perfil não autorizado;
+- divergência entre aliases de clientes e a consolidação mensal;
+- carga excessiva ao ler a base RAW completa.
+
+Controles:
+
+- ID somente em Script Properties;
+- rota protegida pelo gate existente;
+- endpoint sem operações de escrita;
+- cache por revisão da fonte;
+- aliases resolvidos antes do agrupamento;
+- testes sintéticos das regras A/B/C, janela de 12 meses e corte de NOVO.
+
+Reversão:
+
+- remover o roteamento `get_curva_abc_v1` e o arquivo `18_CURVA_ABC_API.js`;
+- remover a rota `/curva` do frontend;
+- apagar as Script Properties `ABC_*` se não forem mais necessárias.
