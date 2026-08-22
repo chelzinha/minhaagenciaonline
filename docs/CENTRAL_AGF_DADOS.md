@@ -4,6 +4,8 @@
 
 Estrutura inicial criada em homologacao em 2026-08-22. Nenhuma planilha atual de producao foi desativada ou alterada por esta etapa.
 
+Motor de homologacao atual: `v0.3.0`, na branch `feat/central-agf-motor-v1`.
+
 ## Objetivo
 
 Separar o processamento de postagens, o cadastro mestre de clientes, o historico de fatos e as consultas/auditorias para eliminar o crescimento de uma unica planilha monolitica e reduzir conferencia manual.
@@ -35,16 +37,64 @@ O Apps Script `apps-script/central-agf` implementa o primeiro motor de consulta.
 
 Isso permite abrir, filtrar, ordenar e criar tabela dinamica sobre todo o historico solicitado sem manter permanentemente todas as linhas em uma unica planilha fisica.
 
+## Homologacao do historico
+
+Antes de usar as particoes como fonte para Cadastro Mestre ou front, executar `centralAgfValidarHistorico()`.
+
+A rotina e somente leitura sobre `FATOS_POSTAGENS_AAAA_MM` e grava o resultado em `CONSULTA_HISTORICA_POSTAGENS!07_HOMOLOGACAO`.
+
+Ela valida:
+
+- linhas reais versus catalogo;
+- faturamento real versus catalogo;
+- data minima/maxima versus periodo cadastrado;
+- SRO duplicado na mesma particao ou entre meses;
+- `FATO_ID` duplicado na mesma particao ou entre meses;
+- contagem separada de `SEM_REGISTRO`, `PRODUTO_ECT` e outros objetos sem padrao SRO.
+
+Nenhuma etapa de identidade deve avancar enquanto houver particao marcada `REVISAR`.
+
+## Diagnostico de identidade
+
+Depois do historico homologado, `centralAgfGerarDiagnosticoIdentidade()` gera a aba derivada `CADASTRO_MESTRE_CLIENTES!13_DIAGNOSTICO_IDENTIDADE`.
+
+Objetivo: transformar 150k+ fatos em um inventario menor de candidatos de identidade, variantes e excecoes sem criar `CLIENTE_ID` automaticamente.
+
+Regras preliminares documentadas:
+
+- `RAZAO_SOCIAL = BALCÃO`: tratar como carteira AGF Balcao e diagnosticar `NOME_REMETENTE`.
+- `RAZAO_SOCIAL = GAS SHOPPING METRO`: contexto forte Metro e diagnostico por `NOME_REMETENTE`.
+- Cliente AGF fora do Balcao: identidade preliminar baseada em `RAZAO_SOCIAL`.
+- Cliente Metro: identidade preliminar baseada em `NOME_REMETENTE`.
+- Centro observado no historico fora dessas regras e apenas evidencia provisoria; nao substitui Cadastro Mestre confirmado.
+
+A aba de diagnostico guarda ocorrencias, quantidade, faturamento, primeira/ultima postagem, variantes de Razao Social/Remetente e Centros/Locais/atendentes observados. Ela e rebuildable e nao e fonte de verdade.
+
+## Centro e Local
+
+A autoridade futura deve ser o Cadastro Mestre.
+
+Ordem conceitual:
+
+1. vinculo manual/confirmado no Master;
+2. regra forte por identidade/cadastro;
+3. fallback de cliente novo por Razao Social;
+4. fallback por CX/atendente apenas quando ainda nao existir vinculo;
+5. resultado do fallback fica provisorio ate validacao.
+
 ## Performance
 
 - Particoes mensais evitam crescimento infinito de uma unica planilha.
 - A consulta processa uma particao por vez e escreve em blocos.
 - O frontend futuro deve usar resumos/pre-processamento para periodo total e consultar fatos detalhados apenas sob demanda.
 - A materializacao completa existe para auditoria humana e nao deve ser o caminho padrao do front.
+- Todas as planilhas novas foram padronizadas para timezone `America/Sao_Paulo` para evitar deslocamento de datas.
 
 ## Atencao sensivel
 
 As estruturas envolvem nomes de remetentes, razao social, contratos, historico de postagens e faturamento. IDs reais de arquivos/planilhas e dados pessoais nao devem ser documentados no repositorio. O Motor V1 resolve IDs por nome e os mantem em Script Properties.
+
+O diagnostico de identidade nao deve expor dados no frontend e nao deve ser usado para IA externa antes da definicao de minimizacao de dados.
 
 ## Fora do escopo desta etapa
 
