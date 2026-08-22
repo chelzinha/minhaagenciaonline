@@ -2,6 +2,25 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-08-22 - Central AGF: estrutura de dados e Motor V1
+
+### Criado
+- Estrutura inicial `CENTRAL AGF` no Google Drive para separar fontes, processamento, fatos mensais, cadastro mestre, consultas e documentacao.
+- Historico de postagens particionado por mes, preservando AGF e METRO na mesma estrutura logica e Centro/Local como dimensoes.
+- Novo modulo `apps-script/central-agf` para materializar sob demanda todos os fatos de um periodo em `CONSULTA_HISTORICA_POSTAGENS`, preservando todas as colunas.
+- Catalogo de particoes e configuracao via Script Properties, sem IDs privados versionados.
+- Documento `docs/CENTRAL_AGF_DADOS.md` com arquitetura, invariantes e escopo.
+
+### Performance
+- A consulta historica deixa de depender de uma planilha fisica unica e crescente.
+- O Motor V1 processa particoes mensais sequencialmente e grava em blocos.
+- A materializacao completa fica reservada para auditoria; o front futuro deve priorizar dados resumidos/pre-processados.
+
+### Atencao sensivel
+- A nova camada trata nomes de remetentes, razao social, contratos, historico de postagens e faturamento.
+- Nenhum ID privado de planilha/pasta, token, senha ou dado real de cliente foi registrado no repositorio.
+- Nenhuma planilha atual de producao foi desativada ou substituida nesta etapa.
+
 ## 2026-08-18 - Acesso ao emissor DC-e
 
 ### Criado
