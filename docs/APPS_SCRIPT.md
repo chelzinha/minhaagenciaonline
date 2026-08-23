@@ -21,6 +21,40 @@ Modulos adicionados:
 
 Arquivos .clasp.json permanecem locais e nao devem ser enviados ao GitHub.
 
+## CENTRAL AGF - Motor V1 v0.4.1
+
+Modulo:
+- `apps-script/central-agf`
+
+Funcoes principais:
+- `centralAgfAutoConfigurar()`
+- `centralAgfSincronizarCatalogoParticoes()`
+- `centralAgfValidarHistorico()`
+- `centralAgfAtualizarVisao()`
+- `centralAgfGerarDiagnosticoIdentidade()`
+
+Regra de homologacao para o diagnostico:
+- todas as particoes precisam ter `STATUS_LINHAS=OK`, `STATUS_FATURAMENTO=OK` e `STATUS_PERIODO=OK`;
+- alertas de SRO/FATO_ID repetido permanecem registrados em `07_HOMOLOGACAO`/`09_RECONCILIACAO_FONTES`, mas nao provocam deduplicacao automatica nem bloqueiam a leitura diagnostica.
+
+Regra de classificacao de identidade da v0.4.1:
+1. `CENTRO_ID_FINAL` reconhecido vence qualquer inferencia.
+2. Sem Centro final, `RAZAO_SOCIAL=GAS SHOPPING METRO` permanece contexto forte Metro.
+3. Sem Centro final nem regra forte Metro, `CENTRO_ORIGEM` reconhecido orienta AGF/Metro provisoriamente.
+4. `RAZAO_SOCIAL=BALCÃO` so funciona como fallback AGF quando nenhum Centro reconhecido estiver disponivel.
+
+Cuidados de regressao:
+- fato com origem Metro e Razao Social `BALCÃO` deve continuar `METRO_REMETENTE`;
+- AGF Balcao usa `NOME_REMETENTE`;
+- AGF fora do Balcao usa `RAZAO_SOCIAL`;
+- Metro usa `NOME_REMETENTE`;
+- a rotina nao grava `CLIENTE_ID`, `CENTRO_ID_FINAL` ou `LOCAL_ID_FINAL` nos fatos mensais.
+
+Atencao sensivel:
+- o diagnostico usa nomes de remetentes, Razao Social, historico de postagens e atribuicao de Centro;
+- nenhum dado real de cliente, ID privado, token ou credencial deve ser copiado para testes, logs ou documentacao;
+- a v0.4.1 altera apenas a classificacao da visao derivada `13_DIAGNOSTICO_IDENTIDADE`; os fatos mensais permanecem somente leitura.
+
 ## CRM - boot v4 por view
 
 Rota GET adicionada em 2026-07-07:
