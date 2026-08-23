@@ -81,6 +81,18 @@ function centralAgfAssertHistoricoHomologado_() {
   }
 }
 
+/**
+ * Classifica a identidade sem gravar nada nos fatos.
+ *
+ * Prioridade de evidencias:
+ * 1. CENTRO_ID_FINAL, quando ja existir, vence qualquer fallback.
+ * 2. RAZAO_SOCIAL = GAS SHOPPING METRO continua sendo contexto forte de Metro.
+ * 3. CENTRO_ORIGEM reconhecido orienta AGF/Metro quando nao ha Centro final.
+ * 4. RAZAO_SOCIAL = BALCAO so e fallback AGF quando nenhum Centro reconhecido existe.
+ *
+ * Isso evita que um fato operacionalmente Metro seja deslocado para AGF apenas porque
+ * a Razao Social generica veio como BALCAO.
+ */
 function centralAgfClassificarIdentidade_(row, map) {
   const remetente = map.NOME_REMETENTE == null ? '' : String(row[map.NOME_REMETENTE] || '').trim();
   const razao = map.RAZAO_SOCIAL == null ? '' : String(row[map.RAZAO_SOCIAL] || '').trim();
@@ -91,48 +103,76 @@ function centralAgfClassificarIdentidade_(row, map) {
   const balcaoNorm = centralAgfNomeBasicoNormalizado_(CENTRAL_AGF_CFG.IDENTITY.AGF_COUNTER_NAME);
   const metroSharedNorm = centralAgfNomeBasicoNormalizado_(CENTRAL_AGF_CFG.IDENTITY.METRO_SHARED_NAME);
 
-  if (razaoNorm === balcaoNorm) {
-    return {
-      type: 'AGF_BALCAO_REMETENTE',
-      centerSuggested: 'CTR_AGF',
-      centerRule: 'RAZAO_SOCIAL_BALCAO',
-      rawName: remetente,
-      normalizedName: centralAgfNomeBasicoNormalizado_(remetente),
-      status: remetente ? 'PRECISA_LIMPEZA_NOME' : 'SEM_NOME_REMETENTE'
-    };
+  function isAgfCenter(value) {
+    return value === 'AGF' || value === 'CTR_AGF';
   }
 
-  if (razaoNorm === metroSharedNorm) {
-    return {
-      type: 'METRO_REMETENTE',
-      centerSuggested: 'CTR_METRO',
-      centerRule: 'RAZAO_SOCIAL_GAS_SHOPPING_METRO',
-      rawName: remetente,
-      normalizedName: centralAgfNomeBasicoNormalizado_(remetente),
-      status: remetente ? 'PRECISA_VALIDAR_ALIAS' : 'SEM_NOME_REMETENTE'
-    };
+  function isMetroCenter(value) {
+    return value === 'METRO' || value === 'CTR_METRO';
   }
 
-  const center = centerFinal || centerOrigin;
-  if (center === 'AGF' || center === 'CTR_AGF') {
+  function classifyAgf(centerRule) {
+    if (razaoNorm === balcaoNorm) {
+      return {
+        type: 'AGF_BALCAO_REMETENTE',
+        centerSuggested: 'CTR_AGF',
+        centerRule: centerRule,
+        rawName: remetente,
+        normalizedName: centralAgfNomeBasicoNormalizado_(remetente),
+        status: remetente ? 'PRECISA_LIMPEZA_NOME' : 'SEM_NOME_REMETENTE'
+      };
+    }
     return {
       type: 'AGF_RAZAO_SOCIAL',
       centerSuggested: 'CTR_AGF',
-      centerRule: centerFinal ? 'CENTRO_FINAL_EXISTENTE' : 'CENTRO_ORIGEM_PROVISORIO',
+      centerRule: centerRule,
       rawName: razao,
       normalizedName: centralAgfNomeBasicoNormalizado_(razao),
       status: razao ? 'CANDIDATO_MASTER_AGF' : 'SEM_RAZAO_SOCIAL'
     };
   }
 
-  if (center === 'METRO' || center === 'CTR_METRO') {
+  function classifyMetro(centerRule) {
     return {
       type: 'METRO_REMETENTE',
       centerSuggested: 'CTR_METRO',
-      centerRule: centerFinal ? 'CENTRO_FINAL_EXISTENTE' : 'CENTRO_ORIGEM_PROVISORIO',
+      centerRule: centerRule,
       rawName: remetente,
       normalizedName: centralAgfNomeBasicoNormalizado_(remetente),
       status: remetente ? 'PRECISA_VALIDAR_ALIAS' : 'SEM_NOME_REMETENTE'
+    };
+  }
+
+  // Centro final e dado ja consolidado e sempre tem prioridade sobre inferencias.
+  if (isAgfCenter(centerFinal)) {
+    return classifyAgf('CENTRO_FINAL_EXISTENTE');
+  }
+  if (isMetroCenter(centerFinal)) {
+    return classifyMetro('CENTRO_FINAL_EXISTENTE');
+  }
+
+  // GAS SHOPPING METRO e uma razao compartilhada conhecida e continua sendo regra forte.
+  if (razaoNorm === metroSharedNorm) {
+    return classifyMetro('RAZAO_SOCIAL_GAS_SHOPPING_METRO');
+  }
+
+  // Sem Centro final, o Centro de origem reconhecido vence a razao generica BALCAO.
+  if (isAgfCenter(centerOrigin)) {
+    return classifyAgf('CENTRO_ORIGEM_PROVISORIO');
+  }
+  if (isMetroCenter(centerOrigin)) {
+    return classifyMetro('CENTRO_ORIGEM_PROVISORIO');
+  }
+
+  // BALCAO sem evidencia de Centro continua como fallback AGF, explicitamente mais fraco.
+  if (razaoNorm === balcaoNorm) {
+    return {
+      type: 'AGF_BALCAO_REMETENTE',
+      centerSuggested: 'CTR_AGF',
+      centerRule: 'RAZAO_SOCIAL_BALCAO_SEM_CENTRO',
+      rawName: remetente,
+      normalizedName: centralAgfNomeBasicoNormalizado_(remetente),
+      status: remetente ? 'PRECISA_LIMPEZA_NOME' : 'SEM_NOME_REMETENTE'
     };
   }
 
