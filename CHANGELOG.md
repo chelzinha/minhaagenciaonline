@@ -2,6 +2,22 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-08-23 - Central AGF: ajuste da homologacao de identidade
+
+### Corrigido
+- `centralAgfAssertHistoricoHomologado_()` nao exige mais `STATUS_GERAL=OK`, porque a auditoria historica usa os estados `OK_LEGADO` e `REVISAR`.
+- O diagnostico de identidade passa a bloquear apenas divergencias que comprometem a leitura historica: contagem de linhas, faturamento ou periodo.
+- Alertas de SRO/FATO_ID repetido permanecem registrados e visiveis, mas nao bloqueiam o diagnostico somente leitura.
+- Nenhuma linha e deduplicada, excluida ou alterada automaticamente.
+
+### Motivo
+- A auditoria confirmou 152.364 linhas e R$ 9.526.566,49 preservados, mas cinco particoes possuem SRO/FATO_ID repetido e precisam continuar em reconciliacao de fonte.
+- O bloqueio anterior tratava inclusive `OK_LEGADO` como erro, fazendo as 10 particoes serem recusadas indevidamente.
+
+### Atencao sensivel
+- A mudanca afeta somente a regra de liberacao do diagnostico derivado de identidade.
+- Os fatos mensais continuam somente leitura e as duplicidades continuam sinalizadas para reconciliacao; nenhuma decisao financeira ou cadastral e aplicada automaticamente.
+
 ## 2026-08-22 - Central AGF: estrutura de dados e Motor V1
 
 ### Criado
@@ -116,110 +132,3 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Antes desta migracao, o site era publicado por deploy manual no Netlify.
 - A partir desta etapa, o repositorio GitHub passa a ser a fonte viva do frontend.
 - O site www.minhaagenciaonline.com.br foi validado visualmente apos o deploy inicial pelo GitHub.
-
-## 2026-06-16 - Apps Script do projeto
-
-- Adicionados ao repositorio os Apps Script vinculados ao projeto minhaagenciaonline.
-- Criado .gitignore para impedir versionamento de arquivos .clasp.json.
-- Realizada verificacao inicial para evitar envio de segredos reais.
-- Commit relacionado: badf763.
-
-## Auditoria tecnica - Modulo Reverso
-
-- Documentada auditoria inicial do modulo Reverso.
-- Mapeadas telas do frontend, camada API, Apps Script, dados, planilhas, riscos e melhorias futuras.
-- Consolidados pontos principais em APPS_SCRIPT, PLANILHAS_E_DADOS, PERFORMANCE e SEGURANCA_E_DADOS.
-- Nenhuma alteracao funcional aplicada nesta etapa.
-
-## Melhoria UX - mensagens do Reverso
-
-- Ajustadas mensagens de loading e erro no frontend do modulo Reverso.
-- Melhoradas mensagens de autenticacao, validacao de etiqueta, servidor e carregamento de unidade.
-- Nenhuma regra de negocio, endpoint, planilha ou Apps Script foi alterado.
-
-## Melhoria UI - mobile Reverso
-
-- Ajustados botoes, loading, toast e estado vazio no frontend do modulo Reverso.
-- Melhoria restrita a CSS, sem alteracao de backend, API, planilhas ou regras de negocio.
-
-## Documentacao - checklist de testes Reverso
-
-- Adicionado checklist manual para validar o modulo /reverso.
-- Checklist cobre carregamento inicial, unidade, login, etiqueta, camera, drop-off, historico, painel AGF, mobile e seguranca visual.
-- Nenhuma alteracao funcional aplicada.
-
-## Documentacao - Modulo /app Minhas Postagens
-
-- Documentado o modulo /app como SPA/PWA publica de Minhas Postagens.
-- Mapeados frontend, rotas internas, actions, Apps Script, planilhas, dados sensiveis, riscos e pontos de performance.
-- Registrados cuidados para nao expor URLs completas de Web App, IDs de planilha, IDs de Drive, tokens ou dados reais.
-- Nenhuma alteracao funcional aplicada.
-
-## Documentacao - checklist de seguranca /app
-
-- Criado checklist de seguranca do modulo /app por prioridade: critica, alta, media e baixa.
-- Documentadas validacoes esperadas para sessao, Web Apps, actions, payloads, logs, diagnostico, NF-e/DANFE, PDFs, Drive, planilhas e Correios/CWS.
-- Registradas orientacoes de teste seguro para Rachel, sem expor URLs completas, IDs reais, tokens, credenciais ou dados reais.
-- Nenhuma alteracao funcional aplicada.
-
-## Documentacao - mapa de actions e payloads /app
-
-- Mapeadas actions consumidas pelo frontend do /app, suas origens, funcoes Apps Script relacionadas, payloads resumidos e respostas esperadas.
-- Registrados dados sensiveis envolvidos e riscos de regressao por action.
-- Adicionada relacao entre actions, planilhas, dados e pontos de seguranca.
-- Nenhuma alteracao funcional aplicada.
-
-## 2026-07-06 — CRM Home, Agenda e padronização visual
-
-### Adicionado
-- Exposição de `homeLocais` na configuração do CRM.
-- Filtros próprios de Local e Responsável na Visão Geral/Home.
-- Padronização visual do CRM em CSS:
-  - `CRM UI Standardization - 2026-07`
-  - `CRM UI Refinement 01 - 2026-07`
-  - `CRM UI Refinement 02 - 2026-07`
-
-### Alterado
-- A Visão Geral/Home deixa de herdar filtros das abas Prospects, Clientes e Agenda.
-- A Agenda passa a renderizar imediatamente com dados disponíveis ao trocar período/modo.
-- A troca entre Diário, Semanal e Mensal preserva `state.agendaCursor`.
-- Padronização visual de headers, tabs, control bars, filtros, chips, botões, cards, Agenda, Home e mobile.
-- Inclusão de paleta visual para chips de atividades:
-  - Visita Presencial: `#EA9A06`
-  - Ligação: `#1F63DE`
-  - WhatsApp: `#079C54`
-  - Email: `#B48414`
-  - Reunião Online: `#027973`
-  - Proposta: `#E0631D`
-  - Retorno: `#0677B4`
-  - Treinamento: `#804DF5`
-
-### Pendente
-- Os filtros multiple select ainda precisam de revisão futura.
-- Decisão técnica desta versão: não continuar refinando agora para evitar regressão visual.
-- A revisão dos filtros multiple select deve ser tratada em branch própria futura.
-
-## 2026-07-07 - CRM Home layout
-
-### Corrigido
-- Organizado o layout da aba Visao Geral em duas colunas independentes no desktop.
-- Mantido comportamento responsivo em uma coluna no mobile.
-- Atualizado cache do CSS do CRM para `v=125`.
-
-### Observacao
-- Este ajuste foi visual e isolado.
-- Nao altera filtros, performance, Apps Script ou regras de dados.
-
-## 2026-07-07 - CRM filtros multiple select
-
-### Corrigido
-- Corrigido o comportamento visual dos checkboxes dos filtros multiple select.
-- Opcoes nao selecionadas agora ficam visualmente vazias.
-- Opcoes selecionadas exibem o check corretamente.
-- O botao "Selecionar todos" passa a selecionar todas as opcoes reais.
-- O botao "Limpar filtro" passa a limpar todos os selecionados.
-- O badge do chip passa a refletir a quantidade real de opcoes selecionadas.
-
-### Escopo
-- Ajuste isolado em `frontend/crm/app.js`.
-- Nao altera backend, Apps Script, dados, layout da Home ou performance inicial.
