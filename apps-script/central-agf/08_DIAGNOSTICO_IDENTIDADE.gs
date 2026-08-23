@@ -84,14 +84,13 @@ function centralAgfAssertHistoricoHomologado_() {
 /**
  * Classifica a identidade sem gravar nada nos fatos.
  *
- * Prioridade de evidencias:
- * 1. CENTRO_ID_FINAL, quando ja existir, vence qualquer fallback.
- * 2. RAZAO_SOCIAL = GAS SHOPPING METRO continua sendo contexto forte de Metro.
- * 3. CENTRO_ORIGEM reconhecido orienta AGF/Metro quando nao ha Centro final.
- * 4. RAZAO_SOCIAL = BALCAO so e fallback AGF quando nenhum Centro reconhecido existe.
- *
- * Isso evita que um fato operacionalmente Metro seja deslocado para AGF apenas porque
- * a Razao Social generica veio como BALCAO.
+ * Regras de negocio confirmadas:
+ * 1. RAZAO_SOCIAL = BALCAO pertence ao Centro AGF.
+ * 2. RAZAO_SOCIAL = GAS SHOPPING METRO pertence ao Centro METRO.
+ * 3. Essas duas razoes compartilhadas vencem CENTRO_ORIGEM, pois a origem operacional
+ *    pode refletir atendente/CX e nao a classificacao comercial correta do cliente.
+ * 4. Para os demais casos, CENTRO_ID_FINAL confirmado vence fallbacks; na ausencia dele,
+ *    CENTRO_ORIGEM reconhecido pode orientar a classificacao provisoria.
  */
 function centralAgfClassificarIdentidade_(row, map) {
   const remetente = map.NOME_REMETENTE == null ? '' : String(row[map.NOME_REMETENTE] || '').trim();
@@ -143,7 +142,15 @@ function centralAgfClassificarIdentidade_(row, map) {
     };
   }
 
-  // Centro final e dado ja consolidado e sempre tem prioridade sobre inferencias.
+  // Regras comerciais explicitas. Nao usar CENTRO_ORIGEM para reclassificar esses casos.
+  if (razaoNorm === balcaoNorm) {
+    return classifyAgf('RAZAO_SOCIAL_BALCAO');
+  }
+  if (razaoNorm === metroSharedNorm) {
+    return classifyMetro('RAZAO_SOCIAL_GAS_SHOPPING_METRO');
+  }
+
+  // Para as demais identidades, Centro final confirmado continua sendo autoridade.
   if (isAgfCenter(centerFinal)) {
     return classifyAgf('CENTRO_FINAL_EXISTENTE');
   }
@@ -151,29 +158,12 @@ function centralAgfClassificarIdentidade_(row, map) {
     return classifyMetro('CENTRO_FINAL_EXISTENTE');
   }
 
-  // GAS SHOPPING METRO e uma razao compartilhada conhecida e continua sendo regra forte.
-  if (razaoNorm === metroSharedNorm) {
-    return classifyMetro('RAZAO_SOCIAL_GAS_SHOPPING_METRO');
-  }
-
-  // Sem Centro final, o Centro de origem reconhecido vence a razao generica BALCAO.
+  // Centro de origem e somente evidencia provisoria para casos sem regra comercial forte.
   if (isAgfCenter(centerOrigin)) {
     return classifyAgf('CENTRO_ORIGEM_PROVISORIO');
   }
   if (isMetroCenter(centerOrigin)) {
     return classifyMetro('CENTRO_ORIGEM_PROVISORIO');
-  }
-
-  // BALCAO sem evidencia de Centro continua como fallback AGF, explicitamente mais fraco.
-  if (razaoNorm === balcaoNorm) {
-    return {
-      type: 'AGF_BALCAO_REMETENTE',
-      centerSuggested: 'CTR_AGF',
-      centerRule: 'RAZAO_SOCIAL_BALCAO_SEM_CENTRO',
-      rawName: remetente,
-      normalizedName: centralAgfNomeBasicoNormalizado_(remetente),
-      status: remetente ? 'PRECISA_LIMPEZA_NOME' : 'SEM_NOME_REMETENTE'
-    };
   }
 
   return {
