@@ -6,6 +6,7 @@ function onOpen() {
       .addItem('Sincronizar catálogo de partições', 'centralAgfSincronizarCatalogoParticoes')
       .addItem('Auditar histórico mensal', 'centralAgfValidarHistorico')
       .addItem('Gerar diagnóstico de identidade', 'centralAgfGerarDiagnosticoIdentidade')
+      .addItem('Gerar prévia de migração de clientes', 'centralAgfGerarPreviaMigracaoClientes')
       .addSeparator()
       .addItem('Atualizar visão conforme parâmetros', 'centralAgfAtualizarVisao')
       .addItem('Materializar todas as postagens filtradas', 'centralAgfMaterializarPostagens')
