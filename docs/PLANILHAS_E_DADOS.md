@@ -2,6 +2,34 @@
 
 Documento tecnico em preparacao.
 
+## CENTRAL AGF - diagnostico de identidade v0.4.1
+
+Planilhas/abas envolvidas:
+- `FATOS_POSTAGENS_AAAA_MM!01_FATOS`: fatos mensais, somente leitura nesta etapa.
+- `CONSULTA_HISTORICA_POSTAGENS!07_HOMOLOGACAO`: validacao de linhas, faturamento, periodo e alertas de duplicidade.
+- `CONSULTA_HISTORICA_POSTAGENS!09_RECONCILIACAO_FONTES`: rastreabilidade das divergencias de fonte.
+- `CADASTRO_MESTRE_CLIENTES!13_DIAGNOSTICO_IDENTIDADE`: visao derivada e rebuildable de candidatos.
+- `CADASTRO_MESTRE_CLIENTES!01_CLIENTES_MASTER`: ainda nao recebe migracao automatica nesta etapa.
+
+Regra de prioridade de Centro no diagnostico:
+1. `CENTRO_ID_FINAL` reconhecido vence qualquer fallback.
+2. Sem Centro final, `RAZAO_SOCIAL=GAS SHOPPING METRO` permanece regra forte de Metro.
+3. Sem Centro final nem regra forte Metro, `CENTRO_ORIGEM` reconhecido orienta AGF/Metro de forma provisoria.
+4. `RAZAO_SOCIAL=BALCÃO` so sugere AGF se nenhum Centro reconhecido estiver disponivel.
+
+Consequencia de dados:
+- uma linha com `CENTRO_ORIGEM=METRO` e `RAZAO_SOCIAL=BALCÃO` deve permanecer candidata Metro e usar `NOME_REMETENTE` para o agrupamento preliminar;
+- a palavra `BALCÃO` isoladamente nao e evidencia suficiente para deslocar um fato Metro para AGF;
+- nenhuma dessas regras grava `CLIENTE_ID`, `CENTRO_ID_FINAL` ou `LOCAL_ID_FINAL` nos fatos.
+
+Homologacao:
+- `STATUS_LINHAS=OK`, `STATUS_FATURAMENTO=OK` e `STATUS_PERIODO=OK` sao obrigatorios para gerar o diagnostico;
+- SRO/FATO_ID repetidos continuam preservados e registrados para reconciliacao, sem deduplicacao automatica.
+
+Atencao sensivel:
+- a classificacao trata identidade cadastral, nomes de remetentes, Razao Social e atribuicao de Centro;
+- documentacao e testes nao devem registrar nomes reais, CPF/CNPJ, telefone, e-mail, endereco, IDs privados ou credenciais.
+
 ## Planilha APP Total CF + Metro - CRM, agenda, midias e manuais
 
 Documento principal:
