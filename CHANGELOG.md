@@ -2,6 +2,26 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-08-23 - Central AGF v0.4.1: prioridade de Centro no diagnostico de identidade
+
+### Corrigido
+- `centralAgfClassificarIdentidade_()` passa a respeitar `CENTRO_ID_FINAL` como evidencia de maior prioridade.
+- Sem Centro final, `RAZAO_SOCIAL = GAS SHOPPING METRO` permanece regra forte de Metro.
+- Sem Centro final nem regra forte Metro, `CENTRO_ORIGEM` reconhecido passa a orientar a classificacao antes do fallback generico `RAZAO_SOCIAL = BALCÃO`.
+- `RAZAO_SOCIAL = BALCÃO` so sugere AGF quando nenhum Centro reconhecido estiver disponivel.
+- Fatos com origem Metro e Razao Social generica `BALCÃO` deixam de ser deslocados indevidamente para `AGF_BALCAO_REMETENTE`.
+- Versao do Motor V1 atualizada para `0.4.1`.
+
+### Evidencia de homologacao
+- A revisao da aba derivada `13_DIAGNOSTICO_IDENTIDADE` encontrou identidades Metro divididas entre grupos AGF e Metro apenas porque alguns fatos traziam `RAZAO_SOCIAL=BALCÃO`.
+- A conferencia da fonte mensal confirmou que esses fatos preservavam `CENTRO_ORIGEM=METRO`; portanto, a classificacao antiga dava prioridade excessiva a uma Razao Social generica.
+- Nenhum fato mensal foi alterado durante a investigacao.
+
+### Atencao sensivel
+- A mudanca afeta inferencia de identidade/centro de clientes e, portanto, deve ser homologada antes de qualquer migracao para `01_CLIENTES_MASTER`.
+- A rotina continua somente leitura sobre os fatos e nao grava `CLIENTE_ID`, `CENTRO_ID_FINAL` ou `LOCAL_ID_FINAL`.
+- Nenhum nome real, CPF/CNPJ, telefone, e-mail, endereco, ID privado ou credencial foi registrado neste changelog.
+
 ## 2026-08-23 - Central AGF: ajuste da homologacao de identidade
 
 ### Corrigido
