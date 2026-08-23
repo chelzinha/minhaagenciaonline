@@ -24,6 +24,12 @@ function centralAgfDistinctList_(map, limit) {
   return values.slice(0, max).join(' | ') + ' | +' + (values.length - max) + ' outros';
 }
 
+/**
+ * Valida apenas as invariantes que podem corromper um diagnóstico somente leitura:
+ * linhas, faturamento e período. Duplicidades de SRO/FATO_ID permanecem sinalizadas
+ * em 07_HOMOLOGACAO/09_RECONCILIACAO_FONTES, mas não bloqueiam o diagnóstico de
+ * identidade porque nenhuma linha é apagada, deduplicada ou alterada nesta etapa.
+ */
 function centralAgfAssertHistoricoHomologado_() {
   const queryId = centralAgfGetRequiredProperty_(CENTRAL_AGF_CFG.PROPS.QUERY_SPREADSHEET_ID);
   const ss = SpreadsheetApp.openById(queryId);
@@ -33,16 +39,45 @@ function centralAgfAssertHistoricoHomologado_() {
   }
   const values = sheet.getDataRange().getValues();
   const map = centralAgfHeaderMap_(values[0]);
-  if (map.STATUS_GERAL == null || map.ANO_MES == null) {
-    throw new Error('07_HOMOLOGACAO ainda não contém o resultado estruturado da auditoria.');
-  }
-  const alerts = values.slice(1).filter(function(row) {
-    const key = centralAgfNormalizeText_(row[map.ANO_MES]);
-    if (!key || key === 'TOTAL') return false;
-    return centralAgfNormalizeText_(row[map.STATUS_GERAL]) !== 'OK';
+  ['ANO_MES', 'STATUS_LINHAS', 'STATUS_FATURAMENTO', 'STATUS_PERIODO'].forEach(function(name) {
+    if (map[name] == null) {
+      throw new Error('07_HOMOLOGACAO não contém a coluna obrigatória ' + name + '. Rode centralAgfValidarHistorico() novamente.');
+    }
   });
-  if (alerts.length) {
-    throw new Error('Histórico possui ' + alerts.length + ' partições com alerta. Corrija/homologue antes do diagnóstico de identidade.');
+
+  const fatal = [];
+  let duplicatePartitions = 0;
+  values.slice(1).forEach(function(row) {
+    const key = centralAgfNormalizeText_(row[map.ANO_MES]);
+    if (!key || key === 'TOTAL') return;
+
+    const rowsOk = centralAgfNormalizeText_(row[map.STATUS_LINHAS]) === 'OK';
+    const billingOk = centralAgfNormalizeText_(row[map.STATUS_FATURAMENTO]) === 'OK';
+    const periodOk = centralAgfNormalizeText_(row[map.STATUS_PERIODO]) === 'OK';
+    if (!rowsOk || !billingOk || !periodOk) {
+      fatal.push(key);
+    }
+
+    const dupCols = ['SRO_DUP_NA_PARTICAO', 'SRO_DUP_ENTRE_PARTICOES', 'FATO_ID_DUP_NA_PARTICAO', 'FATO_ID_DUP_ENTRE_PARTICOES'];
+    const hasDup = dupCols.some(function(name) {
+      return map[name] != null && centralAgfNumero_(row[map[name]]) > 0;
+    });
+    if (hasDup) duplicatePartitions++;
+  });
+
+  if (fatal.length) {
+    throw new Error(
+      'Histórico possui ' + fatal.length + ' partições com divergência estrutural/financeira/período: ' +
+      fatal.join(', ') + '. Corrija antes do diagnóstico de identidade.'
+    );
+  }
+
+  if (duplicatePartitions) {
+    console.warn(
+      '[CENTRAL AGF] ' + duplicatePartitions +
+      ' partições possuem SRO/FATO_ID repetido. O diagnóstico continuará em modo somente leitura, preservando todas as linhas; ' +
+      'a reconciliação permanece registrada em 07_HOMOLOGACAO/09_RECONCILIACAO_FONTES.'
+    );
   }
 }
 
