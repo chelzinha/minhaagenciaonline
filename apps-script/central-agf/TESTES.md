@@ -1,4 +1,4 @@
-# TESTES - CENTRAL AGF Motor V1 v0.4.1
+# TESTES - CENTRAL AGF Motor V1 v0.4.2
 
 ## Pre-condicoes
 
@@ -22,16 +22,16 @@
 12. Revisar `CADASTRO_MESTRE_CLIENTES!13_DIAGNOSTICO_IDENTIDADE` sem editar fatos.
 13. Confirmar que `SEM_REGISTRO`, `PRODUTO_ECT` e outros fatos sem SRO nao aparecem como candidatos de cliente.
 
-## Regressao da classificacao de identidade - v0.4.1
+## Regressao da classificacao de identidade - v0.4.2
 
 Validar os seguintes cenarios no diagnostico reconstruido:
 
-1. `CENTRO_ID_FINAL=CTR_METRO` deve resultar em `METRO_REMETENTE`, mesmo que a Razao Social seja generica.
-2. `CENTRO_ID_FINAL=CTR_AGF` deve manter classificacao AGF; se a Razao Social for `BALCÃO`, usar `AGF_BALCAO_REMETENTE`.
-3. Sem Centro final, `RAZAO_SOCIAL=GAS SHOPPING METRO` deve resultar em `METRO_REMETENTE`.
-4. Sem Centro final, `CENTRO_ORIGEM=METRO` + `RAZAO_SOCIAL=BALCÃO` deve resultar em `METRO_REMETENTE`.
-5. Sem Centro final, `CENTRO_ORIGEM=AGF` + `RAZAO_SOCIAL=BALCÃO` deve resultar em `AGF_BALCAO_REMETENTE`.
-6. Sem Centro final e sem Centro de origem reconhecido, `RAZAO_SOCIAL=BALCÃO` pode usar o fallback `RAZAO_SOCIAL_BALCAO_SEM_CENTRO`.
+1. `RAZAO_SOCIAL=BALCÃO` deve sempre resultar em Centro `CTR_AGF` e tipo `AGF_BALCAO_REMETENTE`, independentemente de `CENTRO_ORIGEM`.
+2. `RAZAO_SOCIAL=GAS SHOPPING METRO` deve sempre resultar em Centro `CTR_METRO` e tipo `METRO_REMETENTE`, independentemente de `CENTRO_ORIGEM`.
+3. Para razoes sociais diferentes dessas duas regras comerciais, `CENTRO_ID_FINAL=CTR_METRO` deve resultar em `METRO_REMETENTE`.
+4. Para razoes sociais diferentes dessas duas regras comerciais, `CENTRO_ID_FINAL=CTR_AGF` deve manter classificacao AGF.
+5. Sem Centro final e sem regra comercial explicita, `CENTRO_ORIGEM=METRO` pode orientar `METRO_REMETENTE` provisoriamente.
+6. Sem Centro final e sem regra comercial explicita, `CENTRO_ORIGEM=AGF` pode orientar classificacao AGF provisoriamente.
 7. Nenhuma dessas regras pode gravar `CLIENTE_ID`, `CENTRO_ID_FINAL` ou `LOCAL_ID_FINAL` nos fatos mensais.
 
 ## Regressao geral
@@ -53,6 +53,6 @@ So iniciar a migracao efetiva do Cadastro Mestre depois de:
 - consulta de um mes bater com a particao;
 - consulta de periodo total bater com a soma do catalogo;
 - diagnostico de identidade conter somente fatos elegiveis com SRO real;
-- regressao de prioridade de Centro da v0.4.1 estar validada;
+- regressao das regras `BALCÃO -> AGF` e `GAS SHOPPING METRO -> METRO` estar validada;
 - diagnostico de identidade ser revisado como visao derivada, nao como fonte de verdade;
 - alertas de SRO/FATO_ID repetidos permanecerem preservados para reconciliacao com a fonte, sem deduplicacao automatica.
