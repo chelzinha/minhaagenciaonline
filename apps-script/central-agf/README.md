@@ -2,7 +2,7 @@
 
 Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS`.
 
-## Escopo atual - v0.3.1
+## Escopo atual - v0.4.1
 
 - Descobrir por nome, uma unica vez, as planilhas tecnicas e salvar seus IDs em Script Properties.
 - Sincronizar o catalogo de particoes mensais a partir de `CONTROLE_CARGAS_POSTAGENS!03_PARTICOES`.
@@ -25,19 +25,31 @@ A funcao `centralAgfValidarHistorico()` valida, para cada particao:
 
 O resultado e gravado em `07_HOMOLOGACAO`. A auditoria e somente leitura sobre os fatos mensais.
 
+Para liberar o diagnostico de identidade, todas as particoes precisam ter `STATUS_LINHAS=OK`, `STATUS_FATURAMENTO=OK` e `STATUS_PERIODO=OK`. Alertas de SRO/FATO_ID repetido continuam registrados para reconciliacao, mas nao provocam deduplicacao automatica e nao bloqueiam uma leitura diagnostica.
+
 ## Diagnostico de identidade
 
-A funcao `centralAgfGerarDiagnosticoIdentidade()` so executa depois de todas as particoes estarem homologadas.
+A funcao `centralAgfGerarDiagnosticoIdentidade()` so executa depois da homologacao estrutural, financeira e de periodo.
 
 Somente fatos com **SRO real** entram no diagnostico de candidatos a cliente. `SEM_REGISTRO`, `PRODUTO_ECT` e outros registros sem SRO continuam integralmente preservados no faturamento/historico, mas ficam fora da identificacao e contagem de clientes.
 
-A rotina grava uma visao rebuildable em `CADASTRO_MESTRE_CLIENTES!13_DIAGNOSTICO_IDENTIDADE`, agrupando candidatos por regras preliminares:
+A rotina grava uma visao rebuildable em `CADASTRO_MESTRE_CLIENTES!13_DIAGNOSTICO_IDENTIDADE`.
 
-- `RAZAO_SOCIAL = BALCÃO` -> candidato AGF Balcao baseado em `NOME_REMETENTE`;
-- `RAZAO_SOCIAL = GAS SHOPPING METRO` -> candidato Metro baseado em `NOME_REMETENTE`;
-- AGF fora do Balcao -> candidato baseado em `RAZAO_SOCIAL`;
-- Metro -> candidato baseado em `NOME_REMETENTE`;
-- casos sem regra forte -> `INDEFINIDO` para revisao.
+### Prioridade das evidencias de Centro - v0.4.1
+
+1. `CENTRO_ID_FINAL`, quando existir, vence qualquer fallback.
+2. `RAZAO_SOCIAL = GAS SHOPPING METRO` permanece contexto forte de Metro quando nao existe Centro final.
+3. `CENTRO_ORIGEM` reconhecido (`AGF`/`METRO`) orienta a classificacao quando nao existe Centro final nem a regra forte Metro.
+4. `RAZAO_SOCIAL = BALCÃO` so funciona como fallback AGF quando nenhum Centro reconhecido estiver disponivel.
+5. Casos sem regra forte ficam `INDEFINIDO` para revisao.
+
+Consequencias importantes:
+
+- fato com `CENTRO_ORIGEM=METRO` e `RAZAO_SOCIAL=BALCÃO` permanece candidato Metro baseado em `NOME_REMETENTE`;
+- fato AGF de Balcao permanece candidato `AGF_BALCAO_REMETENTE` baseado em `NOME_REMETENTE`;
+- cliente AGF fora do Balcao continua baseado em `RAZAO_SOCIAL`;
+- Metro continua baseado em `NOME_REMETENTE`;
+- Centro de origem continua sendo evidencia provisoria; nao substitui Centro final confirmado no Cadastro Mestre.
 
 A aba diagnostica variantes de nome, volume, faturamento, primeira/ultima postagem, centros/locais/atendentes observados. Ela nao grava `CLIENTE_ID`, nao corrige Centro/Local e nao vira fonte de verdade.
 
@@ -69,11 +81,12 @@ Datas em branco significam todo o historico disponivel.
 1. Executar `centralAgfAutoConfigurar()`.
 2. Executar `centralAgfSincronizarCatalogoParticoes()`.
 3. Executar `centralAgfValidarHistorico()` e revisar `07_HOMOLOGACAO`.
-4. Materializar primeiro um unico mes.
-5. Comparar linhas e faturamento.
-6. Somente depois testar periodo total.
-7. Com o historico homologado, executar `centralAgfGerarDiagnosticoIdentidade()`.
-8. Usar o diagnostico para definir a migracao do Cadastro Mestre, sem editar os fatos mensais.
+4. Confirmar `STATUS_LINHAS=OK`, `STATUS_FATURAMENTO=OK` e `STATUS_PERIODO=OK` em todas as particoes.
+5. Materializar primeiro um unico mes.
+6. Comparar linhas e faturamento.
+7. Somente depois testar periodo total.
+8. Com o historico homologado, executar `centralAgfGerarDiagnosticoIdentidade()`.
+9. Usar o diagnostico para definir a migracao do Cadastro Mestre, sem editar os fatos mensais.
 
 ## Seguranca
 
