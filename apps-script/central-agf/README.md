@@ -2,7 +2,7 @@
 
 Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS`.
 
-## Escopo atual - v0.4.1
+## Escopo atual - v0.4.2
 
 - Descobrir por nome, uma unica vez, as planilhas tecnicas e salvar seus IDs em Script Properties.
 - Sincronizar o catalogo de particoes mensais a partir de `CONTROLE_CARGAS_POSTAGENS!03_PARTICOES`.
@@ -35,21 +35,22 @@ Somente fatos com **SRO real** entram no diagnostico de candidatos a cliente. `S
 
 A rotina grava uma visao rebuildable em `CADASTRO_MESTRE_CLIENTES!13_DIAGNOSTICO_IDENTIDADE`.
 
-### Prioridade das evidencias de Centro - v0.4.1
+### Regras de Centro para identidade - v0.4.2
 
-1. `CENTRO_ID_FINAL`, quando existir, vence qualquer fallback.
-2. `RAZAO_SOCIAL = GAS SHOPPING METRO` permanece contexto forte de Metro quando nao existe Centro final.
-3. `CENTRO_ORIGEM` reconhecido (`AGF`/`METRO`) orienta a classificacao quando nao existe Centro final nem a regra forte Metro.
-4. `RAZAO_SOCIAL = BALCÃO` so funciona como fallback AGF quando nenhum Centro reconhecido estiver disponivel.
-5. Casos sem regra forte ficam `INDEFINIDO` para revisao.
+1. `RAZAO_SOCIAL = BALCÃO` pertence ao Centro AGF e usa `NOME_REMETENTE` para diagnosticar a identidade do cliente de Balcao.
+2. `RAZAO_SOCIAL = GAS SHOPPING METRO` pertence ao Centro METRO e usa `NOME_REMETENTE` para diagnosticar a identidade do cliente Metro.
+3. Essas duas regras comerciais vencem `CENTRO_ORIGEM`, porque a origem operacional pode refletir atendente/CX e nao a classificacao comercial correta.
+4. Para as demais identidades, `CENTRO_ID_FINAL` confirmado vence fallbacks.
+5. Na ausencia de Centro final, `CENTRO_ORIGEM` reconhecido pode orientar a classificacao provisoria.
+6. Casos sem regra forte ficam `INDEFINIDO` para revisao.
 
 Consequencias importantes:
 
-- fato com `CENTRO_ORIGEM=METRO` e `RAZAO_SOCIAL=BALCÃO` permanece candidato Metro baseado em `NOME_REMETENTE`;
-- fato AGF de Balcao permanece candidato `AGF_BALCAO_REMETENTE` baseado em `NOME_REMETENTE`;
+- `RAZAO_SOCIAL=BALCÃO` nunca deve virar Metro apenas porque `CENTRO_ORIGEM` veio como Metro;
+- `RAZAO_SOCIAL=GAS SHOPPING METRO` deve ser Metro;
 - cliente AGF fora do Balcao continua baseado em `RAZAO_SOCIAL`;
-- Metro continua baseado em `NOME_REMETENTE`;
-- Centro de origem continua sendo evidencia provisoria; nao substitui Centro final confirmado no Cadastro Mestre.
+- cliente Metro continua baseado em `NOME_REMETENTE`;
+- Centro de origem continua sendo evidencia provisoria para casos sem uma dessas regras comerciais explicitas.
 
 A aba diagnostica variantes de nome, volume, faturamento, primeira/ultima postagem, centros/locais/atendentes observados. Ela nao grava `CLIENTE_ID`, nao corrige Centro/Local e nao vira fonte de verdade.
 
