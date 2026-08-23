@@ -1,6 +1,53 @@
-﻿# REGISTRO_DE_MUDANCAS_SENSIVEIS
+# REGISTRO_DE_MUDANCAS_SENSIVEIS
 
 Documento tecnico em preparacao.
+
+## 2026-08-23 - Central AGF v0.4.1 - prioridade de Centro na identidade
+
+### Atencao sensivel
+A mudanca altera a inferencia usada para agrupar identidades de clientes na visao diagnostica da CENTRAL AGF.
+
+Dados envolvidos:
+- nome de remetente;
+- Razao Social;
+- Centro de origem e Centro final;
+- historico de postagens e faturamento agregado no diagnostico.
+
+O que mudou:
+- `CENTRO_ID_FINAL` reconhecido passou a vencer fallbacks automaticos;
+- `RAZAO_SOCIAL=GAS SHOPPING METRO` permanece regra forte Metro quando nao ha Centro final;
+- `CENTRO_ORIGEM` reconhecido passou a ser avaliado antes do fallback generico `RAZAO_SOCIAL=BALCÃO`;
+- `BALCÃO` sem Centro reconhecido continua apenas como fallback AGF.
+
+Risco principal:
+- atribuir candidato ao Centro errado e, em etapa futura, consolidar identidade incorreta no Cadastro Mestre.
+
+Mitigacao aplicada:
+- a rotina continua somente leitura sobre `FATOS_POSTAGENS_AAAA_MM`;
+- nenhuma linha e deduplicada ou excluida;
+- nenhum `CLIENTE_ID`, `CENTRO_ID_FINAL` ou `LOCAL_ID_FINAL` e gravado pela rotina;
+- testes de regressao foram documentados antes da migracao efetiva do Cadastro Mestre;
+- exemplos documentados nao usam nomes reais nem identificadores privados.
+
+Arquivos envolvidos:
+- `apps-script/central-agf/00_CFG.gs`;
+- `apps-script/central-agf/08_DIAGNOSTICO_IDENTIDADE.gs`;
+- `apps-script/central-agf/README.md`;
+- `apps-script/central-agf/TESTES.md`;
+- `docs/CENTRAL_AGF_DADOS.md`;
+- `docs/APPS_SCRIPT.md`;
+- `docs/PLANILHAS_E_DADOS.md`;
+- `CHANGELOG.md`.
+
+Como testar:
+- reconstruir `13_DIAGNOSTICO_IDENTIDADE` com `centralAgfGerarDiagnosticoIdentidade()`;
+- confirmar que fatos Metro com Razao Social generica `BALCÃO` permanecem classificados como Metro;
+- confirmar que Centro final existente continua tendo prioridade;
+- confirmar que nenhuma coluna final dos fatos mensais e alterada.
+
+Como reverter:
+- reverter os commits da v0.4.1 na branch `feat/central-agf-motor-v1` antes de qualquer migracao para `01_CLIENTES_MASTER`;
+- reenviar o pacote anterior via clasp somente se a versao nova ja tiver sido sincronizada ao Apps Script.
 
 ## 2026-07-07 - Instrumentacao de performance do CRM
 
@@ -168,4 +215,3 @@ Risco: exposicao acidental de identificadores, credenciais, tokens, URLs ou dado
 Controle aplicado: arquivos .clasp.json ignorados via .gitignore e verificacao inicial por termos sensiveis antes do commit.
 
 Commit relacionado: badf763.
-
