@@ -4,7 +4,7 @@
 
 Estrutura inicial criada em homologacao em 2026-08-22. Nenhuma planilha atual de producao foi desativada ou alterada por esta etapa.
 
-Motor de homologacao atual: `v0.4.1`, na branch `feat/central-agf-motor-v1`.
+Motor de homologacao atual: `v0.4.2`, na branch `feat/central-agf-motor-v1`.
 
 ## Objetivo
 
@@ -28,7 +28,9 @@ Separar o processamento de postagens, o cadastro mestre de clientes, o historico
 - `SEM_REGISTRO`, `PRODUTO_ECT` e outros fatos sem SRO real nao entram na identificacao nem na contagem de clientes; continuam integralmente no faturamento e historico.
 - O historico mensal nao deve recalcular nem inventar identidade de cliente.
 - Campos finais de `CLIENTE_ID`, `CENTRO_ID_FINAL` e `LOCAL_ID_FINAL` permanecem pendentes ate a homologacao do Cadastro Mestre.
-- Cadastro confirmado manualmente deve vencer fallbacks automaticos.
+- `RAZAO_SOCIAL=BALCÃO` identifica o contexto AGF.
+- `RAZAO_SOCIAL=GAS SHOPPING METRO` identifica o contexto METRO.
+- Cadastro confirmado manualmente deve vencer fallbacks automaticos nos demais casos.
 - Para cliente novo, regras por Razao Social e depois CX/atendente podem sugerir Centro/Local; fallbacks devem ficar marcados como provisorios.
 - O historico mensal e fonte de fatos; a planilha de consulta e apenas uma materializacao temporaria para auditoria.
 
@@ -65,38 +67,39 @@ Objetivo: transformar 150k+ fatos em um inventario menor de candidatos de identi
 
 **Elegibilidade:** somente fatos com SRO real entram como evidencia/candidato de cliente. Linhas `SEM_REGISTRO`, `PRODUTO_ECT` e outros registros sem SRO permanecem na base financeira, mas sao ignoradas nessa etapa de identidade.
 
-### Prioridade de evidencias - v0.4.1
+### Regras de Centro e identidade - v0.4.2
 
-A classificacao deve respeitar esta ordem:
+A classificacao deve respeitar estas regras:
 
-1. `CENTRO_ID_FINAL` reconhecido e a evidencia mais forte e vence fallbacks automaticos.
-2. Sem Centro final, `RAZAO_SOCIAL = GAS SHOPPING METRO` permanece regra forte para Metro e usa `NOME_REMETENTE` como identidade preliminar.
-3. Sem Centro final nem regra forte Metro, `CENTRO_ORIGEM` reconhecido orienta AGF/Metro de forma provisoria.
-4. `RAZAO_SOCIAL = BALCÃO` so sugere AGF por fallback quando nenhum Centro reconhecido estiver disponivel.
-5. Casos sem regra forte ficam `INDEFINIDO` para revisao.
+1. `RAZAO_SOCIAL = BALCÃO` pertence ao Centro AGF e a identidade preliminar usa `NOME_REMETENTE`.
+2. `RAZAO_SOCIAL = GAS SHOPPING METRO` pertence ao Centro METRO e a identidade preliminar usa `NOME_REMETENTE`.
+3. Essas duas regras comerciais explicitas vencem `CENTRO_ORIGEM`, pois o Centro de origem pode refletir atendimento/CX e nao a classificacao comercial correta.
+4. Para as demais razoes sociais, `CENTRO_ID_FINAL` reconhecido e a evidencia mais forte e vence fallbacks automaticos.
+5. Sem Centro final e sem uma das duas regras comerciais explicitas, `CENTRO_ORIGEM` reconhecido pode orientar AGF/Metro de forma provisoria.
+6. Casos sem regra forte ficam `INDEFINIDO` para revisao.
 
 Regras de identidade por Centro:
 
 - Metro: identidade preliminar baseada em `NOME_REMETENTE`.
 - AGF Balcao: identidade preliminar baseada em `NOME_REMETENTE`.
 - AGF fora do Balcao: identidade preliminar baseada em `RAZAO_SOCIAL`.
-- Fato com `CENTRO_ORIGEM=METRO` e `RAZAO_SOCIAL=BALCÃO` deve permanecer no diagnostico Metro; a palavra `BALCÃO` isoladamente nao pode deslocar o fato para AGF.
-
-O Centro de origem continua sendo evidencia provisoria; nao substitui Cadastro Mestre confirmado nem `CENTRO_ID_FINAL` existente.
+- Fato com `RAZAO_SOCIAL=BALCÃO` continua AGF mesmo que `CENTRO_ORIGEM` esteja como Metro.
+- Fato com `RAZAO_SOCIAL=GAS SHOPPING METRO` continua Metro mesmo que `CENTRO_ORIGEM` esteja divergente.
 
 A aba de diagnostico guarda ocorrencias, quantidade, faturamento, primeira/ultima postagem, variantes de Razao Social/Remetente e Centros/Locais/atendentes observados. Ela e rebuildable e nao e fonte de verdade.
 
 ## Centro e Local
 
-A autoridade futura deve ser o Cadastro Mestre.
+A autoridade futura deve ser o Cadastro Mestre, respeitando as duas regras comerciais de origem acima.
 
 Ordem conceitual:
 
-1. vinculo manual/confirmado no Master;
-2. regra forte por identidade/cadastro;
-3. fallback de cliente novo por Razao Social;
-4. fallback por CX/atendente apenas quando ainda nao existir vinculo;
-5. resultado do fallback fica provisorio ate validacao.
+1. regras comerciais explicitas `BALCÃO -> AGF` e `GAS SHOPPING METRO -> METRO`;
+2. vinculo manual/confirmado no Master para as demais identidades;
+3. regra forte por identidade/cadastro;
+4. fallback de cliente novo por Razao Social;
+5. fallback por CX/atendente apenas quando ainda nao existir vinculo;
+6. resultado do fallback fica provisorio ate validacao.
 
 ## Performance
 
@@ -110,7 +113,7 @@ Ordem conceitual:
 
 As estruturas envolvem nomes de remetentes, razao social, contratos, historico de postagens e faturamento. IDs reais de arquivos/planilhas e dados pessoais nao devem ser documentados no repositorio. O Motor V1 resolve IDs por nome e os mantem em Script Properties.
 
-A v0.4.1 altera somente a prioridade das evidencias usadas para gerar uma visao diagnostica. Ela nao grava Centro final, Local final ou Cliente ID e nao altera fatos mensais.
+A v0.4.2 corrige a interpretacao das razoes sociais compartilhadas `BALCÃO` e `GAS SHOPPING METRO` na visao diagnostica. Ela nao grava Centro final, Local final ou Cliente ID e nao altera fatos mensais.
 
 O diagnostico de identidade nao deve expor dados no frontend e nao deve ser usado para IA externa antes da definicao de minimizacao de dados.
 
