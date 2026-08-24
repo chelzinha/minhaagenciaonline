@@ -1,5 +1,5 @@
 function centralAgfLoteStableId_(center, canonical) {
-  const text = String(center || '') + '|' + centralAgfNomeBasicoNormalizado_(canonical);
+  const text = centralAgfNormalizeText_(center) + '|' + centralAgfNomeBasicoNormalizado_(canonical);
   const digest = Utilities.computeDigest(
     Utilities.DigestAlgorithm.SHA_256,
     text,
@@ -104,7 +104,7 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
     values.slice(1).forEach(function(row) {
       if (centralAgfNormalizeText_(row[map.STATUS_PREVIA]) !== 'PRONTO_PREVIA') return;
 
-      const center = String(row[map.CENTRO_SUGERIDO] || '').trim();
+      const center = centralAgfNormalizeText_(row[map.CENTRO_SUGERIDO]);
       const canonical = String(row[map.NOME_CANONICO_SUGERIDO] || '').trim();
       const canonicalNorm = centralAgfNomeBasicoNormalizado_(canonical);
       const type = centralAgfNormalizeText_(row[map.TIPO_IDENTIDADE]);
@@ -130,7 +130,6 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
           reasons: Object.create(null),
           variants: Object.create(null),
           locals: Object.create(null),
-          diagnosticKeys: Object.create(null),
           rows: 0,
           occurrences: 0,
           billing: 0,
@@ -158,7 +157,6 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
       centralAgfSplitDistinctList_(row[map.LOCAIS_ORIGEM_OBSERVADOS]).forEach(function(value) {
         centralAgfLoteAddDistinctValue_(item.locals, value);
       });
-      centralAgfLoteAddDistinctValue_(item.diagnosticKeys, row[map.CHAVE_DIAGNOSTICO]);
     });
 
     const safeHeader = [
@@ -166,7 +164,7 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
       'QTD_DIAGNOSTICOS_AGRUPADOS', 'OCORRENCIAS_TOTAL', 'FATURAMENTO_TOTAL',
       'PRIMEIRA_POSTAGEM', 'ULTIMA_POSTAGEM', 'ESTRATEGIAS_ORIGEM', 'ALIAS_ORIGEM_IDS',
       'RAZOES_SOCIAIS_OBSERVADAS', 'VARIANTES_NOME', 'LOCAIS_ORIGEM_OBSERVADOS',
-      'STATUS_LOTE', 'MOTIVO', 'CLIENTE_ID_PROPOSTO', 'APROVADO_PARA_ESCRITA'
+      'STATUS_LOTE', 'MOTIVO'
     ];
     const conflictHeader = [
       'LOTE_ITEM_ID', 'CENTRO_SUGERIDO', 'NOME_CANONICO', 'CENTROS_CANONICO',
@@ -194,7 +192,7 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
       if (!item.canonicalNorm || !canonicalDisplay || centralAgfIsPlaceholderName_(canonicalDisplay)) {
         problems.push('CANONICO_INVALIDO_OU_PLACEHOLDER');
       }
-      if (['CTR_AGF', 'CTR_METRO'].indexOf(centralAgfNormalizeText_(item.center)) < 0) {
+      if (['CTR_AGF', 'CTR_METRO'].indexOf(item.center) < 0) {
         problems.push('CENTRO_NAO_RECONHECIDO');
       }
       if (centerKeys.length > 1) {
@@ -256,9 +254,7 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
         centralAgfLoteList_(item.variants, 12),
         centralAgfLoteList_(item.locals, 10),
         'PRONTO_LOTE_SEGURO',
-        'IDENTIDADE_UNICA_POR_CENTRO_E_CANONICO',
-        '',
-        ''
+        'IDENTIDADE_UNICA_POR_CENTRO_E_CANONICO'
       ]);
     });
 
