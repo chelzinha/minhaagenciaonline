@@ -102,7 +102,7 @@ Nenhuma dessas classificacoes promove automaticamente um caso de revisao para Cl
 8. Somente estrategias `ALIAS_MANUAL_LEGADO`, `ALIAS_EXATO_NORM_LEGADO` e `RAZAO_SOCIAL_AGF` podem entrar no lote seguro.
 9. Placeholder, canonico vazio ou Centro desconhecido deve ir para conflitos.
 10. `LOTE_ITEM_ID` deve ser deterministico para a mesma combinacao Centro + canonico.
-11. `CLIENTE_ID_PROPOSTO` e `APROVADO_PARA_ESCRITA` devem nascer vazios em `18_LOTE_SEGURO_CLIENTES`.
+11. `18_LOTE_SEGURO_CLIENTES` deve permanecer uma visao rebuildable, sem campos de decisao humana persistente e sem `CLIENTE_ID` proposto.
 12. Executar a funcao novamente com a mesma entrada deve reconstruir as abas derivadas sem duplicar linhas.
 13. Nenhuma execucao deve gravar em `01_CLIENTES_MASTER`, `02_ALIASES_NOME_REMETENTE`, `04_CLIENTES_CENTRO_LOCAL` ou nos fatos mensais.
 
