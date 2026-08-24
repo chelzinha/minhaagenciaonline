@@ -4,7 +4,7 @@
 
 Estrutura inicial criada em homologacao em 2026-08-22. Nenhuma planilha atual de producao foi desativada ou alterada por esta etapa.
 
-Motor de homologacao atual: `v0.7.1`, na branch `feat/central-agf-motor-v1`.
+Motor de homologacao atual: `v0.8.0`, na branch `feat/central-agf-motor-v1`.
 
 ## Objetivo
 
@@ -33,6 +33,7 @@ Separar o processamento de postagens, o cadastro mestre de clientes, o historico
 - Cadastro confirmado manualmente deve vencer fallbacks automaticos nos demais casos.
 - Para cliente novo, regras por Razao Social e depois CX/atendente podem sugerir Centro/Local; fallbacks devem ficar marcados como provisorios.
 - O historico mensal e fonte de fatos; a planilha de consulta e apenas uma materializacao temporaria para auditoria.
+- `CLIENTE_ID` deve ser uma chave tecnica opaca e imutavel depois de persistida no Cadastro Mestre.
 
 ## Consulta de todas as colunas e periodos
 
@@ -92,7 +93,63 @@ A primeira execucao da v0.7.0 mostrou 2.170 entradas prontas, consolidadas em 2.
 
 A v0.7.1 corrige essa interpretacao: no mesmo `CTR_AGF` e com o mesmo canonico, Balcao e contrato sao canais/evidencias da mesma entidade, nao identidades diferentes. Quando ambos existem, `AGF_RAZAO_SOCIAL` prevalece como identidade cadastral oficial e o nome usado no Balcao permanece como alias/evidencia. A regra nao atravessa Centros e nao afrouxa fuzzy/score.
 
-Nenhuma rotina da v0.7.x cria `CLIENTE_ID`, grava Centro/Local final ou altera os fatos mensais.
+Baseline homologado da v0.7.1:
+
+- 2.170 entradas `PRONTO_PREVIA`;
+- 2.140 identidades unicas;
+- 29 consolidacoes AGF Balcao + contrato;
+- 2.140 identidades no lote seguro;
+- 0 conflitos residuais;
+- 1.106 identidades `CTR_AGF`;
+- 1.034 identidades `CTR_METRO`;
+- R$ 4.887.208,27 de faturamento preservado integralmente.
+
+## Proposta de CLIENTE_ID - v0.8.0
+
+A v0.8.0 adiciona `centralAgfGerarPropostaClienteId()` e as abas derivadas:
+
+- `21_PROPOSTA_CLIENTES_MASTER`;
+- `22_CONFLITOS_PROPOSTA_ID`;
+- `23_RESUMO_PROPOSTA_ID`.
+
+A funcao so executa quando o lote seguro estiver com zero conflitos residuais.
+
+### Formato do ID
+
+- `CLIENTE_ID_PROPOSTO = CLI_` + 20 caracteres hexadecimais.
+- O valor e calculado por SHA-256 sobre um namespace tecnico fixo + `LOTE_ITEM_ID`.
+- O ID nao codifica nome, Centro, contrato, CPF/CNPJ ou outro significado comercial visivel.
+- Durante a homologacao, a mesma identidade de lote sempre gera a mesma proposta.
+- Depois da escrita futura em `01_CLIENTES_MASTER`, o ID passa a ser imutavel e nao deve ser recalculado por mudanca posterior de nome, alias, Razao Social ou Local.
+
+### Mapeamento para o Master
+
+A proposta usa o esquema atual de `01_CLIENTES_MASTER` sem escrever nele:
+
+- `NOME_EXIBICAO`: nome canonico do lote seguro;
+- `RAZAO_SOCIAL_OFICIAL`: preenchida automaticamente somente para `AGF_RAZAO_SOCIAL`;
+- `NOME_FANTASIA`: vazio quando nao existe fonte homologada;
+- `CNPJ_CPF`: vazio quando nao existe fonte homologada;
+- `TIPO_CLIENTE`: valor generico `CLIENTE`;
+- `CENTRO_ID_PRINCIPAL`: Centro do lote seguro;
+- `LOCAL_ID_PRINCIPAL`: sempre vazio nesta etapa;
+- `STATUS_CADASTRO`: `PENDENTE_HOMOLOGACAO`;
+- `ORIGEM_IDENTIDADE`: referencia tecnica ao lote de migracao;
+- `CONFIRMADO_MANUAL`: `NAO` na proposta.
+
+### Travas da proposta
+
+Vira conflito em `22_CONFLITOS_PROPOSTA_ID` quando houver:
+
+- `LOTE_ITEM_ID` duplicado;
+- colisao ou duplicidade de `CLIENTE_ID_PROPOSTO`;
+- duplicidade de Centro + nome na propria proposta;
+- `CLIENTE_ID` ja usado por outra origem no Master;
+- mesmo Centro + nome ja existente no Master com outro ID;
+- tipo de identidade incompatível com o Centro;
+- nome canonico invalido ou Centro nao reconhecido.
+
+Nenhuma rotina da v0.8.0 grava em `01_CLIENTES_MASTER`, `04_CLIENTES_CENTRO_LOCAL` ou nos fatos mensais.
 
 ## Centro e Local
 
@@ -107,10 +164,13 @@ Ordem conceitual:
 5. fallback por CX/atendente apenas quando ainda nao existir vinculo;
 6. resultado do fallback fica provisorio ate validacao.
 
+A v0.8.0 nao transforma `LOCAIS_ORIGEM_OBSERVADOS` em `LOCAL_ID_PRINCIPAL`. Essa definicao exige homologacao separada porque o historico pode refletir atendimento, CX ou regra provisoria.
+
 ## Performance
 
 - Particoes mensais evitam crescimento infinito de uma unica planilha.
 - A consulta processa uma particao por vez e escreve em blocos.
+- As etapas de identidade trabalham sobre visoes agregadas, nao sobre 150k+ fatos a cada decisao humana.
 - O frontend futuro deve usar resumos/pre-processamento para periodo total e consultar fatos detalhados apenas sob demanda.
 - A materializacao completa existe para auditoria humana e nao deve ser o caminho padrao do front.
 - Todas as planilhas novas foram padronizadas para timezone `America/Sao_Paulo` para evitar deslocamento de datas.
@@ -119,7 +179,7 @@ Ordem conceitual:
 
 As estruturas envolvem nomes de remetentes, razao social, contratos, historico de postagens e faturamento. IDs reais de arquivos/planilhas e dados pessoais nao devem ser documentados no repositorio. O Motor V1 resolve IDs por nome e os mantem em Script Properties.
 
-O diagnostico e o lote seguro nao devem expor dados no frontend e nao devem ser usados para IA externa antes da definicao de minimizacao de dados.
+O diagnostico, o lote seguro e a proposta de Cliente ID nao devem expor dados no frontend e nao devem ser usados para IA externa antes da definicao de minimizacao de dados.
 
 ## Fora do escopo desta etapa
 
