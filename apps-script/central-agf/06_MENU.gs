@@ -8,6 +8,7 @@ function onOpen() {
       .addItem('Gerar diagnóstico de identidade', 'centralAgfGerarDiagnosticoIdentidade')
       .addItem('Gerar prévia de migração de clientes', 'centralAgfGerarPreviaMigracaoClientes')
       .addItem('Gerar revisão assistida de identidade', 'centralAgfGerarAssistenciaRevisaoIdentidade')
+      .addItem('Gerar lote seguro de clientes', 'centralAgfGerarLoteSeguroMigracaoClientes')
       .addSeparator()
       .addItem('Atualizar visão conforme parâmetros', 'centralAgfAtualizarVisao')
       .addItem('Materializar todas as postagens filtradas', 'centralAgfMaterializarPostagens')
