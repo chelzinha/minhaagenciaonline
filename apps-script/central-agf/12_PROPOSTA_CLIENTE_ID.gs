@@ -47,15 +47,18 @@ function centralAgfBuildMasterIndexes_(masterSheet) {
     byId: Object.create(null),
     byOrigin: Object.create(null),
     byCenterName: Object.create(null),
-    rows: 0
+    rows: 0,
+    headerMap: Object.create(null)
   };
-  if (!masterSheet || masterSheet.getLastRow() < 2) return result;
+  if (!masterSheet) return result;
 
   const values = masterSheet.getDataRange().getValues();
+  if (!values.length) return result;
   const map = centralAgfHeaderMap_(values[0]);
   ['CLIENTE_ID', 'NOME_EXIBICAO', 'CENTRO_ID_PRINCIPAL', 'ORIGEM_IDENTIDADE'].forEach(function(name) {
     if (map[name] == null) throw new Error('Coluna obrigatoria ausente em 01_CLIENTES_MASTER: ' + name);
   });
+  result.headerMap = map;
 
   values.slice(1).forEach(function(row) {
     const id = centralAgfNormalizeText_(row[map.CLIENTE_ID]);
@@ -69,10 +72,34 @@ function centralAgfBuildMasterIndexes_(masterSheet) {
     if (center && name) result.byCenterName[center + '|' + name] = row;
   });
 
-  result.headerMap = map;
   return result;
 }
 
+function centralAgfCountProposalKeys_(safeRows, safeMap) {
+  const counts = {
+    lot: Object.create(null),
+    clientId: Object.create(null),
+    centerName: Object.create(null)
+  };
+  safeRows.forEach(function(row) {
+    const lotItemId = centralAgfNormalizeText_(row[safeMap.LOTE_ITEM_ID]);
+    const center = centralAgfNormalizeText_(row[safeMap.CENTRO_SUGERIDO]);
+    const canonical = String(row[safeMap.NOME_CANONICO] || '').trim();
+    const canonicalNorm = centralAgfNomeBasicoNormalizado_(canonical);
+    const clientId = centralAgfClienteIdDeterministico_(lotItemId);
+    const centerNameKey = center + '|' + canonicalNorm;
+    counts.lot[lotItemId] = (counts.lot[lotItemId] || 0) + 1;
+    counts.clientId[clientId] = (counts.clientId[clientId] || 0) + 1;
+    counts.centerName[centerNameKey] = (counts.centerName[centerNameKey] || 0) + 1;
+  });
+  return counts;
+}
+
+/**
+ * Gera uma proposta idempotente de CLIENTE_ID a partir do lote seguro.
+ * O ID e opaco, sem significado comercial, e nasce de um namespace fixo + LOTE_ITEM_ID.
+ * Esta rotina nao escreve em 01_CLIENTES_MASTER e nao define LOCAL_ID_PRINCIPAL.
+ */
 function centralAgfGerarPropostaClienteId() {
   return centralAgfWithScriptLock_(function() {
     centralAgfAssertHistoricoHomologado_();
@@ -118,6 +145,7 @@ function centralAgfGerarPropostaClienteId() {
     const masterSheet = ss.getSheetByName(CENTRAL_AGF_CFG.SHEETS.MASTER_CLIENTS);
     if (!masterSheet) throw new Error('Aba nao encontrada: ' + CENTRAL_AGF_CFG.SHEETS.MASTER_CLIENTS);
     const masterIndexes = centralAgfBuildMasterIndexes_(masterSheet);
+    const inputCounts = centralAgfCountProposalKeys_(safeRows, safeMap);
 
     centralAgfSetPanelStatus_(
       'GERANDO_PROPOSTA_CLIENTE_ID',
@@ -139,10 +167,7 @@ function centralAgfGerarPropostaClienteId() {
     const proposalOut = [proposalHeader];
     const conflictOut = [conflictHeader];
     const summaryOut = [['GRUPO', 'ITEM', 'QTD']];
-
-    const seenLot = Object.create(null);
-    const seenId = Object.create(null);
-    const seenCenterName = Object.create(null);
+    const proposalBuffer = [];
     let proposedNew = 0;
     let alreadyInMaster = 0;
     let conflicts = 0;
@@ -164,16 +189,14 @@ function centralAgfGerarPropostaClienteId() {
       if (!canonicalNorm || centralAgfIsPlaceholderName_(canonical)) problems.push('NOME_CANONICO_INVALIDO');
       if (['CTR_AGF', 'CTR_METRO'].indexOf(center) < 0) problems.push('CENTRO_INVALIDO');
       if (!centralAgfLoteIdentityCenterCompatible_(type, center)) problems.push('TIPO_INCOMPATIVEL_COM_CENTRO');
-      if (seenLot[lotItemId]) problems.push('LOTE_ITEM_ID_DUPLICADO_NA_ENTRADA');
-      if (seenId[clientId] && seenId[clientId] !== lotItemId) problems.push('COLISAO_CLIENTE_ID_NA_PROPOSTA');
-      if (seenCenterName[centerNameKey] && seenCenterName[centerNameKey] !== lotItemId) {
-        problems.push('CENTRO_E_NOME_DUPLICADOS_NA_PROPOSTA');
-      }
+      if (inputCounts.lot[lotItemId] > 1) problems.push('LOTE_ITEM_ID_DUPLICADO_NA_ENTRADA');
+      if (inputCounts.clientId[clientId] > 1) problems.push('CLIENTE_ID_DUPLICADO_NA_PROPOSTA');
+      if (inputCounts.centerName[centerNameKey] > 1) problems.push('CENTRO_E_NOME_DUPLICADOS_NA_PROPOSTA');
 
       const existingByOrigin = masterIndexes.byOrigin[origin];
       const existingById = masterIndexes.byId[clientId];
       const existingByCenterName = masterIndexes.byCenterName[centerNameKey];
-      const masterMap = masterIndexes.headerMap || {};
+      const masterMap = masterIndexes.headerMap;
 
       if (existingByOrigin) {
         const existingId = centralAgfNormalizeText_(existingByOrigin[masterMap.CLIENTE_ID]);
@@ -197,10 +220,6 @@ function centralAgfGerarPropostaClienteId() {
         }
       }
 
-      seenLot[lotItemId] = true;
-      seenId[clientId] = lotItemId;
-      seenCenterName[centerNameKey] = lotItemId;
-
       if (problems.length) {
         conflicts++;
         conflictOut.push([
@@ -213,7 +232,7 @@ function centralAgfGerarPropostaClienteId() {
       if (status === 'JA_EXISTE_MASTER') alreadyInMaster++;
       else proposedNew++;
 
-      proposalOut.push([
+      proposalBuffer.push([
         clientId,
         lotItemId,
         canonical,
@@ -237,65 +256,17 @@ function centralAgfGerarPropostaClienteId() {
       ]);
     });
 
-    proposalOut.splice(1, proposalOut.length - 1);
-    const proposalRows = safeRows.length - conflicts;
-    const sortedProposalRows = [];
-    // Reconstrucao deterministica: percorre novamente os dados produzidos acima via buffer temporario.
-    // Como proposalOut foi resetado, regeneramos a partir dos resultados sem conflito abaixo.
-    // Para evitar estado paralelo complexo, usamos as linhas ja calculadas em uma segunda passagem leve.
-    // Esta passagem nao relê planilhas nem altera o Master.
-    const buffered = [];
-    const conflictLotIds = Object.create(null);
-    conflictOut.slice(1).forEach(function(row) { conflictLotIds[centralAgfNormalizeText_(row[1])] = true; });
-
-    safeRows.forEach(function(row) {
-      const lotItemId = centralAgfNormalizeText_(row[safeMap.LOTE_ITEM_ID]);
-      if (conflictLotIds[lotItemId]) return;
-      const center = centralAgfNormalizeText_(row[safeMap.CENTRO_SUGERIDO]);
-      const type = centralAgfNormalizeText_(row[safeMap.TIPO_IDENTIDADE]);
-      const canonical = String(row[safeMap.NOME_CANONICO] || '').trim();
-      const clientId = centralAgfClienteIdDeterministico_(lotItemId);
-      const origin = centralAgfOrigemIdentidadeMigracao_(lotItemId);
-      const existingByOrigin = masterIndexes.byOrigin[origin];
-      const status = existingByOrigin ? 'JA_EXISTE_MASTER' : 'PRONTO_PROPOSTA_ID';
-      const motive = existingByOrigin
-        ? 'MESMA_ORIGEM_IDENTIDADE_JA_PERSISTIDA'
-        : 'ID_DETERMINISTICO_A_PARTIR_DO_LOTE_ITEM_ID';
-      buffered.push([
-        clientId,
-        lotItemId,
-        canonical,
-        centralAgfRazaoSocialOficialProposta_(type, canonical),
-        '',
-        '',
-        'CLIENTE',
-        center,
-        '',
-        'PENDENTE_HOMOLOGACAO',
-        origin,
-        'NAO',
-        'Proposta derivada do lote seguro. LOCAL_ID_PRINCIPAL permanece vazio ate homologacao do vinculo Centro/Local.',
-        type,
-        row[safeMap.ESTRATEGIAS_ORIGEM],
-        row[safeMap.LOCAIS_ORIGEM_OBSERVADOS],
-        centralAgfNumero_(row[safeMap.OCORRENCIAS_TOTAL]),
-        Math.round(centralAgfNumero_(row[safeMap.FATURAMENTO_TOTAL]) * 100) / 100,
-        status,
-        motive
-      ]);
-    });
-
-    buffered.sort(function(a, b) {
+    proposalBuffer.sort(function(a, b) {
       const centerCmp = String(a[7]).localeCompare(String(b[7]));
       if (centerCmp) return centerCmp;
       return String(a[2]).localeCompare(String(b[2]));
     });
-    Array.prototype.push.apply(proposalOut, buffered);
+    Array.prototype.push.apply(proposalOut, proposalBuffer);
 
     summaryOut.push(['ENTRADA', 'LOTE_SEGURO', safeRows.length]);
     summaryOut.push(['PROPOSTA', 'PRONTO_PROPOSTA_ID', proposedNew]);
     summaryOut.push(['PROPOSTA', 'JA_EXISTE_MASTER', alreadyInMaster]);
-    summaryOut.push(['PROPOSTA', 'TOTAL_SEM_CONFLITO', proposalRows]);
+    summaryOut.push(['PROPOSTA', 'TOTAL_SEM_CONFLITO', proposalBuffer.length]);
     summaryOut.push(['PROPOSTA', 'CONFLITOS', conflicts]);
     summaryOut.push(['REGRA', 'LOCAL_ID_PRINCIPAL_PREENCHIDO_AUTOMATICAMENTE', 0]);
     summaryOut.push(['REGRA', 'ESCRITAS_EM_01_CLIENTES_MASTER', 0]);
