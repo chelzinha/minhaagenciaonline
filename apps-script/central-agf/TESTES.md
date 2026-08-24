@@ -1,4 +1,4 @@
-# TESTES - CENTRAL AGF Motor V1 v0.7.0
+# TESTES - CENTRAL AGF Motor V1 v0.7.1
 
 ## Pre-condicoes
 
@@ -68,6 +68,18 @@ Sobre os 6.548 casos em revisao:
 
 Nenhuma dessas classificacoes promove automaticamente um caso de revisao para Cliente Master.
 
+## Baseline observado do lote seguro v0.7.0
+
+A primeira execucao produziu:
+
+- 2.170 linhas `PRONTO_PREVIA` de entrada;
+- 2.140 identidades unicas por Centro + canonico;
+- 2.111 identidades no lote seguro;
+- 29 conflitos;
+- R$ 4.887.208,27 de faturamento total explicado integralmente entre lote e conflitos.
+
+Todos os 29 conflitos eram do mesmo padrao: `CTR_AGF`, mesmo nome canonico e combinacao `AGF_BALCAO_REMETENTE | AGF_RAZAO_SOCIAL`. Nao houve conflito de mesmo canonico entre AGF e METRO nessa execucao.
+
 ## Regressao das regras de Centro
 
 1. `RAZAO_SOCIAL=BALCÃO` deve sempre resultar em Centro `CTR_AGF` e tipo `AGF_BALCAO_REMETENTE`, independentemente de `CENTRO_ORIGEM`.
@@ -90,21 +102,22 @@ Nenhuma dessas classificacoes promove automaticamente um caso de revisao para Cl
 9. `STATUS` deve nascer `PENDENTE_REVISAO` em toda a fila.
 10. Nenhuma execucao da assistencia pode gravar em `01_CLIENTES_MASTER`, `04_CLIENTES_CENTRO_LOCAL` ou nos fatos mensais.
 
-## Regressao do lote seguro - v0.7.0
+## Regressao do lote seguro - v0.7.1
 
 1. A entrada deve conter somente linhas `STATUS_PREVIA=PRONTO_PREVIA` da aba 14.
 2. A soma de `FATURAMENTO_TOTAL` do lote seguro + conflitos deve bater com o faturamento das linhas de entrada `PRONTO_PREVIA`, com diferenca maxima de centavos por arredondamento de exibicao.
 3. A consolidacao deve agrupar por `CENTRO_SUGERIDO + NOME_CANONICO normalizado`.
 4. O mesmo nome canonico presente em mais de um Centro deve ir integralmente para `19_CONFLITOS_LOTE_SEGURO`.
-5. Mais de um `TIPO_IDENTIDADE` para a mesma chave consolidada deve ir para conflitos.
-6. `AGF_BALCAO_REMETENTE` e `AGF_RAZAO_SOCIAL` so podem ficar no lote seguro com `CTR_AGF`.
-7. `METRO_REMETENTE` so pode ficar no lote seguro com `CTR_METRO`.
-8. Somente estrategias `ALIAS_MANUAL_LEGADO`, `ALIAS_EXATO_NORM_LEGADO` e `RAZAO_SOCIAL_AGF` podem entrar no lote seguro.
-9. Placeholder, canonico vazio ou Centro desconhecido deve ir para conflitos.
-10. `LOTE_ITEM_ID` deve ser deterministico para a mesma combinacao Centro + canonico.
-11. `18_LOTE_SEGURO_CLIENTES` deve permanecer uma visao rebuildable, sem campos de decisao humana persistente e sem `CLIENTE_ID` proposto.
-12. Executar a funcao novamente com a mesma entrada deve reconstruir as abas derivadas sem duplicar linhas.
-13. Nenhuma execucao deve gravar em `01_CLIENTES_MASTER`, `02_ALIASES_NOME_REMETENTE`, `04_CLIENTES_CENTRO_LOCAL` ou nos fatos mensais.
+5. Em `CTR_AGF`, a combinacao exata `AGF_BALCAO_REMETENTE + AGF_RAZAO_SOCIAL` para o mesmo canonico nao e conflito de identidade: deve consolidar em `AGF_RAZAO_SOCIAL`, mantendo Balcao como alias/evidencia.
+6. Qualquer outra combinacao de mais de um `TIPO_IDENTIDADE` para a mesma chave consolidada deve ir para conflitos.
+7. `AGF_BALCAO_REMETENTE` e `AGF_RAZAO_SOCIAL` so podem ficar no lote seguro com `CTR_AGF`.
+8. `METRO_REMETENTE` so pode ficar no lote seguro com `CTR_METRO`.
+9. Somente estrategias `ALIAS_MANUAL_LEGADO`, `ALIAS_EXATO_NORM_LEGADO` e `RAZAO_SOCIAL_AGF` podem entrar no lote seguro.
+10. Placeholder, canonico vazio ou Centro desconhecido deve ir para conflitos.
+11. `LOTE_ITEM_ID` deve ser deterministico para a mesma combinacao Centro + canonico.
+12. `18_LOTE_SEGURO_CLIENTES` deve permanecer uma visao rebuildable, sem campos de decisao humana persistente e sem `CLIENTE_ID` proposto.
+13. Executar a funcao novamente com a mesma entrada deve reconstruir as abas derivadas sem duplicar linhas.
+14. Nenhuma execucao deve gravar em `01_CLIENTES_MASTER`, `02_ALIASES_NOME_REMETENTE`, `04_CLIENTES_CENTRO_LOCAL` ou nos fatos mensais.
 
 ## Regressao geral
 
@@ -125,6 +138,6 @@ So iniciar a escrita efetiva no Cadastro Mestre depois de:
 - regras `BALCÃO -> AGF` e `GAS SHOPPING METRO -> METRO` continuarem validas;
 - previa e fila assistida serem tratadas como visoes derivadas;
 - `20_RESUMO_LOTE_SEGURO` confirmar que a entrada pronta foi integralmente explicada entre lote seguro e conflitos;
-- conflitos de `19_CONFLITOS_LOTE_SEGURO` serem analisados antes de qualquer unificacao entre Centros ou tipos;
+- qualquer conflito residual de `19_CONFLITOS_LOTE_SEGURO` ser analisado antes da escrita;
 - o esquema de `CLIENTE_ID` definitivo ser definido e testado de forma idempotente;
 - nenhuma sugestao de score/fuzzy ser promovida automaticamente sem confirmacao.
