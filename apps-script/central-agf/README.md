@@ -2,7 +2,7 @@
 
 Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS` e às visões derivadas do `CADASTRO_MESTRE_CLIENTES`.
 
-## Escopo atual - v0.9.1
+## Escopo atual - v0.9.2
 
 - Descobrir por nome, uma unica vez, as planilhas tecnicas e salvar seus IDs em Script Properties.
 - Sincronizar o catalogo de particoes mensais a partir de `CONTROLE_CARGAS_POSTAGENS!03_PARTICOES`.
@@ -11,6 +11,7 @@ Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS` e às visões der
 - Gerar diagnostico, previa, revisao assistida e lote seguro de identidade sem alterar fatos.
 - Gerar proposta idempotente de `CLIENTE_ID` sem escrever em `01_CLIENTES_MASTER`.
 - Auditar qualidade cadastral antes de qualquer persistencia.
+- Recuperar contrato importado como `9999999999` quando o `CARTAO_POSTAGEM` possuir associacao historica univoca com um unico contrato real.
 
 ## Regras de Centro confirmadas
 
@@ -34,7 +35,7 @@ Duplicidades de SRO/FATO_ID permanecem registradas em `07_HOMOLOGACAO` e `09_REC
 - `16_RESUMO_IDENTIDADE` e `17_FILA_REVISAO_ASSISTIDA`: assistencia local, sem decisao automatica por fuzzy.
 - `18_LOTE_SEGURO_CLIENTES`, `19_CONFLITOS_LOTE_SEGURO` e `20_RESUMO_LOTE_SEGURO`: consolidacao segura.
 - `21_PROPOSTA_CLIENTES_MASTER`, `22_CONFLITOS_PROPOSTA_ID` e `23_RESUMO_PROPOSTA_ID`: proposta de `CLIENTE_ID`, ainda sem escrita.
-- `24_AUDITORIA_QUALIDADE_MASTER` e `25_RESUMO_QUALIDADE_MASTER`: qualidade cadastral antes da persistencia.
+- `24_AUDITORIA_QUALIDADE_MASTER` e `25_RESUMO_QUALIDADE_MASTER`: qualidade cadastral antes da persistencia, incluindo diagnostico da resolucao do contrato `9999999999` por Cartao de Postagem.
 
 ## Lote seguro - v0.7.1
 
@@ -50,21 +51,28 @@ O ID nao codifica nome, Centro, contrato ou CPF/CNPJ. Depois de persistido, deve
 
 Baseline homologado: 2.140 propostas, zero conflitos e zero escritas em `01_CLIENTES_MASTER`.
 
-## Auditoria de qualidade do Master - v0.9.1
+## Auditoria de qualidade do Master - v0.9.2
 
 `centralAgfAuditarQualidadePropostaMaster()` gera `24_AUDITORIA_QUALIDADE_MASTER` e `25_RESUMO_QUALIDADE_MASTER`.
 
-A primeira execucao da v0.9.0 revelou uma regra incorreta: todos os contratos observados estavam sendo tratados como autoridade cadastral. Isso incluia contratos compartilhados de intermediadores como SuperFrete, Locaweb e Mercado Livre, capazes de aparecer em muitos clientes e provocar falsas substituicoes de nome e falsas colisoes.
+A v0.9.1 restringiu corretamente a autoridade cadastral a contratos `INTERMEDIADOR=PORTAL POSTAL`, mas tratou `9999999999` como se fosse apenas uma sentinela descartavel. Essa interpretacao foi corrigida na v0.9.2.
 
-A v0.9.1 corrige a autoridade:
+### Regra de recuperacao do contrato 9999999999
 
-- para `AGF_RAZAO_SOCIAL`, somente `PROCESSAMENTO_POSTAGENS_CORREIOS!02_CONTRATOS` com `INTERMEDIADOR=PORTAL POSTAL` pode substituir/propor a Razao Social oficial;
-- contratos de outros intermediadores permanecem apenas como evidencia historica e nunca substituem a identidade do cliente;
-- sentinelas como `null`, `SEM CONTRATO` e `9999999999` nao entram como contrato de autoridade;
-- `BALCÃO` com acento normal nao e mais confundido com corrupcao de codificacao;
-- problemas reais de mojibake continuam sinalizados;
-- limpezas automaticas continuam limitadas a padroes deterministas de prefixo CNPJ/raiz/lista de codigos;
-- se duas propostas do mesmo Centro convergirem para o mesmo nome final, ambas permanecem `REVISAR_QUALIDADE`.
+`9999999999` e preservado como valor recebido da fonte. Antes de usar contratos como evidencia cadastral, o motor constroi no historico o chaveamento `CARTAO_POSTAGEM -> NUMERO_CONTRATO real`.
+
+- se o mesmo Cartao de Postagem estiver associado a exatamente um contrato real diferente de `9999999999`, as ocorrencias `9999999999` daquele cartao sao resolvidas para esse contrato;
+- se o cartao estiver associado a mais de um contrato real, nenhuma escolha automatica e feita;
+- se o cartao nao possuir contrato real de referencia, nenhuma escolha automatica e feita;
+- se a linha `9999999999` nao possuir Cartao de Postagem, nenhuma escolha automatica e feita;
+- contratos originais diferentes de `9999999999` nunca sao sobrescritos por essa regra;
+- a resolucao acontece em memoria durante a auditoria; os fatos mensais permanecem inalterados.
+
+A aba `24_AUDITORIA_QUALIDADE_MASTER` preserva separadamente contratos de origem, Cartoes observados, contratos resolvidos e o status da resolucao do `9999999999`. A aba `25_RESUMO_QUALIDADE_MASTER` reconcilia todas as linhas historicas `9999999999` entre resolvidas por cartao, cartao ambiguo, cartao sem referencia e sem cartao.
+
+Depois da resolucao contratual, somente contratos resolvidos presentes em `PROCESSAMENTO_POSTAGENS_CORREIOS!02_CONTRATOS` com `INTERMEDIADOR=PORTAL POSTAL` podem atuar como autoridade de Razao Social. Contratos de outros intermediadores continuam apenas como evidencia historica.
+
+`BALCÃO` corretamente acentuado nao e tratado como mojibake; problemas reais de codificacao continuam sinalizados. Limpezas automaticas continuam limitadas a padroes deterministas de prefixo CNPJ/raiz/lista de codigos. Se duas propostas do mesmo Centro convergirem para o mesmo nome final, ambas permanecem `REVISAR_QUALIDADE`.
 
 Nenhuma linha e gravada em `01_CLIENTES_MASTER` nesta etapa.
 
@@ -79,13 +87,14 @@ Nenhuma linha e gravada em `01_CLIENTES_MASTER` nesta etapa.
 7. `centralAgfGerarLoteSeguroMigracaoClientes()` e exigir zero conflitos.
 8. `centralAgfGerarPropostaClienteId()` e exigir zero conflitos.
 9. `centralAgfAuditarQualidadePropostaMaster()`.
-10. Revisar `25_RESUMO_QUALIDADE_MASTER` e os casos `REVISAR_QUALIDADE` antes de qualquer escrita no Master.
+10. Revisar `25_RESUMO_QUALIDADE_MASTER`, a reconciliacao `CONTRATO_999` e os casos `REVISAR_QUALIDADE` antes de qualquer escrita no Master.
 
 ## Nao faz nesta versao
 
 - Nao altera `APP MODELO_AGF` atual.
 - Nao processa Atende + Consolidador.
 - Nao escreve em `01_CLIENTES_MASTER`.
+- Nao regrava contrato resolvido nos fatos historicos.
 - Nao ativa cliente no Cadastro Mestre.
 - Nao define Local principal automaticamente.
 - Nao altera Centro/Local nos fatos.
@@ -94,4 +103,4 @@ Nenhuma linha e gravada em `01_CLIENTES_MASTER` nesta etapa.
 
 ## Seguranca
 
-IDs de planilhas nao ficam versionados. O setup resolve arquivos por nome e mantem IDs somente em Script Properties. As visoes derivadas contem dados cadastrais e financeiros e nao devem ser publicadas no frontend nem copiadas para documentacao com exemplos reais.
+IDs de planilhas nao ficam versionados. O setup resolve arquivos por nome e mantem IDs somente em Script Properties. As visoes derivadas contem dados cadastrais, contratuais e financeiros e nao devem ser publicadas no frontend nem copiadas para documentacao com exemplos reais.
