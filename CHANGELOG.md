@@ -2,7 +2,73 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
-## 2026-08-23 - Central AGF v0.4.1: prioridade de Centro no diagnostico de identidade
+## 2026-08-23 - Central AGF v0.7.0: lote seguro de migracao de clientes
+
+### Criado
+- Nova rotina `centralAgfGerarLoteSeguroMigracaoClientes()` em `apps-script/central-agf/11_LOTE_SEGURO_MIGRACAO_CLIENTES.gs`.
+- Nova visao derivada `18_LOTE_SEGURO_CLIENTES` para consolidar apenas candidatos `PRONTO_PREVIA` por Centro + nome canonico normalizado.
+- Nova visao `19_CONFLITOS_LOTE_SEGURO` para retirar automaticamente do lote qualquer colisao de Centro, tipo, estrategia ou canonico.
+- Novo `20_RESUMO_LOTE_SEGURO` para reconciliar quantidade e faturamento da entrada entre lote seguro e conflitos.
+- `LOTE_ITEM_ID` deterministico para rastrear a mesma identidade derivada entre reconstrucoes sem criar `CLIENTE_ID`.
+
+### Travas
+- O mesmo canonico em mais de um Centro nao e unificado automaticamente.
+- `AGF_BALCAO_REMETENTE` e `AGF_RAZAO_SOCIAL` so sao aceitos com `CTR_AGF`.
+- `METRO_REMETENTE` so e aceito com `CTR_METRO`.
+- Somente `ALIAS_MANUAL_LEGADO`, `ALIAS_EXATO_NORM_LEGADO` e `RAZAO_SOCIAL_AGF` entram no lote seguro.
+- Canonico vazio/placeholder e Centro desconhecido ficam fora do lote.
+- A aba 18 e totalmente rebuildable e nao recebe campos persistentes de aprovacao humana.
+
+### Atencao sensivel
+- A rotina manipula identidade cadastral derivada e faturamento agregado, mas nao grava em `01_CLIENTES_MASTER`, nao cria `CLIENTE_ID`, nao altera Centro/Local final e nao muda fatos mensais.
+- Nenhum nome real, CPF/CNPJ, telefone, e-mail, endereco, ID privado ou credencial foi registrado no repositorio.
+
+## 2026-08-23 - Central AGF v0.6.0: revisao assistida de identidade
+
+### Criado
+- `16_RESUMO_IDENTIDADE` com contagens agregadas da previa e da fila de revisao.
+- `17_FILA_REVISAO_ASSISTIDA` com ate tres sugestoes locais por candidato, ordenada por impacto financeiro.
+- Sugestoes deterministicas por correspondencia compacta e retirada de sufixo numerico, alem de evidencias legadas usadas apenas como assistencia.
+
+### Baseline homologado
+- 6.548 casos em revisao.
+- 385 com alias confiavel retido por outro motivo.
+- 34 sugestoes deterministicas.
+- 72 sugestoes legadas fortes.
+- 24 sugestoes legadas de alta confianca.
+- 30 sugestoes legadas medias.
+- 6.003 sem sugestao confiavel.
+
+### Regra
+- Nenhuma sugestao fuzzy/score promove automaticamente um cliente.
+- A fila continua somente leitura para a identidade final e nao escreve no Cadastro Mestre.
+
+## 2026-08-23 - Central AGF v0.5.0: previa de migracao de clientes
+
+### Criado
+- `14_PREVIA_MIGRACAO_CLIENTES` e `15_FILA_REVISAO_IDENTIDADE`.
+- Reaproveitamento automatico apenas de alias manual, `EXATO_NORM` score 100 e identidade AGF contratada por Razao Social.
+
+### Baseline homologado
+- 8.724 candidatos totais.
+- 2.170 `PRONTO_PREVIA`.
+- 6.548 `REVISAR`.
+- 6 `NAO_CRIAR_CLIENTE`.
+
+### Regra
+- A previa nao cria `CLIENTE_ID` e nao grava no Cadastro Mestre.
+
+## 2026-08-23 - Central AGF v0.4.2: correcao da regra BALCAO x METRO
+
+### Corrigido
+- `RAZAO_SOCIAL=BALCÃO` e regra comercial explicita de AGF e vence `CENTRO_ORIGEM`.
+- `RAZAO_SOCIAL=GAS SHOPPING METRO` e regra comercial explicita de METRO e vence `CENTRO_ORIGEM`.
+- Para demais identidades, `CENTRO_ID_FINAL` confirmado vence fallbacks e, na ausencia dele, `CENTRO_ORIGEM` pode orientar provisoriamente.
+
+### Observacao
+- Esta versao substitui a interpretacao intermediaria registrada na v0.4.1 abaixo. A v0.4.1 permanece no historico apenas para rastreabilidade e nao deve ser usada como regra atual.
+
+## 2026-08-23 - Central AGF v0.4.1: prioridade de Centro no diagnostico de identidade [SUPERADA PELA v0.4.2]
 
 ### Corrigido
 - `centralAgfClassificarIdentidade_()` passa a respeitar `CENTRO_ID_FINAL` como evidencia de maior prioridade.
@@ -151,4 +217,3 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 
 - Antes desta migracao, o site era publicado por deploy manual no Netlify.
 - A partir desta etapa, o repositorio GitHub passa a ser a fonte viva do frontend.
-- O site www.minhaagenciaonline.com.br foi validado visualmente apos o deploy inicial pelo GitHub.
