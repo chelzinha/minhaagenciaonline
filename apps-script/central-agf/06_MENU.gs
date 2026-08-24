@@ -9,6 +9,7 @@ function onOpen() {
       .addItem('Gerar prévia de migração de clientes', 'centralAgfGerarPreviaMigracaoClientes')
       .addItem('Gerar revisão assistida de identidade', 'centralAgfGerarAssistenciaRevisaoIdentidade')
       .addItem('Gerar lote seguro de clientes', 'centralAgfGerarLoteSeguroMigracaoClientes')
+      .addItem('Gerar proposta de Cliente ID', 'centralAgfGerarPropostaClienteId')
       .addSeparator()
       .addItem('Atualizar visão conforme parâmetros', 'centralAgfAtualizarVisao')
       .addItem('Materializar todas as postagens filtradas', 'centralAgfMaterializarPostagens')
