@@ -2,6 +2,91 @@
 
 Documento tecnico em preparacao.
 
+## 2026-08-23 - Central AGF v0.8.0 - proposta idempotente de Cliente ID
+
+### Atencao sensivel
+A mudanca gera identificadores tecnicos propostos a partir de identidades cadastrais consolidadas. Apesar de ainda nao haver escrita no Cadastro Mestre, o desenho do `CLIENTE_ID` passa a fazer parte da camada de identidade permanente futura.
+
+Dados envolvidos:
+- nome canonico derivado;
+- Centro principal proposto;
+- tipo de identidade de origem;
+- evidencias de aliases e locais observados;
+- ocorrencias e faturamento agregado para reconciliacao;
+- `LOTE_ITEM_ID` e `CLIENTE_ID_PROPOSTO`.
+
+O que mudou:
+- foi criada `centralAgfGerarPropostaClienteId()`;
+- o ID proposto usa formato `CLI_` + 20 caracteres hexadecimais;
+- o valor e deterministico por SHA-256 de namespace tecnico fixo + `LOTE_ITEM_ID`;
+- o ID nao codifica nome, Centro, CPF/CNPJ, contrato ou significado comercial visivel;
+- `21_PROPOSTA_CLIENTES_MASTER` recebe a proposta rebuildable;
+- `22_CONFLITOS_PROPOSTA_ID` isola colisao de ID, duplicidade de chave ou conflito com Master existente;
+- `23_RESUMO_PROPOSTA_ID` reconcilia a quantidade da proposta;
+- `LOCAL_ID_PRINCIPAL`, `CNPJ_CPF` e `NOME_FANTASIA` nao sao preenchidos sem fonte homologada;
+- `RAZAO_SOCIAL_OFICIAL` so e preenchida automaticamente para `AGF_RAZAO_SOCIAL`.
+
+Risco principal:
+- criar um identificador novo para uma entidade que ja exista no Master;
+- gerar dois IDs para a mesma identidade;
+- colidir IDs entre identidades diferentes;
+- transformar Local historico/provisorio em vinculo permanente sem homologacao.
+
+Mitigacao aplicada:
+- a funcao so executa com zero conflitos residuais em `20_RESUMO_LOTE_SEGURO`;
+- valida duplicidade de `LOTE_ITEM_ID`, `CLIENTE_ID_PROPOSTO` e Centro + nome;
+- compara a proposta com `01_CLIENTES_MASTER` por ID, origem de identidade e Centro + nome;
+- `LOCAL_ID_PRINCIPAL` permanece sempre vazio nesta etapa;
+- nenhuma linha e escrita em `01_CLIENTES_MASTER`;
+- nenhuma linha e escrita em `04_CLIENTES_CENTRO_LOCAL`;
+- nenhum fato mensal e alterado;
+- nenhuma credencial nova e criada e nenhum segredo e registrado.
+
+Regra futura de imutabilidade:
+- depois de um `CLIENTE_ID` ser persistido no Cadastro Mestre, mudancas posteriores de nome, alias, Razao Social, Centro/Local observado ou limpeza textual nao podem recalcular nem substituir esse ID automaticamente.
+
+Arquivos envolvidos:
+- `apps-script/central-agf/00_CFG.gs`;
+- `apps-script/central-agf/06_MENU.gs`;
+- `apps-script/central-agf/12_PROPOSTA_CLIENTE_ID.gs`;
+- `apps-script/central-agf/README.md`;
+- `apps-script/central-agf/TESTES.md`;
+- `docs/CENTRAL_AGF_DADOS.md`;
+- `docs/APPS_SCRIPT.md`;
+- `docs/PLANILHAS_E_DADOS.md`;
+- `docs/REGISTRO_DE_MUDANCAS_SENSIVEIS.md`;
+- `CHANGELOG.md`.
+
+Como testar:
+- sincronizar a v0.8.0 via clasp;
+- confirmar que `20_RESUMO_LOTE_SEGURO` continua com zero conflitos;
+- executar `centralAgfGerarPropostaClienteId()`;
+- confirmar que `23_RESUMO_PROPOSTA_ID` explica integralmente as identidades do lote seguro;
+- confirmar que IDs permanecem iguais em uma segunda execucao com a mesma entrada;
+- confirmar que `01_CLIENTES_MASTER`, `04_CLIENTES_CENTRO_LOCAL` e fatos mensais permanecem inalterados.
+
+Como reverter:
+- reverter os commits da v0.8.0 na branch `feat/central-agf-motor-v1`;
+- reenviar a versao anterior via clasp se a v0.8.0 ja tiver sido sincronizada;
+- as abas 21, 22 e 23 podem ser removidas apos confirmar que nenhuma rotina posterior depende delas, pois sao visoes derivadas e nao fonte de verdade.
+
+## 2026-08-23 - Central AGF v0.7.1 - consolidacao AGF Balcao + contrato
+
+### Atencao sensivel
+A mudanca alterou a regra de consolidacao de identidade dentro do `CTR_AGF`.
+
+Regra confirmada:
+- quando o mesmo nome canonico exato aparece como `AGF_BALCAO_REMETENTE` e `AGF_RAZAO_SOCIAL` no mesmo Centro, trata-se da mesma identidade vista por dois canais/evidencias;
+- `AGF_RAZAO_SOCIAL` prevalece como identidade cadastral oficial;
+- a evidencia de Balcao permanece preservada como alias/origem;
+- a regra nao atravessa Centros e nao promove fuzzy/score.
+
+Homologacao:
+- 2.140 identidades no lote seguro;
+- zero conflitos residuais;
+- 1.106 `CTR_AGF` e 1.034 `CTR_METRO`;
+- R$ 4.887.208,27 preservados integralmente.
+
 ## 2026-08-23 - Central AGF v0.7.0 - lote seguro de migracao de clientes
 
 ### Atencao sensivel
