@@ -2,7 +2,7 @@
 
 Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS` e às visões derivadas do `CADASTRO_MESTRE_CLIENTES`.
 
-## Escopo atual - v0.8.0
+## Escopo atual - v0.9.0
 
 - Descobrir por nome, uma unica vez, as planilhas tecnicas e salvar seus IDs em Script Properties.
 - Sincronizar o catalogo de particoes mensais a partir de `CONTROLE_CARGAS_POSTAGENS!03_PARTICOES`.
@@ -14,6 +14,7 @@ Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS` e às visões der
 - Gerar fila assistida de revisao com sugestoes deterministicas e evidencias legadas, sempre dependentes de decisao humana.
 - Consolidar apenas `PRONTO_PREVIA` em um lote seguro por Centro + nome canonico, isolando conflitos reais antes de qualquer escrita no Cadastro Mestre.
 - Gerar proposta idempotente de `CLIENTE_ID` sem escrever em `01_CLIENTES_MASTER`.
+- Auditar a qualidade cadastral dos nomes propostos usando `02_CONTRATOS` e evidencias historicas de contrato/remetente antes de qualquer persistencia.
 - Materializar `01_CLIENTES_MASTER` em `02_CLIENTES` somente quando o cadastro estiver homologado.
 
 ## Auditoria historica
@@ -58,11 +59,7 @@ A assistencia usa evidencias locais e deterministicas, mas nenhuma sugestao grav
 
 A consolidacao usa a chave provisoria `CENTRO_SUGERIDO + NOME_CANONICO normalizado`. `LOTE_ITEM_ID` e apenas uma chave deterministica da visao derivada.
 
-Regra adicional da v0.7.1:
-
-- no `CTR_AGF`, quando o mesmo nome canonico aparece exatamente como `AGF_BALCAO_REMETENTE` e `AGF_RAZAO_SOCIAL`, isso representa dois canais/evidencias da mesma identidade e nao um conflito por si so;
-- nesse caso, `AGF_RAZAO_SOCIAL` prevalece como identidade cadastral oficial e a ocorrencia de Balcao permanece como alias/evidencia;
-- essa consolidacao so vale quando Centro e nome canonico sao exatamente os mesmos e nao existe colisao entre Centros.
+No `CTR_AGF`, quando o mesmo nome canonico aparece exatamente como `AGF_BALCAO_REMETENTE` e `AGF_RAZAO_SOCIAL`, isso representa dois canais/evidencias da mesma identidade. `AGF_RAZAO_SOCIAL` prevalece como identidade cadastral oficial e a ocorrencia de Balcao permanece como alias/evidencia.
 
 ## Proposta de Cliente ID - v0.8.0
 
@@ -76,20 +73,24 @@ Regra do `CLIENTE_ID`:
 
 - formato `CLI_` + 20 caracteres hexadecimais;
 - calculado por SHA-256 sobre um namespace fixo e o `LOTE_ITEM_ID`;
-- nao codifica nome, Centro, contrato, CPF/CNPJ ou qualquer significado comercial visivel;
-- e deterministico durante a homologacao: a mesma identidade de lote gera a mesma proposta em novas execucoes;
-- depois de persistido no Cadastro Mestre, o ID deve ser tratado como imutavel e nunca recalculado por mudanca futura de nome/alias.
+- nao codifica nome, Centro, contrato, CPF/CNPJ ou significado comercial visivel;
+- e deterministico durante a homologacao;
+- depois de persistido no Cadastro Mestre, deve ser tratado como imutavel.
 
-Mapeamento seguro da proposta:
+`LOCAL_ID_PRINCIPAL`, `CNPJ_CPF` e `NOME_FANTASIA` permanecem vazios sem fonte homologada.
 
-- `NOME_EXIBICAO` recebe o nome canonico do lote;
-- `RAZAO_SOCIAL_OFICIAL` so e preenchida automaticamente quando `TIPO_IDENTIDADE=AGF_RAZAO_SOCIAL`;
-- `TIPO_CLIENTE` recebe apenas o valor generico `CLIENTE`;
-- `CENTRO_ID_PRINCIPAL` vem do lote seguro;
-- `LOCAL_ID_PRINCIPAL` permanece vazio ate homologacao especifica de Centro/Local;
-- `CNPJ_CPF`, `NOME_FANTASIA` e dados cadastrais nao sao inventados;
-- `STATUS_CADASTRO` fica `PENDENTE_HOMOLOGACAO` na proposta;
-- nenhuma linha e gravada em `01_CLIENTES_MASTER` nesta versao.
+## Auditoria de qualidade do Master - v0.9.0
+
+`centralAgfAuditarQualidadePropostaMaster()` gera:
+
+- `24_AUDITORIA_QUALIDADE_MASTER`: uma linha para cada proposta de Cliente ID, com nome atual, evidencias de contratos/remetentes, nome final sugerido, fonte, regra de limpeza e status de qualidade;
+- `25_RESUMO_QUALIDADE_MASTER`: contagens e faturamento por status de qualidade.
+
+Para clientes AGF contratados, a rotina cruza `NUMERO_CONTRATO` observado nos fatos historicos com `PROCESSAMENTO_POSTAGENS_CORREIOS!02_CONTRATOS`. Essa fonte atual pode substituir uma Razao Social historica contaminada por codigos operacionais quando o contrato observado aponta de forma univoca para outro nome.
+
+Limpezas automaticas nesta etapa sao restritas a padroes fortemente deterministas, como CNPJ/raiz de CNPJ prefixando o nome ou lista numerica operacional antes do nome. Depois da limpeza, qualquer colisao entre dois `CLIENTE_ID` do mesmo Centro vira `REVISAR_QUALIDADE`.
+
+A auditoria continua somente leitura em relacao a `01_CLIENTES_MASTER`: nenhum cliente e criado, ativado ou atualizado.
 
 ## Nao faz nesta versao
 
@@ -113,7 +114,9 @@ Mapeamento seguro da proposta:
 7. `centralAgfGerarLoteSeguroMigracaoClientes()`.
 8. Exigir zero conflitos em `19_CONFLITOS_LOTE_SEGURO`.
 9. `centralAgfGerarPropostaClienteId()`.
-10. Revisar `23_RESUMO_PROPOSTA_ID` e qualquer linha de `22_CONFLITOS_PROPOSTA_ID` antes de projetar escrita em `01_CLIENTES_MASTER`.
+10. Exigir zero conflitos em `22_CONFLITOS_PROPOSTA_ID`.
+11. `centralAgfAuditarQualidadePropostaMaster()`.
+12. Revisar `25_RESUMO_QUALIDADE_MASTER` e qualquer `REVISAR_QUALIDADE` antes de desenhar a escrita em `01_CLIENTES_MASTER`.
 
 ## Seguranca
 
