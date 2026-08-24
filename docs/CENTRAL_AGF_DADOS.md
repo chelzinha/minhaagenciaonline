@@ -4,11 +4,11 @@
 
 Estrutura inicial criada em homologacao em 2026-08-22. Nenhuma planilha atual de producao foi desativada ou alterada por esta etapa.
 
-Motor de homologacao atual: `v0.4.2`, na branch `feat/central-agf-motor-v1`.
+Motor de homologacao atual: `v0.7.0`, na branch `feat/central-agf-motor-v1`.
 
 ## Objetivo
 
-Separar o processamento de postagens, o cadastro mestre de clientes, o historico de fatos e as consultas/auditorias para eliminar o crescimento de uma unica planilha monolitica e reduzir conferencia manual.
+Separar processamento de postagens, cadastro mestre de clientes, historico de fatos e consultas/auditorias para eliminar o crescimento de uma planilha monolitica, reduzir conferencia manual e preparar uma fonte tecnica rastreavel para os modulos da Plataforma Digital AGF.
 
 ## Camadas
 
@@ -67,13 +67,11 @@ Objetivo: transformar 150k+ fatos em um inventario menor de candidatos de identi
 
 **Elegibilidade:** somente fatos com SRO real entram como evidencia/candidato de cliente. Linhas `SEM_REGISTRO`, `PRODUTO_ECT` e outros registros sem SRO permanecem na base financeira, mas sao ignoradas nessa etapa de identidade.
 
-### Regras de Centro e identidade - v0.4.2
-
-A classificacao deve respeitar estas regras:
+### Regras de Centro e identidade
 
 1. `RAZAO_SOCIAL = BALCÃO` pertence ao Centro AGF e a identidade preliminar usa `NOME_REMETENTE`.
 2. `RAZAO_SOCIAL = GAS SHOPPING METRO` pertence ao Centro METRO e a identidade preliminar usa `NOME_REMETENTE`.
-3. Essas duas regras comerciais explicitas vencem `CENTRO_ORIGEM`, pois o Centro de origem pode refletir atendimento/CX e nao a classificacao comercial correta.
+3. Essas duas regras comerciais explicitas vencem `CENTRO_ORIGEM`, pois a origem operacional pode refletir atendente/CX e nao a classificacao comercial correta.
 4. Para as demais razoes sociais, `CENTRO_ID_FINAL` reconhecido e a evidencia mais forte e vence fallbacks automaticos.
 5. Sem Centro final e sem uma das duas regras comerciais explicitas, `CENTRO_ORIGEM` reconhecido pode orientar AGF/Metro de forma provisoria.
 6. Casos sem regra forte ficam `INDEFINIDO` para revisao.
@@ -88,6 +86,45 @@ Regras de identidade por Centro:
 
 A aba de diagnostico guarda ocorrencias, quantidade, faturamento, primeira/ultima postagem, variantes de Razao Social/Remetente e Centros/Locais/atendentes observados. Ela e rebuildable e nao e fonte de verdade.
 
+## Previa e revisao assistida
+
+`centralAgfGerarPreviaMigracaoClientes()` gera:
+
+- `14_PREVIA_MIGRACAO_CLIENTES`;
+- `15_FILA_REVISAO_IDENTIDADE`.
+
+Somente alias manual, `EXATO_NORM` com score 100 e identidade AGF baseada em Razao Social podem virar `PRONTO_PREVIA` automaticamente. Score/fuzzy legado continua apenas como evidencia.
+
+`centralAgfGerarAssistenciaRevisaoIdentidade()` gera:
+
+- `16_RESUMO_IDENTIDADE`;
+- `17_FILA_REVISAO_ASSISTIDA`.
+
+A assistencia reduz trabalho humano com comparacoes deterministicas e sugestoes legadas, mas nao transforma uma sugestao em identidade confirmada.
+
+## Lote seguro de migracao - v0.7.0
+
+`centralAgfGerarLoteSeguroMigracaoClientes()` usa somente os candidatos `PRONTO_PREVIA` e consolida a identidade pela chave provisoria `CENTRO_SUGERIDO + NOME_CANONICO normalizado`.
+
+Abas derivadas:
+
+- `18_LOTE_SEGURO_CLIENTES`: identidades prontas para a proxima fase de homologacao;
+- `19_CONFLITOS_LOTE_SEGURO`: identidades retiradas do lote por colisao ou incompatibilidade;
+- `20_RESUMO_LOTE_SEGURO`: contagem e faturamento explicados entre entrada, lote e conflitos.
+
+Travas do lote seguro:
+
+- o mesmo canonico nao pode aparecer em mais de um Centro;
+- uma chave consolidada nao pode ter mais de um tipo de identidade;
+- tipo e Centro precisam ser compativeis (`AGF_* -> CTR_AGF`, `METRO_REMETENTE -> CTR_METRO`);
+- Centro precisa ser `CTR_AGF` ou `CTR_METRO`;
+- estrategia de origem precisa ser uma das confiaveis da previa;
+- canonico vazio ou placeholder nao entra no lote.
+
+A v0.7.0 nao cria `CLIENTE_ID`. `LOTE_ITEM_ID` e apenas uma chave tecnica deterministica da visao derivada, usada para rastrear o mesmo Centro + canonico entre reconstrucoes.
+
+Qualquer caso que falhe em uma trava permanece fora da futura escrita no Master ate revisao especifica. A funcao nao unifica automaticamente uma identidade que aparece nos dois Centros.
+
 ## Centro e Local
 
 A autoridade futura deve ser o Cadastro Mestre, respeitando as duas regras comerciais de origem acima.
@@ -101,10 +138,13 @@ Ordem conceitual:
 5. fallback por CX/atendente apenas quando ainda nao existir vinculo;
 6. resultado do fallback fica provisorio ate validacao.
 
+A criacao de `CLIENTE_ID` definitivo e de registros em `04_CLIENTES_CENTRO_LOCAL` continua posterior a homologacao do lote seguro.
+
 ## Performance
 
 - Particoes mensais evitam crescimento infinito de uma unica planilha.
 - A consulta processa uma particao por vez e escreve em blocos.
+- Diagnostico, previa, assistencia e lote seguro leem as tabelas em lote e geram visoes rebuildable.
 - O frontend futuro deve usar resumos/pre-processamento para periodo total e consultar fatos detalhados apenas sob demanda.
 - A materializacao completa existe para auditoria humana e nao deve ser o caminho padrao do front.
 - Todas as planilhas novas foram padronizadas para timezone `America/Sao_Paulo` para evitar deslocamento de datas.
@@ -113,9 +153,9 @@ Ordem conceitual:
 
 As estruturas envolvem nomes de remetentes, razao social, contratos, historico de postagens e faturamento. IDs reais de arquivos/planilhas e dados pessoais nao devem ser documentados no repositorio. O Motor V1 resolve IDs por nome e os mantem em Script Properties.
 
-A v0.4.2 corrige a interpretacao das razoes sociais compartilhadas `BALCÃO` e `GAS SHOPPING METRO` na visao diagnostica. Ela nao grava Centro final, Local final ou Cliente ID e nao altera fatos mensais.
+O lote seguro manipula identidade cadastral derivada e valores agregados, mas continua sem escrever no Cadastro Mestre, sem alterar fatos e sem criar IDs definitivos.
 
-O diagnostico de identidade nao deve expor dados no frontend e nao deve ser usado para IA externa antes da definicao de minimizacao de dados.
+As abas de diagnostico, previa, assistencia e lote nao devem ser expostas no frontend nem enviadas a IA externa sem uma decisao explicita de minimizacao de dados.
 
 ## Fora do escopo desta etapa
 
@@ -125,3 +165,4 @@ O diagnostico de identidade nao deve expor dados no frontend e nao deve ser usad
 - Curva ABC como visao do CRM.
 - Automacao/agente para download diario de Atende e Consolidador.
 - Substituicao do merge atual Atende + Consolidador antes de sua regra ser homologada no novo motor.
+- Escrita efetiva de clientes no Cadastro Mestre antes da homologacao do lote seguro.
