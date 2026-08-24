@@ -27,4 +27,6 @@ Toda alteracao relevante deve atualizar documentacao, changelog e gerar commit.
 
 A arquitetura de dados postais e o Motor V1 ficam documentados em `docs/CENTRAL_AGF_DADOS.md` e `apps-script/central-agf/README.md`.
 
-A branch `feat/central-agf-motor-v1` esta em homologacao e nao substitui o processamento atual enquanto as etapas de historico, identidade e Cadastro Mestre nao forem concluidas.
+Estado atual da branch `feat/central-agf-motor-v1`: Motor V1 `v0.8.0`, com historico mensal auditado, diagnostico/previa de identidade, lote seguro homologado com zero conflitos residuais no baseline atual e proposta idempotente de `CLIENTE_ID` ainda somente leitura.
+
+A branch permanece em homologacao e nao substitui o processamento atual. A v0.8.0 nao escreve em `01_CLIENTES_MASTER`, nao define Local principal automaticamente e nao altera os fatos mensais.
