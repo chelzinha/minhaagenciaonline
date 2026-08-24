@@ -1,4 +1,4 @@
-# TESTES - CENTRAL AGF Motor V1 v0.9.2
+# TESTES - CENTRAL AGF Motor V1 v0.9.3
 
 ## Pre-condicoes
 
@@ -29,6 +29,21 @@
 - 0 preenchimentos automaticos de Local.
 - 0 escritas em `01_CLIENTES_MASTER`.
 
+### Auditoria de qualidade v0.9.2
+- 2.140 propostas auditadas / R$ 4.887.208,27.
+- 2.041 `PRONTO_SEM_AJUSTE`.
+- 63 `PRONTO_COM_AUTORIDADE_CONTRATO`.
+- 10 `PRONTO_COM_LIMPEZA_DETERMINISTICA`.
+- 26 `REVISAR_QUALIDADE` / R$ 545.999,79.
+- 3.663 ocorrencias `9999999999`.
+- 1.709 resolvidas por Cartao de Postagem univoco.
+- 1.436 em cartao ambiguo.
+- 73 em cartao sem referencia.
+- 445 sem cartao.
+- 23 linhas em colisao, agrupadas em 11 grupos.
+- 4 linhas com multiplas Razoes Sociais Portal Postal, sendo uma tambem parte de colisao.
+- 0 escritas em `01_CLIENTES_MASTER`.
+
 ## Ordem de homologacao atual
 
 1. `centralAgfAutoConfigurar()`.
@@ -42,6 +57,8 @@
 9. `centralAgfAuditarQualidadePropostaMaster()`.
 10. Conferir `24_AUDITORIA_QUALIDADE_MASTER` e `25_RESUMO_QUALIDADE_MASTER`.
 11. Confirmar `ESCRITAS_EM_01_CLIENTES_MASTER=0`.
+12. `centralAgfPrepararValidacaoManualMaster()`.
+13. Conferir `26_VALIDACAO_MANUAL_MASTER` antes de qualquer persistencia real.
 
 ## Regressao de Centro
 
@@ -62,32 +79,39 @@
 
 ## Regressao da auditoria de qualidade - v0.9.2
 
-A v0.9.0 serviu como diagnostico e revelou falsos usos de contratos compartilhados como autoridade cadastral. A v0.9.1 restringiu corretamente a autoridade a `INTERMEDIADOR=PORTAL POSTAL`, mas classificou `9999999999` como sentinela descartavel. A v0.9.2 substitui essa interpretacao: `9999999999` e valor de origem recuperavel por `CARTAO_POSTAGEM` quando houver chaveamento historico univoco.
+1. `9999999999` permanece visivel em `CONTRATOS_OBSERVADOS_ORIGEM`.
+2. A leitura historica inclui `CARTAO_POSTAGEM` e constroi associacoes usando contratos reais diferentes de `9999999999`.
+3. Cartao associado a exatamente um contrato real resolve a ocorrencia 999 em memoria.
+4. Cartao com dois ou mais contratos reais nao permite escolha automatica.
+5. Cartao sem referencia e linha sem cartao permanecem nao resolvidos.
+6. A soma `RESOLVIDAS_POR_CARTAO_UNIVOCO + CARTAO_AMBIGUO + CARTAO_SEM_REFERENCIA + SEM_CARTAO` deve ser exatamente `LINHAS_999_TOTAL`.
+7. Contrato original diferente de `9999999999` nunca e substituido pela regra de cartao.
+8. Somente contrato resolvido cadastrado em `02_CONTRATOS` como `PORTAL POSTAL` pode fornecer Razao Social oficial.
+9. Contratos de outros intermediadores permanecem apenas como evidencia.
+10. `BALCÃO` corretamente acentuado nao vira falso mojibake.
+11. Colisao de nome final e autoridade multipla continuam `REVISAR_QUALIDADE`.
+12. Nenhuma execucao escreve em `01_CLIENTES_MASTER`, `04_CLIENTES_CENTRO_LOCAL` ou fatos mensais.
 
-Testes obrigatorios:
+## Regressao da validacao manual persistente - v0.9.3
 
-1. `centralAgfAutoConfigurar()` deve resolver `PROCESSAMENTO_POSTAGENS_CORREIOS` e manter o ID somente em Script Properties.
-2. `02_CONTRATOS` deve conter `NUMERO_CONTRATO`, `RAZAO_SOCIAL` e `INTERMEDIADOR`.
-3. Somente linhas com `INTERMEDIADOR=PORTAL POSTAL` podem atuar como autoridade de Razao Social para `AGF_RAZAO_SOCIAL`.
-4. Contratos de outros intermediadores nao podem substituir o nome do cliente; sao apenas evidencia historica.
-5. `9999999999` deve permanecer visivel em `CONTRATOS_OBSERVADOS_ORIGEM`; nao pode ser apagado nem tratado como prova de ausencia de contrato.
-6. A leitura historica deve incluir `CARTAO_POSTAGEM` e construir associacoes usando somente contratos reais diferentes de `9999999999`.
-7. Se um Cartao de Postagem estiver associado historicamente a exatamente um contrato real, todas as ocorrencias `9999999999` desse cartao devem entrar em `CONTRATOS_RESOLVIDOS` com `RESOLVIDO_POR_CARTAO`.
-8. Se um Cartao de Postagem apontar para dois ou mais contratos reais, nenhuma escolha automatica pode ser feita e o resumo deve contar `CARTAO_AMBIGUO`.
-9. Se um Cartao de Postagem com `9999999999` nao possuir contrato real conhecido, o resumo deve contar `CARTAO_SEM_REFERENCIA`.
-10. Se `9999999999` nao possuir Cartao de Postagem, o resumo deve contar `SEM_CARTAO`.
-11. A soma `RESOLVIDAS_POR_CARTAO_UNIVOCO + CARTAO_AMBIGUO + CARTAO_SEM_REFERENCIA + SEM_CARTAO` deve ser exatamente igual a `LINHAS_999_TOTAL`; divergencia deve abortar a auditoria.
-12. Contratos originais diferentes de `9999999999` nao podem ser substituidos pela regra de cartao.
-13. A resolucao por cartao deve acontecer somente em memoria nesta fase; nenhum `NUMERO_CONTRATO` dos fatos mensais pode ser regravado.
-14. Depois da resolucao, somente contrato resolvido presente em `02_CONTRATOS` como `PORTAL POSTAL` pode fornecer Razao Social oficial.
-15. Um `BALCÃO` corretamente acentuado nao pode ser marcado como `POSSIVEL_CODIFICACAO_CORROMPIDA` apenas por conter a letra `Ã`.
-16. Mojibake real ou caractere de substituicao deve continuar sinalizado.
-17. Limpeza automatica pode remover apenas padroes deterministas: CNPJ completo, CNPJ sem mascara, raiz/codigo cadastral e lista numerica operacional prefixando o nome.
-18. Se mais de uma Razao Social de Portal Postal permanecer para a mesma identidade, o caso deve ficar `REVISAR_QUALIDADE`.
-19. Se dois `CLIENTE_ID_PROPOSTO` do mesmo Centro convergirem para o mesmo nome final, ambos devem ficar `REVISAR_QUALIDADE`.
-20. O resumo deve distinguir linhas em colisao de grupos de colisao.
-21. `24_AUDITORIA_QUALIDADE_MASTER` e `25_RESUMO_QUALIDADE_MASTER` devem ser rebuildable.
-22. Nenhuma execucao pode escrever em `01_CLIENTES_MASTER`, `04_CLIENTES_CENTRO_LOCAL` ou fatos mensais.
+1. `centralAgfPrepararValidacaoManualMaster()` so le linhas `REVISAR_QUALIDADE` de `24_AUDITORIA_QUALIDADE_MASTER`.
+2. A rotina cria `26_VALIDACAO_MANUAL_MASTER` se a aba ainda nao existir.
+3. No baseline atual, 23 linhas de colisao devem formar 11 casos por `CENTRO_ID + NOME_FINAL_SUGERIDO normalizado`.
+4. As 4 linhas de autoridade multipla incluem uma linha que ja pertence a colisao; portanto o baseline esperado e aproximadamente 14 casos ativos no total.
+5. Caso de colisao que tambem tenha autoridade multipla deve usar `TIPO_PENDENCIA=COLISAO_NOME_FINAL+AUTORIDADE_MULTIPLA`.
+6. Autoridade multipla fora de colisao deve virar caso individual `AUTORIDADE_MULTIPLA`.
+7. Qualquer pendencia residual nao conhecida deve virar `OUTRA_PENDENCIA`, nunca ser descartada.
+8. `CASO_ID` deve ser deterministico e nao conter nome, CPF/CNPJ ou outro dado cadastral em texto aberto.
+9. Reexecutar a rotina com a mesma auditoria deve preservar o mesmo `CASO_ID`.
+10. Colunas humanas `DECISAO_MANUAL` ate `DECIDIDO_POR` devem ser preservadas por `CASO_ID` em toda reexecucao.
+11. Caso que deixe de existir na auditoria atual deve permanecer na aba com `ATIVO_NA_AUDITORIA=NAO`; nao pode ser apagado.
+12. A rotina deve abortar se encontrar a aba 26 com cabecalho incompatível, em vez de sobrescrever decisoes humanas.
+13. `DECISAO_MANUAL` deve oferecer dropdown com `MESMO_CLIENTE`, `CLIENTES_DIFERENTES`, `MANTER_COMO_ESTA`, `CORRIGIR_NOME` e `PRECISA_VERIFICAR`.
+14. `STATUS_VALIDACAO` deve oferecer `PENDENTE`, `VALIDADO` e `PRECISA_VERIFICAR`.
+15. Evidencias tecnicas devem permanecer separadas das colunas humanas.
+16. `CLIENTE_ID_MANTER` so e exigido quando a decisao for `MESMO_CLIENTE` e houver mais de um ID envolvido.
+17. Nenhuma decisao da aba 26 e aplicada automaticamente na v0.9.3.
+18. Nenhuma execucao pode escrever em `01_CLIENTES_MASTER`, `04_CLIENTES_CENTRO_LOCAL` ou fatos mensais.
 
 ## Criterio para avancar
 
@@ -96,9 +120,9 @@ So desenhar a persistencia efetiva depois de:
 - invariantes historicas continuarem homologadas;
 - lote seguro permanecer com 2.140 identidades e zero conflitos para o baseline atual;
 - proposta de Cliente ID permanecer integralmente reconciliada;
-- auditoria v0.9.2 ser executada em runtime;
-- o bloco `CONTRATO_999` em `25_RESUMO_QUALIDADE_MASTER` fechar exatamente;
-- falsas colisoes causadas por contratos compartilhados deixarem de existir;
-- colisoes reais de identidade restantes serem analisadas/consolidadas explicitamente;
-- qualquer `REVISAR_QUALIDADE` residual ser tratado sem fuzzy automatico;
-- a futura escrita preservar `CLIENTE_ID` ja persistido como imutavel.
+- auditoria v0.9.2 permanecer reconciliada;
+- `26_VALIDACAO_MANUAL_MASTER` ser gerada sem perder nenhuma das 26 linhas em revisao;
+- todos os casos ativos receberem decisao humana suficiente;
+- `STATUS_VALIDACAO=VALIDADO` em todos os casos aptos a persistencia;
+- casos `PRECISA_VERIFICAR` permanecerem bloqueados fora da escrita;
+- a futura escrita preservar `CLIENTE_ID` persistido como imutavel.
