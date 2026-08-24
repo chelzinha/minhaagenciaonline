@@ -10,20 +10,27 @@ function centralAgfQualityList_(bucket, limit) {
 function centralAgfQualityContractKey_(value) {
   if (value == null || value === '') return '';
   if (typeof value === 'number' && isFinite(value)) {
-    return String(Math.round(value));
+    const numericKey = String(Math.round(value));
+    return numericKey === '9999999999' ? '' : numericKey;
   }
 
   const text = String(value).trim().replace(/\s+/g, '');
   if (!text) return '';
+  const upper = text.toUpperCase();
+  if (['NULL', 'NULO', 'N/A', 'NA', 'SEMCONTRATO', '9999999999'].indexOf(upper) >= 0) return '';
+
   if (/^[+-]?\d+(?:[.,]\d+)?[Ee][+-]?\d+$/.test(text)) {
     const parsed = Number(text.replace(',', '.'));
-    return isFinite(parsed) ? String(Math.round(parsed)) : '';
+    const parsedKey = isFinite(parsed) ? String(Math.round(parsed)) : '';
+    return parsedKey === '9999999999' ? '' : parsedKey;
   }
   if (/^\d+(?:[.,]0+)?$/.test(text)) {
-    return text.replace(/[.,]0+$/, '');
+    const simpleKey = text.replace(/[.,]0+$/, '');
+    return simpleKey === '9999999999' ? '' : simpleKey;
   }
   const digits = text.replace(/\D/g, '');
-  return digits || text;
+  if (digits) return digits === '9999999999' ? '' : digits;
+  return text;
 }
 
 function centralAgfQualityStrongClean_(value) {
@@ -32,14 +39,12 @@ function centralAgfQualityStrongClean_(value) {
   const rules = [];
   let match;
 
-  // CNPJ completo prefixando o nome.
   match = text.match(/^\d{2}[.]\d{3}[.]\d{3}\/\d{4}-\d{2}\s*[-:–—]?\s*(.+)$/i);
   if (match && /[A-Za-zÀ-ÿ]/.test(match[1])) {
     text = match[1].trim();
     rules.push('REMOVE_CNPJ_PREFIXO');
   }
 
-  // CNPJ sem mascara prefixando o nome.
   if (!rules.length) {
     match = text.match(/^\d{14}\s*[-:–—]?\s*(.+)$/i);
     if (match && /[A-Za-zÀ-ÿ]/.test(match[1])) {
@@ -48,7 +53,6 @@ function centralAgfQualityStrongClean_(value) {
     }
   }
 
-  // Raiz de CNPJ/codigo cadastral no formato 00.000.000 antes do nome.
   if (!rules.length) {
     match = text.match(/^\d{2}[.,]\d{3}[.,]\d{3}\s*[-:–—]?\s*(.+)$/i);
     if (match && /[A-Za-zÀ-ÿ]/.test(match[1])) {
@@ -57,7 +61,6 @@ function centralAgfQualityStrongClean_(value) {
     }
   }
 
-  // Lista operacional de codigos antes do nome, por exemplo 10,20,30 - EMPRESA.
   if (!rules.length) {
     match = text.match(/^(?:\d{1,4}\s*,\s*){2,}\d{1,4}\s*[-:–—]\s*(.+)$/i);
     if (match && /[A-Za-zÀ-ÿ]/.test(match[1])) {
@@ -74,18 +77,34 @@ function centralAgfQualityStrongClean_(value) {
   };
 }
 
+function centralAgfQualityLooksMojibake_(value) {
+  const text = String(value == null ? '' : value);
+  if (!text) return false;
+  return /\uFFFD/.test(text) ||
+    /Ã[\u0080-\u00BF]/.test(text) ||
+    /Â[\u0080-\u00BF]/.test(text) ||
+    /Ò[©º¡]/.test(text) ||
+    /â[€™œ“”]/.test(text);
+}
+
 function centralAgfQualityResidualProblems_(value) {
   const text = String(value == null ? '' : value).trim();
   const problems = [];
   if (!text) problems.push('NOME_VAZIO');
   if (text && centralAgfIsPlaceholderName_(text)) problems.push('PLACEHOLDER_OPERACIONAL');
-  if (/[ÃÂ�]/.test(text)) problems.push('POSSIVEL_CODIFICACAO_CORROMPIDA');
+  if (centralAgfQualityLooksMojibake_(text)) problems.push('POSSIVEL_CODIFICACAO_CORROMPIDA');
   if (text && !/[A-Za-zÀ-ÿ]/.test(text)) problems.push('SEM_LETRAS');
   if (/^\d{2}[.,]\d{3}[.,]\d{3}\s+/i.test(text)) problems.push('PREFIXO_RAIZ_CNPJ_NAO_LIMPO');
   if (/^(?:\d{1,4}\s*,\s*){2,}\d{1,4}\s*[-:–—]/i.test(text)) problems.push('LISTA_CODIGOS_NAO_LIMPA');
   return problems;
 }
 
+/**
+ * Autoridade cadastral para cliente AGF contratado: somente contratos cujo
+ * INTERMEDIADOR seja PORTAL POSTAL. Contratos de marketplaces/integradores
+ * (SuperFrete, Locaweb, Mercado Livre etc.) podem aparecer em muitos clientes
+ * e nao podem substituir a identidade cadastral do remetente.
+ */
 function centralAgfQualityLoadContractAuthority_() {
   const processingId = centralAgfGetRequiredProperty_(CENTRAL_AGF_CFG.PROPS.PROCESSING_SPREADSHEET_ID);
   const ss = SpreadsheetApp.openById(processingId);
@@ -96,12 +115,15 @@ function centralAgfQualityLoadContractAuthority_() {
 
   const values = sheet.getDataRange().getValues();
   const map = centralAgfHeaderMap_(values[0]);
-  ['NUMERO_CONTRATO', 'RAZAO_SOCIAL'].forEach(function(name) {
+  ['NUMERO_CONTRATO', 'RAZAO_SOCIAL', 'INTERMEDIADOR'].forEach(function(name) {
     if (map[name] == null) throw new Error('Coluna obrigatoria ausente em 02_CONTRATOS: ' + name);
   });
 
   const byContract = Object.create(null);
   values.slice(1).forEach(function(row) {
+    const intermediary = centralAgfNormalizeText_(row[map.INTERMEDIADOR]);
+    if (intermediary !== 'PORTAL POSTAL') return;
+
     const key = centralAgfQualityContractKey_(row[map.NUMERO_CONTRATO]);
     const name = String(row[map.RAZAO_SOCIAL] || '').trim();
     if (!key || !name) return;
@@ -182,9 +204,10 @@ function centralAgfQualityAuthorityNames_(contractKeys, authorityByContract) {
 }
 
 /**
- * Audita a qualidade cadastral das 2.140 propostas antes de qualquer persistencia.
- * A rotina cruza identidades AGF contratadas com 02_CONTRATOS e com evidencias historicas
- * de NUMERO_CONTRATO/NOME_REMETENTE. Nenhuma linha de 01_CLIENTES_MASTER e alterada.
+ * Audita a qualidade cadastral das propostas antes de qualquer persistencia.
+ * Para AGF contratado, somente PORTAL POSTAL pode atuar como autoridade de
+ * Razao Social. Outros contratos permanecem apenas como evidencia historica.
+ * Nenhuma linha de 01_CLIENTES_MASTER e alterada.
  */
 function centralAgfAuditarQualidadePropostaMaster() {
   return centralAgfWithScriptLock_(function() {
@@ -240,7 +263,7 @@ function centralAgfAuditarQualidadePropostaMaster() {
 
     centralAgfSetPanelStatus_(
       'AUDITANDO_QUALIDADE_MASTER',
-      proposalRows.length + ' propostas; cruzando contratos e evidencias historicas sem escrever no Master.'
+      proposalRows.length + ' propostas; autoridade contratual restrita a PORTAL POSTAL; nenhuma escrita no Master.'
     );
 
     const authorityByContract = centralAgfQualityLoadContractAuthority_();
@@ -285,7 +308,7 @@ function centralAgfAuditarQualidadePropostaMaster() {
       });
       const senderConfirms = Boolean(finalNorm && senderNorms[finalNorm]);
       const residualProblems = centralAgfQualityResidualProblems_(finalName);
-      if (authorityConflict) residualProblems.push('MULTIPLAS_RAZOES_ATUAIS_PARA_CONTRATOS_OBSERVADOS');
+      if (authorityConflict) residualProblems.push('MULTIPLAS_RAZOES_PORTAL_POSTAL_PARA_CONTRATOS_OBSERVADOS');
 
       const collisionKey = center + '|' + finalNorm;
       if (!collisionBuckets[collisionKey]) collisionBuckets[collisionKey] = Object.create(null);
@@ -300,10 +323,8 @@ function centralAgfAuditarQualidadePropostaMaster() {
         currentReason: currentReason,
         contracts: evidence.contracts,
         authorityRaw: authority.raw,
-        authorityCleaned: authority.cleanedNames,
         senders: evidence.senders,
         authorityUsed: authorityUsed,
-        authorityConflict: authorityConflict,
         cleaned: cleaned,
         finalName: finalName,
         finalNorm: finalNorm,
@@ -317,7 +338,7 @@ function centralAgfAuditarQualidadePropostaMaster() {
     const header = [
       'CLIENTE_ID_PROPOSTO', 'LOTE_ITEM_ID', 'CENTRO_ID_PRINCIPAL', 'TIPO_IDENTIDADE_ORIGEM',
       'NOME_EXIBICAO_ATUAL', 'RAZAO_SOCIAL_ATUAL', 'CONTRATOS_OBSERVADOS',
-      'RAZOES_ATUAIS_CONTRATOS', 'REMETENTES_OBSERVADOS', 'NOME_FINAL_SUGERIDO',
+      'RAZOES_PORTAL_POSTAL_CONTRATOS', 'REMETENTES_OBSERVADOS', 'NOME_FINAL_SUGERIDO',
       'RAZAO_SOCIAL_FINAL_SUGERIDA', 'FONTE_NOME_FINAL', 'REGRA_LIMPEZA',
       'REMETENTE_CONFIRMA_NOME', 'STATUS_QUALIDADE', 'MOTIVOS',
       'OCORRENCIAS_REFERENCIA', 'FATURAMENTO_REFERENCIA'
@@ -326,7 +347,7 @@ function centralAgfAuditarQualidadePropostaMaster() {
     const summary = [['GRUPO', 'ITEM', 'QTD', 'FATURAMENTO_TOTAL']];
     const counts = Object.create(null);
     const billingByStatus = Object.create(null);
-    let collisions = 0;
+    let collisionRows = 0;
 
     candidates.forEach(function(item) {
       const collisionKey = item.center + '|' + item.finalNorm;
@@ -334,17 +355,19 @@ function centralAgfAuditarQualidadePropostaMaster() {
       const problems = item.residualProblems.slice();
       if (collisionIds.length > 1) {
         problems.push('COLISAO_APOS_NOME_FINAL_SUGERIDO');
-        collisions++;
+        collisionRows++;
       }
 
       let status;
       let source;
+      const authorityChanged = item.authorityUsed &&
+        centralAgfNormalizeText_(item.finalName) !== centralAgfNormalizeText_(item.currentDisplay);
+
       if (problems.length) {
         status = 'REVISAR_QUALIDADE';
       } else if (item.authorityUsed && item.cleaned.changed) {
         status = 'PRONTO_COM_AUTORIDADE_E_LIMPEZA';
-      } else if (item.authorityUsed &&
-                 centralAgfNomeBasicoNormalizado_(item.finalName) !== centralAgfNomeBasicoNormalizado_(item.currentDisplay)) {
+      } else if (authorityChanged) {
         status = 'PRONTO_COM_AUTORIDADE_CONTRATO';
       } else if (item.cleaned.changed) {
         status = 'PRONTO_COM_LIMPEZA_DETERMINISTICA';
@@ -352,7 +375,7 @@ function centralAgfAuditarQualidadePropostaMaster() {
         status = 'PRONTO_SEM_AJUSTE';
       }
 
-      if (item.authorityUsed) source = '02_CONTRATOS_POR_NUMERO_CONTRATO';
+      if (item.authorityUsed) source = '02_CONTRATOS_PORTAL_POSTAL';
       else source = '21_PROPOSTA_CLIENTES_MASTER';
       if (item.cleaned.changed) source += '+LIMPEZA_DETERMINISTICA';
 
@@ -381,6 +404,10 @@ function centralAgfAuditarQualidadePropostaMaster() {
       ]);
     });
 
+    const collisionGroups = Object.keys(collisionBuckets).filter(function(key) {
+      return Object.keys(collisionBuckets[key] || {}).length > 1;
+    }).length;
+
     const dataRows = out.slice(1).sort(function(a, b) {
       const statusCmp = String(a[14]).localeCompare(String(b[14]));
       if (statusCmp) return statusCmp;
@@ -396,7 +423,9 @@ function centralAgfAuditarQualidadePropostaMaster() {
     Object.keys(counts).sort().forEach(function(status) {
       summary.push(['QUALIDADE', status, counts[status], Math.round((billingByStatus[status] || 0) * 100) / 100]);
     });
-    summary.push(['REGRA', 'COLISOES_APOS_NOME_FINAL_SUGERIDO', collisions, '']);
+    summary.push(['REGRA', 'AUTORIDADE_CONTRATO_RESTRITA_A_PORTAL_POSTAL', 1, '']);
+    summary.push(['REGRA', 'LINHAS_EM_COLISAO_APOS_NOME_FINAL_SUGERIDO', collisionRows, '']);
+    summary.push(['REGRA', 'GRUPOS_DE_COLISAO_APOS_NOME_FINAL_SUGERIDO', collisionGroups, '']);
     summary.push(['REGRA', 'ESCRITAS_EM_01_CLIENTES_MASTER', 0, '']);
 
     const auditSheet = centralAgfGetOrCreateSheet_(ss, CENTRAL_AGF_CFG.SHEETS.MASTER_QUALITY_AUDIT);
@@ -409,7 +438,8 @@ function centralAgfAuditarQualidadePropostaMaster() {
       'AUDITORIA_QUALIDADE_MASTER_PRONTA',
       'Auditadas=' + candidates.length +
       '; revisar=' + (counts.REVISAR_QUALIDADE || 0) +
-      '; colisoes=' + collisions +
+      '; linhas em colisao=' + collisionRows +
+      '; grupos=' + collisionGroups +
       '. Nenhuma escrita em 01_CLIENTES_MASTER.'
     );
 
@@ -417,7 +447,8 @@ function centralAgfAuditarQualidadePropostaMaster() {
       ok: true,
       audited: candidates.length,
       review: counts.REVISAR_QUALIDADE || 0,
-      collisions: collisions,
+      collisionRows: collisionRows,
+      collisionGroups: collisionGroups,
       elapsedMs: elapsedMs
     };
   });
