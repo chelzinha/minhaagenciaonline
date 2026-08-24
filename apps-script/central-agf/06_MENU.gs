@@ -10,6 +10,7 @@ function onOpen() {
       .addItem('Gerar revisão assistida de identidade', 'centralAgfGerarAssistenciaRevisaoIdentidade')
       .addItem('Gerar lote seguro de clientes', 'centralAgfGerarLoteSeguroMigracaoClientes')
       .addItem('Gerar proposta de Cliente ID', 'centralAgfGerarPropostaClienteId')
+      .addItem('Auditar qualidade da proposta Master', 'centralAgfAuditarQualidadePropostaMaster')
       .addSeparator()
       .addItem('Atualizar visão conforme parâmetros', 'centralAgfAtualizarVisao')
       .addItem('Materializar todas as postagens filtradas', 'centralAgfMaterializarPostagens')
