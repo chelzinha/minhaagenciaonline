@@ -2,7 +2,7 @@
 
 Documento tecnico em preparacao.
 
-## CENTRAL AGF - identidade e lote seguro v0.7.0
+## CENTRAL AGF - identidade, lote seguro e proposta de Cliente ID v0.8.0
 
 Planilhas/abas envolvidas:
 - `FATOS_POSTAGENS_AAAA_MM!01_FATOS`: fatos mensais, somente leitura nesta etapa.
@@ -16,6 +16,9 @@ Planilhas/abas envolvidas:
 - `CADASTRO_MESTRE_CLIENTES!18_LOTE_SEGURO_CLIENTES`: consolidacao dos candidatos prontos que passaram pelas travas.
 - `CADASTRO_MESTRE_CLIENTES!19_CONFLITOS_LOTE_SEGURO`: identidades retiradas do lote por colisao ou incompatibilidade.
 - `CADASTRO_MESTRE_CLIENTES!20_RESUMO_LOTE_SEGURO`: reconciliacao de quantidade e faturamento da entrada pronta.
+- `CADASTRO_MESTRE_CLIENTES!21_PROPOSTA_CLIENTES_MASTER`: proposta de linhas do Master com `CLIENTE_ID_PROPOSTO`, sem persistencia.
+- `CADASTRO_MESTRE_CLIENTES!22_CONFLITOS_PROPOSTA_ID`: conflitos de ID/chave ou colisao com Master existente.
+- `CADASTRO_MESTRE_CLIENTES!23_RESUMO_PROPOSTA_ID`: reconciliacao da proposta de IDs.
 - `CADASTRO_MESTRE_CLIENTES!01_CLIENTES_MASTER`: continua sem migracao automatica nesta etapa.
 
 Regra de Centro no diagnostico:
@@ -34,23 +37,51 @@ Previa e assistencia:
 - fuzzy/score legado permanece apenas como sugestao;
 - a assistencia nao cria Cliente Master nem grava Centro/Local final.
 
-Lote seguro v0.7.0:
+Lote seguro v0.7.1:
 - entrada: somente `STATUS_PREVIA=PRONTO_PREVIA`;
 - chave provisoria de consolidacao: `CENTRO_SUGERIDO + NOME_CANONICO normalizado`;
 - `LOTE_ITEM_ID` e deterministico e serve somente para rastrear a visao derivada;
 - mesmo canonico em mais de um Centro vai para `19_CONFLITOS_LOTE_SEGURO`;
-- mais de um tipo de identidade para a mesma chave vai para conflitos;
+- no mesmo `CTR_AGF` e mesmo canonico exato, `AGF_BALCAO_REMETENTE + AGF_RAZAO_SOCIAL` consolidam em `AGF_RAZAO_SOCIAL`;
+- outras combinacoes de tipos continuam indo para conflitos;
 - `AGF_BALCAO_REMETENTE` e `AGF_RAZAO_SOCIAL` exigem `CTR_AGF`;
 - `METRO_REMETENTE` exige `CTR_METRO`;
 - somente `ALIAS_MANUAL_LEGADO`, `ALIAS_EXATO_NORM_LEGADO` e `RAZAO_SOCIAL_AGF` entram no lote seguro;
 - canonico vazio/placeholder e Centro desconhecido ficam fora do lote;
-- as abas 18, 19 e 20 sao rebuildable e nao devem receber decisao humana persistente;
-- nenhum `CLIENTE_ID` e criado pela v0.7.0.
+- as abas 18, 19 e 20 sao rebuildable e nao devem receber decisao humana persistente.
+
+Baseline homologado do lote seguro:
+- 2.170 entradas `PRONTO_PREVIA`;
+- 2.140 identidades unicas;
+- 29 consolidacoes AGF Balcao + contrato;
+- 2.140 identidades no lote seguro;
+- 0 conflitos residuais;
+- 1.106 identidades `CTR_AGF`;
+- 1.034 identidades `CTR_METRO`;
+- R$ 4.887.208,27 preservados integralmente.
+
+Proposta de Cliente ID v0.8.0:
+- so executa se `20_RESUMO_LOTE_SEGURO` indicar zero conflitos;
+- `CLIENTE_ID_PROPOSTO` usa formato `CLI_` + 20 caracteres hexadecimais;
+- o valor e deterministico por SHA-256 de namespace tecnico fixo + `LOTE_ITEM_ID`;
+- o ID nao carrega nome, Centro, contrato, CPF/CNPJ ou outro significado comercial visivel;
+- a mesma identidade do lote gera o mesmo ID proposto em reexecucoes;
+- depois de persistido futuramente no Master, o ID deve permanecer imutavel e nao ser recalculado por mudanca de nome/alias;
+- `NOME_EXIBICAO` recebe o nome canonico;
+- `RAZAO_SOCIAL_OFICIAL` so e preenchida automaticamente para `AGF_RAZAO_SOCIAL`;
+- `TIPO_CLIENTE` recebe apenas o valor generico `CLIENTE`;
+- `CENTRO_ID_PRINCIPAL` recebe o Centro do lote seguro;
+- `LOCAL_ID_PRINCIPAL` permanece vazio;
+- `CNPJ_CPF` e `NOME_FANTASIA` permanecem vazios sem fonte homologada;
+- `STATUS_CADASTRO` fica `PENDENTE_HOMOLOGACAO` na proposta;
+- colisao de ID, duplicidade de `LOTE_ITEM_ID`, duplicidade Centro + nome ou conflito com linha ja existente no Master vai para `22_CONFLITOS_PROPOSTA_ID`;
+- a v0.8.0 nao escreve em `01_CLIENTES_MASTER`.
 
 Atencao sensivel:
-- as visoes tratam identidade cadastral, nomes de remetentes, Razao Social, Centro/Local observado e faturamento agregado;
+- as visoes tratam identidade cadastral, nomes de remetentes, Razao Social, Centro/Local observado, faturamento agregado e identificadores tecnicos de cliente;
 - documentacao e testes nao devem registrar nomes reais, CPF/CNPJ, telefone, e-mail, endereco, IDs privados ou credenciais;
-- as abas de identidade nao devem ser expostas diretamente no frontend.
+- as abas de identidade nao devem ser expostas diretamente no frontend;
+- `LOCAL_ID_PRINCIPAL` nao pode ser inferido automaticamente dos locais historicos antes de homologacao especifica.
 
 ## Planilha APP Total CF + Metro - CRM, agenda, midias e manuais
 
