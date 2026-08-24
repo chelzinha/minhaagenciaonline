@@ -2,36 +2,43 @@
 
 Documento tecnico em preparacao.
 
-## 2026-08-23 - Central AGF v0.4.1 - prioridade de Centro na identidade
+## 2026-08-23 - Central AGF v0.7.0 - lote seguro de migracao de clientes
 
 ### Atencao sensivel
-A mudanca altera a inferencia usada para agrupar identidades de clientes na visao diagnostica da CENTRAL AGF.
+A mudanca consolida identidades cadastrais derivadas e faturamento agregado para preparar uma futura migracao ao Cadastro Mestre.
 
 Dados envolvidos:
-- nome de remetente;
-- Razao Social;
-- Centro de origem e Centro final;
-- historico de postagens e faturamento agregado no diagnostico.
+- nome canonico derivado;
+- nome de remetente e Razao Social observados;
+- Centro sugerido e locais de origem;
+- ocorrencias e faturamento agregado;
+- evidencias de aliases legados.
 
 O que mudou:
-- `CENTRO_ID_FINAL` reconhecido passou a vencer fallbacks automaticos;
-- `RAZAO_SOCIAL=GAS SHOPPING METRO` permanece regra forte Metro quando nao ha Centro final;
-- `CENTRO_ORIGEM` reconhecido passou a ser avaliado antes do fallback generico `RAZAO_SOCIAL=BALCÃO`;
-- `BALCÃO` sem Centro reconhecido continua apenas como fallback AGF.
+- foi criada a rotina `centralAgfGerarLoteSeguroMigracaoClientes()`;
+- somente candidatos `PRONTO_PREVIA` entram na consolidacao;
+- a chave provisoria e `CENTRO_SUGERIDO + NOME_CANONICO normalizado`;
+- o mesmo canonico em mais de um Centro e isolado em conflito e nao e unificado automaticamente;
+- tipo/Centro incompatível, estrategia nao permitida, Centro desconhecido e placeholder tambem ficam fora do lote seguro;
+- `LOTE_ITEM_ID` e uma chave tecnica deterministica da visao derivada e nao e `CLIENTE_ID`.
 
 Risco principal:
-- atribuir candidato ao Centro errado e, em etapa futura, consolidar identidade incorreta no Cadastro Mestre.
+- consolidar pessoas/empresas diferentes sob a mesma identidade ou dividir a mesma identidade de forma incorreta antes de criar `CLIENTE_ID` definitivo.
 
 Mitigacao aplicada:
-- a rotina continua somente leitura sobre `FATOS_POSTAGENS_AAAA_MM`;
-- nenhuma linha e deduplicada ou excluida;
-- nenhum `CLIENTE_ID`, `CENTRO_ID_FINAL` ou `LOCAL_ID_FINAL` e gravado pela rotina;
-- testes de regressao foram documentados antes da migracao efetiva do Cadastro Mestre;
-- exemplos documentados nao usam nomes reais nem identificadores privados.
+- nenhuma escrita em `01_CLIENTES_MASTER`;
+- nenhuma escrita em `04_CLIENTES_CENTRO_LOCAL`;
+- nenhuma alteracao nos fatos mensais;
+- nenhuma deduplicacao automatica de SRO/FATO_ID;
+- nenhuma unificacao automatica entre Centros;
+- `18_LOTE_SEGURO_CLIENTES`, `19_CONFLITOS_LOTE_SEGURO` e `20_RESUMO_LOTE_SEGURO` sao visoes rebuildable;
+- decisoes humanas persistentes nao sao gravadas nessas abas derivadas;
+- nenhuma credencial nova e criada e nenhum segredo e registrado.
 
 Arquivos envolvidos:
 - `apps-script/central-agf/00_CFG.gs`;
-- `apps-script/central-agf/08_DIAGNOSTICO_IDENTIDADE.gs`;
+- `apps-script/central-agf/06_MENU.gs`;
+- `apps-script/central-agf/11_LOTE_SEGURO_MIGRACAO_CLIENTES.gs`;
 - `apps-script/central-agf/README.md`;
 - `apps-script/central-agf/TESTES.md`;
 - `docs/CENTRAL_AGF_DADOS.md`;
@@ -40,14 +47,47 @@ Arquivos envolvidos:
 - `CHANGELOG.md`.
 
 Como testar:
-- reconstruir `13_DIAGNOSTICO_IDENTIDADE` com `centralAgfGerarDiagnosticoIdentidade()`;
-- confirmar que fatos Metro com Razao Social generica `BALCÃO` permanecem classificados como Metro;
-- confirmar que Centro final existente continua tendo prioridade;
-- confirmar que nenhuma coluna final dos fatos mensais e alterada.
+- sincronizar a v0.7.0 via clasp;
+- executar `centralAgfGerarLoteSeguroMigracaoClientes()`;
+- confirmar que a soma do faturamento do lote seguro e dos conflitos explica integralmente a entrada `PRONTO_PREVIA`;
+- confirmar que o mesmo canonico em mais de um Centro aparece em `19_CONFLITOS_LOTE_SEGURO`;
+- confirmar que `01_CLIENTES_MASTER`, `04_CLIENTES_CENTRO_LOCAL` e fatos mensais continuam inalterados.
 
 Como reverter:
-- reverter os commits da v0.4.1 na branch `feat/central-agf-motor-v1` antes de qualquer migracao para `01_CLIENTES_MASTER`;
-- reenviar o pacote anterior via clasp somente se a versao nova ja tiver sido sincronizada ao Apps Script.
+- reverter os commits da v0.7.0 na branch `feat/central-agf-motor-v1`;
+- reenviar a versao anterior via clasp se a v0.7.0 ja tiver sido sincronizada;
+- as abas 18, 19 e 20 podem permanecer como visoes de homologacao sem efeito operacional, ou ser removidas depois de confirmar que nenhuma rotina depende delas.
+
+## 2026-08-23 - Central AGF v0.4.1 - prioridade de Centro na identidade [REGRA SUPERADA PELA v0.4.2]
+
+### Atencao sensivel
+A mudanca alterou temporariamente a inferencia usada para agrupar identidades de clientes na visao diagnostica da CENTRAL AGF.
+
+Observacao de rastreabilidade:
+- a interpretacao da v0.4.1 abaixo nao e mais a regra atual;
+- a v0.4.2 confirmou `RAZAO_SOCIAL=BALCÃO -> AGF` e `RAZAO_SOCIAL=GAS SHOPPING METRO -> METRO`, ambas vencendo `CENTRO_ORIGEM`;
+- o registro da v0.4.1 permanece somente para documentar a sequencia de correcoes.
+
+Dados envolvidos:
+- nome de remetente;
+- Razao Social;
+- Centro de origem e Centro final;
+- historico de postagens e faturamento agregado no diagnostico.
+
+O que mudou na versao intermediaria:
+- `CENTRO_ID_FINAL` reconhecido passou a vencer fallbacks automaticos;
+- `RAZAO_SOCIAL=GAS SHOPPING METRO` permaneceu regra forte Metro quando nao havia Centro final;
+- `CENTRO_ORIGEM` reconhecido foi avaliado antes do fallback generico `RAZAO_SOCIAL=BALCÃO`;
+- `BALCÃO` sem Centro reconhecido ficou como fallback AGF.
+
+Risco principal:
+- atribuir candidato ao Centro errado e, em etapa futura, consolidar identidade incorreta no Cadastro Mestre.
+
+Mitigacao aplicada:
+- a rotina continuou somente leitura sobre `FATOS_POSTAGENS_AAAA_MM`;
+- nenhuma linha foi deduplicada ou excluida;
+- nenhum `CLIENTE_ID`, `CENTRO_ID_FINAL` ou `LOCAL_ID_FINAL` foi gravado;
+- a regra foi corrigida na v0.4.2 antes de qualquer migracao efetiva do Cadastro Mestre.
 
 ## 2026-07-07 - Instrumentacao de performance do CRM
 
