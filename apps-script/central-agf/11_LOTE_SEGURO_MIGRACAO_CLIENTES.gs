@@ -53,6 +53,45 @@ function centralAgfLoteIdentityCenterCompatible_(type, center) {
   return false;
 }
 
+/**
+ * Resolve o tipo consolidado sem transformar canal de postagem em conflito de identidade.
+ * No AGF, a mesma entidade pode aparecer em postagem de Balcao e em postagem contratada.
+ * Quando Centro e nome canonico sao exatamente os mesmos e as unicas evidencias sao
+ * AGF_BALCAO_REMETENTE + AGF_RAZAO_SOCIAL, a identidade contratada prevalece como
+ * autoridade cadastral e o remetente de Balcao permanece como alias/evidencia.
+ */
+function centralAgfLoteResolveIdentityType_(typeKeys, center) {
+  const normalizedCenter = centralAgfNormalizeText_(center);
+  const types = (typeKeys || []).map(centralAgfNormalizeText_).filter(Boolean).sort();
+
+  if (types.length === 1) {
+    return {
+      ok: centralAgfLoteIdentityCenterCompatible_(types[0], normalizedCenter),
+      type: types[0],
+      motive: 'TIPO_UNICO_COMPATIVEL_COM_CENTRO'
+    };
+  }
+
+  const agfDual = normalizedCenter === 'CTR_AGF' &&
+    types.length === 2 &&
+    types[0] === 'AGF_BALCAO_REMETENTE' &&
+    types[1] === 'AGF_RAZAO_SOCIAL';
+
+  if (agfDual) {
+    return {
+      ok: true,
+      type: 'AGF_RAZAO_SOCIAL',
+      motive: 'AGF_CONTRATO_PREVALECE_SOB_BALCAO_MESMO_CANONICO'
+    };
+  }
+
+  return {
+    ok: false,
+    type: '',
+    motive: 'TIPOS_IDENTIDADE_DIFERENTES_NO_MESMO_CANONICO'
+  };
+}
+
 function centralAgfLoteWriteDerivedSheet_(sheet, values, header) {
   sheet.clearContents();
   centralAgfEnsureRows_(sheet, values.length);
@@ -68,7 +107,7 @@ function centralAgfLoteWriteDerivedSheet_(sheet, values, header) {
 /**
  * Consolida somente candidatos PRONTO_PREVIA em identidades unicas por Centro + nome canonico.
  * A rotina e apenas derivada: nao cria CLIENTE_ID, nao grava no Master e nao altera fatos.
- * Qualquer colisao estrutural sai do lote seguro e vai para a aba de conflitos.
+ * Qualquer colisao estrutural real sai do lote seguro e vai para a aba de conflitos.
  */
 function centralAgfGerarLoteSeguroMigracaoClientes() {
   return centralAgfWithScriptLock_(function() {
@@ -180,6 +219,7 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
     const conflictReasons = Object.create(null);
     let safeBilling = 0;
     let conflictBilling = 0;
+    let agfDualChannelConsolidated = 0;
 
     Object.keys(groups).forEach(function(key) {
       const item = groups[key];
@@ -188,6 +228,7 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
       const centerKeys = Object.keys(canonicalCenters[item.canonicalNorm] || {});
       const canonicalDisplay = Object.keys(item.canonicalVariants).sort()[0] || '';
       const problems = [];
+      const typeResolution = centralAgfLoteResolveIdentityType_(typeKeys, item.center);
 
       if (!item.canonicalNorm || !canonicalDisplay || centralAgfIsPlaceholderName_(canonicalDisplay)) {
         problems.push('CANONICO_INVALIDO_OU_PLACEHOLDER');
@@ -198,10 +239,8 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
       if (centerKeys.length > 1) {
         problems.push('MESMO_CANONICO_EM_CENTROS_DIFERENTES');
       }
-      if (typeKeys.length !== 1) {
-        problems.push('TIPOS_IDENTIDADE_DIFERENTES_NO_MESMO_CANONICO');
-      } else if (!centralAgfLoteIdentityCenterCompatible_(typeKeys[0], item.center)) {
-        problems.push('TIPO_IDENTIDADE_INCOMPATIVEL_COM_CENTRO');
+      if (!typeResolution.ok) {
+        problems.push(typeResolution.motive);
       }
       if (!strategyKeys.length || strategyKeys.some(function(strategy) { return !centralAgfLoteAllowedStrategy_(strategy); })) {
         problems.push('ESTRATEGIA_NAO_PERMITIDA_NO_LOTE_SEGURO');
@@ -236,12 +275,16 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
         return;
       }
 
+      if (typeResolution.motive === 'AGF_CONTRATO_PREVALECE_SOB_BALCAO_MESMO_CANONICO') {
+        agfDualChannelConsolidated++;
+      }
+
       safeBilling += item.billing;
       safeByCenter[item.center] = (safeByCenter[item.center] || 0) + 1;
       safeOut.push([
         stableId,
         item.center,
-        typeKeys[0],
+        typeResolution.type,
         canonicalDisplay,
         item.rows,
         item.occurrences,
@@ -254,7 +297,9 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
         centralAgfLoteList_(item.variants, 12),
         centralAgfLoteList_(item.locals, 10),
         'PRONTO_LOTE_SEGURO',
-        'IDENTIDADE_UNICA_POR_CENTRO_E_CANONICO'
+        typeResolution.motive === 'AGF_CONTRATO_PREVALECE_SOB_BALCAO_MESMO_CANONICO'
+          ? 'MESMA_IDENTIDADE_AGF_EM_BALCAO_E_CONTRATO; RAZAO_SOCIAL_PREVALECE'
+          : 'IDENTIDADE_UNICA_POR_CENTRO_E_CANONICO'
       ]);
     });
 
@@ -271,6 +316,7 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
 
     summaryRows.push(['ENTRADA', 'PRONTO_PREVIA', readyInputRows, Math.round(readyInputBilling * 100) / 100]);
     summaryRows.push(['CONSOLIDACAO', 'IDENTIDADES_UNICAS_CENTRO_CANONICO', Object.keys(groups).length, Math.round(readyInputBilling * 100) / 100]);
+    summaryRows.push(['CONSOLIDACAO_REGRA', 'AGF_BALCAO_E_CONTRATO_MESMO_CANONICO', agfDualChannelConsolidated, '']);
     summaryRows.push(['LOTE', 'PRONTO_LOTE_SEGURO', safeOut.length - 1, Math.round(safeBilling * 100) / 100]);
     summaryRows.push(['LOTE', 'REVISAR_ANTES_MIGRACAO', conflictOut.length - 1, Math.round(conflictBilling * 100) / 100]);
     Object.keys(safeByCenter).sort().forEach(function(center) {
@@ -295,6 +341,7 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
       '; identidades consolidadas: ' + Object.keys(groups).length +
       '; lote seguro: ' + (safeOut.length - 1) +
       '; conflitos: ' + (conflictOut.length - 1) +
+      '; AGF Balcao+contrato consolidados: ' + agfDualChannelConsolidated +
       '. Nenhum CLIENTE_ID foi criado.'
     );
 
@@ -304,6 +351,7 @@ function centralAgfGerarLoteSeguroMigracaoClientes() {
       consolidatedIdentities: Object.keys(groups).length,
       safeBatch: safeOut.length - 1,
       conflicts: conflictOut.length - 1,
+      agfDualChannelConsolidated: agfDualChannelConsolidated,
       elapsedMs: elapsedMs
     };
   });
