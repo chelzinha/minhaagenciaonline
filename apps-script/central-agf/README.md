@@ -2,7 +2,7 @@
 
 Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS` e às visões derivadas do `CADASTRO_MESTRE_CLIENTES`.
 
-## Escopo atual - v0.7.0
+## Escopo atual - v0.7.1
 
 - Descobrir por nome, uma unica vez, as planilhas tecnicas e salvar seus IDs em Script Properties.
 - Sincronizar o catalogo de particoes mensais a partir de `CONTROLE_CARGAS_POSTAGENS!03_PARTICOES`.
@@ -12,7 +12,7 @@ Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS` e às visões der
 - Gerar diagnostico derivado de identidade sem alterar fatos nem criar clientes automaticamente.
 - Gerar previa de migracao, separando prontos, casos para revisao e placeholders que nao devem virar cliente.
 - Gerar fila assistida de revisao com sugestoes deterministicas e evidencias legadas, sempre dependentes de decisao humana.
-- Consolidar apenas `PRONTO_PREVIA` em um lote seguro por Centro + nome canonico, isolando conflitos antes de qualquer escrita no Cadastro Mestre.
+- Consolidar apenas `PRONTO_PREVIA` em um lote seguro por Centro + nome canonico, isolando conflitos reais antes de qualquer escrita no Cadastro Mestre.
 - Materializar `01_CLIENTES_MASTER` em `02_CLIENTES` somente quando o cadastro estiver homologado.
 
 ## Auditoria historica
@@ -47,7 +47,7 @@ A previa promove automaticamente apenas alias legado manual, alias `EXATO_NORM` 
 
 A assistencia usa evidencias locais e deterministicas, mas nenhuma sugestao grava `CLIENTE_ID`, altera Centro/Local, muda fatos ou confirma identidade automaticamente.
 
-## Lote seguro de migracao - v0.7.0
+## Lote seguro de migracao - v0.7.1
 
 `centralAgfGerarLoteSeguroMigracaoClientes()` le somente `STATUS_PREVIA=PRONTO_PREVIA` e gera:
 
@@ -57,10 +57,16 @@ A assistencia usa evidencias locais e deterministicas, mas nenhuma sugestao grav
 
 A consolidacao usa a chave provisoria `CENTRO_SUGERIDO + NOME_CANONICO normalizado`. `LOTE_ITEM_ID` e apenas uma chave deterministica da visao derivada.
 
-Uma identidade sai do lote seguro quando houver:
+Regra adicional da v0.7.1:
+
+- no `CTR_AGF`, quando o mesmo nome canonico aparece exatamente como `AGF_BALCAO_REMETENTE` e `AGF_RAZAO_SOCIAL`, isso representa dois canais/evidencias da mesma identidade e nao um conflito por si so;
+- nesse caso, `AGF_RAZAO_SOCIAL` prevalece como identidade cadastral oficial e a ocorrencia de Balcao permanece como alias/evidencia;
+- essa consolidacao so vale quando Centro e nome canonico sao exatamente os mesmos e nao existe colisao entre Centros.
+
+Uma identidade continua saindo do lote seguro quando houver:
 
 - mesmo canonico em mais de um Centro;
-- mais de um tipo de identidade para o mesmo Centro + canonico;
+- outra combinacao de tipos de identidade nao prevista pela regra acima;
 - tipo incompatível com o Centro;
 - Centro diferente de `CTR_AGF` ou `CTR_METRO`;
 - estrategia diferente de `ALIAS_MANUAL_LEGADO`, `ALIAS_EXATO_NORM_LEGADO` ou `RAZAO_SOCIAL_AGF`;
@@ -87,7 +93,7 @@ A aba 18 e totalmente rebuildable e nao contem campos de aprovacao persistente n
 5. `centralAgfGerarPreviaMigracaoClientes()`.
 6. `centralAgfGerarAssistenciaRevisaoIdentidade()`.
 7. `centralAgfGerarLoteSeguroMigracaoClientes()`.
-8. Revisar `20_RESUMO_LOTE_SEGURO` e `19_CONFLITOS_LOTE_SEGURO` antes de projetar escrita em `01_CLIENTES_MASTER`.
+8. Revisar `20_RESUMO_LOTE_SEGURO` e qualquer conflito residual de `19_CONFLITOS_LOTE_SEGURO` antes de projetar escrita em `01_CLIENTES_MASTER`.
 
 ## Seguranca
 
