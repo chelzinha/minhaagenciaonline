@@ -2,6 +2,51 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-08-23 - Central AGF v0.8.0: proposta idempotente de Cliente ID
+
+### Criado
+- Nova rotina `centralAgfGerarPropostaClienteId()` em `apps-script/central-agf/12_PROPOSTA_CLIENTE_ID.gs`.
+- Nova visao `21_PROPOSTA_CLIENTES_MASTER` com proposta de linhas para o Cadastro Mestre sem persistencia.
+- Nova visao `22_CONFLITOS_PROPOSTA_ID` para isolar colisao de ID, chave duplicada ou conflito com registro ja existente no Master.
+- Novo `23_RESUMO_PROPOSTA_ID` para reconciliar a quantidade do lote seguro entre propostas novas, registros ja existentes e conflitos.
+
+### Regra de CLIENTE_ID
+- Formato `CLI_` + 20 caracteres hexadecimais.
+- Valor deterministico por SHA-256 sobre namespace tecnico fixo + `LOTE_ITEM_ID`.
+- O ID nao carrega nome, Centro, CPF/CNPJ ou outro significado comercial visivel.
+- Depois de persistido futuramente em `01_CLIENTES_MASTER`, o ID deve ser imutavel e nunca recalculado por mudanca de nome ou alias.
+
+### Travas
+- A proposta so executa quando `20_RESUMO_LOTE_SEGURO` estiver com zero conflitos residuais.
+- `LOCAL_ID_PRINCIPAL` permanece vazio; origem historica de Local nao vira vinculo definitivo automaticamente.
+- `RAZAO_SOCIAL_OFICIAL` so e preenchida automaticamente para identidade `AGF_RAZAO_SOCIAL`.
+- `CNPJ_CPF` e `NOME_FANTASIA` nao sao inventados.
+- Nenhuma linha e gravada em `01_CLIENTES_MASTER` nesta versao.
+
+### Baseline que liberou a v0.8.0
+- Lote seguro v0.7.1 homologado com 2.140 identidades.
+- 1.106 identidades `CTR_AGF` e 1.034 `CTR_METRO`.
+- 29 casos AGF Balcao + contrato consolidados pela mesma identidade canonica.
+- Zero conflitos residuais.
+- R$ 4.887.208,27 de faturamento preservado integralmente no lote seguro.
+
+### Atencao sensivel
+- A mudanca cria identificadores tecnicos derivados de identidade cadastral e usa faturamento apenas como evidencia de reconciliacao.
+- Nenhum `CLIENTE_ID` e persistido ainda, nenhum Local final e definido e nenhum fato historico e alterado.
+- Nenhum nome real, CPF/CNPJ, telefone, e-mail, endereco, ID privado ou credencial foi registrado neste changelog.
+
+## 2026-08-23 - Central AGF v0.7.1: consolidacao AGF Balcao + contrato
+
+### Corrigido
+- `AGF_BALCAO_REMETENTE` e `AGF_RAZAO_SOCIAL` deixam de ser tratados como conflito quando pertencem ao mesmo `CTR_AGF` e ao mesmo nome canonico exato.
+- Nesse caso, `AGF_RAZAO_SOCIAL` prevalece como identidade cadastral e a evidência de Balcao permanece preservada como alias/origem.
+- Outras combinacoes de tipos continuam bloqueadas.
+
+### Homologado
+- 2.170 entradas `PRONTO_PREVIA` consolidadas em 2.140 identidades.
+- 2.140 identidades no lote seguro e zero conflitos residuais.
+- Faturamento de R$ 4.887.208,27 preservado integralmente.
+
 ## 2026-08-23 - Central AGF v0.7.0: lote seguro de migracao de clientes
 
 ### Criado
