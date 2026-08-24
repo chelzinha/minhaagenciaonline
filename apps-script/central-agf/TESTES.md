@@ -1,4 +1,4 @@
-# TESTES - CENTRAL AGF Motor V1 v0.7.1
+# TESTES - CENTRAL AGF Motor V1 v0.8.0
 
 ## Pre-condicoes
 
@@ -21,7 +21,10 @@
 11. Conferir `16_RESUMO_IDENTIDADE` e `17_FILA_REVISAO_ASSISTIDA`.
 12. Executar `centralAgfGerarLoteSeguroMigracaoClientes()`.
 13. Conferir `18_LOTE_SEGURO_CLIENTES`, `19_CONFLITOS_LOTE_SEGURO` e `20_RESUMO_LOTE_SEGURO`.
-14. Confirmar que nenhuma dessas etapas escreveu em `01_CLIENTES_MASTER`.
+14. Exigir `REVISAR_ANTES_MIGRACAO=0` antes de gerar proposta de Cliente ID.
+15. Executar `centralAgfGerarPropostaClienteId()`.
+16. Conferir `21_PROPOSTA_CLIENTES_MASTER`, `22_CONFLITOS_PROPOSTA_ID` e `23_RESUMO_PROPOSTA_ID`.
+17. Confirmar que nenhuma dessas etapas escreveu em `01_CLIENTES_MASTER`.
 
 ## Baseline atual da previa v0.5.0
 
@@ -68,17 +71,18 @@ Sobre os 6.548 casos em revisao:
 
 Nenhuma dessas classificacoes promove automaticamente um caso de revisao para Cliente Master.
 
-## Baseline observado do lote seguro v0.7.0
+## Baseline homologado do lote seguro v0.7.1
 
-A primeira execucao produziu:
+A execucao final produziu:
 
 - 2.170 linhas `PRONTO_PREVIA` de entrada;
 - 2.140 identidades unicas por Centro + canonico;
-- 2.111 identidades no lote seguro;
-- 29 conflitos;
-- R$ 4.887.208,27 de faturamento total explicado integralmente entre lote e conflitos.
-
-Todos os 29 conflitos eram do mesmo padrao: `CTR_AGF`, mesmo nome canonico e combinacao `AGF_BALCAO_REMETENTE | AGF_RAZAO_SOCIAL`. Nao houve conflito de mesmo canonico entre AGF e METRO nessa execucao.
+- 29 identidades consolidadas pela regra AGF Balcao + contrato no mesmo canonico;
+- 2.140 identidades em `PRONTO_LOTE_SEGURO`;
+- 0 conflitos residuais;
+- 1.106 identidades `CTR_AGF`;
+- 1.034 identidades `CTR_METRO`;
+- R$ 4.887.208,27 de faturamento preservado integralmente no lote seguro.
 
 ## Regressao das regras de Centro
 
@@ -119,14 +123,32 @@ Todos os 29 conflitos eram do mesmo padrao: `CTR_AGF`, mesmo nome canonico e com
 13. Executar a funcao novamente com a mesma entrada deve reconstruir as abas derivadas sem duplicar linhas.
 14. Nenhuma execucao deve gravar em `01_CLIENTES_MASTER`, `02_ALIASES_NOME_REMETENTE`, `04_CLIENTES_CENTRO_LOCAL` ou nos fatos mensais.
 
+## Regressao da proposta de Cliente ID - v0.8.0
+
+1. A funcao deve recusar execucao se `20_RESUMO_LOTE_SEGURO` tiver `REVISAR_ANTES_MIGRACAO > 0`.
+2. A quantidade lida de `18_LOTE_SEGURO_CLIENTES` deve bater exatamente com `PRONTO_LOTE_SEGURO` do resumo.
+3. O `CLIENTE_ID_PROPOSTO` deve ter formato `CLI_` + 20 caracteres hexadecimais.
+4. O mesmo `LOTE_ITEM_ID` deve gerar exatamente o mesmo `CLIENTE_ID_PROPOSTO` em execucoes repetidas.
+5. O ID proposto nao deve conter nome, Centro, CPF/CNPJ ou outro significado comercial visivel.
+6. Duplicidade de `LOTE_ITEM_ID`, colisao de `CLIENTE_ID` ou duplicidade Centro + nome na proposta deve ir para `22_CONFLITOS_PROPOSTA_ID`.
+7. Se `ORIGEM_IDENTIDADE` ja existir em `01_CLIENTES_MASTER` com o mesmo ID, a proposta deve marcar `JA_EXISTE_MASTER` em vez de criar novo candidato.
+8. Se um ID proposto ja estiver usado por outra origem no Master, deve virar conflito.
+9. `RAZAO_SOCIAL_OFICIAL` so pode ser preenchida automaticamente para `AGF_RAZAO_SOCIAL`.
+10. `LOCAL_ID_PRINCIPAL` deve permanecer vazio em todas as linhas propostas.
+11. `CNPJ_CPF` e `NOME_FANTASIA` devem permanecer vazios quando nao houver fonte homologada.
+12. `TIPO_CLIENTE` deve permanecer generico como `CLIENTE` nesta proposta.
+13. `STATUS_CADASTRO` deve nascer `PENDENTE_HOMOLOGACAO`.
+14. `23_RESUMO_PROPOSTA_ID` deve registrar zero escritas em `01_CLIENTES_MASTER`.
+15. Executar novamente a funcao com a mesma entrada deve reconstruir as abas 21-23 sem duplicar linhas nem mudar os IDs propostos.
+
 ## Regressao geral
 
 - `APP MODELO_AGF` atual permanece inalterado.
 - Base Metro atual permanece inalterada.
 - CRM atual permanece inalterado.
 - `FATOS_POSTAGENS_AAAA_MM` sao somente leitura nesta fase.
-- Nenhum `CLIENTE_ID` novo e criado automaticamente.
-- Nenhum Centro/Local final e gravado automaticamente.
+- Nenhum `CLIENTE_ID` e persistido automaticamente no Cadastro Mestre.
+- Nenhum Centro/Local final e gravado automaticamente nos fatos.
 - Fatos sem SRO permanecem no faturamento/historico, mas nao entram na identificacao nem na contagem de clientes.
 - Duplicidades de SRO/FATO_ID permanecem registradas em `07_HOMOLOGACAO` e `09_RECONCILIACAO_FONTES`.
 
@@ -137,7 +159,8 @@ So iniciar a escrita efetiva no Cadastro Mestre depois de:
 - invariantes historicas continuarem homologadas;
 - regras `BALCÃO -> AGF` e `GAS SHOPPING METRO -> METRO` continuarem validas;
 - previa e fila assistida serem tratadas como visoes derivadas;
-- `20_RESUMO_LOTE_SEGURO` confirmar que a entrada pronta foi integralmente explicada entre lote seguro e conflitos;
-- qualquer conflito residual de `19_CONFLITOS_LOTE_SEGURO` ser analisado antes da escrita;
-- o esquema de `CLIENTE_ID` definitivo ser definido e testado de forma idempotente;
+- `20_RESUMO_LOTE_SEGURO` permanecer com 2.140 identidades seguras e zero conflitos residuais para o baseline atual;
+- `23_RESUMO_PROPOSTA_ID` explicar integralmente as 2.140 identidades entre novas, ja existentes e conflitos;
+- qualquer conflito de `22_CONFLITOS_PROPOSTA_ID` ser resolvido antes da escrita;
+- a rotina de escrita futura preservar `CLIENTE_ID` ja persistido e nunca recalcular ID por mudanca de nome/alias;
 - nenhuma sugestao de score/fuzzy ser promovida automaticamente sem confirmacao.
