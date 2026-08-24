@@ -2,6 +2,65 @@
 
 Documento tecnico em preparacao.
 
+## 2026-08-23 - Central AGF v0.9.2 - resolucao de contrato 999 por Cartao de Postagem
+
+### Atencao sensivel
+A mudanca altera a interpretacao tecnica de dados contratuais usados como evidencia de identidade cadastral. `NUMERO_CONTRATO=9999999999` deixa de ser tratado como simples sentinela descartavel e passa a ser preservado como valor de origem que pode ser resolvido por `CARTAO_POSTAGEM` quando houver associacao historica univoca.
+
+Dados envolvidos:
+- numero de contrato recebido da fonte;
+- Cartao de Postagem;
+- Razao Social;
+- intermediador do contrato;
+- nome de remetente;
+- historico de postagens e faturamento agregado usado na auditoria.
+
+O que mudou:
+- `9999999999` continua visivel como contrato de origem;
+- a auditoria constroi em memoria o indice `CARTAO_POSTAGEM -> contratos reais observados`;
+- somente cartao associado a exatamente um contrato real pode resolver automaticamente `9999999999`;
+- cartao associado a mais de um contrato fica ambiguo e nao recebe escolha automatica;
+- cartao sem referencia ou linha sem cartao permanece sem resolucao automatica;
+- contrato de origem diferente de `9999999999` nunca e sobrescrito por essa regra;
+- `24_AUDITORIA_QUALIDADE_MASTER` separa contratos de origem, cartoes observados, contratos resolvidos e status da resolucao;
+- `25_RESUMO_QUALIDADE_MASTER` reconcilia todas as ocorrencias `9999999999`;
+- depois da resolucao, somente contratos classificados em `02_CONTRATOS` como `INTERMEDIADOR=PORTAL POSTAL` podem atuar como autoridade de Razao Social.
+
+Risco principal:
+- atribuir um contrato incorreto a uma linha historica quando um Cartao de Postagem tiver sido usado por mais de um contrato;
+- transformar um dado de origem incorreto em cadastro oficial sem manter rastreabilidade;
+- usar contrato de intermediador compartilhado como se fosse identidade do cliente.
+
+Mitigacao aplicada:
+- resolucao apenas quando o cartao possui exatamente um contrato real conhecido;
+- qualquer ambiguidade permanece sem correcao automatica;
+- valor de origem `9999999999` e preservado e exibido separadamente;
+- fatos mensais continuam somente leitura;
+- a soma das categorias de resolucao do `9999999999` deve fechar exatamente com o total observado ou a auditoria aborta;
+- nenhum `CLIENTE_ID`, Centro/Local final ou contrato e persistido nos fatos nesta versao;
+- nenhum dado real de cliente, Cartao de Postagem, contrato, ID privado ou credencial e copiado para esta documentacao.
+
+Arquivos/estruturas envolvidos:
+- `apps-script/central-agf/13_AUDITORIA_QUALIDADE_MASTER.gs`;
+- `apps-script/central-agf/00_CFG.gs`;
+- `apps-script/central-agf/README.md`;
+- `apps-script/central-agf/TESTES.md`;
+- `docs/CENTRAL_AGF_DADOS.md`;
+- `PROCESSAMENTO_POSTAGENS_CORREIOS!03_REGRAS_MERGE` com `MERGE_016`.
+
+Como testar:
+- sincronizar a v0.9.2 via clasp;
+- executar `centralAgfAuditarQualidadePropostaMaster()`;
+- conferir em `25_RESUMO_QUALIDADE_MASTER` que `LINHAS_999_TOTAL` seja igual a soma de `RESOLVIDAS_POR_CARTAO_UNIVOCO`, `CARTAO_AMBIGUO`, `CARTAO_SEM_REFERENCIA` e `SEM_CARTAO`;
+- conferir que `24_AUDITORIA_QUALIDADE_MASTER` preserve o contrato de origem e mostre separadamente o contrato resolvido;
+- confirmar que `01_CLIENTES_MASTER` e os fatos mensais permanecam inalterados.
+
+Como reverter:
+- reverter os commits da v0.9.2 na branch `feat/central-agf-motor-v1`;
+- reenviar a versao anterior via clasp se necessario;
+- as abas 24 e 25 podem ser reconstruidas pela versao anterior, pois sao visoes derivadas e nao fonte de verdade;
+- `MERGE_016` deve ser mantida como registro da regra de negocio mesmo que a implementacao seja temporariamente revertida.
+
 ## 2026-08-23 - Central AGF v0.8.0 - proposta idempotente de Cliente ID
 
 ### Atencao sensivel
@@ -258,85 +317,3 @@ Como testar:
 - Confirmar preenchimento de IDs, `TRATATIVA_ATIVA_ID`, status de importacao e criacao de `CRM_TRATATIVAS`.
 - Confirmar que linha antiga so e reprocessada se `SUBIR_FRONT = SIM`.
 - Confirmar que logs/documentacao nao exibem CPF/CNPJ, telefone, e-mail ou endereco real.
-
-Como reverter:
-- Reverter a branch/commit antes de publicar.
-- Se ja publicado no Apps Script, remover o arquivo `11_CRM_IMPORTACAO_LOTE_MENU.js`, restaurar `90_FILTROS.js` e executar `clasp push`.
-- As colunas auxiliares podem permanecer sem afetar o front, mas devem ser removidas manualmente somente se a base estiver validada.
-
-Observacao para consulta futura:
-- Esta rotina nao habilita automaticamente overlay de `CLIENTES_CADASTRO` para `CLIENTES_MASTER`.
-
-## Registro sensivel - 2026-07-03 - Nuvemshop apenas pedidos pagos
-
-Tipo de mudanca:
-- Ajuste de integracao, dados de pedidos e regra de elegibilidade para emissao.
-
-Modulo afetado:
-- /nuvem - Minhas Postagens Nuvemshop.
-- apps-script/nuvemshop.
-
-Dados envolvidos:
-- Pedido Nuvemshop.
-- Status de pagamento.
-- Status do pedido.
-- Nome, telefone e endereco de destinatario.
-- Valor do pedido.
-- Dados de rastreio e documentos de postagem.
-
-Credenciais envolvidas:
-- Token Nuvemshop armazenado em PropertiesService.
-- Credenciais Correios/CWS usadas apenas pelo backend relacionado ao App de Postagens.
-
-Valor sensivel exposto no documento?
-- Nao.
-
-Onde o dado/credencial fica armazenado:
-- Dados operacionais em planilhas do conector.
-- Credenciais em PropertiesService do Apps Script.
-
-Arquivos alterados:
-- frontend/nuvem/styles/base.css.
-- frontend/nuvem/js/ui.js.
-- frontend/nuvem/js/screens/pedidos.js.
-- apps-script/nuvemshop/06_WEBHOOKS.gs.
-- apps-script/nuvemshop/12_SYNC_PAID_ONLY.gs.
-- apps-script/nuvemshop/98_FRONT_PAID_OVERRIDES.gs.
-
-Commit:
-- Branch de trabalho: codex/nuvem-paid-sync-ui.
-
-Risco principal:
-- Importar ou permitir emissao de etiqueta para pedido nao pago ou cancelado.
-- Expor dados reais em logs ou documentacao.
-- Alterar webhook de pedido sem rastreabilidade.
-
-Mitigacao aplicada:
-- Sincronizacao incremental busca apenas payment_status paid.
-- Webhook passa por sync pago e ignora pedido cancelado ou sem pagamento confirmado.
-- Frontend bloqueia selecao e botao de gerar etiqueta para item nao elegivel.
-- Documentacao nao registra tokens, URLs completas, IDs reais, payloads brutos ou dados reais.
-
-Como testar:
-- Usar loja/usuario de teste.
-- Sincronizar pedidos e confirmar que somente pedidos pagos aparecem na fila.
-- Confirmar que pedido cancelado nao aparece como pronto para gerar.
-- Confirmar que tentativa de gerar etiqueta em pedido nao pago retorna erro seguro no backend.
-- Confirmar que logs nao exibem token, endereco completo em exemplos de documentacao ou payload bruto.
-
-Como reverter:
-- Reverter a branch/commit desta alteracao antes de publicar.
-- Se ja publicado no Apps Script, restaurar versao anterior via clasp/Git e redeploy do Web App.
-
-Observacao para consulta futura:
-- Esta mudanca nao altera valores reais de token nem remove pedidos antigos da planilha. Ela impede nova importacao/geracao indevida e filtra a exibicao para pedidos pagos.
-
-## 2026-06-16 - Versionamento inicial dos Apps Script
-
-Mudanca sensivel registrada: os Apps Script do projeto foram adicionados ao repositorio GitHub.
-
-Risco: exposicao acidental de identificadores, credenciais, tokens, URLs ou dados operacionais.
-
-Controle aplicado: arquivos .clasp.json ignorados via .gitignore e verificacao inicial por termos sensiveis antes do commit.
-
-Commit relacionado: badf763.
