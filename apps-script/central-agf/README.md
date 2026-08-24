@@ -2,7 +2,7 @@
 
 Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS` e às visões derivadas do `CADASTRO_MESTRE_CLIENTES`.
 
-## Escopo atual - v0.7.1
+## Escopo atual - v0.8.0
 
 - Descobrir por nome, uma unica vez, as planilhas tecnicas e salvar seus IDs em Script Properties.
 - Sincronizar o catalogo de particoes mensais a partir de `CONTROLE_CARGAS_POSTAGENS!03_PARTICOES`.
@@ -13,6 +13,7 @@ Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS` e às visões der
 - Gerar previa de migracao, separando prontos, casos para revisao e placeholders que nao devem virar cliente.
 - Gerar fila assistida de revisao com sugestoes deterministicas e evidencias legadas, sempre dependentes de decisao humana.
 - Consolidar apenas `PRONTO_PREVIA` em um lote seguro por Centro + nome canonico, isolando conflitos reais antes de qualquer escrita no Cadastro Mestre.
+- Gerar proposta idempotente de `CLIENTE_ID` sem escrever em `01_CLIENTES_MASTER`.
 - Materializar `01_CLIENTES_MASTER` em `02_CLIENTES` somente quando o cadastro estiver homologado.
 
 ## Auditoria historica
@@ -63,23 +64,40 @@ Regra adicional da v0.7.1:
 - nesse caso, `AGF_RAZAO_SOCIAL` prevalece como identidade cadastral oficial e a ocorrencia de Balcao permanece como alias/evidencia;
 - essa consolidacao so vale quando Centro e nome canonico sao exatamente os mesmos e nao existe colisao entre Centros.
 
-Uma identidade continua saindo do lote seguro quando houver:
+## Proposta de Cliente ID - v0.8.0
 
-- mesmo canonico em mais de um Centro;
-- outra combinacao de tipos de identidade nao prevista pela regra acima;
-- tipo incompatível com o Centro;
-- Centro diferente de `CTR_AGF` ou `CTR_METRO`;
-- estrategia diferente de `ALIAS_MANUAL_LEGADO`, `ALIAS_EXATO_NORM_LEGADO` ou `RAZAO_SOCIAL_AGF`;
-- canonico vazio, generico ou operacional.
+`centralAgfGerarPropostaClienteId()` so executa quando `20_RESUMO_LOTE_SEGURO` indica zero conflitos residuais e gera:
 
-A aba 18 e totalmente rebuildable e nao contem campos de aprovacao persistente nem `CLIENTE_ID` proposto. Qualquer decisao humana persistente sera feita em uma camada separada. Nenhuma linha e escrita em `01_CLIENTES_MASTER` nesta versao.
+- `21_PROPOSTA_CLIENTES_MASTER`: proposta de linhas para o Cadastro Mestre, ainda sem escrita;
+- `22_CONFLITOS_PROPOSTA_ID`: colisao de ID, duplicidade de chave ou conflito com linha ja existente no Master;
+- `23_RESUMO_PROPOSTA_ID`: reconciliacao da quantidade proposta.
+
+Regra do `CLIENTE_ID`:
+
+- formato `CLI_` + 20 caracteres hexadecimais;
+- calculado por SHA-256 sobre um namespace fixo e o `LOTE_ITEM_ID`;
+- nao codifica nome, Centro, contrato, CPF/CNPJ ou qualquer significado comercial visivel;
+- e deterministico durante a homologacao: a mesma identidade de lote gera a mesma proposta em novas execucoes;
+- depois de persistido no Cadastro Mestre, o ID deve ser tratado como imutavel e nunca recalculado por mudanca futura de nome/alias.
+
+Mapeamento seguro da proposta:
+
+- `NOME_EXIBICAO` recebe o nome canonico do lote;
+- `RAZAO_SOCIAL_OFICIAL` so e preenchida automaticamente quando `TIPO_IDENTIDADE=AGF_RAZAO_SOCIAL`;
+- `TIPO_CLIENTE` recebe apenas o valor generico `CLIENTE`;
+- `CENTRO_ID_PRINCIPAL` vem do lote seguro;
+- `LOCAL_ID_PRINCIPAL` permanece vazio ate homologacao especifica de Centro/Local;
+- `CNPJ_CPF`, `NOME_FANTASIA` e dados cadastrais nao sao inventados;
+- `STATUS_CADASTRO` fica `PENDENTE_HOMOLOGACAO` na proposta;
+- nenhuma linha e gravada em `01_CLIENTES_MASTER` nesta versao.
 
 ## Nao faz nesta versao
 
 - Nao altera APP MODELO_AGF atual.
 - Nao processa Atende + Consolidador.
-- Nao cria Cliente Master automaticamente.
-- Nao gera `CLIENTE_ID` definitivo.
+- Nao escreve em `01_CLIENTES_MASTER`.
+- Nao ativa cliente no Cadastro Mestre.
+- Nao define Local principal automaticamente.
 - Nao altera Centro/Local no historico.
 - Nao publica nada em producao.
 - Nao usa IA externa com nomes de clientes.
@@ -93,7 +111,9 @@ A aba 18 e totalmente rebuildable e nao contem campos de aprovacao persistente n
 5. `centralAgfGerarPreviaMigracaoClientes()`.
 6. `centralAgfGerarAssistenciaRevisaoIdentidade()`.
 7. `centralAgfGerarLoteSeguroMigracaoClientes()`.
-8. Revisar `20_RESUMO_LOTE_SEGURO` e qualquer conflito residual de `19_CONFLITOS_LOTE_SEGURO` antes de projetar escrita em `01_CLIENTES_MASTER`.
+8. Exigir zero conflitos em `19_CONFLITOS_LOTE_SEGURO`.
+9. `centralAgfGerarPropostaClienteId()`.
+10. Revisar `23_RESUMO_PROPOSTA_ID` e qualquer linha de `22_CONFLITOS_PROPOSTA_ID` antes de projetar escrita em `01_CLIENTES_MASTER`.
 
 ## Seguranca
 
