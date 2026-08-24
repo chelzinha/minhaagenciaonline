@@ -4,7 +4,7 @@
 
 Estrutura inicial criada em homologacao em 2026-08-22. Nenhuma planilha atual de producao foi desativada ou alterada por esta etapa.
 
-Motor de homologacao atual: `v0.8.0`, na branch `feat/central-agf-motor-v1`.
+Motor de homologacao atual: `v0.9.2`, na branch `feat/central-agf-motor-v1`.
 
 ## Objetivo
 
@@ -34,6 +34,8 @@ Separar o processamento de postagens, o cadastro mestre de clientes, o historico
 - Para cliente novo, regras por Razao Social e depois CX/atendente podem sugerir Centro/Local; fallbacks devem ficar marcados como provisorios.
 - O historico mensal e fonte de fatos; a planilha de consulta e apenas uma materializacao temporaria para auditoria.
 - `CLIENTE_ID` deve ser uma chave tecnica opaca e imutavel depois de persistida no Cadastro Mestre.
+- `NUMERO_CONTRATO=9999999999` deve ser preservado como valor recebido da fonte e tratado como contrato possivelmente importado incorretamente, nao como simples ausencia de contrato.
+- A recuperacao automatica de `9999999999` so e permitida quando `CARTAO_POSTAGEM` apontar historicamente para exatamente um contrato real diferente de `9999999999`.
 
 ## Consulta de todas as colunas e periodos
 
@@ -151,6 +153,35 @@ Vira conflito em `22_CONFLITOS_PROPOSTA_ID` quando houver:
 
 Nenhuma rotina da v0.8.0 grava em `01_CLIENTES_MASTER`, `04_CLIENTES_CENTRO_LOCAL` ou nos fatos mensais.
 
+## Resolucao de contrato 9999999999 por Cartao de Postagem - v0.9.2
+
+A v0.9.2 recupera uma regra operacional que ja existia no processo legado: quando `NUMERO_CONTRATO` chega como `9999999999`, o `CARTAO_POSTAGEM` pode identificar o contrato real.
+
+O motor constroi um indice historico usando somente linhas cujo contrato de origem seja real e diferente de `9999999999`:
+
+`CARTAO_POSTAGEM -> conjunto de NUMERO_CONTRATO real observado`.
+
+Para cada ocorrencia `9999999999`:
+
+1. se nao existir Cartao de Postagem, preservar `9999999999` e sinalizar `SEM_CARTAO`;
+2. se existir cartao, mas nenhum contrato real estiver associado a ele, preservar a origem e sinalizar `CARTAO_SEM_REFERENCIA`;
+3. se o cartao apontar para mais de um contrato real, preservar a origem e sinalizar `CARTAO_AMBIGUO`;
+4. se o cartao apontar para exatamente um contrato real, usar esse contrato apenas como `CONTRATO_RESOLVIDO` da camada derivada;
+5. nunca substituir automaticamente uma linha cuja fonte ja possua contrato diferente de `9999999999`.
+
+`24_AUDITORIA_QUALIDADE_MASTER` passa a separar:
+
+- `CONTRATOS_OBSERVADOS_ORIGEM`;
+- `CARTOES_POSTAGEM_OBSERVADOS`;
+- `CONTRATOS_RESOLVIDOS`;
+- `RESOLUCAO_999_POR_CARTAO`.
+
+`25_RESUMO_QUALIDADE_MASTER` reconcilia todas as linhas historicas `9999999999` nas categorias `RESOLVIDAS_POR_CARTAO_UNIVOCO`, `CARTAO_AMBIGUO`, `CARTAO_SEM_REFERENCIA` e `SEM_CARTAO`. A soma dessas categorias deve fechar exatamente com `LINHAS_999_TOTAL`; divergencia aborta a auditoria.
+
+A recuperacao ocorre em memoria nesta fase. `01_FATOS` continua somente leitura e preserva o valor original para rastreabilidade. Depois da resolucao, somente contrato presente em `PROCESSAMENTO_POSTAGENS_CORREIOS!02_CONTRATOS` com `INTERMEDIADOR=PORTAL POSTAL` pode atuar como autoridade cadastral de Razao Social.
+
+A regra `MERGE_016` em `PROCESSAMENTO_POSTAGENS_CORREIOS!03_REGRAS_MERGE` registra o mesmo comportamento esperado para o futuro processamento diario.
+
 ## Centro e Local
 
 A autoridade futura deve ser o Cadastro Mestre, respeitando as duas regras comerciais de origem acima.
@@ -164,12 +195,13 @@ Ordem conceitual:
 5. fallback por CX/atendente apenas quando ainda nao existir vinculo;
 6. resultado do fallback fica provisorio ate validacao.
 
-A v0.8.0 nao transforma `LOCAIS_ORIGEM_OBSERVADOS` em `LOCAL_ID_PRINCIPAL`. Essa definicao exige homologacao separada porque o historico pode refletir atendimento, CX ou regra provisoria.
+A v0.9.2 nao transforma `LOCAIS_ORIGEM_OBSERVADOS` em `LOCAL_ID_PRINCIPAL`. Essa definicao exige homologacao separada porque o historico pode refletir atendimento, CX ou regra provisoria.
 
 ## Performance
 
 - Particoes mensais evitam crescimento infinito de uma unica planilha.
 - A consulta processa uma particao por vez e escreve em blocos.
+- A auditoria v0.9.2 constroi o indice Cartao -> contrato na mesma varredura historica usada para coletar evidencias de identidade, evitando uma segunda leitura completa das particoes.
 - As etapas de identidade trabalham sobre visoes agregadas, nao sobre 150k+ fatos a cada decisao humana.
 - O frontend futuro deve usar resumos/pre-processamento para periodo total e consultar fatos detalhados apenas sob demanda.
 - A materializacao completa existe para auditoria humana e nao deve ser o caminho padrao do front.
@@ -177,7 +209,7 @@ A v0.8.0 nao transforma `LOCAIS_ORIGEM_OBSERVADOS` em `LOCAL_ID_PRINCIPAL`. Essa
 
 ## Atencao sensivel
 
-As estruturas envolvem nomes de remetentes, razao social, contratos, historico de postagens e faturamento. IDs reais de arquivos/planilhas e dados pessoais nao devem ser documentados no repositorio. O Motor V1 resolve IDs por nome e os mantem em Script Properties.
+As estruturas envolvem nomes de remetentes, razao social, contratos, Cartao de Postagem, historico de postagens e faturamento. IDs reais de arquivos/planilhas e dados pessoais nao devem ser documentados no repositorio. O Motor V1 resolve IDs por nome e os mantem em Script Properties.
 
 O diagnostico, o lote seguro e a proposta de Cliente ID nao devem expor dados no frontend e nao devem ser usados para IA externa antes da definicao de minimizacao de dados.
 
