@@ -2,33 +2,55 @@
 
 Documento tecnico em preparacao.
 
-## CENTRAL AGF - diagnostico de identidade v0.4.1
+## CENTRAL AGF - identidade e lote seguro v0.7.0
 
 Planilhas/abas envolvidas:
 - `FATOS_POSTAGENS_AAAA_MM!01_FATOS`: fatos mensais, somente leitura nesta etapa.
 - `CONSULTA_HISTORICA_POSTAGENS!07_HOMOLOGACAO`: validacao de linhas, faturamento, periodo e alertas de duplicidade.
 - `CONSULTA_HISTORICA_POSTAGENS!09_RECONCILIACAO_FONTES`: rastreabilidade das divergencias de fonte.
 - `CADASTRO_MESTRE_CLIENTES!13_DIAGNOSTICO_IDENTIDADE`: visao derivada e rebuildable de candidatos.
-- `CADASTRO_MESTRE_CLIENTES!01_CLIENTES_MASTER`: ainda nao recebe migracao automatica nesta etapa.
+- `CADASTRO_MESTRE_CLIENTES!14_PREVIA_MIGRACAO_CLIENTES`: classificacao dos candidatos em pronto, revisar e nao criar.
+- `CADASTRO_MESTRE_CLIENTES!15_FILA_REVISAO_IDENTIDADE`: candidatos que ainda exigem revisao.
+- `CADASTRO_MESTRE_CLIENTES!16_RESUMO_IDENTIDADE`: resumo agregado da etapa de identidade.
+- `CADASTRO_MESTRE_CLIENTES!17_FILA_REVISAO_ASSISTIDA`: sugestoes locais para reduzir revisao manual.
+- `CADASTRO_MESTRE_CLIENTES!18_LOTE_SEGURO_CLIENTES`: consolidacao dos candidatos prontos que passaram pelas travas.
+- `CADASTRO_MESTRE_CLIENTES!19_CONFLITOS_LOTE_SEGURO`: identidades retiradas do lote por colisao ou incompatibilidade.
+- `CADASTRO_MESTRE_CLIENTES!20_RESUMO_LOTE_SEGURO`: reconciliacao de quantidade e faturamento da entrada pronta.
+- `CADASTRO_MESTRE_CLIENTES!01_CLIENTES_MASTER`: continua sem migracao automatica nesta etapa.
 
-Regra de prioridade de Centro no diagnostico:
-1. `CENTRO_ID_FINAL` reconhecido vence qualquer fallback.
-2. Sem Centro final, `RAZAO_SOCIAL=GAS SHOPPING METRO` permanece regra forte de Metro.
-3. Sem Centro final nem regra forte Metro, `CENTRO_ORIGEM` reconhecido orienta AGF/Metro de forma provisoria.
-4. `RAZAO_SOCIAL=BALCÃO` so sugere AGF se nenhum Centro reconhecido estiver disponivel.
+Regra de Centro no diagnostico:
+1. `RAZAO_SOCIAL=BALCÃO` -> `CTR_AGF` e identidade preliminar por `NOME_REMETENTE`.
+2. `RAZAO_SOCIAL=GAS SHOPPING METRO` -> `CTR_METRO` e identidade preliminar por `NOME_REMETENTE`.
+3. Essas duas regras comerciais vencem `CENTRO_ORIGEM`.
+4. Para as demais identidades, `CENTRO_ID_FINAL` confirmado vence fallbacks.
+5. Sem Centro final, `CENTRO_ORIGEM` reconhecido pode orientar provisoriamente.
 
-Consequencia de dados:
-- uma linha com `CENTRO_ORIGEM=METRO` e `RAZAO_SOCIAL=BALCÃO` deve permanecer candidata Metro e usar `NOME_REMETENTE` para o agrupamento preliminar;
-- a palavra `BALCÃO` isoladamente nao e evidencia suficiente para deslocar um fato Metro para AGF;
-- nenhuma dessas regras grava `CLIENTE_ID`, `CENTRO_ID_FINAL` ou `LOCAL_ID_FINAL` nos fatos.
-
-Homologacao:
-- `STATUS_LINHAS=OK`, `STATUS_FATURAMENTO=OK` e `STATUS_PERIODO=OK` sao obrigatorios para gerar o diagnostico;
+Homologacao do historico:
+- `STATUS_LINHAS=OK`, `STATUS_FATURAMENTO=OK` e `STATUS_PERIODO=OK` sao obrigatorios para gerar as visoes de identidade;
 - SRO/FATO_ID repetidos continuam preservados e registrados para reconciliacao, sem deduplicacao automatica.
 
+Previa e assistencia:
+- somente alias manual, `EXATO_NORM` score 100 e identidade AGF contratada por Razao Social podem ficar `PRONTO_PREVIA` automaticamente;
+- fuzzy/score legado permanece apenas como sugestao;
+- a assistencia nao cria Cliente Master nem grava Centro/Local final.
+
+Lote seguro v0.7.0:
+- entrada: somente `STATUS_PREVIA=PRONTO_PREVIA`;
+- chave provisoria de consolidacao: `CENTRO_SUGERIDO + NOME_CANONICO normalizado`;
+- `LOTE_ITEM_ID` e deterministico e serve somente para rastrear a visao derivada;
+- mesmo canonico em mais de um Centro vai para `19_CONFLITOS_LOTE_SEGURO`;
+- mais de um tipo de identidade para a mesma chave vai para conflitos;
+- `AGF_BALCAO_REMETENTE` e `AGF_RAZAO_SOCIAL` exigem `CTR_AGF`;
+- `METRO_REMETENTE` exige `CTR_METRO`;
+- somente `ALIAS_MANUAL_LEGADO`, `ALIAS_EXATO_NORM_LEGADO` e `RAZAO_SOCIAL_AGF` entram no lote seguro;
+- canonico vazio/placeholder e Centro desconhecido ficam fora do lote;
+- as abas 18, 19 e 20 sao rebuildable e nao devem receber decisao humana persistente;
+- nenhum `CLIENTE_ID` e criado pela v0.7.0.
+
 Atencao sensivel:
-- a classificacao trata identidade cadastral, nomes de remetentes, Razao Social e atribuicao de Centro;
-- documentacao e testes nao devem registrar nomes reais, CPF/CNPJ, telefone, e-mail, endereco, IDs privados ou credenciais.
+- as visoes tratam identidade cadastral, nomes de remetentes, Razao Social, Centro/Local observado e faturamento agregado;
+- documentacao e testes nao devem registrar nomes reais, CPF/CNPJ, telefone, e-mail, endereco, IDs privados ou credenciais;
+- as abas de identidade nao devem ser expostas diretamente no frontend.
 
 ## Planilha APP Total CF + Metro - CRM, agenda, midias e manuais
 
