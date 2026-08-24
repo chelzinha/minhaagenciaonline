@@ -4,7 +4,7 @@
 
 Estrutura inicial criada em homologacao em 2026-08-22. Nenhuma planilha atual de producao foi desativada ou alterada por esta etapa.
 
-Motor de homologacao atual: `v0.9.2`, na branch `feat/central-agf-motor-v1`.
+Motor de homologacao atual: `v0.9.3`, na branch `feat/central-agf-motor-v1`.
 
 ## Objetivo
 
@@ -36,6 +36,7 @@ Separar o processamento de postagens, o cadastro mestre de clientes, o historico
 - `CLIENTE_ID` deve ser uma chave tecnica opaca e imutavel depois de persistida no Cadastro Mestre.
 - `NUMERO_CONTRATO=9999999999` deve ser preservado como valor recebido da fonte e tratado como contrato possivelmente importado incorretamente, nao como simples ausencia de contrato.
 - A recuperacao automatica de `9999999999` so e permitida quando `CARTAO_POSTAGEM` apontar historicamente para exatamente um contrato real diferente de `9999999999`.
+- Decisoes humanas de identidade nao podem ser gravadas em abas rebuildable; precisam de uma camada persistente separada.
 
 ## Consulta de todas as colunas e periodos
 
@@ -182,6 +183,55 @@ A recuperacao ocorre em memoria nesta fase. `01_FATOS` continua somente leitura 
 
 A regra `MERGE_016` em `PROCESSAMENTO_POSTAGENS_CORREIOS!03_REGRAS_MERGE` registra o mesmo comportamento esperado para o futuro processamento diario.
 
+Baseline homologado da v0.9.2:
+
+- 2.140 propostas auditadas;
+- R$ 4.887.208,27 conciliados;
+- 2.114 propostas prontas e 26 `REVISAR_QUALIDADE`;
+- 3.663 linhas `9999999999`, com reconciliacao exata entre 1.709 resolvidas, 1.436 ambiguas, 73 sem referencia e 445 sem cartao;
+- 23 linhas em colisao, agrupadas em 11 grupos;
+- 4 linhas com multiplas Razoes Sociais Portal Postal, sendo uma delas tambem parte de colisao;
+- zero escrita no Cadastro Mestre.
+
+## Validacao manual persistente do Master - v0.9.3
+
+A v0.9.3 adiciona `centralAgfPrepararValidacaoManualMaster()` e a aba `26_VALIDACAO_MANUAL_MASTER`.
+
+Objetivo: transformar as 26 linhas finais de `REVISAR_QUALIDADE` em poucos casos humanos consolidados, preservando evidencia tecnica e decisao manual separadamente.
+
+### Agrupamento
+
+- `COLISAO_APOS_NOME_FINAL_SUGERIDO`: agrupa por `CENTRO_ID + NOME_FINAL_SUGERIDO normalizado`;
+- colisao que tambem contenha autoridade multipla recebe `TIPO_PENDENCIA=COLISAO_NOME_FINAL+AUTORIDADE_MULTIPLA`;
+- `MULTIPLAS_RAZOES_PORTAL_POSTAL_PARA_CONTRATOS_RESOLVIDOS` fora de colisao vira `AUTORIDADE_MULTIPLA` individual;
+- qualquer outro motivo residual vira `OUTRA_PENDENCIA` individual, sem descarte silencioso.
+
+No baseline atual, a expectativa estrutural e 11 grupos de colisao + 3 casos isolados de autoridade multipla, totalizando aproximadamente 14 casos ativos. O numero final deve ser confirmado em runtime pela v0.9.3.
+
+### Persistencia
+
+A aba 26 nao e rebuildable como as abas 13-25.
+
+- `CASO_ID` e deterministico e opaco;
+- colunas de evidencia podem ser sincronizadas novamente;
+- colunas humanas `DECISAO_MANUAL` ate `DECIDIDO_POR` sao preservadas por `CASO_ID`;
+- caso que deixe de aparecer na auditoria permanece armazenado com `ATIVO_NA_AUDITORIA=NAO`;
+- cabecalho incompatível bloqueia a rotina para evitar sobrescrever decisoes humanas.
+
+### Decisoes humanas
+
+Opcoes previstas:
+
+- `MESMO_CLIENTE`;
+- `CLIENTES_DIFERENTES`;
+- `MANTER_COMO_ESTA`;
+- `CORRIGIR_NOME`;
+- `PRECISA_VERIFICAR`.
+
+Campos complementares permitem registrar `CLIENTE_ID_MANTER`, nome de exibicao confirmado, Razao Social confirmada, observacao, status, data e responsavel pela decisao.
+
+A v0.9.3 nao aplica essas decisoes no Master. A escrita efetiva sera uma etapa posterior e separada, com dry-run, idempotencia e auditoria.
+
 ## Centro e Local
 
 A autoridade futura deve ser o Cadastro Mestre, respeitando as duas regras comerciais de origem acima.
@@ -195,13 +245,14 @@ Ordem conceitual:
 5. fallback por CX/atendente apenas quando ainda nao existir vinculo;
 6. resultado do fallback fica provisorio ate validacao.
 
-A v0.9.2 nao transforma `LOCAIS_ORIGEM_OBSERVADOS` em `LOCAL_ID_PRINCIPAL`. Essa definicao exige homologacao separada porque o historico pode refletir atendimento, CX ou regra provisoria.
+A v0.9.3 nao transforma `LOCAIS_ORIGEM_OBSERVADOS` em `LOCAL_ID_PRINCIPAL`. Essa definicao exige homologacao separada porque o historico pode refletir atendimento, CX ou regra provisoria.
 
 ## Performance
 
 - Particoes mensais evitam crescimento infinito de uma unica planilha.
 - A consulta processa uma particao por vez e escreve em blocos.
 - A auditoria v0.9.2 constroi o indice Cartao -> contrato na mesma varredura historica usada para coletar evidencias de identidade, evitando uma segunda leitura completa das particoes.
+- A v0.9.3 trabalha apenas sobre as 26 linhas finais de revisao da aba 24 e nao relê as 152 mil linhas historicas.
 - As etapas de identidade trabalham sobre visoes agregadas, nao sobre 150k+ fatos a cada decisao humana.
 - O frontend futuro deve usar resumos/pre-processamento para periodo total e consultar fatos detalhados apenas sob demanda.
 - A materializacao completa existe para auditoria humana e nao deve ser o caminho padrao do front.
@@ -209,9 +260,11 @@ A v0.9.2 nao transforma `LOCAIS_ORIGEM_OBSERVADOS` em `LOCAL_ID_PRINCIPAL`. Essa
 
 ## Atencao sensivel
 
-As estruturas envolvem nomes de remetentes, razao social, contratos, Cartao de Postagem, historico de postagens e faturamento. IDs reais de arquivos/planilhas e dados pessoais nao devem ser documentados no repositorio. O Motor V1 resolve IDs por nome e os mantem em Script Properties.
+As estruturas envolvem nomes de remetentes, razao social, contratos, Cartao de Postagem, historico de postagens, faturamento e decisoes humanas de identidade. IDs reais de arquivos/planilhas e dados pessoais nao devem ser documentados no repositorio. O Motor V1 resolve IDs por nome e os mantem em Script Properties.
 
-O diagnostico, o lote seguro e a proposta de Cliente ID nao devem expor dados no frontend e nao devem ser usados para IA externa antes da definicao de minimizacao de dados.
+A aba `26_VALIDACAO_MANUAL_MASTER` e uma fonte persistente de decisao humana e nao deve ser publicada no frontend, recriada manualmente nem tratada como visao descartavel.
+
+O diagnostico, o lote seguro, a proposta de Cliente ID e a fila manual nao devem expor dados no frontend e nao devem ser usados para IA externa antes da definicao de minimizacao de dados.
 
 ## Fora do escopo desta etapa
 
