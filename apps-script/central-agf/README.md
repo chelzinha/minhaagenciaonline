@@ -2,7 +2,7 @@
 
 Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS` e às visões derivadas do `CADASTRO_MESTRE_CLIENTES`.
 
-## Escopo atual - v0.9.2
+## Escopo atual - v0.9.3
 
 - Descobrir por nome, uma unica vez, as planilhas tecnicas e salvar seus IDs em Script Properties.
 - Sincronizar o catalogo de particoes mensais a partir de `CONTROLE_CARGAS_POSTAGENS!03_PARTICOES`.
@@ -12,6 +12,7 @@ Projeto Apps Script destinado a `CONSULTA_HISTORICA_POSTAGENS` e às visões der
 - Gerar proposta idempotente de `CLIENTE_ID` sem escrever em `01_CLIENTES_MASTER`.
 - Auditar qualidade cadastral antes de qualquer persistencia.
 - Recuperar contrato importado como `9999999999` quando o `CARTAO_POSTAGEM` possuir associacao historica univoca com um unico contrato real.
+- Consolidar as excecoes finais em uma fila persistente de validacao humana, sem perder decisoes em reexecucoes.
 
 ## Regras de Centro confirmadas
 
@@ -36,6 +37,7 @@ Duplicidades de SRO/FATO_ID permanecem registradas em `07_HOMOLOGACAO` e `09_REC
 - `18_LOTE_SEGURO_CLIENTES`, `19_CONFLITOS_LOTE_SEGURO` e `20_RESUMO_LOTE_SEGURO`: consolidacao segura.
 - `21_PROPOSTA_CLIENTES_MASTER`, `22_CONFLITOS_PROPOSTA_ID` e `23_RESUMO_PROPOSTA_ID`: proposta de `CLIENTE_ID`, ainda sem escrita.
 - `24_AUDITORIA_QUALIDADE_MASTER` e `25_RESUMO_QUALIDADE_MASTER`: qualidade cadastral antes da persistencia, incluindo diagnostico da resolucao do contrato `9999999999` por Cartao de Postagem.
+- `26_VALIDACAO_MANUAL_MASTER`: fila persistente com apenas os casos finais que exigem decisao humana.
 
 ## Lote seguro - v0.7.1
 
@@ -74,7 +76,51 @@ Depois da resolucao contratual, somente contratos resolvidos presentes em `PROCE
 
 `BALCÃO` corretamente acentuado nao e tratado como mojibake; problemas reais de codificacao continuam sinalizados. Limpezas automaticas continuam limitadas a padroes deterministas de prefixo CNPJ/raiz/lista de codigos. Se duas propostas do mesmo Centro convergirem para o mesmo nome final, ambas permanecem `REVISAR_QUALIDADE`.
 
-Nenhuma linha e gravada em `01_CLIENTES_MASTER` nesta etapa.
+Baseline homologado em runtime da v0.9.2:
+
+- 2.140 propostas auditadas / R$ 4.887.208,27;
+- 2.041 `PRONTO_SEM_AJUSTE`;
+- 63 `PRONTO_COM_AUTORIDADE_CONTRATO`;
+- 10 `PRONTO_COM_LIMPEZA_DETERMINISTICA`;
+- 26 `REVISAR_QUALIDADE`;
+- 3.663 ocorrencias `9999999999`: 1.709 resolvidas por cartao univoco, 1.436 em cartao ambiguo, 73 sem referencia e 445 sem cartao;
+- 23 linhas em colisao, agrupadas em 11 grupos;
+- 4 linhas com multiplas Razoes Sociais de Portal Postal, sendo uma delas tambem parte de um grupo de colisao;
+- zero escrita em `01_CLIENTES_MASTER`.
+
+## Validacao manual persistente - v0.9.3
+
+`centralAgfPrepararValidacaoManualMaster()` le somente os casos `REVISAR_QUALIDADE` da aba 24 e cria/sincroniza `26_VALIDACAO_MANUAL_MASTER`.
+
+A fila e diferente das visoes derivadas anteriores: as colunas de decisao humana sao persistentes. Reexecutar a rotina atualiza evidencias tecnicas, mas preserva as decisoes ja registradas pelo `CASO_ID`. Casos que deixarem de aparecer na auditoria ficam preservados com `ATIVO_NA_AUDITORIA=NAO` para manter rastreabilidade.
+
+Agrupamento atual:
+
+- linhas com `COLISAO_APOS_NOME_FINAL_SUGERIDO` sao agrupadas por `CENTRO_ID + NOME_FINAL_SUGERIDO normalizado`;
+- se o mesmo grupo tambem tiver `MULTIPLAS_RAZOES_PORTAL_POSTAL_PARA_CONTRATOS_RESOLVIDOS`, o caso recebe os dois tipos de pendencia;
+- linhas de autoridade multipla fora de colisao viram casos individuais;
+- qualquer outra pendencia residual vira caso individual, sem decisao automatica.
+
+Campos humanos principais:
+
+- `DECISAO_MANUAL`;
+- `CLIENTE_ID_MANTER`;
+- `NOME_EXIBICAO_CONFIRMADO`;
+- `RAZAO_SOCIAL_CONFIRMADA`;
+- `OBSERVACAO`;
+- `STATUS_VALIDACAO`;
+- `DECIDIDO_EM`;
+- `DECIDIDO_POR`.
+
+Opcoes de `DECISAO_MANUAL`:
+
+- `MESMO_CLIENTE`;
+- `CLIENTES_DIFERENTES`;
+- `MANTER_COMO_ESTA`;
+- `CORRIGIR_NOME`;
+- `PRECISA_VERIFICAR`.
+
+A v0.9.3 nao interpreta nem aplica automaticamente essas decisoes. Ela apenas cria a camada persistente e segura para homologacao humana antes da futura escrita no Cadastro Mestre.
 
 ## Ordem de homologacao
 
@@ -87,7 +133,10 @@ Nenhuma linha e gravada em `01_CLIENTES_MASTER` nesta etapa.
 7. `centralAgfGerarLoteSeguroMigracaoClientes()` e exigir zero conflitos.
 8. `centralAgfGerarPropostaClienteId()` e exigir zero conflitos.
 9. `centralAgfAuditarQualidadePropostaMaster()`.
-10. Revisar `25_RESUMO_QUALIDADE_MASTER`, a reconciliacao `CONTRATO_999` e os casos `REVISAR_QUALIDADE` antes de qualquer escrita no Master.
+10. Revisar `25_RESUMO_QUALIDADE_MASTER` e exigir reconciliacao do bloco `CONTRATO_999`.
+11. `centralAgfPrepararValidacaoManualMaster()`.
+12. Preencher os casos ativos de `26_VALIDACAO_MANUAL_MASTER` e marcar `STATUS_VALIDACAO=VALIDADO` quando a decisao estiver completa.
+13. Somente depois desenhar/aplicar a persistencia efetiva no Master.
 
 ## Nao faz nesta versao
 
@@ -95,6 +144,7 @@ Nenhuma linha e gravada em `01_CLIENTES_MASTER` nesta etapa.
 - Nao processa Atende + Consolidador.
 - Nao escreve em `01_CLIENTES_MASTER`.
 - Nao regrava contrato resolvido nos fatos historicos.
+- Nao aplica automaticamente decisao humana da aba 26.
 - Nao ativa cliente no Cadastro Mestre.
 - Nao define Local principal automaticamente.
 - Nao altera Centro/Local nos fatos.
@@ -103,4 +153,4 @@ Nenhuma linha e gravada em `01_CLIENTES_MASTER` nesta etapa.
 
 ## Seguranca
 
-IDs de planilhas nao ficam versionados. O setup resolve arquivos por nome e mantem IDs somente em Script Properties. As visoes derivadas contem dados cadastrais, contratuais e financeiros e nao devem ser publicadas no frontend nem copiadas para documentacao com exemplos reais.
+IDs de planilhas nao ficam versionados. O setup resolve arquivos por nome e mantem IDs somente em Script Properties. As visoes derivadas e a fila manual contem dados cadastrais, contratuais e financeiros e nao devem ser publicadas no frontend nem copiadas para documentacao com exemplos reais.
