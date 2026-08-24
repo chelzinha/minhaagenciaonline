@@ -21,7 +21,7 @@ Modulos adicionados:
 
 Arquivos .clasp.json permanecem locais e nao devem ser enviados ao GitHub.
 
-## CENTRAL AGF - Motor V1 v0.4.1
+## CENTRAL AGF - Motor V1 v0.7.0
 
 Modulo:
 - `apps-script/central-agf`
@@ -32,28 +32,56 @@ Funcoes principais:
 - `centralAgfValidarHistorico()`
 - `centralAgfAtualizarVisao()`
 - `centralAgfGerarDiagnosticoIdentidade()`
+- `centralAgfGerarPreviaMigracaoClientes()`
+- `centralAgfGerarAssistenciaRevisaoIdentidade()`
+- `centralAgfGerarLoteSeguroMigracaoClientes()`
 
-Regra de homologacao para o diagnostico:
-- todas as particoes precisam ter `STATUS_LINHAS=OK`, `STATUS_FATURAMENTO=OK` e `STATUS_PERIODO=OK`;
-- alertas de SRO/FATO_ID repetido permanecem registrados em `07_HOMOLOGACAO`/`09_RECONCILIACAO_FONTES`, mas nao provocam deduplicacao automatica nem bloqueiam a leitura diagnostica.
+Ordem atual de homologacao:
+1. configurar ambiente;
+2. sincronizar catalogo;
+3. auditar historico;
+4. gerar diagnostico;
+5. gerar previa de migracao;
+6. gerar revisao assistida;
+7. gerar lote seguro;
+8. revisar resumo/conflitos antes de qualquer escrita no Cadastro Mestre.
 
-Regra de classificacao de identidade da v0.4.1:
-1. `CENTRO_ID_FINAL` reconhecido vence qualquer inferencia.
-2. Sem Centro final, `RAZAO_SOCIAL=GAS SHOPPING METRO` permanece contexto forte Metro.
-3. Sem Centro final nem regra forte Metro, `CENTRO_ORIGEM` reconhecido orienta AGF/Metro provisoriamente.
-4. `RAZAO_SOCIAL=BALCÃO` so funciona como fallback AGF quando nenhum Centro reconhecido estiver disponivel.
+Regras de identidade vigentes:
+1. `RAZAO_SOCIAL=BALCÃO` -> `CTR_AGF` e identidade por `NOME_REMETENTE`.
+2. `RAZAO_SOCIAL=GAS SHOPPING METRO` -> `CTR_METRO` e identidade por `NOME_REMETENTE`.
+3. Essas regras vencem `CENTRO_ORIGEM`.
+4. Para os demais casos, `CENTRO_ID_FINAL` confirmado vence fallbacks.
+5. Sem Centro final, `CENTRO_ORIGEM` pode orientar provisoriamente.
 
-Cuidados de regressao:
-- fato com origem Metro e Razao Social `BALCÃO` deve continuar `METRO_REMETENTE`;
-- AGF Balcao usa `NOME_REMETENTE`;
-- AGF fora do Balcao usa `RAZAO_SOCIAL`;
-- Metro usa `NOME_REMETENTE`;
-- a rotina nao grava `CLIENTE_ID`, `CENTRO_ID_FINAL` ou `LOCAL_ID_FINAL` nos fatos mensais.
+Regra de homologacao historica:
+- `STATUS_LINHAS=OK`, `STATUS_FATURAMENTO=OK` e `STATUS_PERIODO=OK` sao obrigatorios;
+- SRO/FATO_ID repetidos permanecem registrados em `07_HOMOLOGACAO`/`09_RECONCILIACAO_FONTES`, sem deduplicacao automatica.
+
+Visoes derivadas de identidade:
+- `13_DIAGNOSTICO_IDENTIDADE`;
+- `14_PREVIA_MIGRACAO_CLIENTES`;
+- `15_FILA_REVISAO_IDENTIDADE`;
+- `16_RESUMO_IDENTIDADE`;
+- `17_FILA_REVISAO_ASSISTIDA`;
+- `18_LOTE_SEGURO_CLIENTES`;
+- `19_CONFLITOS_LOTE_SEGURO`;
+- `20_RESUMO_LOTE_SEGURO`.
+
+Lote seguro v0.7.0:
+- le apenas `PRONTO_PREVIA`;
+- consolida por Centro + nome canonico normalizado;
+- bloqueia mesmo canonico em mais de um Centro;
+- bloqueia mais de um tipo de identidade na mesma chave;
+- valida compatibilidade tipo/Centro;
+- aceita somente estrategias de origem confiaveis da previa;
+- cria apenas `LOTE_ITEM_ID` deterministico, que nao e `CLIENTE_ID`;
+- nao grava decisao humana persistente nas abas rebuildable;
+- nao escreve em `01_CLIENTES_MASTER`, `04_CLIENTES_CENTRO_LOCAL` nem nos fatos.
 
 Atencao sensivel:
-- o diagnostico usa nomes de remetentes, Razao Social, historico de postagens e atribuicao de Centro;
+- o modulo usa nomes de remetentes, Razao Social, historico de postagens, Centro/Local observado e faturamento agregado;
 - nenhum dado real de cliente, ID privado, token ou credencial deve ser copiado para testes, logs ou documentacao;
-- a v0.4.1 altera apenas a classificacao da visao derivada `13_DIAGNOSTICO_IDENTIDADE`; os fatos mensais permanecem somente leitura.
+- as visoes derivadas nao devem ser expostas diretamente no frontend.
 
 ## CRM - boot v4 por view
 
@@ -144,8 +172,8 @@ Funcoes backend relacionadas:
 - apiReadEtiqueta_()
 - apiConfirmDropoff_()
 - apiGetUserHistory_()
-- apiGetDashboard_()
-- apiGetUnitStatus_()
+- apiGetDashboard_(req)
+- apiGetUnitStatus_(req)
 - reversaReadEtiqueta()
 - reversaConfirmDropoff()
 
@@ -292,8 +320,7 @@ Regras de manutencao:
 
 ### Locais do CRM resiliente (2026-06-30, v8.3.2)
 - crm83_getActiveLocals_ com try/catch total; em erro cai no padrao por escopo.
-- crm3_apiGetConfig_ monta segmentos/locais via crm3_safeConfigList_, sem
-  derrubar o bootstrap.
+- crm3_apiGetConfig_ monta segmentos/locais via crm3_safeConfigList_, sem derrubar o bootstrap.
 
 ## CRM — `homeLocais` na configuração
 
