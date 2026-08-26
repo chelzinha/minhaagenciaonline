@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Rachel | Minha Agência Online</title>
+  <meta name="description" content="Contato digital de Rachel. Coleta gratuita na sua loja e atendimento nas unidades Correios AGF José Bonifácio e Shopping Metrô." />
+  <meta name="theme-color" content="#00416b" />
+  <meta property="og:title" content="Rachel | Minha Agência Online" />
+  <meta property="og:description" content="Salve meu contato, solicite coleta, peça cotação e encontre nossas unidades." />
+  <meta property="og:type" content="profile" />
+  <meta property="og:url" content="https://www.minhaagenciaonline.com.br/rachel" />
+  <meta property="og:image" content="https://www.minhaagenciaonline.com.br/assets/og-whatsapp-correios-v2.png" />
+  <link rel="icon" href="/assets/pwa/root/favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" href="/assets/pwa/root/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root { --blue:#00416b; --blue-soft:#eaf4fb; --yellow:#ffd400; --yellow-2:#ffbd17; --green:#16a34a; --ink:#132238; --muted:#627187; --line:#dbe5ee; --surface:#fff; --page:#f3f7fa; --shadow:0 12px 34px rgba(0,48,83,.12); --radius:22px; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; min-height:100vh; font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); background:var(--page); -webkit-font-smoothing:antialiased; }
+    button,a { -webkit-tap-highlight-color:transparent; }
+    a { color:inherit; }
+    .shell { width:min(100%,720px); min-height:100vh; margin:0 auto; background:var(--surface); box-shadow:0 0 45px rgba(0,48,83,.08); overflow:hidden; }
+    .topbar { display:flex; justify-content:center; align-items:center; min-height:98px; padding:20px 24px 14px; background:#fff; border-bottom:1px solid #edf2f6; }
+    .topbar img { width:min(260px,72vw); height:auto; display:block; }
+    main { padding:20px 18px 28px; }
+    .profile { display:grid; grid-template-columns:118px 1fr; gap:18px; align-items:center; padding:22px; background:#fff; border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); }
+    .avatar { width:118px; height:118px; border-radius:50%; object-fit:cover; border:5px solid var(--blue-soft); background:#eef4f7; }
+    .profile h1 { margin:0 0 10px; color:var(--blue); font-size:clamp(30px,8vw,44px); line-height:.98; letter-spacing:-.04em; }
+    .profile-copy { min-width:0; }
+    .tagline { display:grid; gap:6px; margin:0; color:#33475c; font-size:14px; line-height:1.35; }
+    .tagline strong { color:var(--blue); font-size:15px; }
+    .actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:16px; }
+    .action { min-height:58px; display:flex; align-items:center; justify-content:center; gap:9px; padding:13px 12px; border:1px solid transparent; border-radius:16px; text-decoration:none; font:inherit; font-weight:750; font-size:14px; text-align:center; cursor:pointer; transition:transform .16s ease,box-shadow .16s ease; }
+    .action:active { transform:scale(.985); }
+    .action svg { flex:0 0 22px; width:22px; height:22px; }
+    .primary { color:#fff; background:var(--blue); box-shadow:0 8px 20px rgba(0,65,107,.19); }
+    .whatsapp { color:#fff; background:var(--green); box-shadow:0 8px 20px rgba(22,163,74,.18); }
+    .yellow { color:#14314a; background:var(--yellow); }
+    .outline { color:var(--blue); background:#fff; border-color:#9fb9ce; }
+    .section { margin-top:24px; }
+    .section-title { margin:0 0 12px; color:var(--blue); font-size:20px; letter-spacing:-.02em; }
+    .contact-card,.unit-card,.save-card { background:#fff; border:1px solid var(--line); border-radius:18px; box-shadow:0 7px 22px rgba(0,48,83,.07); }
+    .contact-card { padding:6px 18px; }
+    .contact-row { display:flex; align-items:center; gap:12px; min-height:58px; border-bottom:1px solid #e8eef3; text-decoration:none; overflow-wrap:anywhere; }
+    .contact-row:last-child { border-bottom:0; }
+    .contact-row svg { width:22px; height:22px; color:var(--blue); flex:0 0 22px; }
+    .contact-row span { font-size:14px; line-height:1.35; }
+    .units { display:grid; gap:12px; }
+    .unit-card { padding:18px; }
+    .unit-head { display:flex; gap:12px; align-items:flex-start; }
+    .pin { display:grid; place-items:center; width:42px; height:42px; flex:0 0 42px; color:var(--blue); background:var(--blue-soft); border-radius:13px; }
+    .pin svg { width:24px; height:24px; }
+    .unit-card h3 { margin:0 0 6px; color:var(--blue); font-size:17px; }
+    .unit-card p { margin:0; color:var(--muted); font-size:14px; line-height:1.45; }
+    .unit-links { display:flex; gap:9px; flex-wrap:wrap; margin-top:14px; }
+    .mini { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:40px; padding:9px 12px; color:var(--blue); background:#f7fafc; border:1px solid #c9d8e4; border-radius:12px; text-decoration:none; font-size:13px; font-weight:700; }
+    .save-card { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; padding:17px; }
+    .save-card strong { display:block; color:var(--blue); margin-bottom:5px; }
+    .save-card p { margin:0; color:var(--muted); font-size:13px; line-height:1.4; }
+    .share-button { min-height:44px; padding:10px 14px; color:var(--blue); background:#fff; border:1px solid #9fb9ce; border-radius:13px; font:inherit; font-size:13px; font-weight:750; cursor:pointer; }
+    footer { position:relative; overflow:hidden; padding:30px 24px calc(30px + env(safe-area-inset-bottom)); color:#163049; background:linear-gradient(135deg,var(--yellow),var(--yellow-2)); }
+    footer::before,footer::after { content:""; position:absolute; width:260px; height:120px; background:rgba(255,255,255,.22); transform:rotate(-18deg); }
+    footer::before { right:-90px; top:-55px; }
+    footer::after { left:-120px; bottom:-70px; }
+    .footer-inner { position:relative; z-index:1; display:flex; align-items:center; gap:14px; }
+    .footer-mark { width:54px; height:42px; object-fit:contain; object-position:left center; }
+    footer strong { display:block; font-size:15px; }
+    footer span { display:block; margin-top:4px; font-size:12px; }
+    .toast { position:fixed; left:50%; bottom:20px; z-index:20; transform:translate(-50%,20px); max-width:calc(100vw - 32px); padding:12px 16px; color:#fff; background:#15324a; border-radius:999px; box-shadow:0 12px 30px rgba(0,0,0,.2); font-size:13px; font-weight:650; opacity:0; pointer-events:none; transition:opacity .2s ease,transform .2s ease; }
+    .toast.show { opacity:1; transform:translate(-50%,0); }
+    @media (max-width:470px) { main{padding-inline:14px}.profile{grid-template-columns:92px 1fr;gap:14px;padding:18px}.avatar{width:92px;height:92px;border-width:4px}.profile h1{font-size:31px}.tagline{font-size:12.5px}.tagline strong{font-size:13.5px}.action{font-size:13px;padding-inline:8px}.save-card{grid-template-columns:1fr}.share-button{width:100%} }
+    @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto!important; transition:none!important; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar"><a href="/" aria-label="Ir para Minha Agência Online"><img src="/assets/correios-logo-2.png" alt="Correios" /></a></header>
+    <main>
+      <section class="profile" aria-labelledby="profile-name">
+        <img class="avatar" src="./foto-rachel.svg" width="200" height="200" alt="Foto de Rachel" />
+        <div class="profile-copy">
+          <h1 id="profile-name">Rachel</h1>
+          <div class="tagline"><strong>📦 Coleta Gratuita na sua loja!</strong><span>📍 Correios AGF José Bonifácio</span><span>📍 Correios Shopping Metrô</span></div>
+        </div>
+      </section>
+      <section class="actions" aria-label="Ações rápidas">
+        <a class="action primary" href="./rachel.vcf" download="Rachel.vcf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Salvar contato</a>
+        <a class="action whatsapp" href="https://wa.me/5585988888489" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 3.5A11.8 11.8 0 0 0 12.1 0C5.5 0 .2 5.4.2 12c0 2.1.5 4.1 1.6 5.9L0 24l6.2-1.6A12 12 0 0 0 12 24h.1C18.7 24 24 18.6 24 12a11.9 11.9 0 0 0-3.5-8.5ZM12.1 22a9.9 9.9 0 0 1-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4A10 10 0 1 1 12.1 22Zm5.5-7.5c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-1.7-.8-2.9-1.5-4-3.4-.3-.5.3-.5.8-1.6.1-.2.1-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.2-1.2 2.9s1.2 3.3 1.4 3.6c.2.2 2.4 3.7 5.9 5.2 2.2.9 3.1 1 4.2.8.7-.1 1.8-.7 2.1-1.5.3-.7.3-1.4.2-1.5-.1-.2-.3-.2-.6-.4Z"/></svg>Falar no WhatsApp</a>
+        <a class="action yellow" href="https://wa.me/5585988888489?text=Ol%C3%A1%2C%20Rachel!%20Gostaria%20de%20solicitar%20uma%20coleta." target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m21 8-9-5-9 5 9 5 9-5Z"/><path d="m3 8 9 5 9-5M3 8v8l9 5 9-5V8M12 13v8"/></svg>Solicitar coleta</a>
+        <a class="action yellow" href="https://wa.me/5585988888489?text=Ol%C3%A1%2C%20Rachel!%20Gostaria%20de%20pedir%20uma%20cota%C3%A7%C3%A3o." target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h2M14 10h2M8 14h2M14 14h2M8 18h2M14 18h2"/></svg>Pedir cotação</a>
+        <a class="action outline" href="mailto:contato@minhaagenciaonline.com.br"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>Enviar e-mail</a>
+      </section>
+      <section class="section" aria-labelledby="contact-title">
+        <h2 class="section-title" id="contact-title">Contato</h2>
+        <div class="contact-card">
+          <a class="contact-row" href="tel:+5585988888489"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.4 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9Z"/></svg><span>+55 (85) 98888-8489</span></a>
+          <a class="contact-row" href="mailto:contato@minhaagenciaonline.com.br"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>contato@minhaagenciaonline.com.br</span></a>
+          <a class="contact-row" href="https://www.minhaagenciaonline.com.br" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg><span>www.minhaagenciaonline.com.br</span></a>
+        </div>
+      </section>
+      <section class="section" aria-labelledby="units-title">
+        <h2 class="section-title" id="units-title">Nossas unidades</h2>
+        <div class="units">
+          <article class="unit-card"><div class="unit-head"><span class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span><div><h3>Correios AGF José Bonifácio</h3><p>Av. Aguanambi, 674 - José Bonifácio<br>Fortaleza/CE - CEP 60055-974</p></div></div><div class="unit-links"><a class="mini" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Aguanambi%2C%20674%20-%20Jos%C3%A9%20Bonif%C3%A1cio%2C%20Fortaleza%20-%20CE%2C%2060055-974" target="_blank" rel="noopener noreferrer">Abrir no mapa</a><a class="mini" href="https://wa.me/5585988864444" target="_blank" rel="noopener noreferrer">WhatsApp da unidade</a></div></article>
+          <article class="unit-card"><div class="unit-head"><span class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span><div><h3>Correios Shopping Metrô</h3><p>Rua 24 de Maio, 444 - Centro<br>Fortaleza/CE - CEP 60020-000</p></div></div><div class="unit-links"><a class="mini" href="https://www.google.com/maps/search/?api=1&amp;query=Rua%2024%20de%20Maio%2C%20444%20-%20Centro%2C%20Fortaleza%20-%20CE%2C%2060020-000" target="_blank" rel="noopener noreferrer">Abrir no mapa</a><a class="mini" href="https://wa.me/5585988864433" target="_blank" rel="noopener noreferrer">WhatsApp da unidade</a></div></article>
+        </div>
+      </section>
+      <section class="section save-card" aria-label="Compartilhar e salvar para depois"><div><strong>Acesso rápido sempre que precisar</strong><p>Salve o contato acima. O link desta página ficará registrado no campo Site do contato.</p></div><button class="share-button" id="shareButton" type="button">Compartilhar página</button></section>
+    </main>
+    <footer><div class="footer-inner"><img class="footer-mark" src="/assets/correios-logo-2.png" alt="" aria-hidden="true" /><div><strong>Agência Franqueada José Bonifácio</strong><span>Seu atendimento direto nos Correios</span></div></div></footer>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    const pageUrl='https://www.minhaagenciaonline.com.br/rachel';
+    const shareButton=document.getElementById('shareButton');
+    const toast=document.getElementById('toast');
+    let toastTimer;
+    function showToast(message){clearTimeout(toastTimer);toast.textContent=message;toast.classList.add('show');toastTimer=setTimeout(()=>toast.classList.remove('show'),2600)}
+    shareButton.addEventListener('click',async()=>{const data={title:'Rachel | Minha Agência Online',text:'Meu contato e os canais de atendimento da agência.',url:pageUrl};try{if(navigator.share){await navigator.share(data)}else{await navigator.clipboard.writeText(pageUrl);showToast('Link copiado.')}}catch(error){if(error&&error.name!=='AbortError')showToast('Não foi possível compartilhar agora.')}});
+    if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));}
+  </script>
+</body>
+</html>
