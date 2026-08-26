@@ -15,3 +15,10 @@
   to = "https://agf-dce-facil.netlify.app/:splat"
   status = 302
   force = true
+
+[[headers]]
+  for = "/rachel/rachel.vcf"
+  [headers.values]
+    Content-Type = "text/vcard; charset=utf-8"
+    Content-Disposition = "attachment; filename=Rachel.vcf"
+    Cache-Control = "public, max-age=300"
