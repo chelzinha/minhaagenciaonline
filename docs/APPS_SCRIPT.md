@@ -21,6 +21,98 @@ Modulos adicionados:
 
 Arquivos .clasp.json permanecem locais e nao devem ser enviados ao GitHub.
 
+## CENTRAL AGF - Motor V1 v0.8.0
+
+Modulo:
+- `apps-script/central-agf`
+
+Funcoes principais:
+- `centralAgfAutoConfigurar()`
+- `centralAgfSincronizarCatalogoParticoes()`
+- `centralAgfValidarHistorico()`
+- `centralAgfAtualizarVisao()`
+- `centralAgfGerarDiagnosticoIdentidade()`
+- `centralAgfGerarPreviaMigracaoClientes()`
+- `centralAgfGerarAssistenciaRevisaoIdentidade()`
+- `centralAgfGerarLoteSeguroMigracaoClientes()`
+- `centralAgfGerarPropostaClienteId()`
+
+Ordem atual de homologacao:
+1. configurar ambiente;
+2. sincronizar catalogo;
+3. auditar historico;
+4. gerar diagnostico;
+5. gerar previa de migracao;
+6. gerar revisao assistida;
+7. gerar lote seguro;
+8. exigir zero conflitos residuais no lote;
+9. gerar proposta de Cliente ID;
+10. revisar resumo/conflitos antes de qualquer escrita no Cadastro Mestre.
+
+Regras de identidade vigentes:
+1. `RAZAO_SOCIAL=BALCÃO` -> `CTR_AGF` e identidade por `NOME_REMETENTE`.
+2. `RAZAO_SOCIAL=GAS SHOPPING METRO` -> `CTR_METRO` e identidade por `NOME_REMETENTE`.
+3. Essas regras vencem `CENTRO_ORIGEM`.
+4. Para os demais casos, `CENTRO_ID_FINAL` confirmado vence fallbacks.
+5. Sem Centro final, `CENTRO_ORIGEM` pode orientar provisoriamente.
+
+Regra de homologacao historica:
+- `STATUS_LINHAS=OK`, `STATUS_FATURAMENTO=OK` e `STATUS_PERIODO=OK` sao obrigatorios;
+- SRO/FATO_ID repetidos permanecem registrados em `07_HOMOLOGACAO`/`09_RECONCILIACAO_FONTES`, sem deduplicacao automatica.
+
+Visoes derivadas de identidade:
+- `13_DIAGNOSTICO_IDENTIDADE`;
+- `14_PREVIA_MIGRACAO_CLIENTES`;
+- `15_FILA_REVISAO_IDENTIDADE`;
+- `16_RESUMO_IDENTIDADE`;
+- `17_FILA_REVISAO_ASSISTIDA`;
+- `18_LOTE_SEGURO_CLIENTES`;
+- `19_CONFLITOS_LOTE_SEGURO`;
+- `20_RESUMO_LOTE_SEGURO`;
+- `21_PROPOSTA_CLIENTES_MASTER`;
+- `22_CONFLITOS_PROPOSTA_ID`;
+- `23_RESUMO_PROPOSTA_ID`.
+
+Lote seguro v0.7.1:
+- le apenas `PRONTO_PREVIA`;
+- consolida por Centro + nome canonico normalizado;
+- bloqueia mesmo canonico em mais de um Centro;
+- no mesmo `CTR_AGF` e mesmo canonico exato, consolida `AGF_BALCAO_REMETENTE + AGF_RAZAO_SOCIAL` em `AGF_RAZAO_SOCIAL`;
+- valida compatibilidade tipo/Centro;
+- aceita somente estrategias de origem confiaveis da previa;
+- cria apenas `LOTE_ITEM_ID` deterministico, que nao e `CLIENTE_ID`;
+- nao grava decisao humana persistente nas abas rebuildable;
+- nao escreve em `01_CLIENTES_MASTER`, `04_CLIENTES_CENTRO_LOCAL` nem nos fatos.
+
+Baseline homologado do lote seguro:
+- 2.170 entradas `PRONTO_PREVIA`;
+- 2.140 identidades unicas;
+- 29 consolidacoes AGF Balcao + contrato;
+- 2.140 identidades no lote seguro;
+- 0 conflitos residuais;
+- 1.106 `CTR_AGF` e 1.034 `CTR_METRO`;
+- R$ 4.887.208,27 de faturamento preservado integralmente.
+
+Proposta de Cliente ID v0.8.0:
+- executa somente com zero conflitos em `20_RESUMO_LOTE_SEGURO`;
+- gera `CLIENTE_ID_PROPOSTO` no formato `CLI_` + 20 caracteres hexadecimais;
+- usa SHA-256 sobre namespace tecnico fixo + `LOTE_ITEM_ID`;
+- o ID nao codifica nome, Centro, contrato, CPF/CNPJ ou significado comercial visivel;
+- a mesma identidade de lote gera a mesma proposta em reexecucoes;
+- apos persistencia futura, o ID deve ser imutavel e nunca recalculado por mudanca de nome/alias;
+- `RAZAO_SOCIAL_OFICIAL` so e preenchida automaticamente para `AGF_RAZAO_SOCIAL`;
+- `LOCAL_ID_PRINCIPAL`, `CNPJ_CPF` e `NOME_FANTASIA` permanecem vazios sem fonte homologada;
+- `TIPO_CLIENTE` recebe apenas `CLIENTE` na proposta;
+- `STATUS_CADASTRO` fica `PENDENTE_HOMOLOGACAO`;
+- colisao de ID, duplicidade de chave ou conflito com Master vai para `22_CONFLITOS_PROPOSTA_ID`;
+- nenhuma linha e escrita em `01_CLIENTES_MASTER` nesta versao.
+
+Atencao sensivel:
+- o modulo usa nomes de remetentes, Razao Social, historico de postagens, Centro/Local observado e faturamento agregado;
+- a v0.8.0 tambem gera identificadores tecnicos derivados de identidade cadastral;
+- nenhum dado real de cliente, ID privado, token ou credencial deve ser copiado para testes, logs ou documentacao;
+- as visoes derivadas nao devem ser expostas diretamente no frontend.
+
 ## CRM - boot v4 por view
 
 Rota GET adicionada em 2026-07-07:
@@ -110,8 +202,8 @@ Funcoes backend relacionadas:
 - apiReadEtiqueta_()
 - apiConfirmDropoff_()
 - apiGetUserHistory_()
-- apiGetDashboard_()
-- apiGetUnitStatus_()
+- apiGetDashboard_(req)
+- apiGetUnitStatus_(req)
 - reversaReadEtiqueta()
 - reversaConfirmDropoff()
 
@@ -258,8 +350,7 @@ Regras de manutencao:
 
 ### Locais do CRM resiliente (2026-06-30, v8.3.2)
 - crm83_getActiveLocals_ com try/catch total; em erro cai no padrao por escopo.
-- crm3_apiGetConfig_ monta segmentos/locais via crm3_safeConfigList_, sem
-  derrubar o bootstrap.
+- crm3_apiGetConfig_ monta segmentos/locais via crm3_safeConfigList_, sem derrubar o bootstrap.
 
 ## CRM — `homeLocais` na configuração
 

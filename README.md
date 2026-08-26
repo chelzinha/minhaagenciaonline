@@ -22,3 +22,9 @@ Organizar os modulos digitais da AGF, incluindo frontends, Apps Script, document
 Este repositorio e a fonte viva do codigo tecnico.
 
 Toda alteracao relevante deve atualizar documentacao, changelog e gerar commit.
+
+## CENTRAL AGF
+
+A arquitetura de dados postais e o Motor V1 ficam documentados em `docs/CENTRAL_AGF_DADOS.md` e `apps-script/central-agf/README.md`.
+
+A branch `feat/central-agf-motor-v1` esta em homologacao e nao substitui o processamento atual enquanto as etapas de historico, identidade, qualidade cadastral e Cadastro Mestre nao forem concluidas.
