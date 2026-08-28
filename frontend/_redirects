@@ -1,4 +1,4 @@
-﻿# Painel do cliente Andre - servido do site Netlify "agf-painel-andre".
+# Painel do cliente Andre - servido do site Netlify "agf-painel-andre".
 # 200! = rewrite forcado: a URL na barra continua minhaagenciaonline.com.br/painelandre
 /painelandre            https://agf-painel-andre.netlify.app/index.html   200!
 /painelandre/*          https://agf-painel-andre.netlify.app/:splat       200!
