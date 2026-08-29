@@ -2,6 +2,33 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-08-29 - Agenda Comercial Fase 1 em homologacao
+
+### Adicionado
+- Criada a fundacao tecnica para `ENTIDADE_TIPO=AVULSA`, sem Cliente, Prospect ou Tratativa artificial.
+- Adicionada migracao idempotente para os novos cabecalhos `TITULO` em `AGENDA_EXECUCAO` e `APLICA_AVULSA` em `CRM_TIPOS_ATIVIDADE`.
+- Adicionado modulo frontend isolado para criar, abrir, concluir, cancelar e excluir atividade AVULSA sem carregar o workspace comercial de entidade.
+- Adicionados modulos isolados para navegacao operacional em dias uteis e consistencia dos filtros da secao de vencidas.
+
+### Alterado
+- O backend da Agenda reconhece `AVULSA` explicitamente nas mesmas actions existentes e torna operacoes de CRM condicionais a entidade/tratativa real.
+- A leitura da Agenda passa a projetar `titulo`.
+- Atividades AVULSA ficam fora dos indicadores comerciais da Home nesta primeira versao.
+- A duracao inicial da Nova atividade passa a respeitar `DURACAO_PADRAO_MIN` no modulo da Fase 1, preservando alteracao manual do usuario.
+- A visao Semanal continua segunda a sexta e o rotulo operacional passa a refletir esse intervalo.
+
+### Performance
+- AVULSA nao dispara busca de Cliente/Prospect pelo autocomplete.
+- O fluxo AVULSA nao chama recarga de jornadas/funis depois da gravacao.
+- Os modulos de Agenda reaproveitam respostas ja solicitadas pelo core e nao criam nova consulta de dados para filtros de vencidas.
+
+### Atencao sensivel
+- `TITULO`, `LOCAL` e `OBSERVACAO` podem conter informacao comercial ou interna. Nenhum payload real, nome de cliente, telefone, e-mail, token ou credencial foi adicionado a documentacao ou logs.
+
+### Status
+- Mudancas somente na branch `feat/crm-agenda-avulsa-fase1`.
+- Nenhum Apps Script, frontend, schema ou configuracao `APLICA_AVULSA` foi publicado/aplicado em producao neste fechamento.
+
 ## 2026-08-29 - Auditoria Fase 0 da Agenda Comercial
 
 ### Documentado
