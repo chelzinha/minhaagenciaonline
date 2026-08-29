@@ -1,31 +1,63 @@
-# Agenda Comercial AGF — contexto consolidado para evolução
+# Agenda Comercial AGF — contexto consolidado e revisão completa
 
 > Documento de handoff para iniciar uma conversa separada dedicada exclusivamente à Agenda do CRM Comercial da Plataforma Digital AGF.
 >
-> Objetivo: preservar o que já funciona, recuperar as decisões anteriores e orientar uma evolução completa de layout, usabilidade, fluxo operacional, desempenho e experiência mobile.
+> Revisão consolidada em 2026-08-29 a partir do histórico disponível no projeto, código atual do repositório, documentação técnica e histórico de commits relacionados à Agenda.
+>
+> Objetivo: preservar o que já funciona, registrar as decisões de negócio já tomadas, explicitar lacunas atuais e orientar uma evolução segura de layout, usabilidade, fluxo operacional, performance e experiência mobile.
+
+---
 
 ## 1. Conclusão prática
 
 A Agenda **não deve ser tratada apenas como um calendário**.
 
-A direção de produto é transformá-la na **foto do dia do comercial**: ao abrir a Agenda, a pessoa deve entender em poucos segundos:
+A direção do produto é transformá-la na **foto do dia do comercial**: ao abrir a Agenda, a pessoa deve entender em poucos segundos:
 
 1. o que precisa fazer hoje;
 2. o que está atrasado;
 3. qual é a próxima atividade;
 4. o que já foi concluído;
 5. quanto ainda falta executar;
-6. com quais clientes/prospects precisa falar;
-7. onde estão os compromissos;
+6. onde precisa estar;
+7. com quem precisa falar;
 8. quais atividades exigem atenção imediata;
 9. como está a carga do dia e da semana;
 10. quais ações podem ser executadas diretamente dali.
 
-A Agenda atual já possui uma base funcional importante. A próxima etapa **não é reconstruir do zero**: é reorganizar a experiência em cima dos fluxos existentes, eliminar atrito e tornar a tela muito mais operacional.
+A Agenda também precisa funcionar **mesmo quando a atividade não estiver vinculada a cadastro de Cliente, Prospect ou Tratativa**.
+
+Isso é requisito de negócio e precisa ser tratado como parte do desenho principal, não como exceção.
+
+A implementação atual já possui uma base funcional importante. A próxima etapa **não é reconstruir do zero**: é reorganizar a experiência sobre os fluxos existentes, corrigir lacunas e tornar a tela muito mais operacional.
 
 ---
 
-## 2. Regra para a próxima conversa
+## 2. Como interpretar este documento
+
+Para evitar misturar fato, decisão e proposta, os itens abaixo usam quatro classificações.
+
+### CONFIRMADO NO CÓDIGO
+
+Comportamento encontrado no repositório atual ou no histórico técnico versionado.
+
+### DECISÃO DE NEGÓCIO
+
+Direção já definida na conversa e que deve ser preservada na próxima implementação.
+
+### PROPOSTA DE EVOLUÇÃO
+
+Sugestão de UX/arquitetura ainda sujeita a validação visual ou técnica.
+
+### A CONFIRMAR
+
+Ponto que precisa ser validado no código, planilha, operação real ou com a Rachel antes de implementar.
+
+A próxima conversa deve preservar essa distinção.
+
+---
+
+## 3. Regra para a próxima conversa
 
 Antes de alterar qualquer arquivo:
 
@@ -34,39 +66,44 @@ Antes de alterar qualquer arquivo:
 3. Abrir a Agenda atual em navegador/preview e registrar visualmente o estado real.
 4. Mapear o fluxo completo de leitura, criação, edição, conclusão, cancelamento e exclusão de atividade.
 5. Mapear as dependências de Apps Script e planilhas.
-6. Preservar nomes de actions, IDs de elementos, abas, colunas e estruturas já consumidas.
-7. Evitar regressão em Prospects, Clientes, Home e CRM.
-8. Fazer mudanças pequenas e homologáveis.
-9. Atualizar documentação e CHANGELOG a cada etapa funcional.
+6. Confirmar como a Agenda se comporta hoje com Cliente, Prospect e Tratativa.
+7. Auditar especificamente a criação de atividade **sem vínculo cadastral**.
+8. Preservar nomes de actions, IDs de elementos, abas, colunas e estruturas já consumidas, salvo mudança deliberada e documentada.
+9. Evitar regressão em Prospects, Clientes, Home, Funis e CRM.
+10. Fazer mudanças pequenas e homologáveis.
+11. Atualizar documentação e CHANGELOG a cada etapa funcional.
 
 A Agenda deve ser tratada como sistema em produção.
 
 ---
 
-## 3. Visão do produto: “foto do dia do comercial”
+## 4. Visão do produto: “foto do dia do comercial”
 
-A ideia central é que a Agenda seja a tela que responde:
+### DECISÃO DE NEGÓCIO
+
+A Agenda deve responder prioritariamente:
 
 > “O que o comercial precisa fazer agora, o que vem depois e o que está escapando?”
 
-A experiência ideal deve combinar três papéis:
+A experiência ideal combina três papéis.
 
-### 3.1 Execução diária
+### 4.1 Execução diária
 
 Mostrar de forma prioritária:
 
 - atividades de hoje;
 - atrasadas;
 - próximas atividades;
-- horário/janela;
-- cliente ou prospect;
+- horário ou janela;
+- título/assunto;
+- cliente/prospect quando houver;
 - tipo de atividade;
 - responsável;
-- local;
+- local quando aplicável;
 - status;
 - ação rápida aplicável.
 
-### 3.2 Planejamento
+### 4.2 Planejamento
 
 Permitir visualizar:
 
@@ -78,7 +115,7 @@ Permitir visualizar:
 - concentração de compromissos;
 - atividades por tipo, responsável e local.
 
-### 3.3 Gestão
+### 4.3 Gestão
 
 Para perfis com visão de equipe, permitir enxergar:
 
@@ -95,11 +132,146 @@ A Agenda precisa funcionar tanto como **instrumento pessoal de execução** quan
 
 ---
 
-## 4. Estado funcional já existente e que deve ser preservado
+## 5. Modelo conceitual correto de atividade
 
-A implementação atual já possui uma série de funcionalidades importantes.
+### DECISÃO DE NEGÓCIO
 
-### 4.1 Modos de visualização
+Uma atividade da Agenda pode nascer de quatro contextos principais:
+
+```text
+ATIVIDADE DA AGENDA
+|
+|-- vinculada a CLIENTE
+|-- vinculada a PROSPECT
+|-- vinculada a TRATATIVA
+`-- AVULSA / SEM VINCULO CADASTRAL
+```
+
+A Agenda **não pode obrigar a criação de Cliente ou Prospect apenas para registrar um compromisso**.
+
+Exemplos legítimos de atividade sem vínculo:
+
+- reunião interna;
+- treinamento;
+- tarefa administrativa;
+- compromisso comercial geral;
+- visita exploratória ainda sem prospect cadastrado;
+- retorno operacional;
+- organização interna;
+- lembrete;
+- evento;
+- contato ainda não cadastrado;
+- outra atividade relevante para o dia de trabalho.
+
+Essas atividades precisam aparecer normalmente em:
+
+- visão Diária;
+- visão Semanal;
+- visão Mensal;
+- foto do dia;
+- fila de próximas ações;
+- vencidas;
+- concluídas;
+- indicadores de execução, quando fizer sentido.
+
+### Regra importante
+
+Atividade sem vínculo **não deve criar automaticamente uma Tratativa vazia ou artificial**.
+
+Ela deve existir como atividade legítima por si só.
+
+---
+
+## 6. Lacuna técnica atual: atividade avulsa ainda não funciona
+
+### CONFIRMADO NO CÓDIGO
+
+O frontend atual ainda obriga vínculo com Cliente ou Prospect.
+
+No `frontend/crm/app.js`, `saveAgenda()` interrompe o salvamento quando `agendaEntityId` está vazio e exibe a mensagem:
+
+```text
+Selecione um cliente ou prospect.
+```
+
+O payload atual envia:
+
+- `tipoEntidade`;
+- `entidadeId`;
+- `tratativaId`;
+- tipo de atividade;
+- responsável;
+- data;
+- bloco;
+- horário;
+- duração;
+- mídia;
+- observação.
+
+### CONFIRMADO NO CÓDIGO
+
+O backend atual também exige entidade.
+
+`crm3_apiSaveAtividade_()`:
+
+1. normaliza `tipoEntidade`;
+2. exige `entidadeId`;
+3. busca a entidade;
+4. falha se a entidade não existir;
+5. procura Tratativa aberta;
+6. se não houver, cria uma Tratativa automaticamente;
+7. grava a atividade em `AGENDA_EXECUCAO`;
+8. atualiza snapshot da Tratativa;
+9. atualiza snapshot da entidade;
+10. registra evento de CRM.
+
+Portanto, **atividade avulsa não é suportada hoje**.
+
+### Impacto na conclusão/cancelamento
+
+A conclusão de atividade também usa:
+
+- `ENTIDADE_TIPO`;
+- `ENTIDADE_ID`;
+- `TRATATIVA_ID`;
+- atualização de snapshot da entidade;
+- interação/evento do CRM;
+- transição de jornada quando houver Tratativa.
+
+A próxima implementação precisa tornar esses passos condicionais quando a atividade for avulsa.
+
+### PROPOSTA DE ARQUITETURA
+
+Antes de codificar, decidir a representação técnica de atividade sem vínculo.
+
+Alternativas possíveis:
+
+1. `ENTIDADE_TIPO = AVULSA` e `ENTIDADE_ID` vazio;
+2. `ENTIDADE_TIPO = INTERNA` para atividades internas e outro tipo para avulsas externas;
+3. entidade técnica específica de Agenda, sem contaminar Cliente/Prospect;
+4. campos opcionais de título/contato/local sem vínculo cadastral.
+
+**Não escolher silenciosamente uma dessas alternativas.**
+
+A próxima conversa deve avaliar compatibilidade com:
+
+- `AGENDA_EXECUCAO`;
+- APIs atuais;
+- filtros;
+- conclusão;
+- cancelamento;
+- exportação;
+- eventos;
+- indicadores;
+- futuras integrações.
+
+---
+
+## 7. Estado funcional atual que deve ser preservado
+
+### 7.1 Modos de visualização
+
+### CONFIRMADO NO CÓDIGO
 
 A Agenda possui:
 
@@ -109,17 +281,23 @@ A Agenda possui:
 
 O estado usa `agendaMode` e `agendaCursor`.
 
-A troca entre Diário/Semanal/Mensal foi evoluída para preservar o cursor/data selecionada.
+A troca entre Diário/Semanal/Mensal preserva o cursor/data selecionada.
 
-### 4.2 Semana útil
+### 7.2 Semana útil
 
-A visualização semanal foi organizada como semana útil, exibindo segunda a sexta.
+### CONFIRMADO NO CÓDIGO
 
-A visão mensal também trabalha visualmente com dias úteis.
+A visualização semanal exibe segunda a sexta.
 
-Essa decisão deve ser preservada, salvo nova decisão explícita de negócio.
+A visão mensal também foi desenhada visualmente sem fins de semana.
 
-### 4.3 Navegação de período
+### DECISÃO ATUAL
+
+Preservar semana útil até existir nova decisão explícita de negócio.
+
+### 7.3 Navegação de período
+
+### CONFIRMADO NO CÓDIGO
 
 Já existem:
 
@@ -130,36 +308,66 @@ Já existem:
 - rótulo clicável do período;
 - preservação do cursor ao trocar modo.
 
-### 4.4 Renderização rápida
+### 7.4 Renderização rápida
 
-Uma decisão anterior importante foi fazer a Agenda **renderizar imediatamente com os dados disponíveis** ao trocar período/modo, em vez de bloquear a tela aguardando toda a busca.
+### CONFIRMADO NO CÓDIGO/HISTÓRICO
 
-Quando a janela necessária ainda não está carregada, a busca pode acontecer em background e a Agenda renderiza novamente ao concluir.
+A Agenda passou a renderizar imediatamente com dados disponíveis ao trocar período/modo.
 
-Essa característica deve ser preservada e melhorada, não revertida.
+Quando a janela necessária ainda não está carregada, o carregamento ocorre em background e a Agenda renderiza novamente depois.
 
-### 4.5 Filtros próprios
+Também houve evolução para recarga otimista/escopada após mudanças.
 
-A Agenda possui filtros próprios e não deve herdar silenciosamente filtros de outras áreas.
+### REGRA
 
-Filtros existentes incluem:
+Não voltar a bloquear a interface esperando o Apps Script quando já existirem dados locais suficientes para renderização imediata.
+
+### 7.5 Filtros próprios
+
+### CONFIRMADO NO CÓDIGO
+
+A Agenda possui filtros próprios para:
 
 - Local;
 - Responsável;
 - Tipo de atividade;
 - Status.
 
-O filtro de Local da Agenda foi pensado para combinar locais aplicáveis a CRM/Clientes e Prospects.
+O filtro de Local combina opções aplicáveis a CRM/Clientes e Prospects.
 
-### 4.6 Chips/filtros padronizados
+### REGRA
 
-Os filtros passaram por padronização visual em chips para manter consistência com o CRM.
+A Agenda não deve herdar silenciosamente filtros de Home, Prospects ou Clientes.
 
-Existe histórico de refinamento dessa interface e ela não deve voltar para uma composição visual inconsistente ou excessivamente carregada.
+### 7.6 Permissões de responsável/equipe
 
-### 4.7 Cores por tipo de atividade
+### CONFIRMADO NO CÓDIGO
 
-Foi definida uma paleta visual para diferenciar atividades:
+O frontend considera perfil de CRM, `canViewTeam` e `agendaScope`.
+
+Quando o perfil não pode ver a equipe ou o escopo é `OWN`, a Agenda limita a visão ao próprio responsável.
+
+### REGRA
+
+Qualquer redesign precisa preservar exatamente o comportamento de permissão.
+
+### 7.7 Chips/filtros padronizados
+
+### CONFIRMADO NO HISTÓRICO
+
+Os filtros passaram por padronização visual em chips.
+
+Houve correções de multiple select, seleção de todos, limpar filtro e badge de quantidade.
+
+### REGRA
+
+Não regredir para filtros inconsistentes, excessivamente altos ou visualmente diferentes do restante do CRM.
+
+### 7.8 Cores por tipo de atividade
+
+### CONFIRMADO NO HISTÓRICO
+
+Paleta definida:
 
 - Visita Presencial: `#EA9A06`
 - Ligação: `#1F63DE`
@@ -170,137 +378,224 @@ Foi definida uma paleta visual para diferenciar atividades:
 - Retorno: `#0677B4`
 - Treinamento: `#804DF5`
 
-Antes de alterar essas cores, verificar se continuam sendo usadas pelo código/configuração atual.
+### REGRA
 
-### 4.8 Cards de atividade
+Antes de alterar cores, verificar se continuam parametrizadas no código/configuração atual.
 
-Os cards atuais conseguem apresentar:
+### 7.9 Cards de atividade
+
+### CONFIRMADO NO CÓDIGO
+
+Os cards atuais conseguem mostrar:
 
 - horário inicial;
-- horário final, quando existente;
-- indicação de “sem hora”;
+- horário final;
+- indicação de `sem hora`;
 - cliente/atividade;
-- tipo de atividade;
+- tipo;
 - ícone;
 - responsável;
 - status;
-- cor do tipo de atividade.
+- cor do tipo.
 
-Existe também uma versão compacta dos cards para o mês.
+Existe versão compacta para o mês.
 
-### 4.9 Pendências vencidas
+### 7.10 Pendências vencidas
 
-A Agenda já possui uma seção separada de **Pendências vencidas**, definida como atividades planejadas com data anterior a hoje.
+### CONFIRMADO NO CÓDIGO
 
-Essa informação é fundamental para a visão “foto do dia” e deve ganhar ainda mais importância na próxima evolução.
+Existe seção separada de **Pendências vencidas** para atividades planejadas com data anterior a hoje.
 
-### 4.10 Nova atividade
+### ATENÇÃO TÉCNICA
 
-A Agenda possui fluxo de criação com modal próprio.
+Rotas de boot passaram a limitar a busca de vencidas a uma janela histórica para melhorar performance. No histórico recente, a janela usada foi de 180 dias.
 
-Campos existentes incluem:
+### A CONFIRMAR
 
-- cliente ou prospect;
-- tipo de atividade;
-- responsável;
-- data;
-- janela/bloco ou horário;
-- horário livre;
-- duração estimada;
-- mídia recomendada;
-- observação.
+Definir se atividades vencidas há mais de 180 dias devem:
 
-O formulário já relaciona Agenda com cliente/prospect e com a tratativa quando aplicável.
+- continuar fora da Agenda operacional;
+- ir para histórico;
+- aparecer somente sob demanda;
+- ou exigir outra regra.
 
-### 4.11 Execução da atividade
+Não ampliar a janela indiscriminadamente e voltar a varrer toda a planilha.
 
-Ao abrir uma atividade, já existe um workspace com:
+### 7.11 Nova atividade
+
+### CONFIRMADO NO CÓDIGO
+
+O modal atual possui:
+
+- Cliente ou Prospect;
+- Tipo de atividade;
+- Responsável;
+- Data;
+- Janela ou horário;
+- Horário livre;
+- Duração estimada;
+- Mídia recomendada;
+- Observação.
+
+### LACUNA
+
+O primeiro campo ainda é tratado como obrigatório e não existe fluxo avulso.
+
+### 7.12 Execução da atividade
+
+### CONFIRMADO NO CÓDIGO
+
+Ao abrir atividade, existe workspace com:
 
 - resumo;
 - materiais recomendados;
 - checklist Correios;
 - anotação rápida;
 - histórico de anotações;
-- conclusão da atividade;
 - resultado;
 - observação de execução;
 - próximo follow-up;
+- conclusão;
 - cancelamento;
 - exclusão.
 
-Esse workspace é valioso e deve ser preservado. A melhoria deve reduzir atrito e melhorar hierarquia visual, não empobrecer o fluxo.
+### REGRA
 
-### 4.12 Exportação
+Esse workspace é valioso e deve ser preservado.
 
-A Agenda participa do padrão unificado de exportação do CRM:
+Atividades avulsas, porém, não devem ser obrigadas a usar recursos que só fazem sentido para Cliente/Prospect, como checklist comercial, mídia sugerida ou transição de funil.
+
+### 7.13 Exportação
+
+### CONFIRMADO NO CÓDIGO/HISTÓRICO
+
+A Agenda participa do padrão unificado de exportação:
 
 - salvar como PNG;
-- imprimir / gerar PDF.
+- imprimir / PDF.
 
-Houve correções anteriores na exportação PNG. Alterações visuais precisam continuar sendo testadas também na captura/exportação.
+Já houve correções específicas na exportação PNG.
 
----
+### REGRA
 
-## 5. Precedente importante: “Sua fila de ação hoje”
-
-O dashboard de Prospects já recebeu uma seção chamada **“Sua fila de ação hoje”**.
-
-Ela foi desenhada para combinar:
-
-- atividades vencidas;
-- atividades de hoje;
-- atividades agendadas;
-- prioridade/urgência;
-- nome do prospect;
-- etapa;
-- atividade;
-- data;
-- ação rápida como ligação ou WhatsApp.
-
-Esse conceito é um precedente muito próximo da visão desejada para a Agenda.
-
-A nova Agenda pode aproveitar o princípio, porém de forma mais ampla:
-
-- clientes + prospects;
-- todas as atividades relevantes;
-- ordenação temporal/prioridade;
-- visão de execução do dia inteiro;
-- gestão de pendências e carga.
-
-A tela de Agenda deve ser o local natural para a versão completa dessa ideia.
+Toda mudança visual relevante deve ser testada também na exportação.
 
 ---
 
-## 6. Fontes de dados e estruturas que já fazem parte da Agenda
+## 8. Relação com Clientes, Prospects e Tratativas
+
+### CONFIRMADO NO CÓDIGO
+
+A Agenda não é isolada.
+
+Uma atividade vinculada pode envolver:
+
+- Cliente;
+- Prospect;
+- Tratativa;
+- Responsável;
+- Tipo de atividade;
+- Resultado;
+- mídia/material;
+- checklist;
+- follow-up.
+
+Os cards dos funis possuem entrada para agendamento.
+
+### REGRA
+
+Qualquer alteração precisa validar:
+
+1. criação a partir da própria Agenda;
+2. criação a partir de Prospect;
+3. criação a partir de Cliente/Tratativa;
+4. criação avulsa sem cadastro;
+5. abertura do card da Agenda;
+6. conclusão;
+7. cancelamento;
+8. exclusão;
+9. próximo follow-up;
+10. reflexo nos dashboards/funis quando houver vínculo;
+11. ausência de efeito indevido nos dashboards/funis quando não houver vínculo.
+
+---
+
+## 9. Fontes de dados e estruturas relacionadas
 
 A planilha `APP Total CF + Metro` foi documentada como fonte viva de regras operacionais do CRM e Agenda.
 
-### 6.1 `AGENDA_BLOCOS`
+### 9.1 `AGENDA_BLOCOS`
 
-Uso principal:
+Uso:
 
-- blocos/janelas de agenda;
-- janelas de atendimento;
+- blocos/janelas de Agenda;
+- horário inicial/final;
 - configuração usada no agendamento.
 
 Risco de alteração: alto.
 
-### 6.2 `AGENDA_EXECUCAO`
+### 9.2 `AGENDA_EXECUCAO`
 
-Uso principal:
+Uso:
 
-- agenda comercial;
 - atividades programadas;
 - atividades executadas;
+- agenda comercial;
 - visitas;
 - tarefas;
 - histórico operacional.
 
 Risco de alteração: crítico.
 
-### 6.3 Outras estruturas relacionadas
+### CONFIRMADO NO CÓDIGO
 
-A Agenda também se relaciona com:
+A Fase 3 acrescenta campos como:
+
+- `REQUEST_ID`;
+- `ENTIDADE_TIPO`;
+- `ENTIDADE_ID`;
+- `HORA_FIM_PROGRAMADA`;
+- `LINK_MIDIA_RECOMENDADA`;
+- `LINK_MIDIA_USADA`;
+- `OBSERVACAO`;
+- `CRIADO_POR`;
+- `ATUALIZADO_POR`;
+- `CONCLUIDA_EM`;
+- `MOTIVO_CANCELAMENTO`;
+- `PROXIMO_FOLLOWUP_EM`.
+
+Também utiliza campos legados e atuais como:
+
+- `AGENDA_ID`;
+- `DATA`;
+- `BLOCO_ID`;
+- `HORA_INICIO`;
+- `HORA_FIM`;
+- `TIPO_ATIVIDADE`;
+- `CLIENTE_ID`;
+- `CLIENTE`;
+- `LOCAL`;
+- `STATUS_AGENDA`;
+- `PRIORIDADE`;
+- `OBS_PLANEJADA`;
+- `RESPONSAVEL`;
+- `ORIGEM_TIPO`;
+- `ORIGEM_ID`;
+- `PROSPECT_ID`;
+- `CLIENTE_MASTER_ID`;
+- `TRATATIVA_ID`;
+- `TIPO_ATIVIDADE_ID`;
+- `STATUS_ATIVIDADE`;
+- `DATA_PROGRAMADA`;
+- `HORA_PROGRAMADA`;
+- `DURACAO_MIN`;
+- `RESPONSAVEL_ID`.
+
+### REGRA
+
+Antes de criar novas colunas para atividade avulsa, auditar o cabeçalho real da planilha em produção e verificar se algum campo atual pode ser reutilizado sem ambiguidade.
+
+### 9.3 Outras estruturas relacionadas
 
 - `CLIENTES_MASTER`;
 - `PROSPECTS`;
@@ -310,70 +605,340 @@ A Agenda também se relaciona com:
 - `CRM_RESPONSAVEIS`;
 - `CRM_EVENTOS`;
 - `CRM_VISITA_CHECKLIST`;
+- `CRM_INTERACOES`;
 - `CRM_LOCAIS`;
 - `MIDIAS_CRM`;
-- regras de jornada e transições do CRM.
-
-Não criar novas abas para substituir essas estruturas sem mapear primeiro o fluxo atual.
+- regras de jornada/transições.
 
 ---
 
-## 7. Relação entre Agenda, Clientes e Prospects
+## 10. Tipos de atividade e parametrização
 
-A Agenda não é um módulo isolado.
+### CONFIRMADO NO CÓDIGO
 
-Uma atividade pode estar relacionada a:
+O frontend possui ícones padrão para tipos como:
 
-- cliente;
+- Visita;
+- Ligação;
+- WhatsApp;
+- Email;
+- Reunião Online;
+- Proposta;
+- Retorno;
+- Treinamento.
+
+O backend lê `CRM_TIPOS_ATIVIDADE` e valida:
+
+- se o tipo está ativo;
+- se aplica a Cliente;
+- se aplica a Prospect;
+- se usa bloco;
+- duração padrão;
+- necessidade de resultado.
+
+### LACUNA PARA ATIVIDADE AVULSA
+
+A regra atual conhece aplicabilidade a Cliente/Prospect, mas não há evidência de uma regra de `APLICA_AVULSA`.
+
+### A CONFIRMAR
+
+Na evolução, decidir se:
+
+1. todos os tipos ativos podem ser usados em atividade avulsa; ou
+2. a configuração deve ganhar uma coluna específica; ou
+3. alguns tipos internos/administrativos devem ser criados separadamente.
+
+Não hardcodar essa decisão no frontend.
+
+---
+
+## 11. Precedente importante: “Sua fila de ação hoje”
+
+### CONFIRMADO NO HISTÓRICO
+
+O dashboard de Prospects já recebeu uma seção chamada **Sua fila de ação hoje**.
+
+Ela combina:
+
+- vencidas;
+- hoje;
+- agendadas;
+- prioridade/urgência;
 - prospect;
-- tratativa;
-- responsável;
-- tipo de atividade;
-- resultado;
-- mídia/material;
-- checklist;
-- follow-up.
+- etapa;
+- atividade;
+- data;
+- ação rápida como ligação ou WhatsApp.
 
-A própria tela de Prospects e os cards de funil já possuem pontos de entrada para agendamento.
+### DECISÃO DE PRODUTO
 
-Portanto, qualquer alteração na Agenda precisa validar:
+Esse conceito é um precedente direto da experiência desejada para a Agenda.
 
-1. criação a partir da própria Agenda;
-2. criação a partir de Prospect;
-3. criação a partir de Cliente/tratativa;
-4. abertura do card da Agenda;
-5. conclusão e próximo follow-up;
-6. atualização refletida nos dashboards e funis.
+A Agenda deve ser a versão completa dessa ideia para:
+
+- Clientes;
+- Prospects;
+- atividades avulsas;
+- equipe;
+- dia inteiro;
+- atrasadas;
+- próximas;
+- concluídas.
 
 ---
 
-## 8. Performance: decisões anteriores que não podem regredir
+## 12. Direção de UX para a próxima versão
 
-A Agenda já causou preocupação de performance porque depende de dados em planilhas.
+Esta seção é **PROPOSTA DE EVOLUÇÃO**, salvo quando indicado como decisão.
 
-Foram implementadas otimizações no CRM, incluindo:
+### 12.1 Visão Diária = tela principal de execução
 
-- boot unificado/progressivo;
+A visão Diária deve ser a experiência mais operacional.
+
+#### Resumo superior enxuto
+
+Possíveis indicadores:
+
+- Planejadas hoje;
+- Concluídas;
+- Restantes;
+- Vencidas;
+- taxa de execução.
+
+Evitar excesso de KPI.
+
+A prioridade é ação, não decoração.
+
+#### Bloco “Agora / Próxima ação”
+
+Destacar a atividade mais urgente ou próxima cronologicamente.
+
+Informações úteis:
+
+- horário;
+- título/assunto;
+- Cliente/Prospect, se houver;
+- tipo;
+- local;
+- responsável;
+- observação curta;
+- ação rápida;
+- botão para abrir a atividade.
+
+#### Linha do dia
+
+Organizar cronologicamente:
+
+1. atrasadas ainda não resolvidas;
+2. manhã;
+3. tarde;
+4. sem horário;
+5. concluídas.
+
+Atividades concluídas podem ficar visualmente suavizadas ou recolhíveis, sem desaparecer.
+
+### 12.2 Pendências vencidas com prioridade real
+
+As vencidas não devem ficar escondidas no fim de uma página longa.
+
+Alternativas a testar:
+
+- bloco destacado acima da agenda do dia;
+- faixa lateral;
+- accordion com contador;
+- integração na fila prioritária.
+
+### 12.3 Visão Semanal = planejamento
+
+Objetivo:
+
+- comparar carga entre dias;
+- encontrar espaços vazios;
+- enxergar excesso de compromissos;
+- organizar visitas e contatos.
+
+Cards devem ser compactos.
+
+### 12.4 Visão Mensal = panorama
+
+Objetivo:
+
+- localizar dias carregados;
+- entender frequência;
+- navegar rapidamente para um dia;
+- visualizar compromissos principais.
+
+Não tentar colocar todo o detalhe dentro do mês.
+
+### 12.5 Estado visual da atividade
+
+Diferenciar claramente:
+
+- Planejada;
+- Concluída;
+- Vencida;
+- Cancelada;
+- Reagendada;
+- sem horário.
+
+Cor do tipo e estado da atividade são informações diferentes e não devem competir visualmente.
+
+### 12.6 Atividades avulsas
+
+Devem parecer atividades normais da Agenda.
+
+Não usar visual de erro, cadastro incompleto ou exceção.
+
+O card pode mostrar:
+
+- título/assunto;
+- tipo;
+- horário;
+- responsável;
+- local;
+- observação;
+- badge discreto como `Avulsa` ou `Interna`, se isso realmente ajudar.
+
+### 12.7 Ações rápidas
+
+Avaliar ações contextuais:
+
+- ligar;
+- abrir WhatsApp;
+- abrir endereço/mapa;
+- abrir material;
+- marcar concluída;
+- reagendar;
+- editar;
+- abrir Cliente/Prospect quando houver vínculo.
+
+Ação rápida só deve aparecer quando existir dado necessário.
+
+---
+
+## 13. Criação de nova atividade — fluxo desejado
+
+### DECISÃO DE NEGÓCIO
+
+O vínculo cadastral precisa ser opcional.
+
+### PROPOSTA DE UX
+
+No modal de Nova atividade, o primeiro passo pode ser algo como:
+
+```text
+Vinculo
+( ) Cliente/Prospect
+( ) Sem vinculo
+```
+
+ou uma experiência ainda mais simples:
+
+- campo de busca opcional de Cliente/Prospect;
+- possibilidade clara de continuar sem selecionar ninguém.
+
+### Para atividade vinculada
+
+Preservar:
+
+- entidade;
+- Tratativa quando houver;
+- sugestões de mídia;
+- contexto comercial;
+- atualização de follow-up/jornada.
+
+### Para atividade avulsa
+
+Campos mínimos sugeridos:
+
+- título/assunto;
+- tipo de atividade;
+- responsável;
+- data;
+- horário/bloco quando aplicável;
+- duração;
+- local opcional;
+- observação opcional.
+
+### A CONFIRMAR
+
+Definir:
+
+- nome técnico do campo `TITULO`/`ASSUNTO`;
+- se Local será lista, texto livre ou combinação;
+- se contato avulso poderá ter nome/telefone sem virar Prospect;
+- se atividade interna usará tipos próprios;
+- quais campos serão obrigatórios por tipo.
+
+---
+
+## 14. Execução/conclusão de atividade avulsa
+
+### PROPOSTA DE REGRA
+
+Uma atividade avulsa precisa poder:
+
+- ser aberta;
+- editada;
+- reagendada;
+- concluída;
+- cancelada;
+- excluída conforme permissão;
+- receber observação de execução;
+- registrar resultado quando o tipo exigir.
+
+Mas não deve obrigatoriamente:
+
+- criar Tratativa;
+- alterar Cliente/Prospect;
+- mover funil;
+- criar snapshot cadastral;
+- executar transição de jornada;
+- exigir checklist comercial;
+- exigir mídia de CRM.
+
+### REGRA DE SEGURANÇA
+
+No backend, operações ligadas a entidade devem ser condicionais:
+
+```text
+se atividade possui entidade:
+    atualizar CRM/jornada/snapshots
+senão:
+    concluir somente a atividade e auditoria própria da Agenda
+```
+
+Não criar entidade fictícia para contornar validação.
+
+---
+
+## 15. Performance — decisões que não podem regredir
+
+### CONFIRMADO NO HISTÓRICO/CÓDIGO
+
+Foram implementadas otimizações importantes:
+
+- boot progressivo;
 - leitura da Agenda em janela;
-- reaproveitamento de dados já carregados;
+- reaproveitamento de dados carregados;
 - cache;
 - redução de varreduras repetidas de `AGENDA_EXECUCAO`;
-- projeções mais leves para entidades;
-- renderização imediata com atualização posterior.
+- projeções mais leves de entidades;
+- renderização imediata;
+- recarga escopada/otimista.
 
-Uma otimização posterior passou a evitar múltiplas varreduras completas da Agenda durante o boot, usando uma janela cacheada e filtros em memória.
+### REGRA
 
-### Regra para a evolução
+Não melhorar o visual às custas de:
 
-Não melhorar o visual às custas de voltar a:
-
-- buscar a planilha inteira a cada clique;
+- ler a planilha inteira a cada clique;
 - disparar várias requisições redundantes;
-- recarregar Clientes/Prospects inteiros para mudar um dia;
-- bloquear a interface enquanto Apps Script responde;
-- invalidar cache de configuração sem necessidade.
+- recarregar Clientes/Prospects inteiros ao mudar um dia;
+- bloquear a tela durante requests;
+- invalidar cache de configuração em toda escrita;
+- recalcular tudo no frontend repetidamente.
 
-### Meta
+### META
 
 A Agenda deve parecer instantânea.
 
@@ -383,698 +948,446 @@ Interações como:
 - mudar Diário/Semanal/Mensal;
 - filtrar;
 - abrir atividade;
-
-precisam responder imediatamente com estado local sempre que possível.
-
----
-
-## 9. Direção de UX para a próxima versão
-
-Esta seção consolida a evolução desejada. É uma diretriz de produto para a próxima conversa, não uma descrição do que já existe hoje.
-
-## 9.1 A visão Diária deve se tornar a “foto do dia”
-
-A visão Diária deve ser a experiência mais operacional da Agenda.
-
-### Faixa superior sugerida
-
-Exibir um resumo enxuto do dia:
-
-- Planejadas hoje;
-- Concluídas;
-- Restantes;
-- Vencidas;
-- taxa de execução.
-
-Evitar excesso de KPIs. A prioridade é ação, não dashboard ornamental.
-
-### Bloco “Agora / Próxima ação”
-
-Destacar a atividade mais urgente ou a próxima cronologicamente.
-
-Possíveis informações:
-
-- horário;
-- cliente/prospect;
-- tipo;
-- local;
-- responsável;
-- observação curta;
-- botão para abrir atividade;
-- ação rápida quando aplicável.
-
-### Linha do dia
-
-O centro da tela deve ser uma agenda operacional em ordem cronológica.
-
-Sugestão de separação:
-
-1. atrasadas que ainda precisam ser resolvidas;
-2. manhã;
-3. tarde;
-4. sem horário;
-5. concluídas em seção recolhível ou visualmente suavizada.
-
-A leitura precisa ser muito mais rápida do que um calendário genérico.
-
-### Pendências vencidas
-
-As vencidas não devem ficar escondidas no fim de uma página longa.
-
-Na visão diária, considerar:
-
-- bloco destacado acima da linha do dia; ou
-- faixa lateral/accordion com contador; ou
-- integração na fila prioritária.
-
-A decisão visual deve ser tomada após testar com dados reais.
-
----
-
-## 9.2 Visão Semanal = planejamento
-
-A semana deve continuar sendo útil de segunda a sexta.
-
-Objetivo principal:
-
-- perceber distribuição de carga;
-- encontrar dias vazios/sobrecarregados;
-- organizar visitas e contatos;
-- entender a semana rapidamente.
-
-Cada coluna deve mostrar de forma compacta:
-
-- data;
-- quantidade;
-- atividades em ordem;
-- tipo por cor/ícone;
-- horário;
-- cliente/prospect;
-- indicação visual de concluída/vencida.
-
-Evitar cards altos demais que façam a semana perder comparabilidade.
-
----
-
-## 9.3 Visão Mensal = panorama
-
-O mês não precisa tentar exibir todos os detalhes.
-
-Seu objetivo deve ser:
-
-- localizar dias carregados;
-- identificar frequência de atividades;
-- navegar rapidamente para um dia;
-- enxergar compromissos relevantes.
-
-Manter cards compactos e `+N atividades` quando houver excesso.
-
-Ao clicar em um dia, considerar abrir diretamente a visão Diária daquele dia.
-
----
-
-## 10. Hierarquia visual desejada
-
-A Agenda precisa ficar limpa, moderna e profissional.
-
-### Prioridades
-
-1. Dia/período atual.
-2. Ações urgentes.
-3. Próximas atividades.
-4. Controle de modo/período.
-5. Filtros.
-6. Ação “Nova atividade”.
-7. Exportação.
-
-### Evitar
-
-- muitas barras competindo entre si;
-- excesso de bordas;
-- chips sem hierarquia;
-- botões duplicados sem necessidade;
-- grandes áreas vazias;
-- cards com excesso de texto;
-- cores fortes usadas em áreas grandes;
-- layout com aparência de template genérico;
-- informação importante abaixo de muito conteúdo secundário.
-
----
-
-## 11. Nova atividade: objetivo de usabilidade
-
-O fluxo atual já tem campos suficientes, mas deve ser revisado para reduzir atrito.
-
-### Perguntas para a auditoria
-
-1. Quais campos são realmente obrigatórios?
-2. Qual é a ordem natural de preenchimento?
-3. A janela/bloco e horário livre estão claros?
-4. Quando um bloco deve preencher o horário automaticamente?
-5. O responsável pode vir pré-selecionado?
-6. Se a atividade vem de um card de Cliente/Prospect, a entidade já deve chegar preenchida?
-7. A data deve assumir o dia atualmente aberto na Agenda?
-8. Tipo de atividade pode definir duração padrão?
-9. Mídia recomendada precisa ficar visível sempre ou pode ser contextual?
-10. O modal funciona bem no celular?
-
-### Diretriz
-
-O usuário não deve preencher novamente algo que o contexto já sabe.
-
-Exemplos:
-
-- abrir “Nova atividade” dentro do dia 15 → data padrão = dia 15;
-- abrir pelo card de Prospect → prospect já selecionado;
-- usuário com agenda própria → responsável padrão = usuário atual;
-- tipo com duração padrão → duração pré-preenchida.
-
----
-
-## 12. Abrir/executar uma atividade
-
-O workspace atual possui conteúdo valioso, mas deve ser reorganizado pela ordem real de execução.
-
-### Ordem sugerida
-
-1. Resumo essencial da atividade.
-2. Ação principal/contato.
-3. Materiais recomendados, quando existirem.
-4. Checklist aplicável.
-5. Anotações rápidas.
-6. Conclusão + resultado.
-7. Próximo follow-up.
-8. Histórico secundário.
-
-### Princípio
-
-A tela deve responder:
-
-> “Estou nessa atividade agora. O que preciso ver, fazer e registrar?”
-
-Não deve parecer apenas um formulário administrativo.
-
----
-
-## 13. Ações rápidas
-
-Avaliar ações contextuais diretamente nos cards, sem poluir o layout.
-
-Exemplos possíveis:
-
-- WhatsApp;
-- ligação;
-- abrir atividade;
 - concluir;
-- reagendar.
+- reagendar;
 
-Regras:
-
-- só mostrar quando aplicável;
-- não transformar cada card em uma barra de ícones;
-- priorizar ações de uso frequente;
-- confirmar ações destrutivas ou irreversíveis.
-
-O dashboard de Prospects já usou ligação/chat como ação rápida na fila do dia; essa experiência pode servir como referência.
+precisam responder imediatamente sempre que tecnicamente possível.
 
 ---
 
-## 14. Status e estados visuais
+## 16. Mobile
 
-Estados precisam ser identificáveis sem depender apenas de texto ou cor.
+### DECISÃO DE QUALIDADE
 
-Estados existentes/relevantes incluem:
+Mobile é parte essencial da Agenda porque execução comercial acontece fora do desktop.
 
-- planejado;
-- concluído;
-- cancelado;
-- reagendado;
-- vencido como condição derivada.
+### PROPOSTA DE UX
 
-Sugestão:
+No celular:
 
-- planejado: neutro;
-- concluído: redução de contraste + ícone de confirmação;
-- vencido: destaque de atenção;
-- cancelado: aparência desativada;
-- reagendado: indicação de movimentação/histórico.
+- priorizar visão diária;
+- evitar grade semanal espremida;
+- permitir swipe/navegação simples entre dias;
+- manter Nova atividade acessível via FAB;
+- cards devem ter área de toque confortável;
+- filtros podem virar drawer/bottom sheet;
+- ações rápidas devem caber sem poluir;
+- modal de atividade deve funcionar como tela vertical;
+- conclusão deve exigir poucos passos.
 
-Nunca usar somente cor para transmitir estado.
+### CHECKLIST MOBILE
 
----
+Testar:
 
-## 15. Local e deslocamento
-
-Como existem atividades presenciais e múltiplos locais, a Agenda pode evoluir para ajudar na organização de deslocamentos.
-
-Sem inventar nova regra de negócio, avaliar:
-
-- exibir Local de forma visível em visitas;
-- permitir filtro por Local;
-- perceber atividades presenciais agrupadas por Local no mesmo dia;
-- evitar obrigar o usuário a abrir o card para descobrir onde precisa estar.
-
-Uma futura otimização por rota/local só deve ser feita depois de confirmar a qualidade dos dados de Local.
-
----
-
-## 16. Responsável e visão de equipe
-
-A Agenda precisa respeitar o escopo do usuário.
-
-Já existe lógica relacionada a:
-
-- responsável próprio;
-- permissão para ver equipe;
-- `agendaScope`;
-- filtro de responsável.
-
-### Diretriz
-
-Para usuário operacional:
-
-- priorizar “Minha Agenda”.
-
-Para gestor/admin:
-
-- permitir “Minha Agenda” e “Equipe”;
-- visualizar carga por responsável;
-- identificar vencidas/pendências da equipe.
-
-Não expor dados de equipe para quem não tem permissão.
+- 360px;
+- 390px;
+- 430px;
+- teclado aberto;
+- selects;
+- date/time picker;
+- scroll dentro de modal;
+- FAB sobre conteúdo;
+- cards longos;
+- nomes extensos;
+- atividades sem horário;
+- avulsas sem entidade.
 
 ---
 
-## 17. Mobile
+## 17. Usabilidade e acessibilidade
 
-A Agenda precisa ser tratada como tela crítica de uso móvel.
+### PROPOSTA
 
-No celular, a pessoa pode estar:
+A evolução deve incluir:
 
-- em visita;
-- em deslocamento;
-- falando com cliente;
-- registrando conclusão rapidamente.
-
-### Prioridades mobile
-
-1. Visão diária primeiro.
-2. Cards em uma coluna.
-3. Ações com área de toque confortável.
-4. Filtros recolhíveis.
-5. “Nova atividade” em FAB quando fizer sentido.
-6. Modal adaptado a tela pequena.
-7. Concluir/reagendar sem scroll excessivo.
-8. Evitar tabelas horizontais.
+- hierarquia visual clara;
+- contraste adequado;
+- foco de teclado visível;
+- labels reais nos campos;
+- botões com área de clique suficiente;
+- uso de ícone + texto quando a ação não for óbvia;
+- estados loading/erro/vazio claros;
+- não depender apenas de cor;
+- preservação de `aria-label` nos controles;
+- suporte a nomes longos sem quebrar layout.
 
 ---
 
-## 18. Acessibilidade e clareza
+## 18. Estados vazios e erros
 
-Revisar:
+A Agenda precisa diferenciar:
 
-- contraste;
-- foco por teclado;
-- labels de botões;
-- `aria-label`;
-- tamanho de toque;
-- indicação de estado sem depender só de cor;
-- navegação por teclado nos controles de período;
-- feedback de loading e erro;
-- estados vazios claros.
+- dia realmente sem atividade;
+- filtro sem resultado;
+- dados ainda carregando;
+- falha de API;
+- atividade não encontrada;
+- entidade vinculada que deixou de existir;
+- atividade avulsa legítima.
 
----
-
-## 19. Não fazer agora sem necessidade
-
-1. Não recriar a Agenda em outro framework só por estética.
-2. Não trocar Apps Script por outra arquitetura nesta frente sem motivo mensurável.
-3. Não criar novas planilhas paralelas para Agenda.
-4. Não renomear actions existentes sem mapear consumidores.
-5. Não remover `AGENDA_BLOCOS` ou `AGENDA_EXECUCAO`.
-6. Não reescrever o CRM inteiro junto com a Agenda.
-7. Não misturar esta frente com Cadastro Mestre postal, Central AGF ou Atende/Consolidador.
-8. Não expandir para automações comerciais complexas antes de a experiência básica da Agenda estar excelente.
-
-A conversa nova deve permanecer focada em Agenda.
+Não mostrar atividade avulsa como “entidade ausente”.
 
 ---
 
-## 20. Arquivos técnicos a inspecionar primeiro
+## 19. Casos de borda que precisam entrar nos testes
+
+1. atividade sem horário;
+2. atividade com bloco;
+3. atividade com horário livre;
+4. atividade cruzando janela de horário;
+5. atividade em dia passado;
+6. atividade vencida;
+7. atividade cancelada;
+8. atividade reagendada;
+9. atividade concluída;
+10. Cliente sem Tratativa aberta;
+11. Prospect sem Tratativa aberta;
+12. atividade avulsa;
+13. atividade interna;
+14. responsável sem permissão de equipe;
+15. gestor vendo equipe;
+16. filtro por múltiplos responsáveis;
+17. filtro por múltiplos tipos;
+18. filtro de Local;
+19. entidade excluída/inativa;
+20. nome muito longo;
+21. muitas atividades no mesmo dia;
+22. mês com muitos compromissos;
+23. exportação PNG;
+24. impressão/PDF;
+25. salvar atividade com rede lenta;
+26. clique duplo/reenvio de request;
+27. conclusão duplicada;
+28. atividade antiga fora da janela de cache.
+
+---
+
+## 20. Idempotência e concorrência
+
+### CONFIRMADO NO CÓDIGO
+
+A criação usa `REQUEST_ID` e o backend verifica requisição já existente para evitar duplicidade.
+
+O endpoint POST roda sob lock de documento.
+
+### REGRA
+
+Preservar:
+
+- idempotência de criação;
+- proteção contra duplo clique;
+- lock/concorrência;
+- mensagens de sucesso/erro;
+- atualização otimista sem duplicar atividade.
+
+---
+
+## 21. O que não fazer
+
+1. Não reconstruir a Agenda inteira antes de auditar o fluxo atual.
+2. Não exigir Cliente/Prospect para toda atividade.
+3. Não criar Prospect fictício para compromissos avulsos.
+4. Não criar Tratativa automática para atividade sem vínculo.
+5. Não remover recursos do workspace de atividade vinculada.
+6. Não carregar toda `AGENDA_EXECUCAO` a cada interação.
+7. Não quebrar permissões por responsável.
+8. Não misturar filtros da Agenda com outros módulos.
+9. Não mudar cabeçalhos de planilha sem plano de migração.
+10. Não hardcodar tipos, locais ou responsáveis que já são parametrizados.
+11. Não eliminar exportação.
+12. Não redesenhar apenas desktop.
+13. Não usar apenas cor para comunicar status.
+14. Não apagar histórico para “limpar” a Agenda.
+15. Não alterar transições de CRM como efeito colateral de uma mudança visual.
+
+---
+
+## 22. Arquivos prioritários para auditoria
 
 ### Frontend
 
 - `frontend/crm/index.html`
 - `frontend/crm/app.js`
 - `frontend/crm/styles.css`
-- `frontend/shared/ui/agf-ui.css` ou equivalente compartilhado usado pelo CRM
+- `frontend/shared/ui/agf-ui.css`, quando aplicável
 
 ### Apps Script
 
 - `apps-script/base-metro/06_CRM_JORNADA_FASE3.js`
 - `apps-script/base-metro/10_OPERACAO_EXECUCAO_API.js`
-- módulos de performance/cache do CRM existentes na versão atual
-- qualquer arquivo que contenha funções de Agenda, criação, conclusão, cancelamento, checklist e notas
+- arquivo de performance/cache do CRM V5
+- arquivos de configuração de Locais/Responsáveis/Tipos, conforme chamadas reais
 
 ### Documentação
 
 - `docs/FRONTEND.md`
 - `docs/APPS_SCRIPT.md`
 - `docs/PLANILHAS_E_DADOS.md`
-- `docs/PLANILHA_APP_TOTAL_CF_METRO.md`
 - `docs/PERFORMANCE.md`
+- `docs/PLANILHA_APP_TOTAL_CF_METRO.md`
 - `CHANGELOG.md`
 
 ---
 
-## 21. Auditoria obrigatória antes do redesign
+## 23. Histórico técnico já identificado
 
-Na nova conversa, começar produzindo um relatório curto com:
+Commits relevantes da evolução da Agenda incluem temas como:
 
-### 21.1 Tela atual
+- botões de WhatsApp e Agenda nos cards de funil;
+- fila de ação hoje;
+- exportação consolidada;
+- filtros da Agenda em chips;
+- barra unificada;
+- Nova atividade;
+- semana útil;
+- filtro de Local;
+- Agenda instantânea;
+- preservação do cursor;
+- padronização visual Home/Agenda;
+- boot CRM otimizado;
+- leitura da Agenda em janela/cache;
+- recarga escopada/otimista.
 
-- screenshot desktop;
-- screenshot mobile;
-- Diário;
-- Semanal;
-- Mensal;
-- Agenda vazia;
-- dia com muitas atividades;
-- pendências vencidas;
-- modal Nova atividade;
-- modal Atividade.
-
-### 21.2 Fluxos
-
-Testar:
-
-- criar;
-- editar/reagendar, se suportado;
-- concluir;
-- cancelar;
-- excluir;
-- próximo follow-up;
-- checklist;
-- anotação;
-- abrir mídia;
-- filtrar;
-- trocar período;
-- exportar PNG;
-- imprimir/PDF.
-
-### 21.3 Performance
-
-Medir:
-
-- tempo até Agenda utilizável;
-- troca de dia;
-- troca de semana;
-- troca de modo;
-- abertura do modal;
-- salvamento;
-- conclusão;
-- quantidade de requests gerados;
-- tamanho das respostas;
-- leituras de planilha no backend quando possível.
-
-Não otimizar “no escuro”. Medir primeiro.
+A próxima conversa deve usar o histórico para entender por que certas decisões existem antes de removê-las.
 
 ---
 
-## 22. Plano recomendado de evolução
+## 24. Plano seguro de evolução
 
-### Fase 0 — Auditoria e baseline
+### Fase 0 — auditoria real
 
-Objetivo:
+Sem alterar código:
 
-- entender exatamente o estado atual;
-- registrar screenshots;
-- mapear código e API;
-- confirmar problemas reais.
+1. abrir a Agenda atual;
+2. capturar desktop e mobile;
+3. testar Dia/Semana/Mês;
+4. testar filtros;
+5. criar atividade vinculada;
+6. concluir/cancelar/reagendar;
+7. medir requests e tempo;
+8. confirmar cabeçalhos reais de `AGENDA_EXECUCAO`;
+9. confirmar dados reais de `AGENDA_BLOCOS`;
+10. documentar lacuna de atividade avulsa.
 
-Entrega:
+### Fase 1 — suporte técnico a atividade avulsa
 
-- documento curto de baseline;
-- lista priorizada de problemas;
-- nenhuma mudança funcional grande.
+Antes do redesign grande:
 
-### Fase 1 — Hierarquia visual e layout
+1. definir modelo de dados;
+2. tornar vínculo opcional no backend;
+3. impedir criação artificial de Tratativa;
+4. tornar conclusão/cancelamento tolerantes a ausência de entidade;
+5. adicionar título/assunto se necessário;
+6. preservar idempotência;
+7. criar testes de regressão.
 
-Objetivo:
+### Fase 2 — Nova atividade UX
 
-- limpar header/control bar;
-- melhorar espaçamentos;
-- melhorar cards;
-- reforçar hoje/período;
-- organizar vencidas;
-- revisar desktop e mobile.
+1. vínculo opcional;
+2. campos condicionais;
+3. menos atrito;
+4. defaults inteligentes;
+5. bom mobile.
 
-Sem alterar modelo de dados.
+### Fase 3 — Foto do dia
 
-### Fase 2 — “Foto do dia”
-
-Objetivo:
-
-- transformar a visão Diária na central operacional;
-- resumo do dia;
-- próxima prioridade;
-- fila cronológica;
-- atrasadas;
-- concluídas;
-- ações rápidas.
-
-Usar dados já existentes sempre que possível.
-
-### Fase 3 — Fluxos de atividade
-
-Objetivo:
-
-- reduzir cliques para criar;
-- melhorar defaults contextuais;
-- reorganizar modal/workspace;
-- simplificar conclusão e follow-up.
+1. resumo diário;
+2. vencidas;
+3. Agora/Próxima;
+4. linha cronológica;
+5. concluídas;
+6. ações rápidas.
 
 ### Fase 4 — Semana e mês
 
-Objetivo:
+1. compactação;
+2. melhor leitura de carga;
+3. navegação rápida;
+4. mobile adaptado.
 
-- compactar semana;
-- melhorar leitura de carga;
-- melhorar navegação do mês;
-- ligação direta mês → dia.
+### Fase 5 — gestão
 
-### Fase 5 — Performance e refinamento
+1. equipe;
+2. carga por responsável;
+3. taxa de execução;
+4. alertas;
+5. indicadores mínimos necessários.
 
-Objetivo:
+### Fase 6 — refinamento
 
-- medir e reduzir latência residual;
-- revisar cache;
-- evitar requests redundantes;
-- carregamento progressivo;
-- QA de exportação;
-- QA mobile.
-
----
-
-## 23. Critérios de sucesso
-
-A nova Agenda será considerada boa quando:
-
-1. A pessoa abre e sabe imediatamente o que precisa fazer hoje.
-2. A atividade vencida não passa despercebida.
-3. A próxima atividade é fácil de localizar.
-4. É possível criar uma atividade sem preencher dados redundantes.
-5. Concluir uma atividade é rápido.
-6. A semana é comparável visualmente.
-7. O mês funciona como panorama e navegação.
-8. Mobile é realmente utilizável.
-9. Ações importantes exigem poucos cliques.
-10. A tela responde rápido mesmo com histórico crescendo.
-11. A mudança não quebra Prospects, Clientes, Home ou exportação.
-12. O visual fica coerente com a identidade da Plataforma AGF.
+1. acessibilidade;
+2. exportação;
+3. performance fina;
+4. estados vazios;
+5. QA completo.
 
 ---
 
-## 24. Checklist de regressão
+## 25. Critérios de aceite mínimos
 
-Antes de cada merge da frente Agenda:
+A evolução não está pronta enquanto não passar por:
 
-- [ ] Diário funciona.
-- [ ] Semanal funciona.
-- [ ] Mensal funciona.
-- [ ] Hoje funciona.
-- [ ] Anterior/Próximo funciona.
-- [ ] Seletor de data funciona.
-- [ ] Cursor é preservado entre modos.
-- [ ] Local funciona.
-- [ ] Responsável funciona.
-- [ ] Tipo funciona.
-- [ ] Status funciona.
-- [ ] Nova atividade funciona.
-- [ ] Cliente/Prospect correto é vinculado.
-- [ ] Responsável correto é persistido.
-- [ ] Bloco/horário funciona.
-- [ ] Duração funciona.
-- [ ] Mídia funciona.
-- [ ] Observação funciona.
-- [ ] Abrir atividade funciona.
-- [ ] Checklist funciona.
-- [ ] Anotação funciona.
-- [ ] Concluir funciona.
-- [ ] Próximo follow-up funciona.
-- [ ] Cancelar funciona.
-- [ ] Excluir funciona.
-- [ ] Pendências vencidas continuam corretas.
-- [ ] Prospects continuam enxergando Agenda/ações relacionadas.
-- [ ] Clientes/tratativas continuam enxergando Agenda/ações relacionadas.
-- [ ] Home continua recebendo dados corretos de atividades.
-- [ ] PNG funciona.
-- [ ] Impressão/PDF funciona.
-- [ ] Desktop revisado visualmente.
-- [ ] Mobile revisado visualmente.
-- [ ] Sem regressão perceptível de performance.
+### Funcional
 
----
+- criar atividade de Cliente;
+- criar atividade de Prospect;
+- criar atividade de Tratativa;
+- criar atividade sem vínculo;
+- editar/reagendar;
+- concluir;
+- cancelar;
+- excluir conforme regra;
+- follow-up de atividade vinculada;
+- atividade avulsa sem criação de Tratativa;
+- filtros;
+- Dia/Semana/Mês;
+- vencidas;
+- permissões.
 
-## 25. Documentação e versionamento
+### Dados
 
-Toda mudança desta frente deve atualizar quando aplicável:
+- nenhuma linha perdida;
+- nenhum cabeçalho quebrado;
+- nenhuma entidade fictícia criada;
+- nenhuma Tratativa artificial por atividade avulsa;
+- nenhuma duplicidade por retry;
+- status coerentes;
+- histórico preservado.
 
-- `CHANGELOG.md`;
-- `docs/FRONTEND.md`;
-- `docs/APPS_SCRIPT.md`;
-- `docs/PLANILHAS_E_DADOS.md`;
-- `docs/PERFORMANCE.md`;
-- `docs/REGISTRO_DE_MUDANCAS_SENSIVEIS.md` se houver alteração envolvendo dados pessoais, permissões, logs ou segurança.
+### Performance
 
-### Branch sugerida
+- troca de modo responsiva;
+- troca de período responsiva;
+- filtros locais quando possível;
+- criação sem reload total;
+- cache preservado;
+- sem varredura desnecessária da planilha.
 
-```text
-feat/crm-agenda-foto-do-dia
-```
+### Visual
 
-### Commits sugeridos por etapa
-
-```text
-docs(crm): registrar baseline da agenda comercial
-ui(crm): reorganizar hierarquia visual da agenda
-feat(crm): criar visao foto do dia na agenda
-ux(crm): simplificar criacao e conclusao de atividades
-perf(crm): otimizar carregamento da agenda comercial
-docs(crm): homologar nova experiencia da agenda
-```
-
-Evitar um único commit gigante misturando layout, backend, dados e performance.
+- desktop;
+- mobile;
+- cards longos;
+- muitos compromissos;
+- zero compromissos;
+- atividade vinculada;
+- atividade avulsa;
+- vencida;
+- concluída;
+- exportação PNG;
+- impressão/PDF.
 
 ---
 
-## 26. Atenção sensível
+## 26. Pontos que ainda precisam de decisão explícita
+
+### A CONFIRMAR
+
+1. A Agenda deve abrir por padrão em Diário, Semanal ou lembrar o último modo?
+2. Fins de semana continuarão ocultos?
+3. Qual será o nome técnico/visual de atividade sem vínculo: `Avulsa`, `Interna`, `Sem vínculo` ou outro?
+4. Atividade avulsa terá contato livre com nome/telefone?
+5. Quais tipos de atividade aceitam modo avulso?
+6. Local de atividade avulsa será parametrizado, livre ou híbrido?
+7. Atividades vencidas há mais de 180 dias devem aparecer onde?
+8. Atividade avulsa deve gerar registro em `CRM_EVENTOS` ou um evento próprio da Agenda?
+9. Indicadores de CRM devem incluir atividades internas/administrativas ou apenas comerciais?
+10. Existe necessidade futura de sincronização com Google Calendar? Não assumir sem decisão.
+
+---
+
+## 27. Atenção sensível
 
 A Agenda pode envolver:
 
-- nomes de clientes/prospects;
-- telefone/WhatsApp;
+- nomes de Clientes/Prospects;
+- telefones;
 - responsáveis;
+- locais;
 - observações comerciais;
 - histórico de interação;
-- dados de agenda;
-- materiais internos;
-- checklist;
-- informações de relacionamento comercial.
+- informações operacionais internas.
 
-Regras:
+Qualquer nova integração externa, sincronização de calendário ou exposição no frontend deve revisar:
 
-1. não registrar payloads completos em logs;
-2. não copiar dados reais para documentação pública;
-3. não expor Agenda diretamente sem autenticação/permissão;
-4. manter escopo de responsável/equipe;
-5. não incluir tokens ou credenciais em frontend;
-6. não usar screenshots com dados sensíveis em documentação versionada sem mascaramento.
+- autenticação;
+- permissões;
+- LGPD;
+- logs;
+- dados enviados a terceiros.
+
+Não registrar exemplos reais de clientes em documentação pública.
 
 ---
 
-## 27. Prompt recomendado para iniciar a próxima conversa
+## 28. Documentação obrigatória após alterações
 
-Copiar e usar como primeira mensagem:
+Se houver mudança funcional na Agenda:
+
+- atualizar `CHANGELOG.md`;
+- atualizar `docs/FRONTEND.md`;
+- atualizar `docs/APPS_SCRIPT.md` se backend mudar;
+- atualizar `docs/PLANILHAS_E_DADOS.md` se cabeçalho/coluna/regra de dado mudar;
+- atualizar `docs/PERFORMANCE.md` se cache/leitura/boot mudar;
+- atualizar `docs/REGISTRO_DE_MUDANCAS_SENSIVEIS.md` se houver dados sensíveis, permissões ou integração externa.
+
+Mensagem de commit deve ser clara e escopada.
+
+Exemplos:
 
 ```text
-Quero trabalhar somente na Agenda do CRM Comercial da Plataforma Digital AGF.
+feat(crm): permitir atividades avulsas na agenda
+```
 
-Use como contexto principal o arquivo:
-docs/AGENDA_COMERCIAL_CONTEXTO.md
-
-Antes de propor alterações:
-1. leia o documento inteiro;
-2. inspecione o estado atual da Agenda no GitHub;
-3. revise frontend, Apps Script, planilhas e performance relacionados;
-4. preserve tudo que já funciona;
-5. não misture esta frente com Central AGF, Cadastro Mestre postal ou Atende/Consolidador.
-
-Objetivo principal:
-transformar a Agenda em uma “foto do dia do comercial”, extremamente clara, rápida, bonita e operacional, sem perder as visões Diária, Semanal e Mensal.
-
-Quero melhorar tudo que fizer sentido:
-- layout;
-- hierarquia visual;
-- usabilidade;
-- fluxo de criação;
-- fluxo de execução/conclusão;
-- filtros;
-- cards;
-- pendências vencidas;
-- visão diária;
-- visão semanal;
-- visão mensal;
-- mobile;
-- performance;
-- integração com Clientes e Prospects;
-- exportação;
-- acessibilidade.
-
-Comece fazendo uma auditoria do estado atual e me mostre:
-1. o que existe hoje;
-2. o que está bom e deve ser preservado;
-3. o que está ruim/confuso;
-4. quais são os maiores ganhos de UX;
-5. quais alterações têm menor risco;
-6. uma proposta visual/funcional em fases.
-
-Não implemente um redesign grande antes dessa auditoria.
+```text
+ui(crm): evoluir agenda diaria para foto do dia
 ```
 
 ---
 
-## 28. Resumo final para o próximo assistente
+## 29. Prompt recomendado para abrir a nova conversa
 
-A Agenda já tem uma boa base funcional. O problema a atacar não é “falta de calendário”, mas **transformar dados e atividades em uma experiência diária realmente útil para o comercial**.
+Copiar como primeira mensagem:
 
-A evolução deve preservar:
+> Leia integralmente `docs/AGENDA_COMERCIAL_CONTEXTO.md` no repositório `chelzinha/minhaagenciaonline` e trabalhe exclusivamente na Agenda Comercial. Comece pela Fase 0: audite o estado atual no GitHub e na interface antes de alterar código. Preserve tudo que já funciona. Trate como requisito obrigatório que a Agenda aceite atividades sem vínculo com Cliente, Prospect ou Tratativa. Diferencie claramente o que já existe, o que é decisão de negócio, o que é proposta e o que ainda precisa ser confirmado. Não faça um redesign grande antes de me mostrar o diagnóstico e o plano de mudanças em etapas.
 
-- Diário/Semanal/Mensal;
-- semana útil;
-- cursor de data;
-- carregamento rápido/progressivo;
-- filtros;
-- cores/tipos;
-- criação;
-- workspace de execução;
-- checklist;
-- notas;
-- conclusão/follow-up;
-- vencidas;
-- exportação;
-- integração com Cliente/Prospect/Tratativa;
-- permissões.
+---
 
-E deve avançar principalmente em:
+## 30. Resumo executivo para a próxima conversa
 
-- “foto do dia”;
-- prioridade;
-- hierarquia visual;
-- redução de cliques;
-- ações rápidas;
-- clareza de pendências;
-- mobile;
-- velocidade percebida.
+```text
+AGENDA COMERCIAL AGF
 
-A nova conversa deve primeiro auditar e só depois alterar.
+Objetivo:
+ser a foto do dia do comercial.
+
+Precisa mostrar:
+hoje + vencidas + próxima ação + concluídas + carga + equipe.
+
+Precisa aceitar:
+CLIENTE + PROSPECT + TRATATIVA + ATIVIDADE AVULSA.
+
+Hoje:
+atividade avulsa NÃO funciona.
+O frontend exige entidade.
+O backend exige entidade e cria/usa Tratativa.
+
+Prioridade técnica:
+corrigir o modelo para vínculo opcional sem quebrar CRM.
+
+Depois:
+evoluir UX da visão diária, semana, mês e mobile.
+
+Não pode regredir:
+performance + filtros + permissões + idempotência + histórico + exportação.
+```
+
+---
+
+## 31. Status deste documento
+
+Este arquivo é o handoff consolidado da Agenda após revisão do material disponível no projeto.
+
+Ele **não afirma ter recuperado mensagens antigas que não estejam mais acessíveis no contexto**. Quando uma decisão não pôde ser confirmada por conversa disponível, código, documentação ou histórico versionado, foi marcada como `A CONFIRMAR` ou `PROPOSTA DE EVOLUÇÃO`.
+
+A próxima conversa deve considerar este documento como ponto de partida, mas validar o estado vivo do sistema antes de implementar.
