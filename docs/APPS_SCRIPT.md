@@ -285,3 +285,123 @@ A lista é deduplicada por:
 - Não houve alteração de credenciais.
 - Não houve exposição de tokens, senhas ou chaves.
 - Não houve alteração em CPF, CNPJ ou dados cadastrais.
+
+## CRM — Agenda Comercial Fase 1 — suporte AVULSA
+
+Data: 2026-08-29
+
+Arquivos principais:
+
+- `apps-script/base-metro/06_CRM_JORNADA_FASE3.js`;
+- `apps-script/base-metro/17_CRM_AGENDA_AVULSA_FASE1.js`.
+
+Rotas públicas preservadas:
+
+- `save_atividade`;
+- `complete_atividade`;
+- `cancel_atividade`;
+- `delete_agenda_item` e aliases existentes;
+- `get_crm_agenda_v3`.
+
+Não foi criada API paralela para AVULSA.
+
+### Representação canônica
+
+Para atividade sem vínculo:
+
+- `ENTIDADE_TIPO = AVULSA`;
+- `ENTIDADE_ID = ''`;
+- `TRATATIVA_ID = ''`;
+- `TITULO` obrigatório.
+
+`crm3_normalizeEntityType_()` reconhece `AVULSA` explicitamente e não a converte para Cliente.
+
+### Criação
+
+`crm3_apiSaveAtividade_()` desvia `AVULSA` para `crmAgendaAvulsaF1_save_()` antes de qualquer busca de entidade ou Tratativa.
+
+A criação AVULSA:
+
+- exige título;
+- exige tipo ativo com `APLICA_AVULSA=SIM`;
+- usa `DURACAO_PADRAO_MIN` quando duração não é enviada;
+- mantém `REQUEST_ID` para idempotência;
+- resolve responsável pela configuração existente;
+- grava somente a atividade em `AGENDA_EXECUCAO`;
+- não cria Cliente, Prospect ou Tratativa.
+
+### Operações condicionais
+
+Para AVULSA não executar:
+
+- `crm3_getEntity_` como Cliente/Prospect;
+- criação/localização automática de Tratativa;
+- `CRM_INTERACOES`;
+- `CRM_EVENTOS` nesta primeira versão;
+- snapshot de entidade/tratativa;
+- transição de funil;
+- sincronização de lifecycle legado;
+- mídia derivada de entidade.
+
+`crm3_updateEntityTreatmentSnapshot_()` e `crm3_syncLegacyLifecycle_()` possuem guards para não operar sobre AVULSA/ID vazio.
+
+### Conclusão, cancelamento e exclusão
+
+- conclusão AVULSA atualiza apenas campos da Agenda e valida resultado quando exigido;
+- cancelamento AVULSA atualiza somente `AGENDA_EXECUCAO`;
+- exclusão preserva a semântica física existente para atividade não concluída;
+- atividades concluídas continuam protegidas contra exclusão;
+- `APLICA_AVULSA` é requisito de criação, não de conclusão de registro já existente.
+
+Essa última regra é necessária para rollback: novas criações podem ser desabilitadas sem inutilizar AVULSAS já gravadas.
+
+### Dashboard
+
+Nesta primeira versão, atividades AVULSA são excluídas dos indicadores comerciais retornados por `crm3_apiGetDashboard_()`.
+
+A inclusão futura em métricas depende de decisão de negócio explícita.
+
+### Schema e setup
+
+Função específica e idempotente:
+
+- `setupCrmAgendaAvulsaFase1()`.
+
+Auditoria somente leitura:
+
+- `auditCrmAgendaAvulsaFase1Schema()`.
+
+O setup específico adiciona apenas:
+
+- `TITULO` em `AGENDA_EXECUCAO`;
+- `APLICA_AVULSA` em `CRM_TIPOS_ATIVIDADE`.
+
+Não executar setup amplo apenas para habilitar esta Fase 1.
+
+### Cache e concorrência
+
+- POSTs continuam sob o `DocumentLock` já existente em `op_doPost`;
+- escritas continuam invalidando a revisão de dados;
+- a arquitetura `CRM PERF V5` permanece intacta;
+- a nova projeção da Agenda adiciona somente `titulo`.
+
+### Compatibilidade
+
+- registros antigos não são migrados;
+- Cliente/Prospect mantêm os fluxos anteriores;
+- `TITULO` é opcional para atividade vinculada;
+- valor de entidade vazio/legado mantém o fallback anterior;
+- somente `AVULSA` explícita entra no fluxo sem entidade.
+
+### Atenção sensível
+
+`TITULO`, `LOCAL` e `OBSERVACAO` podem conter informação operacional ou pessoal.
+
+Não registrar payload completo, valores reais desses campos, tokens, IDs privados ou dados cadastrais em logs e documentação.
+
+Documentos relacionados:
+
+- `docs/AGENDA_COMERCIAL_FASE1_DESENHO_TECNICO.md`;
+- `docs/AGENDA_COMERCIAL_FASE1_IMPLEMENTACAO.md`;
+- `docs/PLANILHAS_E_DADOS.md`;
+- `docs/PERFORMANCE.md`.
