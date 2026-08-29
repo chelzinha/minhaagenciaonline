@@ -168,6 +168,8 @@ const Api = (function () {
 
     testarTokenCws: () => call('testarTokenCws'),
 
+    painelCliente: (dias) => call('painelCliente', { dias: dias == null ? 60 : dias }),
+
     diagnostico: () => call('diagnostico')
   };
 })();

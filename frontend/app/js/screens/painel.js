@@ -491,7 +491,7 @@ Screens.painel = (function () {
     const box = $('painelConteudo');
     if (box) box.innerHTML = '<div class="pnl-load">' + ico('progress_activity', 'pnl-spin') + 'Carregando suas entregas...</div>';
     try {
-      _dados = await Api.call('painelCliente', { dias: _dias });
+      _dados = await Api.painelCliente(_dias);
       _linhas = calcular_(_dados);
       render_();
     } catch (e) {
