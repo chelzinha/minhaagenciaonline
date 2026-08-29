@@ -135,6 +135,10 @@ const App = (function () {
     const navHome = document.getElementById('navHome');
     if (navHome) navHome.addEventListener('click', () => Router.navigate('/nova'));
 
+    // Conta — saiu do menu inferior para abrir espaço à aba Entregas
+    const navConta = document.getElementById('navConta');
+    if (navConta) navConta.addEventListener('click', () => Router.navigate('/config'));
+
     // Logout
     const navLogout = document.getElementById('navLogout');
     if (navLogout) navLogout.addEventListener('click', doLogout);

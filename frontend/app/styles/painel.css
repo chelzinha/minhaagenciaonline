@@ -1,0 +1,345 @@
+/* =====================================================
+   APP ETIQUETAS — Estilos da aba Entregas
+   Usa exclusivamente os tokens de tokens.css. Se a paleta
+   do app mudar, esta tela acompanha sozinha.
+   ===================================================== */
+
+.pnl-card { margin-bottom: var(--sp-4); }
+.pnl-card .card-head { margin-bottom: var(--sp-3); }
+.pnl-card .card-head h2 { font-size: 16px; font-weight: 800; color: var(--nv); margin: 0; }
+
+.pnl-desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 var(--sp-3);
+  line-height: 1.45;
+}
+
+/* ============ topbar: Conta ao lado do Home ============ */
+.topbar-left { display: flex; gap: 2px; align-items: center; }
+
+/* ============ seletor de período ============
+   O .seg do app tem 72px de altura e vira 2x2 abaixo de 520px.
+   Para um seletor de período isso pesa demais, então aqui ele é
+   compacto e continua em 4 colunas no celular. */
+.pnl-periodo {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: var(--sp-4);
+}
+.pnl-periodo .seg-item {
+  min-height: 0;
+  padding: 9px 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-2);
+  border-radius: var(--r-sm);
+  border-width: 1.5px;
+}
+.pnl-periodo .seg-item.is-active {
+  background: var(--nv);
+  border-color: var(--nv);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(0, 65, 107, 0.20);
+}
+
+/* ============ total e mix ============ */
+.pnl-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.pnl-total-lab {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+.pnl-total-val { font-size: 32px; font-weight: 800; color: var(--nv); line-height: 1.1; }
+.pnl-total-valor { text-align: right; }
+.pnl-total-brl { font-size: 18px; font-weight: 800; color: var(--text); }
+
+.pnl-mix {
+  display: flex;
+  height: 8px;
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  background: var(--line);
+  margin: var(--sp-3) 0 var(--sp-4);
+}
+.pnl-mix span { display: block; height: 100%; }
+
+/* ============ KPIs ============ */
+.pnl-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-2);
+}
+.pnl-kpi {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: var(--r-sm);
+  background: var(--nv-50);
+  border-left: 3px solid var(--nv);
+}
+.pnl-kpi-ent  { background: var(--ok-bg);   border-left-color: var(--ok); }
+.pnl-kpi-alem { background: var(--warn-bg); border-left-color: var(--warn); }
+.pnl-kpi-acao { background: var(--err-bg);  border-left-color: var(--err); }
+
+.pnl-kpi-ico .material-symbols-rounded { font-size: 20px; color: var(--nv); }
+.pnl-kpi-ent  .pnl-kpi-ico .material-symbols-rounded { color: var(--ok); }
+.pnl-kpi-alem .pnl-kpi-ico .material-symbols-rounded { color: var(--warn); }
+.pnl-kpi-acao .pnl-kpi-ico .material-symbols-rounded { color: var(--err); }
+
+.pnl-kpi-body { min-width: 0; }
+.pnl-kpi-lab { font-size: 11.5px; font-weight: 700; color: var(--text-2); line-height: 1.25; }
+.pnl-kpi-val { font-size: 22px; font-weight: 800; color: var(--text); line-height: 1.15; }
+.pnl-kpi-ent  .pnl-kpi-val { color: var(--ok); }
+.pnl-kpi-alem .pnl-kpi-val { color: var(--warn); }
+.pnl-kpi-acao .pnl-kpi-val { color: var(--err); }
+.pnl-kpi-sub { font-size: 11px; color: var(--muted); }
+
+/* ============ donut e lista de andamento ============ */
+.pnl-donut-wrap {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: var(--sp-3);
+  align-items: center;
+}
+.pnl-donut { position: relative; }
+.pnl-donut svg { width: 100%; height: auto; display: block; }
+.pnl-donut-c {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.pnl-donut-c b { font-size: 26px; font-weight: 800; color: var(--ok); line-height: 1; }
+.pnl-donut-c span { font-size: 11px; color: var(--muted); }
+
+.pnl-linhas { display: flex; flex-direction: column; gap: 2px; }
+.pnl-linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 46px auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  background: none;
+  border-radius: var(--r-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.pnl-linha:hover, .pnl-linha.is-open { background: var(--nv-50); }
+.pnl-linha-nome {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 0;
+  line-height: 1.25;
+}
+.pnl-linha-nome > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pnl-linha-nome .material-symbols-rounded { font-size: 17px; color: var(--muted); flex: none; }
+.pnl-linha-bar { height: 7px; border-radius: var(--r-pill); background: var(--line); overflow: hidden; }
+.pnl-linha-bar i { display: block; height: 100%; border-radius: var(--r-pill); }
+.pnl-linha-num { font-size: 13px; font-weight: 800; color: var(--text); white-space: nowrap; }
+.pnl-linha-num em { font-style: normal; font-weight: 600; font-size: 11px; color: var(--muted-2); margin-left: 3px; }
+
+.pnl-sub { padding: 0 8px 8px 30px; }
+.pnl-sub div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-2);
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.pnl-sub div span:last-child { font-weight: 800; color: var(--text); }
+
+/* ============ faixas horizontais ============ */
+.pnl-faixas { display: flex; flex-direction: column; gap: 9px; }
+.pnl-faixa {
+  display: grid;
+  grid-template-columns: minmax(0, 108px) 1fr 44px;
+  gap: 10px;
+  align-items: center;
+}
+.pnl-faixa-lab { font-size: 12px; font-weight: 700; color: var(--text-2); line-height: 1.25; }
+.pnl-faixa-bar {
+  display: flex;
+  height: 20px;
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  overflow: hidden;
+}
+.pnl-faixa-bar i { display: block; height: 100%; }
+.pnl-faixa-n { font-size: 14px; font-weight: 800; text-align: right; }
+
+/* ============ alerta ============ */
+.pnl-alerta {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: var(--sp-3);
+  padding: 11px 13px;
+  border-radius: var(--r-sm);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.pnl-alerta .material-symbols-rounded { font-size: 19px; flex: none; }
+.pnl-alerta.is-warn { background: var(--warn-bg); color: var(--warn); }
+.pnl-alerta.is-err  { background: var(--err-bg);  color: var(--err); }
+
+/* ============ famílias e cards de ação ============ */
+.pnl-fams { display: grid; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.pnl-fam {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  padding: 11px 13px;
+  border-radius: var(--r-sm);
+  color: #fff;
+}
+.pnl-fam .material-symbols-rounded { font-size: 22px; opacity: 0.95; }
+.pnl-fam b { display: block; font-size: 20px; font-weight: 800; line-height: 1.1; }
+.pnl-fam span { font-size: 12px; opacity: 0.94; }
+.pnl-fam-ret { background: linear-gradient(135deg, #EA8C00, #C26A00); }
+.pnl-fam-ten { background: linear-gradient(135deg, #C99700, #A07800); }
+.pnl-fam-end { background: linear-gradient(135deg, #D14343, #B03030); }
+
+.pnl-acs { display: grid; gap: var(--sp-2); }
+.pnl-ac {
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+.pnl-ac-ret { border-left-color: #EA8C00; }
+.pnl-ac-ten { border-left-color: #C99700; }
+.pnl-ac-end { border-left-color: #D14343; }
+.pnl-ac-n { font-size: 22px; font-weight: 800; color: var(--text); line-height: 1.1; }
+.pnl-ac-t { font-size: 13px; font-weight: 700; color: var(--text); margin: 2px 0 8px; line-height: 1.3; }
+.pnl-ac-lab {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  margin-bottom: 4px;
+}
+.pnl-ac-tags { line-height: 1.9; }
+.pnl-tag {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  margin-right: 5px;
+  font-size: 11.5px;
+  background: var(--bg);
+  color: var(--text-2);
+}
+.pnl-tag b { font-weight: 800; }
+.pnl-tag-0 { background: var(--ok-bg);   color: var(--ok); }
+.pnl-tag-1 { background: var(--warn-bg); color: var(--warn); }
+.pnl-tag-2 { background: #FFE4D5;        color: #C2410C; }
+.pnl-tag-3 { background: var(--err-bg);  color: var(--err); }
+
+/* ============ cidades ============ */
+.pnl-cids { display: flex; flex-direction: column; gap: 8px; }
+.pnl-cid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 62px;
+  gap: 10px;
+  align-items: center;
+}
+.pnl-cid-nome {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pnl-cid-nome span { font-weight: 600; color: var(--muted-2); margin-left: 5px; font-size: 11px; }
+.pnl-cid-bar { height: 7px; border-radius: var(--r-pill); background: var(--line); overflow: hidden; }
+.pnl-cid-bar i { display: block; height: 100%; border-radius: var(--r-pill); }
+.pnl-cid-n { font-size: 13px; font-weight: 800; color: var(--text); text-align: right; }
+.pnl-cid-n em { display: block; font-style: normal; font-size: 10.5px; font-weight: 600; color: var(--muted-2); }
+
+/* ============ rodapé, vazio, erro, carregando ============ */
+.pnl-rodape {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  padding: 0 var(--sp-1) var(--sp-2);
+}
+.pnl-rodape p { margin: 0 0 6px; }
+.pnl-rodape b { color: var(--text-2); }
+.pnl-rodape .material-symbols-rounded { font-size: 15px; vertical-align: -3px; margin-right: 4px; }
+.pnl-rodape-ts { color: var(--muted-2); }
+
+.pnl-load, .pnl-vazio, .pnl-erro {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: var(--card);
+  border-radius: var(--r);
+  box-shadow: var(--sh-sm);
+  color: var(--muted);
+  font-size: 14px;
+  text-align: left;
+}
+.pnl-vazio, .pnl-erro { align-items: flex-start; text-align: left; }
+.pnl-vazio b, .pnl-erro b { display: block; color: var(--text); font-size: 15px; margin-bottom: 2px; }
+.pnl-vazio-ico { font-size: 30px; color: var(--nv-300); }
+.pnl-erro { color: var(--err); }
+.pnl-erro .btn { margin-top: 10px; }
+.pnl-spin { animation: pnl-rot 1s linear infinite; }
+@keyframes pnl-rot { to { transform: rotate(360deg); } }
+
+/* ============ telas maiores ============ */
+@media (min-width: 620px) {
+  .pnl-kpis { grid-template-columns: repeat(4, 1fr); }
+  .pnl-fams { grid-template-columns: repeat(3, 1fr); }
+  .pnl-acs  { grid-template-columns: repeat(2, 1fr); }
+  .pnl-faixa { grid-template-columns: minmax(0, 150px) 1fr 52px; }
+}
+
+/* Em telas estreitas o donut já mostra a proporção: a barra da lista
+   vira ruído e rouba espaço do nome. Some abaixo de 430px. */
+@media (max-width: 430px) {
+  .pnl-linha { grid-template-columns: minmax(0, 1fr) auto; }
+  .pnl-linha-bar { display: none; }
+}
+
+@media (max-width: 400px) {
+  .pnl-donut-wrap { grid-template-columns: 1fr; }
+  .pnl-donut { max-width: 148px; margin: 0 auto; }
+  .pnl-total-val { font-size: 27px; }
+  .pnl-periodo .seg-item { font-size: 12px; padding: 9px 2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pnl-spin { animation: none; }
+}

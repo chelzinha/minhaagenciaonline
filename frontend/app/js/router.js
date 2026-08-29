@@ -10,6 +10,7 @@
      #/nova              -> tela de criar etiqueta
      #/sucesso           -> tela de sucesso (dados em memória)
      #/historico         -> lista de etiquetas geradas
+     #/painel            -> painel de entregas (rastreio consolidado)
      #/destinatarios      -> cadastro e controle de destinatários
      #/config            -> perfil, conexão Correios, diagnóstico
 
@@ -30,6 +31,7 @@ const Router = (function () {
     '/etiqueta':  { tpl: 'tpl-etiqueta',  title: 'Etiqueta',       screen: 'etiqueta' },
     '/sucesso':   { tpl: 'tpl-sucesso',   title: 'Etiqueta gerada', screen: 'sucesso' },
     '/historico': { tpl: 'tpl-historico', title: 'Histórico',      screen: 'historico' },
+    '/painel':    { tpl: 'tpl-painel',    title: 'Entregas',       screen: 'painel' },
     '/destinatarios': { tpl: 'tpl-destinatarios', title: 'Destinatários', screen: 'destinatarios' },
     '/config':    { tpl: 'tpl-config',    title: 'Conta',          screen: 'config' }
   };
