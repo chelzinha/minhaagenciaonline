@@ -42,6 +42,14 @@
     legacyTimeoutMs: 150000
   });
 
+  // Fase 1 da Agenda: modulo isolado, carregado antes do app principal para
+  // observar as mesmas respostas de Agenda/config sem duplicar o boot.
+  // O document.write ocorre durante o parsing deste script sincrono e garante
+  // ordem deterministica: feature -> app.js. Nao e usado apos DOMContentLoaded.
+  if (document.readyState === 'loading') {
+    document.write('<script src="/crm/agenda-avulsa-fase1.js?v=1"><\/script>');
+  }
+
   // Faixa visual: deixa impossivel confundir a tela de teste com a real.
   if (ehHomolog) {
     document.addEventListener('DOMContentLoaded', function () {
