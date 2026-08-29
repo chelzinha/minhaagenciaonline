@@ -1,6 +1,7 @@
 (function(){
 'use strict';
 
+var cfg=window.CRM_APP_CONFIG||{};
 var priorFetch=window.fetch.bind(window);
 var items=new Map();
 var timer=0;
@@ -23,7 +24,9 @@ window.fetch=function(){
   return priorFetch.apply(window,args).then(function(res){
     try{
       var url=typeof args[0]==='string'?args[0]:(args[0]&&args[0].url)||'';
-      res.clone().json().then(function(data){capturePayload(data,url);}).catch(function(){});
+      if(cfg.apiUrl&&String(url).indexOf(cfg.apiUrl)>=0){
+        res.clone().json().then(function(data){capturePayload(data,url);}).catch(function(){});
+      }
     }catch(_){}
     return res;
   });
