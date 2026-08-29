@@ -2,6 +2,18 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-08-29 - Auditoria Fase 0 da Agenda Comercial
+
+### Documentado
+- Criado `docs/AGENDA_COMERCIAL_FASE0_AUDITORIA.md` como complemento ao handoff principal da Agenda.
+- Registrados os achados da auditoria visual e técnica: semana útil, excesso de espaço na visão diária, bloqueio atual para atividade avulsa, dependências Cliente/Prospect/Tratativa, ausência de campo próprio de título, duração fixa de 30 minutos no frontend e simplificação proposta para data/horário.
+- Consolidada a recomendação técnica de `ENTIDADE_TIPO=AVULSA`, `ENTIDADE_ID` e `TRATATIVA_ID` vazios, com `TITULO` próprio e aplicabilidade parametrizada por tipo de atividade.
+- Registradas regras para workspace avulso, filtros, permissões, performance, idempotência e não criação de CRM paralelo para contatos avulsos.
+
+### Escopo
+- Apenas documentação e auditoria.
+- Nenhuma alteração funcional em frontend, Apps Script, planilhas, dados ou deploy.
+
 ## 2026-08-29 - Contexto consolidado da Agenda Comercial
 
 ### Documentado
