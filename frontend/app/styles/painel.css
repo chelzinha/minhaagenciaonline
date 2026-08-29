@@ -346,37 +346,145 @@
 }
 
 /* =====================================================
-   HISTÓRICO — situação do objeto e aviso ao destinatário
-   Acrescentado junto da aba Entregas. Usa só os tokens do app.
+   HISTÓRICO — reorganização da toolbar e dos cards
+   -----------------------------------------------------
+   O screens.css acumulou 5 definições de .hist-select e 4 de
+   .hist-toolbar ao longo do tempo. Aqui as regras finais ficam
+   num lugar só, com seletor mais específico para vencer as
+   duplicatas sem precisar de !important.
    ===================================================== */
 
-/* contagem discreta no lugar do antigo box de resumo financeiro */
-.hist-contagem {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--muted);
-  padding: 2px 4px 10px;
+/* ---------- toolbar ---------- */
+/* O fundo cinza sólido brigava com o gradiente amarelado do body.
+   Agora usa o mesmo vidro fosco do topbar. */
+.screen .hist-toolbar {
+  background: rgba(248, 250, 252, 0.86);
+  backdrop-filter: saturate(160%) blur(14px);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  padding: 10px 0 12px;
+  margin-bottom: 10px;
+  gap: 10px;
 }
 
-/* situação atual, logo abaixo do código de rastreio */
+/* Campos menores: 54px de altura para um filtro era exagero. */
+.screen .hist-toolbar .hist-search .field-input,
+.screen .hist-toolbar .hist-select,
+.screen .hist-toolbar .hist-month {
+  height: 42px;
+  min-height: 42px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-strong);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 0 12px;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+.screen .hist-toolbar .hist-select { padding-right: 34px; background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; }
+.screen .hist-toolbar .hist-search .field-input { padding: 0 12px; }
+.screen .hist-toolbar .hist-filter-label { font-size: 10px; letter-spacing: .1em; }
+
+/* 4 filtros: 2x2 no celular, 4 colunas a partir de 620px.
+   O screens.css tem `.hist-filter-field:nth-child(3){grid-column:1/-1}`,
+   regra feita quando existiam só 3 filtros. Com o quarto ela esticava a
+   Situação e jogava a UF para uma linha sozinha. Aqui é anulada. */
+.screen .hist-toolbar .hist-filter-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 10px;
+  row-gap: 10px;
+}
+.screen .hist-toolbar .hist-filter-field,
+.screen .hist-toolbar .hist-filter-field:nth-child(3) { grid-column: auto; }
+.screen .hist-toolbar .hist-month-field { width: auto; max-width: none; }
+
+@media (min-width: 620px) {
+  .screen .hist-toolbar .hist-filter-grid {
+    grid-template-columns: 130px minmax(0, 1fr) minmax(0, 1.25fr) 96px;
+  }
+}
+
+/* contagem discreta, no lugar do antigo box de resumo financeiro */
+.hist-contagem {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--muted-2);
+  padding: 0 4px 10px;
+}
+
+/* ---------- card ---------- */
+/* Era grid 1fr/auto com os botões empilhados numa coluna estreita,
+   sobrando espaço em branco. Agora o conteúdo ocupa a largura toda e
+   as ações viram um rodapé. */
+.hist-list .hist-item {
+  display: block;
+  padding: 14px 16px;
+}
+.hist-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.hist-item-head .hist-item-nome { flex: 1; min-width: 0; }
+/* O status é da etiqueta, não da entrega: fica discreto no canto. */
+.hist-item-head .badge {
+  flex: none;
+  font-size: 10px;
+  padding: 3px 9px;
+  letter-spacing: .04em;
+}
+.hist-item-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+.hist-item-chips:empty { display: none; }
+
+.hist-list .hist-item-track { margin-top: 0; }
+.hist-list .track-chip { padding: 6px 11px; font-size: 13px; }
+.hist-list .track-chip .material-symbols-rounded { font-size: 16px; }
+
+/* situação atual, ao lado do código de rastreio */
 .hist-item-situacao {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 6px;
-  padding: 5px 11px;
+  padding: 6px 11px;
   border-radius: var(--r-pill);
   font-size: 11.5px;
   font-weight: 800;
-  letter-spacing: 0.02em;
-  line-height: 1.25;
+  letter-spacing: .02em;
+  line-height: 1.3;
   background: var(--nv-50);
   color: var(--nv);
 }
-.hist-item-situacao .material-symbols-rounded { font-size: 16px; flex: none; }
+.hist-item-situacao .material-symbols-rounded { font-size: 15px; flex: none; }
 .hist-item-situacao.is-ok   { background: var(--ok-bg);   color: var(--ok); }
 .hist-item-situacao.is-acao { background: var(--warn-bg); color: var(--warn); }
 .hist-item-situacao.is-info { background: var(--nv-50);   color: var(--nv); }
+
+/* ---------- ações em rodapé ---------- */
+.hist-list .hist-item-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  align-items: stretch;
+}
+.hist-list .hist-item-actions .btn {
+  width: 100%;
+  min-height: 40px;
+  font-size: 13.5px;
+  border-radius: var(--r-sm);
+  padding: 0 12px;
+}
+.hist-list .hist-item-actions .btn .material-symbols-rounded { font-size: 18px; }
 
 /* botão de avisar a situação: separado do envio de rastreio */
 .btn-aviso {
@@ -384,31 +492,11 @@
   color: var(--warn);
   border-color: transparent;
 }
-.btn-aviso:hover:not(:disabled) {
-  background: #FDE9B4;
-  color: #8A4308;
-}
+.btn-aviso:hover:not(:disabled) { background: #FDE9B4; color: #8A4308; }
 
-/* Coluna de ações: no celular os botões ficavam empilhados dominando o card.
-   Aqui eles viram uma faixa que quebra em linha abaixo do conteúdo. */
-@media (max-width: 620px) {
-  .hist-item { flex-direction: column; align-items: stretch; gap: 10px; }
-  .hist-item-actions {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-  }
-  /* o selo de status vira uma faixa de topo, com o texto encostado à esquerda
-     para não parecer um botão gigante */
-  .hist-item-actions .badge {
-    order: -1;
-    width: 100%;
-    justify-content: flex-start;
-    padding-left: 12px;
-  }
-  .hist-item-actions .btn { flex: 1 1 calc(50% - 4px); min-width: 132px; }
-  .hist-item-actions .btn-whatsapp,
-  .hist-item-actions .btn-aviso { flex: 1 1 100%; }
+@media (min-width: 620px) {
+  .hist-list .hist-item-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 380px) {
+  .hist-list .hist-item-actions { grid-template-columns: 1fr; }
 }

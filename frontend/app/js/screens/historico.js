@@ -116,10 +116,10 @@ function renderResumo(data) {
     if (!sit) return '';
     const classe = item.situacaoClasse || 'info';
     const icone = classe === 'ok' ? 'check_circle' : (classe === 'acao' ? 'warning' : 'local_shipping');
-    return '<div class="hist-item-situacao is-' + classe + '">' +
+    return '<span class="hist-item-situacao is-' + classe + '" title="' + UI.escapeHtml(sit) + '">' +
              '<span class="material-symbols-rounded">' + icone + '</span>' +
-             '<span>' + UI.escapeHtml(sit.toUpperCase()) + '</span>' +
-           '</div>';
+             UI.escapeHtml(sit.toUpperCase()) +
+           '</span>';
   }
 
   function rastreioChip(codigo) {
@@ -176,18 +176,19 @@ function renderResumo(data) {
           UI.escapeHtml(it.mensagemErro) + '</div>'
         : '';
 
+      const acoes = itemActions(it);
       return '<div class="hist-item">' +
-               '<div class="hist-item-main">' +
+               '<div class="hist-item-head">' +
                  '<div class="hist-item-nome">' + dest + '</div>' +
-                 '<div class="hist-item-meta">' + UI.escapeHtml(meta) + '</div>' +
-                 (codigo ? '<div class="hist-item-track">' + rastreioChip(codigo) + '</div>' : '') +
-                 situacaoChip(it) +
-                 erroMsg +
-               '</div>' +
-               '<div class="hist-item-actions">' +
                  statusBadge(it.status) +
-                 itemActions(it) +
                '</div>' +
+               '<div class="hist-item-meta">' + UI.escapeHtml(meta) + '</div>' +
+               '<div class="hist-item-chips">' +
+                 (codigo ? rastreioChip(codigo) : '') +
+                 situacaoChip(it) +
+               '</div>' +
+               erroMsg +
+               (acoes ? '<div class="hist-item-actions">' + acoes + '</div>' : '') +
              '</div>';
     }).join('');
 
@@ -213,6 +214,7 @@ function renderResumo(data) {
       mes:    $('histMes') ? ($('histMes').value || '') : '',
       status: $('histStatus') ? ($('histStatus').value || '') : '',
       uf:     $('histUf') ? ($('histUf').value || '') : '',
+      situacao: $('histSituacao') ? ($('histSituacao').value || '') : '',
       busca:  $('histBusca') ? ($('histBusca').value.trim() || '') : '',
       limit:  500
     };
@@ -221,11 +223,25 @@ function renderResumo(data) {
       const data = await Api.listarHistorico(filtros);
       renderResumo(data);
       renderUfOptions(data.ufs || []);
+      renderSituacaoOptions(data.situacoes || []);
       renderList(data.items || []);
     } catch (e) {
       UI.toastError(e);
       if (list) list.innerHTML = '<div class="hist-empty">Falha ao carregar histórico.</div>';
     }
+  }
+
+  /** Preenche o filtro de situação com os rótulos curtos do período. */
+  function renderSituacaoOptions(situacoes) {
+    const select = $('histSituacao');
+    if (!select) return;
+    const current = select.value || '';
+    select.innerHTML = '<option value="">Todas as situações</option>' +
+      (situacoes || []).map(function (s) {
+        return '<option value="' + UI.escapeHtml(s) + '">' + UI.escapeHtml(s) + '</option>';
+      }).join('');
+    // Se o filtro atual sumiu da lista (mudou o mês, por exemplo), volta para "todas".
+    select.value = (situacoes || []).indexOf(current) >= 0 ? current : '';
   }
 
   function renderUfOptions(ufs) {
@@ -412,6 +428,7 @@ function renderResumo(data) {
     const status = $('histStatus');
     const uf = $('histUf');
     const mes = $('histMes');
+    const situacao = $('histSituacao');
     ensureTrackModal_();
 
 
@@ -429,6 +446,9 @@ function renderResumo(data) {
     }
     if (mes) {
       mes.addEventListener('change', carregar);
+    }
+    if (situacao) {
+      situacao.addEventListener('change', carregar);
     }
 
     carregar();
