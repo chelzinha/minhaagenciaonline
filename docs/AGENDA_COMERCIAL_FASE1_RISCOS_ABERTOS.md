@@ -1,34 +1,80 @@
 # Agenda Comercial — Fase 1 — Riscos abertos
 
-## P1 — arquivo legado 06
+## P1 — homologação integrada do frontend
 
-`apps-script/base-metro/06_CRM_JORNADA_FASE3.js` foi regravado pelo conector e o diff removeu comentários inline além das alterações funcionais. Não foi detectada remoção de função, mas a homologação de Cliente/Prospect é obrigatória.
+Os módulos da Fase 1 foram isolados para reduzir regressão no `frontend/crm/app.js` legado.
 
-## P1 — abertura via agendaWin
+Antes de merge/deploy ainda é obrigatório validar em ambiente integrado:
 
-O problema auditado no core (`openActivityModal()` procura a coleção inicial e vencidas, mas não `agendaWin.items`) ainda exige correção direta no core ou validação de uma alternativa segura. O módulo AVULSA contorna o caso de AVULSA por interceptar o clique, mas o risco legado permanece para atividade vinculada navegada em janela nova.
+- ordem real de carregamento `config.js` → módulos Fase 1 → `app.js`;
+- criação vinculada Cliente e Prospect sem mudança de comportamento;
+- criação AVULSA sem carga de entidade;
+- abertura e workspace AVULSA;
+- conclusão, cancelamento e exclusão;
+- filtros, responsável e permissões;
+- desktop e mobile.
 
-## Resolvido — rollback de APLICA_AVULSA
+O teste antigo em URL `data:` não é evidência de homologação e deve ser ignorado.
 
-A revisão do PR identificou e corrigiu a dependência indevida de `APLICA_AVULSA=SIM` na conclusão de registros já existentes.
+## P1 — configuração APLICA_AVULSA para homologação
 
-Regra após o commit `5acda2f8f5f53d48d8c985b126d256462c31d30d`:
+Nenhum tipo deve ser habilitado automaticamente.
 
-- criação continua exigindo `APLICA_AVULSA=SIM`;
-- conclusão de AVULSA existente não depende de `APLICA_AVULSA` permanecer habilitado;
-- cancelamento e exclusão já operavam pelo registro existente, sem validar aplicabilidade;
-- validações de tipo ativo, resultado e integridade permanecem.
+Para homologar criação AVULSA é necessário definir explicitamente quais tipos terão `APLICA_AVULSA=SIM`. Isso é configuração controlada, não regra hardcoded no frontend.
 
-Isso preserva a estratégia de rollback: desabilitar novas criações sem inutilizar atividades AVULSAS já gravadas.
+## P2 — arquivo legado 06
 
-## P1 — configuração APLICA_AVULSA
+`apps-script/base-metro/06_CRM_JORNADA_FASE3.js` foi regravado pelo conector e o diff removeu comentários inline além das alterações funcionais.
 
-Nenhum tipo deve ser habilitado automaticamente. A homologação funcional depende de definir explicitamente na configuração quais tipos terão `APLICA_AVULSA=SIM`.
+Revisão atual do patch confirmou:
 
-## P2 — integração frontend isolada
+- não houve remoção de função;
+- as 80 deleções são comentários/documentação inline;
+- alterações executáveis estão restritas a schema aditivo, reconhecimento de AVULSA, guards de CRM, `TITULO` e exclusão de AVULSA dos indicadores comerciais.
 
-Os módulos da Fase 1 foram isolados para reduzir regressão no `app.js`. Antes de merge, validar ordem de carregamento e comportamento em navegador real.
+Mesmo assim, Cliente e Prospect permanecem no checklist obrigatório de regressão.
+
+## P2 — bug legado `agendaWin` em atividade vinculada
+
+O core atual possui um risco pré-existente: `openActivityModal()` procura `state.agenda.items` e `state.overdue`, enquanto a renderização pode usar `state.agendaWin.items`.
+
+Classificação para esta Fase 1:
+
+- não é causado pelo modo AVULSA;
+- AVULSA não depende desse lookup porque o módulo Fase 1 intercepta seu próprio clique;
+- não será ampliado dentro desta entrega pequena sem reprodução integrada;
+- atividade vinculada navegada em nova janela/período deve ser testada antes do merge;
+- se o erro for reproduzido, corrigir em commit separado ou bloquear merge.
 
 ## P2 — documentação geral
 
-`CHANGELOG.md` já foi atualizado. A consolidação final em `FRONTEND.md`, `APPS_SCRIPT.md`, `PLANILHAS_E_DADOS.md` e `PERFORMANCE.md` deve ocorrer antes do merge.
+`CHANGELOG.md` e a documentação específica da Agenda já foram atualizados.
+
+Antes do merge ainda é necessário consolidar o fechamento em:
+
+- `docs/FRONTEND.md`;
+- `docs/APPS_SCRIPT.md`;
+- `docs/PLANILHAS_E_DADOS.md`;
+- `docs/PERFORMANCE.md`.
+
+## Resolvido — rollback de `APLICA_AVULSA`
+
+A criação continua exigindo `APLICA_AVULSA=SIM`, mas atividades AVULSAS já existentes podem ser concluídas mesmo depois de a configuração ser desabilitada.
+
+Isso permite bloquear novas criações sem inutilizar histórico já gravado.
+
+## Resolvido — recarga indevida de jornadas após AVULSA
+
+Operações AVULSA não usam mais `location.reload()` nem `bgRefreshAgendaJourney()`.
+
+A atualização é reconciliada localmente na Agenda, evitando recarga intencional de funis/tratativas.
+
+## Resolvido — observer global do DOM
+
+O módulo AVULSA não observa mais toda a árvore de `document.body`.
+
+A sincronização reage somente a respostas de API e ações da própria Agenda, mantendo apenas observers pontuais de classe nos dois modais envolvidos.
+
+## Resolvido — captura ampla do módulo de vencidas
+
+O módulo de filtros de pendências vencidas passou a clonar somente respostas do endpoint configurado do CRM, evitando processar `fetch` não relacionado.
