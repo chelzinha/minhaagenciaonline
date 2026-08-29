@@ -42,22 +42,37 @@ Screens.historico = (function () {
     }
   }
 
-  function renderResumo(data) {
+  /**
+ * O resumo financeiro saiu do Histórico: ele agora vive na aba Entregas.
+ * Aqui só sobrou a contagem de resultados, mostrada como linha discreta.
+ */
+function renderResumo(data) {
     const resumo = (data && data.resumo) || {};
-    const periodo = resumo.periodo || (($('histMes') && $('histMes').value) || '');
-    const qtd = Number(resumo.totalPostagensConcluidas || 0);
-    const total = Number(resumo.valorTotalPostagens || 0);
     const resultados = Number(resumo.totalResultados != null ? resumo.totalResultados : ((data && data.total) || 0));
-
-    if ($('histResumoTitulo')) $('histResumoTitulo').textContent = formatMonthLabel_(periodo);
-    if ($('histResumoQtd')) $('histResumoQtd').textContent = String(isFinite(qtd) ? qtd : 0);
-    if ($('histResumoValor')) $('histResumoValor').textContent = UI.fmtMoney(isFinite(total) ? total : 0);
-    if ($('histResumoResultados')) $('histResumoResultados').textContent = String(isFinite(resultados) ? resultados : 0);
+    const el = $('histContagem');
+    if (el) el.textContent = (isFinite(resultados) ? resultados : 0) + ' envio(s) encontrado(s)';
   }
 
   function statusBadge(status) {
     const s = STATUS_LABEL[status] || { label: status || '—', badge: 'badge-muted' };
     return '<span class="badge ' + s.badge + '">' + UI.escapeHtml(s.label) + '</span>';
+  }
+
+  /**
+   * Avisa o destinatário sobre a situação atual do objeto.
+   * Diferente do botão de envio, que comunica a postagem, este comunica
+   * o que está acontecendo com a entrega agora.
+   */
+  function avisarSituacao(celular, nome, codigoObjeto, situacao) {
+    const numero = normalizarWhatsapp_(celular);
+    if (!numero) { UI.toast('Celular do destinatário não cadastrado.', 'error'); return; }
+    if (!codigoObjeto) { UI.toast('Número de rastreio não disponível.', 'error'); return; }
+    const rastreioUrl = window.location.origin + '/rastreio/?objeto=' + encodeURIComponent(codigoObjeto);
+    const texto = 'Olá' + (nome ? ' ' + nome : '') + '! Queremos te atualizar sobre a situação do seu envio.\n\n' +
+      'A sua encomenda se encontra ' + String(situacao || '').toUpperCase() + '.\n\n' +
+      '\uD83D\uDCE6 Código de rastreio:\n' + codigoObjeto + '\n\n' +
+      'Confira o rastreamento da sua encomenda para maiores informações:\n' + rastreioUrl;
+    window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(texto), '_blank', 'noopener,noreferrer');
   }
 
   function itemActions(item) {
@@ -67,7 +82,13 @@ Screens.historico = (function () {
     if (status === 'CONCLUIDO') {
       if (item.codigoObjeto && item.destCelular) {
         parts.push('<button class="btn btn-whatsapp btn-sm" data-act="whatsapp" data-celular="' + UI.escapeHtml(item.destCelular) + '" data-nome="' + UI.escapeHtml(item.destNome || '') + '" data-codigo="' + UI.escapeHtml(item.codigoObjeto) + '">' +
-                   '<span class="material-symbols-rounded">send</span>Enviar por WhatsApp</button>');
+                   '<span class="material-symbols-rounded">send</span>Enviar rastreio</button>');
+        // Só oferece o aviso quando existe situação e ela não é "entregue":
+        // avisar alguém que já recebeu não serve para nada.
+        if (item.situacao && item.situacaoClasse !== 'ok') {
+          parts.push('<button class="btn btn-aviso btn-sm" data-act="avisar" data-celular="' + UI.escapeHtml(item.destCelular) + '" data-nome="' + UI.escapeHtml(item.destNome || '') + '" data-codigo="' + UI.escapeHtml(item.codigoObjeto) + '" data-situacao="' + UI.escapeHtml(item.situacao) + '">' +
+                     '<span class="material-symbols-rounded">campaign</span>Avisar situação</button>');
+        }
       }
       parts.push('<button class="btn btn-ghost btn-sm" data-act="reimprimir" data-id="' +
                  UI.escapeHtml(item.idRegistro) + '">' +
@@ -87,6 +108,18 @@ Screens.historico = (function () {
     }
 
     return parts.join('');
+  }
+
+  /** Selo com a situação atual do objeto, vinda do rastreio sincronizado. */
+  function situacaoChip(item) {
+    const sit = item.situacao || '';
+    if (!sit) return '';
+    const classe = item.situacaoClasse || 'info';
+    const icone = classe === 'ok' ? 'check_circle' : (classe === 'acao' ? 'warning' : 'local_shipping');
+    return '<div class="hist-item-situacao is-' + classe + '">' +
+             '<span class="material-symbols-rounded">' + icone + '</span>' +
+             '<span>' + UI.escapeHtml(sit.toUpperCase()) + '</span>' +
+           '</div>';
   }
 
   function rastreioChip(codigo) {
@@ -148,6 +181,7 @@ Screens.historico = (function () {
                  '<div class="hist-item-nome">' + dest + '</div>' +
                  '<div class="hist-item-meta">' + UI.escapeHtml(meta) + '</div>' +
                  (codigo ? '<div class="hist-item-track">' + rastreioChip(codigo) + '</div>' : '') +
+                 situacaoChip(it) +
                  erroMsg +
                '</div>' +
                '<div class="hist-item-actions">' +
@@ -167,6 +201,7 @@ Screens.historico = (function () {
       if (act === 'cancelar')   btn.addEventListener('click', () => cancelar(id));
       if (act === 'rastrear')   btn.addEventListener('click', () => abrirRastreio(codigo));
       if (act === 'whatsapp')   btn.addEventListener('click', () => abrirWhatsapp(celular, nome, codigo));
+      if (act === 'avisar')     btn.addEventListener('click', () => avisarSituacao(celular, nome, codigo, btn.getAttribute('data-situacao')));
     });
   }
 
