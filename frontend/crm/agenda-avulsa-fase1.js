@@ -218,6 +218,7 @@ function syncOverdueItem(item){
 function syncItemDom(item){if(!item)return;patchExisting(item);ensureRendered(item);syncOverdueItem(item);schedulePatch();}
 function deleteItemLocal(id){feature.deletedIds.add(text(id));feature.activities.delete(text(id));removeRendered(id);var host=$('#overdueList');if(host&&!host.querySelector('.agenda-open'))host.innerHTML='<div class="empty-state">Nenhuma atividade vencida.</div>';}
 function schedulePatch(){clearTimeout(feature.patchTimer);feature.patchTimer=setTimeout(function(){feature.deletedIds.forEach(removeRendered);feature.activities.forEach(function(item){if(isAvulsa(item)){patchExisting(item);ensureRendered(item);syncOverdueItem(item);}});},25);}
+function scheduleAfterCore(){setTimeout(schedulePatch,0);}
 
 function buildLocalItem(payload,response){
   var row=typeRow(payload.tipoAtividadeId)||{},start=text(payload.horaProgramada),duration=Number(payload.duracaoMin||row.DURACAO_PADRAO_MIN||30)||30;
@@ -261,9 +262,16 @@ function init(){
   $$('[data-agenda-link]').forEach(function(b){b.addEventListener('click',function(){setMode(b.dataset.agendaLink);});});
   var type=$('#agendaType');if(type)type.addEventListener('change',function(){syncDurationDefault(false);});var duration=$('#agendaDuration');if(duration){duration.addEventListener('input',function(e){if(e.isTrusted)feature.durationTouched=true;});duration.addEventListener('change',function(e){if(e.isTrusted)feature.durationTouched=true;});}
   var form=$('#agendaForm');if(form)form.addEventListener('submit',saveAvulsa,true);var complete=$('#completeForm');if(complete)complete.addEventListener('submit',completeAvulsa,true);var cancel=$('#cancelActivityBtn');if(cancel)cancel.addEventListener('click',cancelAvulsa,true);var del=$('#deleteActivityBtn');if(del)del.addEventListener('click',deleteAvulsa,true);
-  document.addEventListener('click',function(e){var btn=e.target.closest&&e.target.closest('.agenda-open[data-agenda-id]');if(!btn)return;var item=feature.activities.get(text(btn.dataset.agendaId));if(item&&isAvulsa(item)){e.preventDefault();e.stopImmediatePropagation();ensureConfig().then(function(){openAvulsaWorkspace(item);}).catch(function(err){toast(err.message,true);});}else restoreLinkedWorkspace();},true);
-  var agendaModal=$('#agendaModal');if(agendaModal)new MutationObserver(function(){if(!agendaModal.classList.contains('hidden'))setTimeout(onAgendaOpen,0);}).observe(agendaModal,{attributes:true,attributeFilter:['class']});var activityModal=$('#activityModal');if(activityModal)new MutationObserver(function(){if(activityModal.classList.contains('hidden'))restoreLinkedWorkspace();}).observe(activityModal,{attributes:true,attributeFilter:['class']});
-  new MutationObserver(schedulePatch).observe(document.body,{childList:true,subtree:true});schedulePatch();
+  document.addEventListener('click',function(e){
+    var btn=e.target.closest&&e.target.closest('.agenda-open[data-agenda-id]');
+    if(btn){var item=feature.activities.get(text(btn.dataset.agendaId));if(item&&isAvulsa(item)){e.preventDefault();e.stopImmediatePropagation();ensureConfig().then(function(){openAvulsaWorkspace(item);}).catch(function(err){toast(err.message,true);});}else restoreLinkedWorkspace();return;}
+    var agendaAction=e.target.closest&&e.target.closest('#view-agenda [data-agenda-mode],#view-agenda #prevPeriodBtn,#view-agenda #nextPeriodBtn,#view-agenda #todayBtn,#view-agenda .chip-filter[data-chip-filter^="agenda"]');
+    if(agendaAction)scheduleAfterCore();
+  });
+  var pick=$('#agendaDatePick');if(pick)pick.addEventListener('change',scheduleAfterCore);
+  var agendaModal=$('#agendaModal');if(agendaModal)new MutationObserver(function(){if(!agendaModal.classList.contains('hidden'))setTimeout(onAgendaOpen,0);}).observe(agendaModal,{attributes:true,attributeFilter:['class']});
+  var activityModal=$('#activityModal');if(activityModal)new MutationObserver(function(){if(activityModal.classList.contains('hidden'))restoreLinkedWorkspace();}).observe(activityModal,{attributes:true,attributeFilter:['class']});
+  schedulePatch();
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
