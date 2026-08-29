@@ -12,7 +12,7 @@
  */
 
 var CRM_AGENDA_AVULSA_F1 = {
-  VERSION: '1.1.0',
+  VERSION: '1.1.1',
   AGENDA_HEADERS: ['TITULO'],
   ACTIVITY_TYPE_HEADERS: ['APLICA_AVULSA']
 };
@@ -50,8 +50,6 @@ function setupCrmAgendaAvulsaFase1() {
       });
     }
 
-    // A Agenda usa revisao de dados; os tipos de atividade usam revisao
-    // propria de configuracao no PERF V5. Invalidar somente o necessario.
     if (typeof crm3_bumpCacheRev_ === 'function') crm3_bumpCacheRev_();
     if (typeof crm5x_bumpConfigRev_ === 'function') crm5x_bumpConfigRev_();
 
@@ -117,13 +115,13 @@ function crmAgendaAvulsaF1_assertNoEntity_(payload) {
   if (treatmentId) throw new Error('Atividade AVULSA não pode ter TRATATIVA_ID.');
 }
 
-function crmAgendaAvulsaF1_activityType_(typeId) {
+function crmAgendaAvulsaF1_activityType_(typeId, requireApplies) {
   typeId = crm3_text_(typeId);
   if (!typeId) throw new Error('Tipo de atividade obrigatório.');
   if (crm5_isLegacyColetaText_(typeId)) throw new Error('COLETAS foi desativado. Selecione outro tipo de atividade.');
   var activityType = crm3_findConfigById_(CRM3_CFG.SHEETS.TIPOS_ATIVIDADE, 'TIPO_ATIVIDADE_ID', typeId);
   if (!activityType || !crm3_isYes_(activityType.ATIVA)) throw new Error('Tipo de atividade inválido ou inativo.');
-  if (!crm3_isYes_(activityType.APLICA_AVULSA)) throw new Error('Tipo de atividade não permitido para atividade avulsa.');
+  if (requireApplies !== false && !crm3_isYes_(activityType.APLICA_AVULSA)) throw new Error('Tipo de atividade não permitido para atividade avulsa.');
   return activityType;
 }
 
@@ -150,7 +148,7 @@ function crmAgendaAvulsaF1_save_(payload) {
   if (!title) throw new Error('Título obrigatório para atividade avulsa.');
 
   var typeId = crm3_text_(payload.tipoAtividadeId);
-  var activityType = crmAgendaAvulsaF1_activityType_(typeId);
+  var activityType = crmAgendaAvulsaF1_activityType_(typeId, true);
   var date = crm3_text_(payload.dataProgramada || payload.data);
   if (!date) throw new Error('Data programada obrigatória.');
 
@@ -260,7 +258,7 @@ function crmAgendaAvulsaF1_complete_(payload, record) {
   }
 
   var typeId = crm3_text_(record.obj.TIPO_ATIVIDADE_ID || payload.tipoAtividadeId);
-  var activityType = crmAgendaAvulsaF1_activityType_(typeId);
+  var activityType = crmAgendaAvulsaF1_activityType_(typeId, false);
   var resultId = crm3_text_(payload.resultadoId || payload.resultado);
   if (crm3_isYes_(activityType.EXIGE_RESULTADO) && !resultId) {
     throw new Error('Resultado obrigatório para concluir esta atividade.');
