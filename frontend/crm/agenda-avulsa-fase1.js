@@ -41,12 +41,14 @@ function token(){try{return auth&&auth.getToken?auth.getToken():'';}catch(_){ret
 function apiUrl(action){var u=new URL(cfg.apiUrl);u.searchParams.set('action',action);var t=token();if(t)u.searchParams.set('st',t);return u.toString();}
 async function apiGet(action){var res=await nativeFetch(apiUrl(action),{cache:'no-store'}),data=await res.json();if(!data||data.ok===false)throw new Error((data&&data.error)||'A API retornou erro.');return data;}
 async function apiPost(action,payload){var res=await nativeFetch(apiUrl(action),{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload||{})}),data=await res.json();if(!data||data.ok===false)throw new Error((data&&data.error)||'A API retornou erro.');return data;}
+function emitAgendaItems(items){try{window.dispatchEvent(new CustomEvent('agf:agenda-f1-items',{detail:{items:items||[]}}));}catch(_){}}
 
 function captureItems(items){
   (items||[]).forEach(function(x){
     var id=text(x&&x.agendaId);if(!id||feature.deletedIds.has(id))return;
     feature.activities.set(id,x);
   });
+  emitAgendaItems(items);
   schedulePatch();
 }
 function capturePayload(data,url){
@@ -215,7 +217,7 @@ function syncOverdueItem(item){
   var ui=typeUi(item),html='<button type="button" class="list-item agenda-open" data-agenda-id="'+esc(id)+'"><span class="activity-icon material-symbols-rounded" style="--activity-color:'+esc(ui.color)+'">'+esc(ui.icon)+'</span><span class="list-content"><strong>'+esc(item.titulo||'Atividade')+'</strong><p>'+esc(ui.label)+' · '+esc(fmtDate(item.dataProgramada))+' '+esc(fmtTime(item.horaProgramada))+'</p></span><span class="chip">'+esc(item.responsavelNome||'Sem responsável')+'</span></button>';
   var empty=host.querySelector('.empty-state');if(empty)empty.remove();host.insertAdjacentHTML('beforeend',html);
 }
-function syncItemDom(item){if(!item)return;patchExisting(item);ensureRendered(item);syncOverdueItem(item);schedulePatch();}
+function syncItemDom(item){if(!item)return;emitAgendaItems([item]);patchExisting(item);ensureRendered(item);syncOverdueItem(item);schedulePatch();}
 function deleteItemLocal(id){feature.deletedIds.add(text(id));feature.activities.delete(text(id));removeRendered(id);var host=$('#overdueList');if(host&&!host.querySelector('.agenda-open'))host.innerHTML='<div class="empty-state">Nenhuma atividade vencida.</div>';}
 function schedulePatch(){clearTimeout(feature.patchTimer);feature.patchTimer=setTimeout(function(){feature.deletedIds.forEach(removeRendered);feature.activities.forEach(function(item){if(isAvulsa(item)){patchExisting(item);ensureRendered(item);syncOverdueItem(item);}});},25);}
 function scheduleAfterCore(){setTimeout(schedulePatch,0);}
