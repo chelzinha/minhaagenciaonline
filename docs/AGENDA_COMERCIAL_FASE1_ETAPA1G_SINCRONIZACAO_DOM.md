@@ -29,7 +29,8 @@ Continuam existindo apenas observers pontuais nos modais `agendaModal` e `activi
 - não há observer global da árvore inteira;
 - não há reload de página após mutação AVULSA;
 - não há recarga intencional de jornadas/funis após mutação AVULSA;
-- a reconciliação visual é limitada ao estado da Agenda.
+- a reconciliação visual é limitada ao estado da Agenda;
+- o módulo de filtros de vencidas só clona respostas `fetch` do endpoint configurado do CRM, evitando processar chamadas não relacionadas.
 
 ### Gate adicional — carga de Cliente/Prospect
 
@@ -51,7 +52,7 @@ A revisão de `CRM_RESULTADOS_ATIVIDADE` também confirmou que a configuração 
 ## Commits
 
 - `474d382277258a7527f868016eab6fed564f4de9` — `perf(crm): limitar sincronizacao DOM da agenda avulsa`
-- commit documental deste gate registra a validação de carga e resultados.
+- `c9bd9893d28eafcee20acebc1f78ef3b1c4d1511` — `perf(crm): limitar captura dos filtros de vencidas`
 
 ## Estado
 
