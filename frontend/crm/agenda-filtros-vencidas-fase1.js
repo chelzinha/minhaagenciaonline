@@ -1,8 +1,6 @@
 (function(){
 'use strict';
 
-var cfg=window.CRM_APP_CONFIG||{};
-var priorFetch=window.fetch.bind(window);
 var items=new Map();
 var timer=0;
 
@@ -12,25 +10,6 @@ function $(s,r){return(r||document).querySelector(s);}
 function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));}
 
 function capture(list){(list||[]).forEach(function(x){if(x&&x.agendaId)items.set(text(x.agendaId),x);});schedule();}
-function capturePayload(data,url){
-  if(!data||typeof data!=='object')return;
-  if(data.agenda&&data.agenda.items)capture(data.agenda.items);
-  if(data.overdue&&data.overdue.items)capture(data.overdue.items);
-  if(data.items&&String(url||'').indexOf('get_crm_agenda_v3')>=0)capture(data.items);
-}
-
-window.fetch=function(){
-  var args=arguments;
-  return priorFetch.apply(window,args).then(function(res){
-    try{
-      var url=typeof args[0]==='string'?args[0]:(args[0]&&args[0].url)||'';
-      if(cfg.apiUrl&&String(url).indexOf(cfg.apiUrl)>=0){
-        res.clone().json().then(function(data){capturePayload(data,url);}).catch(function(){});
-      }
-    }catch(_){}
-    return res;
-  });
-};
 
 function selected(attr){
   var chip=$('.chip-filter[data-chip-filter="'+attr+'"]');
@@ -65,6 +44,7 @@ function schedule(){clearTimeout(timer);timer=setTimeout(apply,25);}
 
 function init(){
   var host=$('#overdueList');if(host)new MutationObserver(schedule).observe(host,{childList:true,subtree:true});
+  window.addEventListener('agf:agenda-f1-items',function(e){capture(e&&e.detail&&e.detail.items);});
   document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.chip-filter[data-chip-filter^="agenda"]'))setTimeout(schedule,0);});
   schedule();
 }
