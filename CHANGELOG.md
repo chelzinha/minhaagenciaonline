@@ -2,6 +2,19 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-08-29 - Contexto consolidado da Agenda Comercial
+
+### Documentado
+- Criado `docs/AGENDA_COMERCIAL_CONTEXTO.md` como handoff para uma frente dedicada de melhoria da Agenda do CRM Comercial.
+- Consolidado o estado funcional já existente: modos Diário/Semanal/Mensal, semana útil, filtros, criação e execução de atividades, pendências vencidas, exportação e integrações com Clientes/Prospects.
+- Registradas decisões anteriores de UX e performance que não devem regredir, incluindo renderização imediata, preservação do cursor de data, filtros próprios e leitura/cache de Agenda em janela.
+- Definida como direção de produto a evolução da Agenda para uma “foto do dia do comercial”, com prioridade para execução diária, pendências, próxima ação, clareza visual, mobile e velocidade percebida.
+- Incluído plano de auditoria, fases de implementação, critérios de sucesso, checklist de regressão e prompt para iniciar uma conversa dedicada.
+
+### Escopo
+- Apenas documentação e planejamento técnico.
+- Nenhuma alteração funcional em frontend, Apps Script, planilhas, dados, autenticação ou regras comerciais.
+
 ## 2026-08-18 - Acesso ao emissor DC-e
 
 ### Criado
