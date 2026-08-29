@@ -46,16 +46,16 @@ Classificação para esta Fase 1:
 - atividade vinculada navegada em nova janela/período deve ser testada antes do merge;
 - se o erro for reproduzido, corrigir em commit separado ou bloquear merge.
 
-## P2 — documentação geral
+## Resolvido — documentação geral
 
-`CHANGELOG.md` e a documentação específica da Agenda já foram atualizados.
+O fechamento técnico já está consolidado em:
 
-Antes do merge ainda é necessário consolidar o fechamento em:
-
+- `CHANGELOG.md`;
 - `docs/FRONTEND.md`;
 - `docs/APPS_SCRIPT.md`;
 - `docs/PLANILHAS_E_DADOS.md`;
-- `docs/PERFORMANCE.md`.
+- `docs/PERFORMANCE.md`;
+- documentação específica `docs/AGENDA_COMERCIAL_FASE1_*`.
 
 ## Resolvido — rollback de `APLICA_AVULSA`
 
