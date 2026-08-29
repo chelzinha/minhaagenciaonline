@@ -2,7 +2,7 @@
 
 **Branch:** `feat/crm-agenda-avulsa-fase1`  
 **Início:** 2026-08-29  
-**Status atual:** Etapas 1A e 1B concluídas em código na branch; ainda não aplicadas na planilha/Apps Script de produção.
+**Status atual:** Etapas 1A, 1B e 1C implementadas na branch; produção permanece inalterada.
 
 ## 1. Regra de registro
 
@@ -126,26 +126,93 @@ Resultado:
 
 `5d5d071b24b67842612ec45c4cdc549f1f758cb2` — `feat(crm): suportar agenda avulsa no backend`
 
-## 4. Estado de produção
+## 4. Etapa 1C — frontend mínimo AVULSA
+
+### Fechamento
+
+Foi criado um módulo isolado para acrescentar o fluxo AVULSA sem reescrever o `frontend/crm/app.js` legado. Cliente/Prospect continuam sendo tratados pelo código existente.
+
+### Arquivos
+
+- `frontend/crm/agenda-avulsa-fase1.js` — novo módulo da feature.
+- `frontend/crm/config.js` — carrega o módulo antes de `app.js`, permitindo observar as mesmas respostas de configuração/Agenda usadas pelo core.
+
+### Nova atividade
+
+O modal existente ganha, de forma progressiva:
+
+- escolha `Cliente ou prospect` / `Sem vínculo`;
+- `Título` obrigatório no modo AVULSA;
+- `Local` opcional no modo AVULSA;
+- ocultação de busca de entidade e mídia quando AVULSA;
+- tipos filtrados exclusivamente por `APLICA_AVULSA=SIM`;
+- payload canônico com `tipoEntidade=AVULSA`, IDs de entidade/tratativa vazios e sem mídia de entidade.
+
+### Duração
+
+- o valor inicial passa a usar `DURACAO_PADRAO_MIN` do tipo selecionado;
+- mudança de tipo atualiza o default enquanto a duração não foi editada pelo usuário;
+- depois de edição manual, o módulo não substitui silenciosamente o valor informado.
+
+### Performance
+
+- o módulo observa as respostas que o CRM já realiza, para reaproveitar configuração e itens de Agenda;
+- no modo AVULSA, não há busca/autocomplete de Cliente ou Prospect;
+- o salvamento AVULSA não chama `bgRefreshAgendaJourney()`;
+- após gravação, a atualização ocorre pela própria rota da Agenda; o boot da view Agenda permanece escopado e não solicita os funis de Cliente/Prospect.
+
+### Cards e workspace
+
+- cards AVULSA usam `TITULO` em vez de cair em `Atividade`/Cliente;
+- `LOCAL` pode aparecer no card operacional;
+- clique em AVULSA é interceptado antes do workspace comercial legado;
+- workspace AVULSA mostra somente resumo e conclusão;
+- materiais, checklist, notas de entidade e follow-up comercial ficam ocultos;
+- concluir/cancelar/excluir usam as mesmas actions públicas, que já foram tornadas condicionais no backend.
+
+### Permissões
+
+- o módulo reaproveita o conjunto de atividades retornado pelo boot/API já escopado pelo CRM;
+- a permissão de conclusão respeita `admin` ou `crm.canCompleteActivities` da sessão atual;
+- responsável e filtros próprios da Agenda permanecem no fluxo atual.
+
+### Commits
+
+- `18336f66333ced9a94f85184b8270ad8f3568b1e` — `feat(crm): adicionar modulo frontend da agenda avulsa`
+- `1dfc60a3c54c752c4951126965012d98451d951f` — `feat(crm): carregar modulo da agenda avulsa antes do core`
+
+### Homologação pendente
+
+O módulo ainda não foi executado contra backend/schema da Fase 1 implantados. O teste neutro via URL `data:` foi bloqueado pelo Opera Connector, portanto não é contado como homologação.
+
+A homologação integrada deverá validar, no mínimo:
+
+- modo vinculado permanece idêntico;
+- modo AVULSA sem Cliente/Prospect;
+- filtro de tipos por `APLICA_AVULSA`;
+- defaults de duração 5/15/60 conforme configuração;
+- edição manual de duração preservada;
+- criação, abertura, conclusão, cancelamento e exclusão AVULSA;
+- ausência de Tratativa, CRM_INTERACOES, CRM_EVENTOS e transição de funil;
+- comportamento desktop e 390px.
+
+## 5. Estado de produção
 
 Até este fechamento:
 
 - nenhum Apps Script da Fase 1 foi publicado;
+- nenhum frontend da Fase 1 foi publicado;
 - `setupCrmAgendaAvulsaFase1()` não foi executado em produção;
 - `TITULO` ainda não foi adicionado à planilha viva por esta branch;
 - `APLICA_AVULSA` ainda não foi adicionado/configurado na planilha viva por esta branch;
 - nenhuma atividade AVULSA real foi criada.
 
-## 5. Próximo fechamento
+## 6. Próximo fechamento
 
-Etapa 1C — frontend mínimo homologável:
+Etapa 1D — normalização de dias úteis, em commit/módulo separado:
 
-- permitir escolher atividade vinculada ou sem vínculo;
-- exibir `TITULO`/`LOCAL` para AVULSA;
-- filtrar tipos por `APLICA_AVULSA`;
-- corrigir duração padrão por tipo sem sobrescrever edição manual;
-- não carregar Cliente/Prospect no modo AVULSA;
-- abrir/renderizar AVULSA sem fallback para Cliente;
-- workspace enxuto;
-- refresh somente da Agenda após salvar AVULSA;
-- corrigir abertura de cards vindos de `agendaWin` e consistência dos filtros de vencidas.
+- Diária: anterior/próximo pulam sábado e domingo;
+- botão Hoje, em fim de semana e no modo Diária, posiciona no próximo dia útil;
+- Semanal continua segunda–sexta e o rótulo passa a terminar na sexta;
+- backend continua aceitando datas de sábado/domingo;
+- seleção manual de data de fim de semana não será bloqueada.
