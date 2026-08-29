@@ -31,13 +31,27 @@ Continuam existindo apenas observers pontuais nos modais `agendaModal` e `activi
 - não há recarga intencional de jornadas/funis após mutação AVULSA;
 - a reconciliação visual é limitada ao estado da Agenda.
 
+### Gate adicional — carga de Cliente/Prospect
+
+Revisão do core atual confirmou:
+
+- `openAgendaModal()` não chama `loadLegacyData()` ao abrir;
+- Clientes e Prospects detalhados só são carregados em `renderEntityOptions()` quando existe texto na busca de entidade e o legado ainda não está pronto;
+- no modo AVULSA, a busca de entidade fica oculta e os IDs são esvaziados;
+- portanto, selecionar `Sem vínculo` não cria por si só uma carga de Cliente/Prospect.
+
+Isso preserva a decisão de usar AVULSA também como caminho mais leve para a Agenda.
+
 ## Compatibilidade
 
 Nenhuma action, endpoint, coluna ou regra de Cliente/Prospect foi alterada nesta etapa.
 
-## Commit
+A revisão de `CRM_RESULTADOS_ATIVIDADE` também confirmou que a configuração canônica usa a coluna `ATIVA`, compatível com a validação do workspace AVULSA.
 
-`474d382277258a7527f868016eab6fed564f4de9` — `perf(crm): limitar sincronizacao DOM da agenda avulsa`
+## Commits
+
+- `474d382277258a7527f868016eab6fed564f4de9` — `perf(crm): limitar sincronizacao DOM da agenda avulsa`
+- commit documental deste gate registra a validação de carga e resultados.
 
 ## Estado
 
