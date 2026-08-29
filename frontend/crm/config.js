@@ -48,6 +48,7 @@
   if (document.readyState === 'loading') {
     document.write('<script src="/crm/agenda-avulsa-fase1.js?v=1"><\/script>');
     document.write('<script src="/crm/agenda-dias-uteis-fase1.js?v=1"><\/script>');
+    document.write('<script src="/crm/agenda-filtros-vencidas-fase1.js?v=1"><\/script>');
   }
 
   // Faixa visual: deixa impossivel confundir a tela de teste com a real.
