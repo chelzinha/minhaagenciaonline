@@ -1,18 +1,20 @@
 # Agenda Comercial — Fase 1 — Riscos abertos
 
-## P1 — homologação integrada do frontend
+## P1 — homologação integrada com backend/schema
 
-Os módulos da Fase 1 foram isolados para reduzir regressão no `frontend/crm/app.js` legado.
+O QA frontend isolado foi concluído com **10/10 verificações aprovadas** usando API mockada e sem endpoint de produção.
 
 Antes de merge/deploy ainda é obrigatório validar em ambiente integrado:
 
 - ordem real de carregamento `config.js` → módulos Fase 1 → `app.js`;
+- setup real de `TITULO` e `APLICA_AVULSA`;
 - criação vinculada Cliente e Prospect sem mudança de comportamento;
-- criação AVULSA sem carga de entidade;
+- criação AVULSA contra Apps Script real de homologação;
 - abertura e workspace AVULSA;
 - conclusão, cancelamento e exclusão;
-- filtros, responsável e permissões;
-- desktop e mobile.
+- confirmação de que AVULSA não cria Tratativa, `CRM_INTERACOES` ou `CRM_EVENTOS`;
+- filtros, responsável e permissões reais;
+- desktop e mobile no ambiente integrado.
 
 O teste antigo em URL `data:` não é evidência de homologação e deve ser ignorado.
 
@@ -46,6 +48,37 @@ Classificação para esta Fase 1:
 - atividade vinculada navegada em nova janela/período deve ser testada antes do merge;
 - se o erro for reproduzido, corrigir em commit separado ou bloquear merge.
 
+## Resolvido — QA frontend isolado
+
+O harness frontend-only carregou o código real da branch a partir de commit fixado e executou verificações automáticas sem acessar produção.
+
+Resultado final: **10/10 PASS**.
+
+Foram validados:
+
+- carregamento do módulo AVULSA;
+- `APLICA_AVULSA`;
+- duração configurada;
+- criação AVULSA mockada sem entidade;
+- workspace enxuto;
+- navegação sexta → segunda;
+- rótulo semanal segunda → sexta;
+- filtro de Pendências vencidas;
+- compartilhamento interno de itens;
+- ausência de chamadas para endpoint de produção.
+
+Durante o QA foi encontrado e corrigido antes de deploy um erro real de sintaxe em `agenda-avulsa-fase1.js`.
+
+Documento: `docs/AGENDA_COMERCIAL_FASE1_ETAPA1H_QA_FRONTEND_ISOLADO.md`.
+
+## Resolvido — integração dos filtros de vencidas
+
+O módulo de vencidas não mantém um segundo wrapper de `fetch`.
+
+Os itens são compartilhados pelo evento interno `agf:agenda-f1-items` e a ocultação filtrada usa a classe própria `agenda-f1-filtered-out` restrita a `#overdueList`.
+
+Isso evita disputa de `hidden` com a reconciliação local do módulo AVULSA.
+
 ## Resolvido — documentação geral
 
 O fechamento técnico já está consolidado em:
@@ -74,7 +107,3 @@ A atualização é reconciliada localmente na Agenda, evitando recarga intencion
 O módulo AVULSA não observa mais toda a árvore de `document.body`.
 
 A sincronização reage somente a respostas de API e ações da própria Agenda, mantendo apenas observers pontuais de classe nos dois modais envolvidos.
-
-## Resolvido — captura ampla do módulo de vencidas
-
-O módulo de filtros de pendências vencidas passou a clonar somente respostas do endpoint configurado do CRM, evitando processar `fetch` não relacionado.
