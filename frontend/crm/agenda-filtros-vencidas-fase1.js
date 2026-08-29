@@ -11,6 +11,14 @@ function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAl
 
 function capture(list){(list||[]).forEach(function(x){if(x&&x.agendaId)items.set(text(x.agendaId),x);});schedule();}
 
+function ensureStyle(){
+  if($('#agendaOverdueFilterF1Style'))return;
+  var s=document.createElement('style');
+  s.id='agendaOverdueFilterF1Style';
+  s.textContent='#overdueList .agenda-f1-filtered-out{display:none!important;}';
+  document.head.appendChild(s);
+}
+
 function selected(attr){
   var chip=$('.chip-filter[data-chip-filter="'+attr+'"]');
   if(!chip)return[];
@@ -31,7 +39,7 @@ function apply(){
   buttons.forEach(function(btn){
     var item=items.get(text(btn.dataset.agendaId));
     var show=!item||matches(item);
-    if(btn.hidden===show)btn.hidden=!show;
+    btn.classList.toggle('agenda-f1-filtered-out',!show);
     if(show)visible++;
   });
   var empty=$('#overdueFilteredEmpty');
@@ -43,7 +51,8 @@ function apply(){
 function schedule(){clearTimeout(timer);timer=setTimeout(apply,25);}
 
 function init(){
-  var host=$('#overdueList');if(host)new MutationObserver(schedule).observe(host,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+  ensureStyle();
+  var host=$('#overdueList');if(host)new MutationObserver(schedule).observe(host,{childList:true,subtree:true});
   window.addEventListener('agf:agenda-f1-items',function(e){capture(e&&e.detail&&e.detail.items);});
   document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.chip-filter[data-chip-filter^="agenda"]'))setTimeout(schedule,0);});
   schedule();
