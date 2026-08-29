@@ -8,6 +8,20 @@
 
 O problema auditado no core (`openActivityModal()` procura a coleção inicial e vencidas, mas não `agendaWin.items`) ainda exige correção direta no core ou validação de uma alternativa segura. O módulo AVULSA contorna o caso de AVULSA por interceptar o clique, mas o risco legado permanece para atividade vinculada navegada em janela nova.
 
+## P1 — rollback de APLICA_AVULSA
+
+A revisão do PR identificou que `crmAgendaAvulsaF1_complete_()` reutiliza a validação que exige `APLICA_AVULSA=SIM`.
+
+Isso é correto para **criar novas AVULSAS**, mas não para operar registros já existentes. Em um rollback controlado, a estratégia definida é desabilitar novas criações por configuração sem tornar atividades antigas inutilizáveis.
+
+Antes do merge, ajustar a validação para que:
+
+- criação continue exigindo `APLICA_AVULSA=SIM`;
+- conclusão/cancelamento/exclusão de AVULSA existente não dependam de `APLICA_AVULSA` continuar habilitado;
+- validações de resultado e integridade do registro permaneçam ativas.
+
+Este item é bloqueante do merge, não de leitura da branch.
+
 ## P1 — configuração APLICA_AVULSA
 
 Nenhum tipo deve ser habilitado automaticamente. A homologação funcional depende de definir explicitamente na configuração quais tipos terão `APLICA_AVULSA=SIM`.
