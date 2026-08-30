@@ -1,10 +1,11 @@
 function buildEntry_(draft, client, user) {
   return {
-    id: Utilities.getUuid(), date: draft.date, createdAt: new Date().toISOString(), type: draft.type,
+    id: draft.entryId || Utilities.getUuid(), date: draft.date, createdAt: new Date().toISOString(), type: draft.type,
     clientId: client ? client.id : '', clientName: client ? client.name : CFG.DEFAULT_SUPPLIER,
     objectCount: draft.objectCount, amountCents: draft.amountCents, paymentMethod: draft.paymentMethod,
     pixStatus: draft.pixStatus, expenseCategory: draft.expenseCategory, description: draft.description,
-    operatorId: user.id, operatorName: user.name, status: 'ATIVO', deletedAt: '', deletedBy: '', closureId: '', closed: false
+    operatorId: user.id, operatorName: user.name, status: 'ATIVO', deletedAt: '', deletedBy: '', closureId: '', closed: false,
+    pixTxid: draft.pixTxid || '', pixE2eid: '', pixReceivedAt: '', pixProvider: draft.pixProvider || ''
   };
 }
 
@@ -13,7 +14,7 @@ function entryToRow_(entry) {
     entry.id, entry.date, new Date(entry.createdAt), entry.type, entry.clientId, entry.clientName,
     entry.objectCount, entry.amountCents, entry.paymentMethod, entry.pixStatus, entry.expenseCategory,
     entry.description, entry.operatorId, entry.operatorName, entry.status, entry.deletedAt,
-    entry.deletedBy, entry.closureId
+    entry.deletedBy, entry.closureId, entry.pixTxid, entry.pixE2eid, entry.pixReceivedAt, entry.pixProvider
   ];
 }
 
@@ -25,7 +26,9 @@ function rowsToEntries_(rows) {
       amountCents: Number(row[7] || 0), paymentMethod: String(row[8] || ''), pixStatus: String(row[9] || ''),
       expenseCategory: String(row[10] || ''), description: String(row[11] || ''), operatorId: String(row[12] || ''),
       operatorName: String(row[13] || ''), status: String(row[14] || 'ATIVO'), deletedAt: asIso_(row[15]),
-      deletedBy: String(row[16] || ''), closureId: String(row[17] || ''), closed: Boolean(row[17])
+      deletedBy: String(row[16] || ''), closureId: String(row[17] || ''), closed: Boolean(row[17]),
+      pixTxid: String(row[18] || ''), pixE2eid: String(row[19] || ''), pixReceivedAt: asIso_(row[20]),
+      pixProvider: String(row[21] || '')
     };
   });
 }
@@ -49,8 +52,8 @@ function buildSummary_(entries, date) {
     summary.revenueCount += 1;
     summary.byPayment[entry.paymentMethod] = (summary.byPayment[entry.paymentMethod] || 0) + entry.amountCents;
     if (entry.paymentMethod === 'PIX') {
-      if (entry.pixStatus === 'PENDENTE') summary.pixPendingCents += entry.amountCents;
-      else summary.pixConfirmedCents += entry.amountCents;
+      if (entry.pixStatus === 'CONFIRMADO') summary.pixConfirmedCents += entry.amountCents;
+      else summary.pixPendingCents += entry.amountCents;
     }
   });
   summary.balanceCents = summary.revenueCents - summary.expenseCents;
@@ -87,11 +90,14 @@ function buildRevenueExportRow_(entry, date) {
   var description = entry.description || ('Atendimento de balcão - ' + entry.paymentMethod);
   var account = accountForPayment_(entry.paymentMethod);
   var costCenter = propertyOrDefault_(CFG.COST_CENTER_PROP, 'Metro (Projeto Rachel)');
+  var pixAudit = entry.paymentMethod === 'PIX'
+    ? ' | TXID: ' + (entry.pixTxid || '-') + ' | E2EID: ' + (entry.pixE2eid || '-')
+    : '';
   return [
     '', entry.clientName, entry.id, dateBr, dateBr, dateBr, 'Sem recorrência', '', description,
     'Lançamento Financeiro', 'Em aberto', '-', money, entry.paymentMethod, money, '0,00', '0,00',
     '0,00', '0,00', money, '0,00', '0,00', '0,00', money, account, dateBr, '',
-    description + (entry.objectCount ? ' | Objetos: ' + entry.objectCount : ''), CFG.REVENUE_CATEGORY,
+    description + (entry.objectCount ? ' | Objetos: ' + entry.objectCount : '') + pixAudit, CFG.REVENUE_CATEGORY,
     money, costCenter, money
   ];
 }
