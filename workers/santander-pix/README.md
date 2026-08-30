@@ -15,6 +15,22 @@ O frontend continua no Cloudflare Pages. O Worker bancário fica separado para p
 
 O Pages encaminha `/api/santander/pix/*` ao Worker por um Service Binding chamado `SANTANDER_PIX_SERVICE`.
 
+## Entrada segura
+
+O arquivo de entrada é:
+
+```text
+src/secure-index.js
+```
+
+Ele envolve o adaptador bancário e aplica antes do processamento:
+
+- autenticação obrigatória do webhook em produção;
+- bloqueio de webhook sem autenticação fora de `mock` ou `sandbox`;
+- remoção de nome e documento do pagador;
+- sanitização do corpo recebido;
+- remoção de respostas bancárias completas antes da gravação no KV, por padrão.
+
 ## Rotas
 
 - `GET /api/santander/pix/health`
@@ -43,9 +59,13 @@ O Pages encaminha `/api/santander/pix/*` ao Worker por um Service Binding chamad
 - `SANTANDER_PIX_KEY`
 - `SANTANDER_PIX_EXPIRATION_SECONDS`
 - `SANTANDER_REQUIRE_MTLS=true|false`
+- `SANTANDER_WEBHOOK_AUTH_MODE=shared-secret|none`
+- `SANTANDER_STORE_RAW_RESPONSES=false`
 - `PIX_STATE_TTL_SECONDS`
 - `CAIXA_APPS_SCRIPT_URL`
 - `AGF_API_AUTH_MODE=off|monitor|enforce`
+
+Em produção, use `SANTANDER_WEBHOOK_AUTH_MODE=shared-secret` até que o Santander confirme o mecanismo definitivo. O modo `none` é aceito apenas em `mock` ou `sandbox`.
 
 ## Secrets
 
@@ -53,7 +73,7 @@ Cadastrar como secrets no Cloudflare, nunca no Git:
 
 - `SANTANDER_CLIENT_ID`
 - `SANTANDER_CLIENT_SECRET`
-- `SANTANDER_WEBHOOK_SECRET`, somente se esse for o mecanismo confirmado pelo banco
+- `SANTANDER_WEBHOOK_SECRET`, enquanto o mecanismo usado for segredo compartilhado
 - `CAIXA_INTERNAL_SECRET`
 - `AGF_AUTH_JWT_SECRET`
 
@@ -73,6 +93,8 @@ Ele guarda:
 - cobrança por `txid`;
 - status recebido pelo webhook;
 - `e2eid` e horário de liquidação.
+
+Por padrão, não guarda a resposta bancária completa. `SANTANDER_STORE_RAW_RESPONSES=true` deve ser usado apenas temporariamente em homologação e após análise de privacidade.
 
 ### mTLS
 
@@ -101,7 +123,7 @@ Não alterar o adaptador para produção antes de comparar uma resposta real do 
 
 ## Webhook e Apps Script
 
-O Worker registra primeiro o evento no KV e depois envia ao Apps Script:
+O Worker registra primeiro o evento mínimo no KV e depois envia ao Apps Script:
 
 ```json
 {
