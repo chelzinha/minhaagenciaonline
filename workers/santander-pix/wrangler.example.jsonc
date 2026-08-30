@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/config-schema.json",
+  "name": "agf-santander-pix",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-30",
+  "vars": {
+    "SANTANDER_MODE": "disabled",
+    "SANTANDER_API_PROFILE": "bacen-v2",
+    "SANTANDER_AUTH_STYLE": "basic",
+    "SANTANDER_GRANT_TYPE": "client_credentials",
+    "SANTANDER_CREATE_METHOD": "PUT",
+    "SANTANDER_PIX_EXPIRATION_SECONDS": "300",
+    "SANTANDER_REQUIRE_MTLS": "true",
+    "AGF_API_AUTH_MODE": "enforce"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "PIX_STATE",
+      "id": "SUBSTITUIR_PELO_ID_DO_KV"
+    }
+  ],
+  "mtls_certificates": [
+    {
+      "binding": "SANTANDER_MTLS",
+      "certificate_id": "SUBSTITUIR_PELO_ID_DO_CERTIFICADO"
+    }
+  ]
+}
