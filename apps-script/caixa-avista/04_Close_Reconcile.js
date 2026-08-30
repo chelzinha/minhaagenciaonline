@@ -13,6 +13,9 @@ function closeOperational_(dateValue, user) {
     });
     if (!entries.length) throw appError_('Não há movimentos para fechar.', 'NO_ENTRIES');
     var summary = buildSummary_(entries, date);
+    if (summary.pixPendingCents > 0) {
+      throw appError_('Ainda existem cobranças Pix aguardando confirmação. Aguarde o Santander ou trate a pendência antes do fechamento.', 'PIX_PENDING');
+    }
     var closureId = existing ? existing.id : Utilities.getUuid();
 
     if (!existing) {
