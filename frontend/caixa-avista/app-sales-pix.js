@@ -9,26 +9,56 @@ async function completeSale() {
 
   const draft = buildSaleDraft();
   if (state.paymentMethod === 'PIX') {
-    try {
-      const pixConfig = getPixConfig();
-      state.currentPixPayload = buildPixPayload({
-        key: pixConfig.key,
-        name: pixConfig.name,
-        city: pixConfig.city,
-        amountCents: state.amountCents,
-        txid: '***'
-      });
-      state.currentPixDraft = draft;
-      renderPixModal();
-      openModal('pixModal');
-    } catch (error) {
-      showStatus(el.saleStatus, error.message || 'Não foi possível gerar a cobrança Pix.', 'error');
-      openModal('settingsModal');
-    }
+    await beginPixSale(draft);
     return;
   }
 
   await saveEntryAndReset(draft);
+}
+
+async function beginPixSale(baseDraft) {
+  const draft = { ...baseDraft, entryId: uuid() };
+  setBusy(true, 'Criando cobrança Pix...');
+  try {
+    const charge = await createPixCharge(draft);
+    state.currentPixCharge = charge;
+    state.currentPixPayload = charge.copyPaste;
+    state.currentPixDraft = {
+      ...draft,
+      pixStatus: charge.status || 'PENDENTE',
+      pixTxid: charge.txid || '',
+      pixProvider: charge.provider || 'local'
+    };
+
+    if (charge.automaticConfirmation) {
+      const result = await repositorySaveEntry(state.currentPixDraft);
+      const entry = sanitizeEntry(result.entry || result);
+      state.entries.push(entry);
+      state.summary = result.summary || buildSummary(state.entries, todayIso());
+      state.currentPixCharge = { ...charge, entryId: entry.id };
+      state.currentPixDraft = { ...state.currentPixDraft, entryId: entry.id };
+      persistEntriesIfLocal();
+      renderAll();
+    }
+
+    renderPixModal();
+    openModal('pixModal');
+
+    if (charge.automaticConfirmation) {
+      showStatus(el.pixStatus, 'Aguardando a confirmação automática do Santander...', 'info');
+      resetSaleForm({ preservePix: true });
+      renderAll();
+      startPixStatusPolling(state.currentPixCharge);
+    } else if (charge.fallbackReason) {
+      showStatus(el.pixStatus, 'Santander ainda indisponível. A cobrança foi gerada no modo Pix local.', 'warning');
+    }
+  } catch (error) {
+    console.error('[CAIXA_AVISTA][PIX_CREATE]', error);
+    showStatus(el.saleStatus, error.message || 'Não foi possível gerar a cobrança Pix.', 'error');
+    if (String(state.settings.pixProvider || 'auto').toLowerCase() === 'local') openModal('settingsModal');
+  } finally {
+    setBusy(false);
+  }
 }
 
 function validateSaleDraft() {
@@ -49,13 +79,20 @@ function buildSaleDraft() {
     amountCents: state.amountCents,
     paymentMethod: state.paymentMethod,
     pixStatus: state.paymentMethod === 'PIX' ? 'PENDENTE' : '',
+    pixTxid: '',
+    pixProvider: state.paymentMethod === 'PIX' ? 'local' : '',
     description: `Atendimento de balcão - ${state.paymentMethod}`
   };
 }
 
 async function savePixDraft(status) {
-  if (!state.currentPixDraft) return;
-  const draft = { ...state.currentPixDraft, pixStatus: status };
+  if (!state.currentPixDraft || state.currentPixCharge?.automaticConfirmation) return;
+  const draft = {
+    ...state.currentPixDraft,
+    pixStatus: status,
+    pixTxid: state.currentPixCharge?.txid || '',
+    pixProvider: state.currentPixCharge?.provider || 'local'
+  };
   closeModal('pixModal');
   await saveEntryAndReset(draft);
 }
@@ -79,13 +116,18 @@ async function saveEntryAndReset(draft) {
   }
 }
 
-function resetSaleForm() {
+function resetSaleForm(options = {}) {
+  const preservePix = Boolean(options.preservePix);
   state.selectedClient = null;
   state.paymentMethod = '';
   state.quantity = 1;
   state.amountCents = 0;
-  state.currentPixDraft = null;
-  state.currentPixPayload = '';
+  if (!preservePix) {
+    stopPixStatusPolling();
+    state.currentPixDraft = null;
+    state.currentPixPayload = '';
+    state.currentPixCharge = null;
+  }
   el.clientInput.value = '';
   hideSuggestions();
   renderSelectedClient();
@@ -93,14 +135,20 @@ function resetSaleForm() {
 }
 
 function renderPixModal() {
-  el.pixModalAmount.textContent = formatCents(state.amountCents);
-  el.pixCode.value = state.currentPixPayload;
+  const charge = state.currentPixCharge || {};
+  el.pixModalAmount.textContent = formatCents(charge.amountCents || state.currentPixDraft?.amountCents || state.amountCents);
+  el.pixCode.value = charge.copyPaste || state.currentPixPayload;
   el.pixQr.innerHTML = '';
   hideStatus(el.pixStatus);
+
+  const automatic = Boolean(charge.automaticConfirmation);
+  el.btnPixConfirmed.classList.toggle('hidden', automatic);
+  el.btnPixPending.classList.toggle('hidden', automatic);
+
   if (typeof window.QRCode === 'function') {
     try {
       new window.QRCode(el.pixQr, {
-        text: state.currentPixPayload,
+        text: charge.copyPaste || state.currentPixPayload,
         width: 280,
         height: 280,
         colorDark: '#000000',
@@ -118,7 +166,7 @@ function renderPixModal() {
 
 async function copyPixCode() {
   try {
-    await copyText(state.currentPixPayload);
+    await copyText(state.currentPixCharge?.copyPaste || state.currentPixPayload);
     showStatus(el.pixStatus, 'Pix Copia e Cola copiado.', 'success');
   } catch (error) {
     showStatus(el.pixStatus, 'Não foi possível copiar automaticamente. Selecione o código manualmente.', 'error');
@@ -126,14 +174,16 @@ async function copyPixCode() {
 }
 
 async function sharePix() {
-  if (!state.currentPixPayload || !state.currentPixDraft) return;
+  const code = state.currentPixCharge?.copyPaste || state.currentPixPayload;
+  const draft = state.currentPixDraft;
+  if (!code || !draft) return;
   const message = [
     'Olá! Segue a cobrança Pix da sua postagem.',
     '',
-    `Valor: ${formatCents(state.currentPixDraft.amountCents)}`,
+    `Valor: ${formatCents(draft.amountCents)}`,
     '',
     'Pix Copia e Cola:',
-    state.currentPixPayload
+    code
   ].join('\n');
 
   try {
