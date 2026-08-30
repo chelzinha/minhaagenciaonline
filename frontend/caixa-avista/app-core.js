@@ -12,11 +12,13 @@ const DEFAULT_SETTINGS = {
   apiUrl: '',
   pixKey: '',
   pixName: '',
-  pixCity: 'FORTALEZA'
+  pixCity: 'FORTALEZA',
+  pixProvider: 'auto',
+  pixApiBase: '/api/santander/pix'
 };
 
 const state = {
-  settings: loadJson(STORAGE.SETTINGS, DEFAULT_SETTINGS),
+  settings: { ...DEFAULT_SETTINGS, ...loadJson(STORAGE.SETTINGS, {}) },
   clients: [],
   entries: [],
   summary: emptySummary(),
@@ -29,6 +31,8 @@ const state = {
   currentView: 'sale',
   currentPixPayload: '',
   currentPixDraft: null,
+  currentPixCharge: null,
+  pixPollTimer: null,
   operationalClosure: null,
   busy: false
 };
