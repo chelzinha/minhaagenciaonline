@@ -14,7 +14,7 @@ Nova interface de caixa para atendimentos de balcão da AGF José Bonifácio. Es
 4. Ajustar a quantidade de objetos, quando necessário.
 5. Digitar o valor total no teclado próprio, no padrão de maquineta.
 6. Registrar o recebimento.
-7. No Pix, gerar QR Code e Pix Copia e Cola com o valor, compartilhar e marcar como confirmado ou pendente.
+7. No Pix, tentar primeiro o provedor Santander e usar o Pix local como contingência automática.
 
 ## Busca de clientes
 
@@ -41,27 +41,68 @@ Quando a URL do Apps Script está vazia, clientes, movimentos e fechamentos fica
 
 Ao informar a URL do novo Web App em Configurações, o frontend usa o backend em `apps-script/caixa-avista`.
 
-## Pix
+## Pix com provedor automático
 
-A chave Pix, o nome do recebedor e a cidade são lidos do backend. No modo local, podem ser informados na tela de Configurações.
+A configuração interna usa:
 
-O frontend gera um BR Code estático com:
+```json
+{
+  "pixProvider": "auto",
+  "pixApiBase": "/api/santander/pix"
+}
+```
 
-- chave Pix;
-- valor total digitado;
-- nome do recebedor;
-- cidade;
-- TXID `***`.
+Com `auto`, o frontend:
 
-A geração não confirma o recebimento bancário. O operador registra o Pix como `CONFIRMADO` ou `PENDENTE`.
+1. tenta criar a cobrança dinâmica no Worker Santander;
+2. recebe `txid`, Pix Copia e Cola e status;
+3. salva o lançamento imediatamente com o mesmo identificador;
+4. consulta o status enquanto o QR Code está ativo;
+5. atualiza o lançamento quando o webhook ou a consulta confirmar o pagamento;
+6. usa a geração local se o Worker ainda estiver desativado ou indisponível.
 
-## Arquivos
+O fallback local continua usando chave, nome e cidade configurados no Apps Script ou na tela de homologação.
+
+## Status Pix
+
+- `CRIANDO`
+- `ATIVA`
+- `PENDENTE`
+- `CONFIRMADO`
+- `EXPIRADO`
+- `CANCELADO`
+- `ERRO`
+
+O fechamento operacional fica bloqueado enquanto houver Pix diferente de `CONFIRMADO`.
+
+## Cloudflare
+
+O frontend está no Cloudflare Pages.
+
+As rotas `/api/santander/pix/*` são atendidas por uma Pages Function em:
+
+```text
+functions/api/santander/pix/[[path]].js
+```
+
+Ela encaminha as requisições ao Worker dedicado pelo Service Binding:
+
+```text
+SANTANDER_PIX_SERVICE
+```
+
+Apenas essas rotas invocam Pages Functions, conforme `frontend/_routes.json`.
+
+## Arquivos principais
 
 - `index.html`: estrutura da interface;
 - `styles.css`: design mobile-first;
-- `app.js`: regras do atendimento, busca, teclado, Pix, movimentos e fechamento;
+- `app.js`: carregador dos módulos;
+- `app-pix-provider.js`: Santander, fallback local e consulta automática;
+- `app-sales-pix.js`: fluxo do atendimento Pix;
+- `app-repository.js`: persistência local ou Apps Script;
 - `manifest.webmanifest`: instalação como aplicativo;
-- `sw.js`: cache básico da rota.
+- `sw.js`: cache da rota e dos módulos.
 
 ## Dependência visual do QR Code
 
@@ -69,9 +110,12 @@ A V1 usa `qrcodejs` pelo jsDelivr. O Pix Copia e Cola continua disponível caso 
 
 ## Testes já executados
 
-- validação sintática do JavaScript;
+- validação sintática de todos os módulos;
 - normalização de acentos e cedilha;
-- valor Pix embutido no payload;
-- CRC16 do BR Code;
-- importação de lote;
-- resumo de receitas, despesas, saldo e Pix pendente.
+- valor Pix embutido no fallback local;
+- CRC16 do BR Code local;
+- importação em lote;
+- resumo de receitas, despesas, saldo e Pix pendente;
+- criação do adaptador Santander sem credenciais no frontend;
+- atualização automática por `txid` e `e2eid`;
+- bloqueio do fechamento com cobrança Pix em aberto.
