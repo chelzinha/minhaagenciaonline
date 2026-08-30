@@ -128,13 +128,14 @@ function buildSummary(entries, date) {
       summary.expenseCount += 1;
       return;
     }
+    if (entry.paymentMethod === 'PIX' && entry.pixStatus !== 'CONFIRMADO') {
+      summary.pixPendingCents += entry.amountCents;
+      return;
+    }
     summary.revenueCents += entry.amountCents;
     summary.revenueCount += 1;
     summary.byPayment[entry.paymentMethod] = (summary.byPayment[entry.paymentMethod] || 0) + entry.amountCents;
-    if (entry.paymentMethod === 'PIX') {
-      if (entry.pixStatus === 'CONFIRMADO') summary.pixConfirmedCents += entry.amountCents;
-      else summary.pixPendingCents += entry.amountCents;
-    }
+    if (entry.paymentMethod === 'PIX') summary.pixConfirmedCents += entry.amountCents;
   });
   summary.balanceCents = summary.revenueCents - summary.expenseCents;
   return summary;
