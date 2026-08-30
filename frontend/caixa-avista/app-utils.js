@@ -102,7 +102,11 @@ function sanitizeEntry(raw) {
     objectCount: Number(raw.objectCount || 0),
     amountCents: Number(raw.amountCents || 0),
     paymentMethod: raw.paymentMethod || '',
-    pixStatus: raw.pixStatus || '',
+    pixStatus: String(raw.pixStatus || '').toUpperCase(),
+    pixTxid: String(raw.pixTxid || raw.txid || ''),
+    pixE2eid: String(raw.pixE2eid || raw.e2eid || ''),
+    pixReceivedAt: raw.pixReceivedAt || raw.receivedAt || '',
+    pixProvider: raw.pixProvider || raw.provider || '',
     expenseCategory: raw.expenseCategory || '',
     description: raw.description || '',
     status: raw.status || 'ATIVO',
@@ -128,8 +132,8 @@ function buildSummary(entries, date) {
     summary.revenueCount += 1;
     summary.byPayment[entry.paymentMethod] = (summary.byPayment[entry.paymentMethod] || 0) + entry.amountCents;
     if (entry.paymentMethod === 'PIX') {
-      if (entry.pixStatus === 'PENDENTE') summary.pixPendingCents += entry.amountCents;
-      else summary.pixConfirmedCents += entry.amountCents;
+      if (entry.pixStatus === 'CONFIRMADO') summary.pixConfirmedCents += entry.amountCents;
+      else summary.pixPendingCents += entry.amountCents;
     }
   });
   summary.balanceCents = summary.revenueCents - summary.expenseCents;
