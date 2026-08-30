@@ -18,7 +18,12 @@ async function repositorySaveClient(name) {
 
 async function repositorySaveEntry(draft) {
   if (isRemoteMode()) return api({ action: 'saveEntry', payload: draft });
-  const entry = sanitizeEntry({ ...draft, id: uuid(), createdAt: new Date().toISOString(), status: 'ATIVO' });
+  const entry = sanitizeEntry({
+    ...draft,
+    id: draft.entryId || draft.id || uuid(),
+    createdAt: new Date().toISOString(),
+    status: 'ATIVO'
+  });
   return { ok: true, entry, summary: buildSummary([...state.entries, entry], todayIso()) };
 }
 
@@ -31,15 +36,30 @@ async function repositorySaveBatch(drafts) {
       client = sanitizeClient({ id: uuid(), name: draft.clientName });
       nextClients.push(client);
     }
-    return sanitizeEntry({ ...draft, clientId: client.id, clientName: client.name, id: uuid(), createdAt: new Date().toISOString() });
+    return sanitizeEntry({ ...draft, clientId: client.id, clientName: client.name, id: draft.entryId || uuid(), createdAt: new Date().toISOString() });
   });
   state.clients = nextClients;
   return { ok: true, entries, clients: nextClients, summary: buildSummary([...state.entries, ...entries], todayIso()) };
 }
 
 async function repositoryUpdatePixStatus(entryId, pixStatus) {
-  if (isRemoteMode()) return api({ action: 'updatePixStatus', entryId, pixStatus, date: todayIso() });
-  const entries = state.entries.map(entry => entry.id === entryId ? { ...entry, pixStatus } : entry);
+  return repositorySyncPixPayment({ entryId, pixStatus, txid: '', e2eid: '', receivedAt: '', amountCents: 0, provider: '' });
+}
+
+async function repositorySyncPixPayment(payload) {
+  if (isRemoteMode()) return api({ action: 'syncPixPayment', payload, date: todayIso() });
+  const entries = state.entries.map(entry => {
+    const matches = (payload.entryId && entry.id === payload.entryId) || (payload.txid && entry.pixTxid === payload.txid);
+    if (!matches) return entry;
+    return sanitizeEntry({
+      ...entry,
+      pixStatus: payload.pixStatus || entry.pixStatus,
+      pixTxid: payload.txid || entry.pixTxid,
+      pixE2eid: payload.e2eid || entry.pixE2eid,
+      pixReceivedAt: payload.receivedAt || entry.pixReceivedAt,
+      pixProvider: payload.provider || entry.pixProvider
+    });
+  });
   return { ok: true, summary: buildSummary(entries, todayIso()) };
 }
 
