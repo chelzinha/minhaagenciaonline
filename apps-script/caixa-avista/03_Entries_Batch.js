@@ -64,25 +64,74 @@ function saveBatch_(payloads, user) {
 }
 
 function updatePixStatus_(entryIdValue, statusValue, dateValue, user) {
-  var entryId = cleanText_(entryIdValue);
-  var status = cleanText_(statusValue).toUpperCase();
-  if (!entryId) throw appError_('Lançamento não informado.', 'ENTRY_REQUIRED');
-  if (['PENDENTE', 'CONFIRMADO'].indexOf(status) < 0) throw appError_('Status Pix inválido.', 'INVALID_PIX_STATUS');
+  return syncPixPayment_({ entryId: entryIdValue, pixStatus: statusValue }, dateValue, user);
+}
 
+function syncPixPayment_(payload, dateValue, user) {
   return withLock_(function () {
-    var env = environment_();
-    var data = readBody_(env.entrySheet, CFG.ENTRY_HEADERS.length);
-    var index = findEntryIndex_(data, entryId);
-    if (index < 0) throw appError_('Lançamento não encontrado.', 'ENTRY_NOT_FOUND');
-    var row = data[index];
-    if (String(row[8]) !== 'PIX') throw appError_('Este lançamento não é Pix.', 'NOT_PIX');
-    if (cleanText_(row[17])) throw appError_('O lançamento pertence a um caixa já fechado.', 'ENTRY_CLOSED');
-    if (String(row[14]) === 'EXCLUIDO') throw appError_('O lançamento foi excluído.', 'ENTRY_DELETED');
-    row[9] = status;
-    writeBody_(env.entrySheet, data, CFG.ENTRY_HEADERS.length);
-    var date = normalizeDate_(dateValue || row[1]);
-    return { ok: true, summary: buildSummary_(listEntriesByDate_(env.entrySheet, date), date), updatedBy: user.id };
+    return syncPixPaymentCore_(payload, dateValue, user, false);
   });
+}
+
+function syncPixPaymentInternal_(payload) {
+  return withLock_(function () {
+    return syncPixPaymentCore_(payload, '', { id: 'cloudflare-worker', name: 'Cloudflare Worker' }, true);
+  });
+}
+
+function syncPixPaymentCore_(payload, dateValue, user, allowClosed) {
+  if (!payload || typeof payload !== 'object') throw appError_('Dados Pix ausentes.', 'PIX_PAYLOAD_REQUIRED');
+  var entryId = cleanText_(payload.entryId);
+  var txid = cleanText_(payload.txid);
+  var status = cleanText_(payload.pixStatus || payload.status).toUpperCase();
+  if (!entryId && !txid) throw appError_('Informe o lançamento ou o txid.', 'PIX_REFERENCE_REQUIRED');
+  if (CFG.PIX_STATUSES.indexOf(status) < 0) throw appError_('Status Pix inválido.', 'INVALID_PIX_STATUS');
+
+  var env = environment_();
+  var data = readBody_(env.entrySheet, CFG.ENTRY_HEADERS.length);
+  var index = -1;
+  for (var i = 0; i < data.length; i += 1) {
+    if ((entryId && String(data[i][0]) === entryId) || (txid && String(data[i][18]) === txid)) {
+      index = i;
+      break;
+    }
+  }
+  if (index < 0) throw appError_('Lançamento Pix não encontrado.', 'ENTRY_NOT_FOUND');
+
+  var row = data[index];
+  if (String(row[8]) !== 'PIX') throw appError_('Este lançamento não é Pix.', 'NOT_PIX');
+  if (!allowClosed && cleanText_(row[17])) throw appError_('O lançamento pertence a um caixa já fechado.', 'ENTRY_CLOSED');
+  if (String(row[14]) === 'EXCLUIDO') throw appError_('O lançamento foi excluído.', 'ENTRY_DELETED');
+
+  var receivedAmount = integerCents_(payload.amountCents);
+  var expectedAmount = Number(row[7] || 0);
+  if (status === 'CONFIRMADO' && receivedAmount > 0 && expectedAmount !== receivedAmount) {
+    throw appError_('O valor recebido não corresponde ao valor da cobrança.', 'PIX_AMOUNT_MISMATCH');
+  }
+
+  row[9] = status;
+  if (txid) row[18] = txid;
+  if (cleanText_(payload.e2eid)) row[19] = cleanText_(payload.e2eid);
+  if (cleanText_(payload.receivedAt)) row[20] = cleanText_(payload.receivedAt);
+  if (cleanText_(payload.provider)) row[21] = cleanText_(payload.provider);
+  writeBody_(env.entrySheet, data, CFG.ENTRY_HEADERS.length);
+
+  var date = normalizeDate_(dateValue || row[1]);
+  var entry = rowsToEntries_([row])[0];
+  console.log('[CAIXA_AVISTA][pix] entry=' + row[0] + ' status=' + status + ' user=' + user.id);
+  return {
+    ok: true,
+    entry: entry,
+    summary: buildSummary_(listEntriesByDate_(env.entrySheet, date), date),
+    updatedBy: user.id
+  };
+}
+
+function internalPixWebhook_(request) {
+  verifyInternalRequest_(request);
+  var result = syncPixPaymentInternal_(request.payload);
+  result.source = 'cloudflare-worker';
+  return result;
 }
 
 function deleteEntry_(entryIdValue, dateValue, user) {
