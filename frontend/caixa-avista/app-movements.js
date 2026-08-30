@@ -55,7 +55,7 @@ function setMovementFilter(filter) {
 function renderEntries() {
   let entries = state.entries.filter(entry => entry.date === todayIso() && entry.status !== 'EXCLUIDO');
   if (state.movementFilter === 'pix-pending') {
-    entries = entries.filter(entry => entry.paymentMethod === 'PIX' && entry.pixStatus === 'PENDENTE');
+    entries = entries.filter(entry => entry.paymentMethod === 'PIX' && entry.pixStatus !== 'CONFIRMADO');
   }
   entries.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
 
@@ -67,9 +67,10 @@ function renderEntries() {
   el.entriesList.innerHTML = entries.map(entry => {
     const isExpense = entry.type === 'DESPESA';
     const pixTag = entry.paymentMethod === 'PIX'
-      ? `<span class="tag ${entry.pixStatus === 'PENDENTE' ? 'pix-pending' : 'pix-confirmed'}">Pix ${entry.pixStatus === 'PENDENTE' ? 'pendente' : 'confirmado'}</span>`
+      ? `<span class="tag ${entry.pixStatus === 'CONFIRMADO' ? 'pix-confirmed' : 'pix-pending'}">${escapeHtml(pixStatusLabel(entry.pixStatus))}</span>`
       : '';
-    const action = entry.paymentMethod === 'PIX' && entry.pixStatus === 'PENDENTE' && !entry.closed
+    const manualPix = entry.paymentMethod === 'PIX' && entry.pixProvider !== 'santander';
+    const action = manualPix && entry.pixStatus !== 'CONFIRMADO' && !entry.closed
       ? `<button class="mini-btn" type="button" data-action="confirm-pix" data-entry-id="${escapeHtml(entry.id)}">Confirmar Pix</button>`
       : '';
     const deleteAction = !entry.closed
@@ -84,6 +85,20 @@ function renderEntries() {
         ${(action || deleteAction) ? `<div class="entry-actions">${action}${deleteAction}</div>` : ''}
       </article>`;
   }).join('');
+}
+
+function pixStatusLabel(status) {
+  const value = String(status || '').toUpperCase();
+  const labels = {
+    CRIANDO: 'Pix sendo criado',
+    ATIVA: 'Pix aguardando',
+    PENDENTE: 'Pix pendente',
+    CONFIRMADO: 'Pix confirmado',
+    EXPIRADO: 'Pix expirado',
+    CANCELADO: 'Pix cancelado',
+    ERRO: 'Falha no Pix'
+  };
+  return labels[value] || 'Pix aguardando';
 }
 
 async function onEntryAction(event) {
@@ -188,6 +203,7 @@ function parseBatch(text) {
       type: 'RECEITA', date: todayIso(), clientName, clientId: '', objectCount,
       amountCents: Math.round(amount * 100), paymentMethod: payment,
       pixStatus: payment === 'PIX' ? 'CONFIRMADO' : '',
+      pixProvider: payment === 'PIX' ? 'manual-lote' : '',
       description: `Atendimento de balcão - ${payment}`
     };
   });
