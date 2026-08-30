@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+  <meta name="theme-color" content="#004a78">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Caixa à Vista | AGF José Bonifácio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,600,0,0" rel="stylesheet">
+  <link rel="stylesheet" href="/caixa-avista/styles.css">
+  <link rel="manifest" href="/caixa-avista/manifest.webmanifest">
+  <script src="/shared/auth/agf-auth-config.js"></script>
+  <script src="/shared/auth/agf-auth-client.js"></script>
+  <script>window.AGF_ACCESS = { roles: ['admin', 'manager', 'user'], app: 'caixa' };</script>
+  <script src="/shared/auth/agf-route-guard.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar-shell">
+      <div class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"><span class="material-symbols-rounded">point_of_sale</span></div>
+          <div class="brand-copy">
+            <h1>Caixa à Vista</h1>
+            <p>AGF JOSÉ BONIFÁCIO</p>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="icon-btn" id="btnSettings" type="button" aria-label="Configurações" title="Configurações">
+            <span class="material-symbols-rounded">settings</span>
+          </button>
+          <button class="icon-btn" id="btnRefresh" type="button" aria-label="Atualizar" title="Atualizar">
+            <span class="material-symbols-rounded">refresh</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <div class="hero-row">
+          <div>
+            <h2 id="heroGreeting">Novo atendimento</h2>
+            <p id="heroDate">Carregando data...</p>
+          </div>
+          <span class="mode-pill" id="modePill">HOMOLOGAÇÃO</span>
+        </div>
+      </section>
+
+      <nav class="view-tabs" aria-label="Seções do caixa">
+        <button class="view-tab active" type="button" data-view="sale">
+          <span class="material-symbols-rounded">shopping_cart_checkout</span><span>Atendimento</span>
+        </button>
+        <button class="view-tab" type="button" data-view="movements">
+          <span class="material-symbols-rounded">receipt_long</span><span>Movimentos</span>
+        </button>
+        <button class="view-tab" type="button" data-view="close">
+          <span class="material-symbols-rounded">fact_check</span><span>Fechamento</span>
+        </button>
+      </nav>
+
+      <section id="viewSale" class="view-panel">
+        <div class="layout">
+          <section class="card">
+            <div class="card-head">
+              <div>
+                <h3 class="card-title"><span class="material-symbols-rounded">add_card</span>Novo recebimento</h3>
+                <p class="card-subtitle">Um lançamento por atendimento, mesmo com vários objetos.</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="step">
+                <div class="step-label"><span><span class="step-number">1</span>Como o cliente vai pagar?</span></div>
+                <div class="payment-grid" id="paymentGrid">
+                  <button type="button" class="payment-btn" data-method="Dinheiro">
+                    <span class="material-symbols-rounded">payments</span><span>Dinheiro</span>
+                  </button>
+                  <button type="button" class="payment-btn" data-method="PIX">
+                    <span class="material-symbols-rounded">qr_code_2</span><span>Pix</span>
+                  </button>
+                  <button type="button" class="payment-btn" data-method="Cartão de débito">
+                    <span class="material-symbols-rounded">credit_card</span><span>Débito</span>
+                  </button>
+                  <button type="button" class="payment-btn" data-method="Cartão de crédito">
+                    <span class="material-symbols-rounded">card_membership</span><span>Crédito</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="step">
+                <div class="step-label"><span><span class="step-number">2</span>Cliente</span></div>
+                <div class="client-combobox" id="clientCombobox">
+                  <div class="client-input-row">
+                    <input id="clientInput" class="client-input" type="text" autocomplete="off" spellcheck="false" placeholder="Digite qualquer parte do nome" aria-autocomplete="list" aria-controls="clientSuggestions">
+                    <button id="btnAddClient" class="add-client-btn" type="button" aria-label="Cadastrar o nome digitado" title="Cadastrar novo cliente" disabled>
+                      <span class="material-symbols-rounded">add</span>
+                    </button>
+                  </div>
+                  <div id="clientSuggestions" class="suggestions hidden" role="listbox"></div>
+                  <div id="clientSelected" class="client-selected hidden"><span class="material-symbols-rounded">check_circle</span><span></span></div>
+                </div>
+              </div>
+
+              <div class="step inline-row">
+                <div>
+                  <div class="step-label"><span><span class="step-number">3</span>Quantidade de objetos</span><span class="optional">opcional</span></div>
+                  <div class="quantity-control">
+                    <button id="btnQtyMinus" class="quantity-btn" type="button" aria-label="Diminuir quantidade"><span class="material-symbols-rounded">remove</span></button>
+                    <div id="qtyValue" class="quantity-value">1</div>
+                    <button id="btnQtyPlus" class="quantity-btn" type="button" aria-label="Aumentar quantidade"><span class="material-symbols-rounded">add</span></button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="step">
+                <div class="step-label"><span><span class="step-number">4</span>Valor total do atendimento</span></div>
+                <div class="amount-panel" aria-live="polite">
+                  <div class="amount-caption">Valor a receber</div>
+                  <div id="amountDisplay" class="amount-display">R$ 0,00</div>
+                </div>
+                <div class="keypad" id="saleKeypad" aria-label="Teclado numérico">
+                  <button type="button" class="key" data-key="1">1</button>
+                  <button type="button" class="key" data-key="2">2</button>
+                  <button type="button" class="key" data-key="3">3</button>
+                  <button type="button" class="key" data-key="4">4</button>
+                  <button type="button" class="key" data-key="5">5</button>
+                  <button type="button" class="key" data-key="6">6</button>
+                  <button type="button" class="key" data-key="7">7</button>
+                  <button type="button" class="key" data-key="8">8</button>
+                  <button type="button" class="key" data-key="9">9</button>
+                  <button type="button" class="key utility" data-key="clear" aria-label="Limpar"><span class="material-symbols-rounded">delete_sweep</span></button>
+                  <button type="button" class="key" data-key="0">0</button>
+                  <button type="button" class="key utility" data-key="backspace" aria-label="Apagar último número"><span class="material-symbols-rounded">backspace</span></button>
+                </div>
+              </div>
+
+              <button id="btnCompleteSale" class="primary-action" type="button" disabled>
+                <span class="material-symbols-rounded">check_circle</span><span>Registrar recebimento</span>
+              </button>
+              <button id="btnOpenExpense" class="secondary-action" type="button">
+                <span class="material-symbols-rounded">remove_circle</span>Registrar despesa
+              </button>
+              <div id="saleStatus" class="status-box" role="status"></div>
+            </div>
+          </section>
+
+          <aside class="card quick-summary">
+            <div class="card-head">
+              <div><h3 class="card-title"><span class="material-symbols-rounded">monitoring</span>Hoje</h3><p class="card-subtitle" id="summaryDate"></p></div>
+            </div>
+            <div class="card-body">
+              <div class="summary-grid">
+                <div class="summary-item"><div class="summary-label">Receitas</div><div id="sideRevenue" class="summary-value positive">R$ 0,00</div></div>
+                <div class="summary-item"><div class="summary-label">Despesas</div><div id="sideExpense" class="summary-value negative">R$ 0,00</div></div>
+                <div class="summary-item wide"><div class="summary-label">Saldo operacional</div><div id="sideBalance" class="summary-value">R$ 0,00</div></div>
+              </div>
+              <div id="paymentBreakdown" class="payment-breakdown"></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="viewMovements" class="view-panel hidden">
+        <section class="card">
+          <div class="card-head">
+            <div><h3 class="card-title"><span class="material-symbols-rounded">receipt_long</span>Movimentos do dia</h3><p class="card-subtitle">Recebimentos e despesas registrados.</p></div>
+          </div>
+          <div class="card-body">
+            <div class="toolbar">
+              <button class="toolbar-btn" id="btnFilterAll" type="button"><span class="material-symbols-rounded">list</span>Todos</button>
+              <button class="toolbar-btn" id="btnFilterPixPending" type="button"><span class="material-symbols-rounded">schedule</span>Pix pendentes</button>
+              <button class="toolbar-btn" id="btnBatch" type="button"><span class="material-symbols-rounded">playlist_add</span>Lançar em lote</button>
+            </div>
+            <div id="entriesList" class="entries"></div>
+            <div id="movementStatus" class="status-box" role="status"></div>
+          </div>
+        </section>
+      </section>
+
+      <section id="viewClose" class="view-panel hidden">
+        <section class="card">
+          <div class="card-head">
+            <div><h3 class="card-title"><span class="material-symbols-rounded">fact_check</span>Fechamento do dia</h3><p class="card-subtitle">Movimento operacional e conferência financeira em etapas separadas.</p></div>
+          </div>
+          <div class="card-body">
+            <div class="close-grid">
+              <div class="close-box"><h4>Movimento operacional</h4><div id="closeOperationalTotal" class="close-total">R$ 0,00</div><div class="card-subtitle">Receitas menos despesas</div></div>
+              <div class="close-box"><h4>Pix aguardando conferência</h4><div id="closePixPending" class="close-total">R$ 0,00</div><div class="card-subtitle">Cobranças ainda não confirmadas</div></div>
+            </div>
+            <button id="btnOperationalClose" class="primary-action" type="button"><span class="material-symbols-rounded">lock</span>Fechar movimento operacional</button>
+
+            <div class="step">
+              <div class="step-label"><span>Conferência financeira</span></div>
+              <div class="field"><label for="cashCounted">Dinheiro contado no caixa</label><input id="cashCounted" type="text" inputmode="decimal" placeholder="0,00"></div>
+              <div class="field"><label for="pixConfirmedCounted">Pix efetivamente localizado na conta</label><input id="pixConfirmedCounted" type="text" inputmode="decimal" placeholder="0,00"></div>
+              <div class="field"><label for="reconciliationNotes">Observações</label><textarea id="reconciliationNotes" placeholder="Explique diferenças, pendências ou ajustes"></textarea></div>
+              <div id="reconciliationDifference" class="diff-result">Diferença: R$ 0,00</div>
+              <button id="btnReconcile" class="secondary-action" type="button"><span class="material-symbols-rounded">done_all</span>Salvar conferência financeira</button>
+            </div>
+            <div id="closeStatus" class="status-box" role="status"></div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="bottom-summary" aria-label="Resumo financeiro">
+      <div class="bottom-summary-inner">
+        <div class="bottom-metric"><span>Receitas</span><strong id="footerRevenue">R$ 0,00</strong></div>
+        <div class="bottom-metric"><span>Despesas</span><strong id="footerExpense">R$ 0,00</strong></div>
+        <div class="bottom-metric balance"><span>Saldo</span><strong id="footerBalance">R$ 0,00</strong></div>
+      </div>
+    </footer>
+  </div>
+
+  <div id="pixModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="pixModalTitle">
+    <section class="modal">
+      <header class="modal-head"><h3 id="pixModalTitle">Cobrança Pix</h3><button class="close-modal" type="button" data-close-modal="pixModal" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button></header>
+      <div class="modal-body">
+        <div id="pixModalAmount" class="pix-amount">R$ 0,00</div>
+        <div id="pixQr" class="qr-wrap" aria-label="QR Code Pix"></div>
+        <textarea id="pixCode" class="pix-code" readonly aria-label="Pix Copia e Cola"></textarea>
+        <div class="modal-actions">
+          <button id="btnCopyPix" class="secondary-action" type="button"><span class="material-symbols-rounded">content_copy</span>Copiar Pix</button>
+          <button id="btnSharePix" class="secondary-action" type="button"><span class="material-symbols-rounded">share</span>WhatsApp</button>
+          <button id="btnPixConfirmed" class="primary-action full" type="button"><span class="material-symbols-rounded">check_circle</span>Pix recebido</button>
+          <button id="btnPixPending" class="secondary-action full" type="button"><span class="material-symbols-rounded">schedule</span>Registrar como pendente</button>
+        </div>
+        <div id="pixStatus" class="status-box" role="status"></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="expenseModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
+    <section class="modal">
+      <header class="modal-head"><h3 id="expenseModalTitle">Nova despesa</h3><button class="close-modal" type="button" data-close-modal="expenseModal" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button></header>
+      <div class="modal-body">
+        <div class="field"><label for="expenseCategory">Categoria</label><select id="expenseCategory"><option value="">Selecione</option><option>Copa</option><option>Escritório</option><option>Taxi</option><option>Outros</option></select></div>
+        <div class="field"><label for="expenseDescription">Descrição</label><input id="expenseDescription" type="text" placeholder="Ex.: Material de limpeza"></div>
+        <div class="step">
+          <div class="amount-panel"><div class="amount-caption">Valor da despesa</div><div id="expenseAmountDisplay" class="amount-display">R$ 0,00</div></div>
+          <div class="keypad" id="expenseKeypad">
+            <button type="button" class="key" data-key="1">1</button><button type="button" class="key" data-key="2">2</button><button type="button" class="key" data-key="3">3</button>
+            <button type="button" class="key" data-key="4">4</button><button type="button" class="key" data-key="5">5</button><button type="button" class="key" data-key="6">6</button>
+            <button type="button" class="key" data-key="7">7</button><button type="button" class="key" data-key="8">8</button><button type="button" class="key" data-key="9">9</button>
+            <button type="button" class="key utility" data-key="clear"><span class="material-symbols-rounded">delete_sweep</span></button><button type="button" class="key" data-key="0">0</button><button type="button" class="key utility" data-key="backspace"><span class="material-symbols-rounded">backspace</span></button>
+          </div>
+        </div>
+        <button id="btnSaveExpense" class="danger-action" type="button"><span class="material-symbols-rounded">remove_circle</span>Registrar despesa</button>
+        <div id="expenseStatus" class="status-box" role="status"></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="batchModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="batchModalTitle">
+    <section class="modal">
+      <header class="modal-head"><h3 id="batchModalTitle">Lançamento em lote</h3><button class="close-modal" type="button" data-close-modal="batchModal" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button></header>
+      <div class="modal-body">
+        <p class="card-subtitle">Cole uma linha por atendimento no formato: cliente;valor;pagamento;objetos</p>
+        <div class="field"><label for="batchText">Lançamentos</label><textarea id="batchText" placeholder="Loja Raquel Moda;150,00;PIX;3&#10;Cliente de Balcão;50,00;Dinheiro;1"></textarea></div>
+        <button id="btnSaveBatch" class="primary-action" type="button"><span class="material-symbols-rounded">playlist_add_check</span>Validar e salvar lote</button>
+        <div id="batchStatus" class="status-box" role="status"></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="settingsModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+    <section class="modal">
+      <header class="modal-head"><h3 id="settingsModalTitle">Configuração da homologação</h3><button class="close-modal" type="button" data-close-modal="settingsModal" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button></header>
+      <div class="modal-body">
+        <div class="field"><label for="settingApiUrl">URL do novo Apps Script</label><input id="settingApiUrl" type="url" placeholder="Deixe vazio para usar dados locais"></div>
+        <div class="field"><label for="settingPixKey">Chave Pix</label><input id="settingPixKey" type="text" autocomplete="off" placeholder="CNPJ, telefone, e-mail ou chave aleatória"></div>
+        <div class="field"><label for="settingPixName">Nome do recebedor</label><input id="settingPixName" type="text" maxlength="25" placeholder="Até 25 caracteres"></div>
+        <div class="field"><label for="settingPixCity">Cidade</label><input id="settingPixCity" type="text" maxlength="15" placeholder="FORTALEZA"></div>
+        <button id="btnSaveSettings" class="primary-action" type="button"><span class="material-symbols-rounded">save</span>Salvar configurações</button>
+        <div id="settingsStatus" class="status-box" role="status"></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="loadingOverlay" class="loading-overlay hidden"><div class="loading-card"><span class="spinner"></span><span id="loadingText">Carregando...</span></div></div>
+
+  <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
+  <script src="/caixa-avista/app.js"></script>
+  <script src="/shared/ui/agf-ui.js"></script>
+  <script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/caixa-avista/sw.js').catch(() => {}));</script>
+</body>
+</html>
