@@ -17,7 +17,7 @@ function setupCaixaAvista() {
     spreadsheetUrl: ss.getUrl(),
     requiredProperties: [
       CFG.PIX_KEY_PROP, CFG.PIX_NAME_PROP, CFG.PIX_CITY_PROP,
-      'AGF_AUTH_JWT_SECRET', 'AGF_API_AUTH_MODE'
+      CFG.INTERNAL_SECRET_PROP, 'AGF_AUTH_JWT_SECRET', 'AGF_API_AUTH_MODE'
     ]
   };
 }
