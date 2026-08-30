@@ -2,7 +2,7 @@
 
 **Data:** 2026-08-29  
 **Branch:** `feat/crm-agenda-avulsa-fase1`  
-**Status:** base de dados e projeto Apps Script de homologação criados; conteúdo do backend ainda não publicado no projeto de teste.
+**Status:** backend da branch carregado no Apps Script de homologação; `AGF_SPREADSHEET_ID` confirmado apontando para a base sintética.
 
 ## 1. Conclusão prática
 
@@ -19,7 +19,10 @@ O ambiente possui:
 - responsáveis fictícios `Administrador QA` e `Vendedor QA`;
 - locais, funis, etapas, resultados, blocos e transições de teste;
 - `TITULO` já presente em `AGENDA_EXECUCAO`;
-- `APLICA_AVULSA` já presente em `CRM_TIPOS_ATIVIDADE`.
+- `APLICA_AVULSA` já presente em `CRM_TIPOS_ATIVIDADE`;
+- backend completo da branch enviado ao projeto de homologação via `clasp`;
+- Script Property `AGF_SPREADSHEET_ID` configurada somente no projeto de teste;
+- `op_ambienteAtual()` confirmado como `HOMOLOGACAO` e apontando para `AGF Agenda Fase 1 - Base HOMOLOG`.
 
 IDs e URLs dos artefatos de Drive não são versionados neste documento.
 
@@ -48,7 +51,7 @@ Isso é configuração exclusiva da base de teste. Nenhuma configuração produt
 
 ## 4. Separação da planilha
 
-O código existente já suporta troca de ambiente por Script Property:
+O código existente suporta troca de ambiente por Script Property:
 
 `AGF_SPREADSHEET_ID`
 
@@ -57,9 +60,29 @@ Regra prevista no backend:
 - propriedade ausente → planilha produtiva configurada no código legado;
 - propriedade presente → planilha indicada pela propriedade.
 
-No projeto Apps Script de homologação, essa propriedade deverá apontar exclusivamente para a planilha sintética criada nesta etapa.
+No projeto Apps Script de homologação, a propriedade foi configurada e validada.
 
-## 5. Proteção adicionada ao frontend
+Resultado do gate de segurança:
+
+- `ambiente`: `HOMOLOGACAO`;
+- `nomePlanilha`: `AGF Agenda Fase 1 - Base HOMOLOG`.
+
+O ID da planilha não é registrado neste documento.
+
+## 5. Backend carregado via clasp
+
+O projeto local foi conectado exclusivamente ao Apps Script de homologação por `.clasp.json` local, ignorado pelo Git.
+
+`clasp status` confirmou apenas os arquivos executáveis/manifesto como rastreados e manteve documentação `.md/.txt` fora do pacote.
+
+O envio foi concluído com:
+
+- `Pushed 25 files`;
+- `17_CRM_AGENDA_AVULSA_FASE1.js` incluído;
+- `appsscript.json` incluído;
+- nenhum deploy executado nesta etapa.
+
+## 6. Proteção adicionada ao frontend
 
 Foi corrigido um risco encontrado durante a preparação da homologação.
 
@@ -78,23 +101,24 @@ Commit relacionado:
 
 - `f9646d8772d221fdfa4fb3f8929df83b44336763` — `fix(crm): bloquear fallback de homologacao para producao`
 
-## 6. Blocker atual
+## 7. Gate atual
 
-O projeto Apps Script de homologação foi criado e o Drive consegue lê-lo como JSON de projeto.
+O bloqueio de acesso ao Apps Script foi superado com `clasp` autenticado.
 
-A tentativa de substituir o conteúdo do projeto pela API do Drive retornou:
+O próximo gate é preparar o CRM dentro da base sintética e auditar o resultado antes de qualquer publicação de Web App.
 
-`The drive.scripts scope is required to update Apps Script content.`
+Sequência controlada:
 
-Portanto, o carregamento do backend da branch precisa de uma destas opções:
+1. executar `setupCrmJornadaFase3()`;
+2. executar `setupCrmAgendaAvulsaFase1()`;
+3. executar `auditCrmJornadaFase3()`;
+4. executar `auditCrmAgendaAvulsaFase1Schema()`;
+5. executar `smokeTestCrmJornadaFase3()`;
+6. somente depois publicar o Web App de homologação.
 
-1. `clasp` autenticado com a conta Google correta; ou
-2. conexão com escopo `drive.scripts`; ou
-3. edição manual do projeto Apps Script, usando pacote completo — nunca trechos soltos.
+Não executar nesta etapa funções de migração de clientes, habilitação de overlay, sincronização externa ou qualquer rotina voltada a dados reais.
 
-O ambiente atual também não possui sessão `clasp` autenticada.
-
-## 7. O que já pode ser considerado fechado
+## 8. O que já pode ser considerado fechado
 
 - produção não foi alterada;
 - base de dados de homologação existe e foi auditada;
@@ -102,24 +126,25 @@ O ambiente atual também não possui sessão `clasp` autenticada.
 - schema de Agenda Fase 1 existe na base de teste;
 - tipos AVULSA de teste estão parametrizados;
 - projeto Apps Script separado existe;
+- backend da branch foi carregado no projeto de homologação;
+- `AGF_SPREADSHEET_ID` foi configurado no projeto de teste;
+- `op_ambienteAtual()` confirmou `HOMOLOGACAO`;
 - preview de homologação não pode mais cair silenciosamente no backend produtivo.
 
-## 8. Próximo gate
+## 9. Próximo gate após o setup
 
-Depois de carregar a branch no Apps Script de homologação:
+Depois dos setups e auditorias aprovados:
 
-1. definir `AGF_SPREADSHEET_ID` para a base sintética;
-2. executar/setup do CRM necessário no projeto de teste;
-3. publicar Web App de homologação;
-4. preencher `API_HOMOLOG` no frontend da branch;
-5. testar Cliente QA;
-6. testar Prospect QA;
-7. testar AVULSA;
-8. confirmar que AVULSA não grava `CRM_TRATATIVAS`, `CRM_INTERACOES` ou `CRM_EVENTOS`;
-9. validar permissões/escopo;
-10. reproduzir o risco legado `agendaWin` em atividade vinculada.
+1. publicar Web App de homologação;
+2. preencher `API_HOMOLOG` no frontend da branch;
+3. testar Cliente QA;
+4. testar Prospect QA;
+5. testar AVULSA;
+6. confirmar que AVULSA não grava `CRM_TRATATIVAS`, `CRM_INTERACOES` ou `CRM_EVENTOS`;
+7. validar permissões/escopo;
+8. reproduzir o risco legado `agendaWin` em atividade vinculada.
 
-## 9. Atenção sensível
+## 10. Atenção sensível
 
 Esta etapa envolve Script Properties, Apps Script, permissões e separação de ambientes.
 
