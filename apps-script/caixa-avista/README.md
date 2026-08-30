@@ -14,7 +14,7 @@ Backend novo e independente do caixa legado.
 ## Configuração inicial
 
 1. Crie um novo projeto Apps Script.
-2. Adicione `00_AGF_AUTH_GATE.js`, `Code.js` e `appsscript.json`.
+2. Adicione `00_AGF_AUTH_GATE.js`, os módulos numerados de `01_Config_Router.js` até `07_Validation_Utils.js` e `appsscript.json`.
 3. Execute `setupCaixaAvista()` manualmente uma vez.
 4. Autorize o acesso ao Google Sheets.
 5. Confira no log a URL da nova planilha criada.
