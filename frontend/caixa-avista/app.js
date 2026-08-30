@@ -6,6 +6,7 @@
     '/caixa-avista/app-core.js',
     '/caixa-avista/app-ui-shell.js',
     '/caixa-avista/app-client-keypad.js',
+    '/caixa-avista/app-pix-provider.js',
     '/caixa-avista/app-sales-pix.js',
     '/caixa-avista/app-movements.js',
     '/caixa-avista/app-summary-settings.js',
