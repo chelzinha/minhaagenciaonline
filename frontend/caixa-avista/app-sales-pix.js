@@ -55,7 +55,7 @@ async function beginPixSale(baseDraft) {
   } catch (error) {
     console.error('[CAIXA_AVISTA][PIX_CREATE]', error);
     showStatus(el.saleStatus, error.message || 'Não foi possível gerar a cobrança Pix.', 'error');
-    if (String(state.settings.pixProvider || 'auto').toLowerCase() === 'local') openModal('settingsModal');
+    if (!state.settings.pixKey || !state.settings.pixName || !state.settings.pixCity) openModal('settingsModal');
   } finally {
     setBusy(false);
   }
