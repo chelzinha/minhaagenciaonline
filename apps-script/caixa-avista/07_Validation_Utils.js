@@ -7,20 +7,27 @@ function validateEntryPayload_(payload) {
   if (!(amountCents > 0)) throw appError_('O valor deve ser maior que zero.', 'INVALID_AMOUNT');
 
   var draft = {
+    entryId: cleanText_(payload.entryId || payload.id),
     type: type, date: date, amountCents: amountCents,
     clientId: cleanText_(payload.clientId), clientName: cleanText_(payload.clientName),
     objectCount: Math.max(0, Math.min(999, parseInt(payload.objectCount, 10) || 0)),
     paymentMethod: cleanText_(payload.paymentMethod), pixStatus: cleanText_(payload.pixStatus).toUpperCase(),
+    pixTxid: cleanText_(payload.pixTxid || payload.txid), pixProvider: cleanText_(payload.pixProvider || payload.provider),
     expenseCategory: cleanText_(payload.expenseCategory), description: cleanText_(payload.description)
   };
+
+  if (draft.entryId && draft.entryId.length > 100) throw appError_('Identificador do lançamento inválido.', 'INVALID_ENTRY_ID');
+  if (draft.pixTxid && !/^[A-Za-z0-9*]{1,64}$/.test(draft.pixTxid)) throw appError_('TXID Pix inválido.', 'INVALID_PIX_TXID');
 
   if (type === 'RECEITA') {
     draft.clientName = validateClientName_(draft.clientName);
     if (CFG.PAYMENT_OPTIONS.indexOf(draft.paymentMethod) < 0) throw appError_('Forma de pagamento inválida.', 'INVALID_PAYMENT');
     if (draft.paymentMethod === 'PIX') {
-      if (['PENDENTE', 'CONFIRMADO'].indexOf(draft.pixStatus) < 0) throw appError_('Informe se o Pix está pendente ou confirmado.', 'INVALID_PIX_STATUS');
+      if (CFG.PIX_STATUSES.indexOf(draft.pixStatus) < 0) throw appError_('Status Pix inválido.', 'INVALID_PIX_STATUS');
     } else {
       draft.pixStatus = '';
+      draft.pixTxid = '';
+      draft.pixProvider = '';
     }
     if (!draft.description) draft.description = 'Atendimento de balcão - ' + draft.paymentMethod;
     if (!(draft.objectCount > 0)) draft.objectCount = 1;
@@ -29,6 +36,8 @@ function validateEntryPayload_(payload) {
     if (!draft.description) throw appError_('Informe a descrição da despesa.', 'DESCRIPTION_REQUIRED');
     draft.paymentMethod = 'Dinheiro';
     draft.pixStatus = '';
+    draft.pixTxid = '';
+    draft.pixProvider = '';
     draft.clientName = CFG.DEFAULT_SUPPLIER;
     draft.objectCount = 0;
   }
@@ -80,6 +89,36 @@ function parseRequest_(e) {
   if (!e || !e.postData || !e.postData.contents) throw appError_('Corpo da requisição ausente.', 'EMPTY_REQUEST');
   try { return JSON.parse(e.postData.contents); }
   catch (error) { throw appError_('JSON inválido.', 'INVALID_JSON'); }
+}
+
+function verifyInternalRequest_(request) {
+  var timestamp = cleanText_(request.timestamp);
+  var signature = cleanText_(request.signature);
+  var payload = request.payload;
+  if (!timestamp || !signature || !payload || typeof payload !== 'object') {
+    throw appError_('Assinatura interna ausente.', 'INTERNAL_AUTH_REQUIRED');
+  }
+  var timestampNumber = Number(timestamp);
+  if (!isFinite(timestampNumber) || Math.abs(Date.now() - timestampNumber) > 5 * 60 * 1000) {
+    throw appError_('Assinatura interna expirada.', 'INTERNAL_AUTH_EXPIRED');
+  }
+  var secret = PropertiesService.getScriptProperties().getProperty(CFG.INTERNAL_SECRET_PROP);
+  if (!secret) throw appError_('CAIXA_INTERNAL_SECRET não configurado.', 'INTERNAL_SECRET_REQUIRED');
+  var canonical = timestamp + '.' + JSON.stringify(payload);
+  var expected = Utilities.base64Encode(Utilities.computeHmacSha256Signature(canonical, secret));
+  if (!timingSafeEqual_(expected, signature)) throw appError_('Assinatura interna inválida.', 'INTERNAL_AUTH_INVALID');
+  return true;
+}
+
+function timingSafeEqual_(a, b) {
+  var left = String(a || '');
+  var right = String(b || '');
+  var diff = left.length ^ right.length;
+  var max = Math.max(left.length, right.length);
+  for (var i = 0; i < max; i += 1) {
+    diff |= (left.charCodeAt(i % Math.max(1, left.length)) || 0) ^ (right.charCodeAt(i % Math.max(1, right.length)) || 0);
+  }
+  return diff === 0;
 }
 
 function withLock_(callback) {
