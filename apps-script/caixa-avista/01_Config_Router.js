@@ -10,6 +10,7 @@ var CFG = {
   PIX_KEY_PROP: 'CAIXA_AVISTA_PIX_KEY',
   PIX_NAME_PROP: 'CAIXA_AVISTA_PIX_NAME',
   PIX_CITY_PROP: 'CAIXA_AVISTA_PIX_CITY',
+  INTERNAL_SECRET_PROP: 'CAIXA_INTERNAL_SECRET',
   ACCOUNT_CASH_PROP: 'CAIXA_AVISTA_ACCOUNT_CASH',
   ACCOUNT_PIX_PROP: 'CAIXA_AVISTA_ACCOUNT_PIX',
   ACCOUNT_CARD_PROP: 'CAIXA_AVISTA_ACCOUNT_CARD',
@@ -29,7 +30,8 @@ var CFG = {
   ENTRY_HEADERS: [
     'entry_id', 'date_iso', 'created_at', 'type', 'client_id', 'client_name', 'object_count',
     'amount_cents', 'payment_method', 'pix_status', 'expense_category', 'description',
-    'operator_id', 'operator_name', 'status', 'deleted_at', 'deleted_by', 'closure_id'
+    'operator_id', 'operator_name', 'status', 'deleted_at', 'deleted_by', 'closure_id',
+    'pix_txid', 'pix_e2eid', 'pix_received_at', 'pix_provider'
   ],
   CLOSURE_HEADERS: [
     'closure_id', 'date_iso', 'created_at', 'created_by', 'status', 'revenue_cents',
@@ -39,6 +41,7 @@ var CFG = {
   ],
   EXPORT_CONTROL_HEADERS: ['closure_id', 'entry_id', 'mode', 'exported_at'],
   PAYMENT_OPTIONS: ['Dinheiro', 'PIX', 'Cartão de débito', 'Cartão de crédito'],
+  PIX_STATUSES: ['CRIANDO', 'ATIVA', 'PENDENTE', 'CONFIRMADO', 'EXPIRADO', 'CANCELADO', 'ERRO'],
   EXPENSE_CATEGORIES: ['Copa', 'Escritório', 'Taxi', 'Outros'],
   REVENUE_CATEGORY: '1.3.3. Balcao (Shopping Metro)',
   EXPENSE_CATEGORY_MAP: {
@@ -82,6 +85,11 @@ function doPost(e) {
   try {
     var request = parseRequest_(e);
     var action = cleanText_(request.action);
+
+    if (action === 'internalPixWebhook') {
+      return jsonOutput_(internalPixWebhook_(request));
+    }
+
     var gate = agfGateCheck_(request.st, 'POST ' + action);
     if (!gate.allowed) return jsonOutput_(agfGateDeniedResponse_());
     var user = normalizeUser_(gate.user);
@@ -92,6 +100,7 @@ function doPost(e) {
       case 'saveEntry': return jsonOutput_(saveEntry_(request.payload, user));
       case 'saveBatch': return jsonOutput_(saveBatch_(request.payloads, user));
       case 'updatePixStatus': return jsonOutput_(updatePixStatus_(request.entryId, request.pixStatus, request.date, user));
+      case 'syncPixPayment': return jsonOutput_(syncPixPayment_(request.payload, request.date, user));
       case 'deleteEntry': return jsonOutput_(deleteEntry_(request.entryId, request.date, user));
       case 'summary': return jsonOutput_(summaryResponse_(normalizeDate_(request.date || todayIso_())));
       case 'closeOperational': return jsonOutput_(closeOperational_(request.date, user));
