@@ -16,12 +16,16 @@ function renderSummary() {
 
 function renderClose() {
   const summary = state.summary || emptySummary();
+  const hasEntries = ((summary.revenueCount || 0) + (summary.expenseCount || 0)) > 0;
+  const hasPendingPix = (summary.pixPendingCents || 0) > 0;
   el.closeOperationalTotal.textContent = formatCents(summary.balanceCents || 0);
   el.closePixPending.textContent = formatCents(summary.pixPendingCents || 0);
-  el.btnOperationalClose.disabled = Boolean(state.operationalClosure) || ((summary.revenueCount || 0) + (summary.expenseCount || 0) === 0);
+  el.btnOperationalClose.disabled = Boolean(state.operationalClosure) || !hasEntries || hasPendingPix;
   el.btnOperationalClose.innerHTML = state.operationalClosure
     ? '<span class="material-symbols-rounded">lock</span>Movimento já fechado'
-    : '<span class="material-symbols-rounded">lock</span>Fechar movimento operacional';
+    : (hasPendingPix
+      ? '<span class="material-symbols-rounded">hourglass_top</span>Aguardando confirmação Pix'
+      : '<span class="material-symbols-rounded">lock</span>Fechar movimento operacional');
   updateReconciliationDifference();
   updateActionButton();
 }
@@ -29,10 +33,11 @@ function renderClose() {
 async function operationalClose() {
   if (state.operationalClosure) return;
   const pending = state.summary.pixPendingCents || 0;
-  const message = pending > 0
-    ? `Existem ${formatCents(pending)} em Pix pendentes. O fechamento operacional pode continuar e as pendências ficarão registradas. Continuar?`
-    : 'Fechar o movimento operacional de hoje? Depois disso os lançamentos não poderão ser alterados.';
-  if (!window.confirm(message)) return;
+  if (pending > 0) {
+    showStatus(el.closeStatus, `Ainda existem ${formatCents(pending)} em cobranças Pix aguardando confirmação.`, 'warning');
+    return;
+  }
+  if (!window.confirm('Fechar o movimento operacional de hoje? Depois disso os lançamentos não poderão ser alterados.')) return;
 
   setBusy(true, 'Fechando movimento...');
   try {
@@ -115,6 +120,7 @@ function fillSettingsForm() {
 
 async function saveSettings() {
   const settings = {
+    ...state.settings,
     apiUrl: el.settingApiUrl.value.trim(),
     pixKey: el.settingPixKey.value.trim(),
     pixName: cleanDisplayName(el.settingPixName.value).toUpperCase(),
