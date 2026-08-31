@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="agf-auth-pending">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Simulador de Remuneração | AGF José Bonifácio</title>
+  <meta name="description" content="Simulador da tabela de remuneração R2 dos Correios: degrau, fator, ajuste e remuneração." />
+  <meta name="theme-color" content="#00416B" />
+
+  <meta property="og:title" content="Simulador de Remuneração | AGF José Bonifácio" />
+  <meta property="og:description" content="Compare cenários de faturamento e veja o degrau, o fator e o ajuste aplicados." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://minhaagenciaonline.com.br/remuneracao/" />
+
+  <link rel="icon" href="/assets/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/remuneracao/remuneracao.css?v=1" />
+  <link rel="stylesheet" href="/shared/ui/agf-ui.css" />
+  <script src="/shared/auth/agf-auth-config.js"></script>
+  <script src="/shared/auth/agf-auth-client.js"></script>
+  <script>window.AGF_ACCESS={roles:['admin']};</script>
+  <script src="/shared/auth/agf-route-guard.js"></script>
+</head>
+<body>
+  <div class="dg-page">
+
+    <header class="dg-header agf-standard-topbar">
+      <div class="dg-container dg-header-inner agf-standard-topbar-inner">
+        <a class="dg-brand agf-standard-brand" href="/" aria-label="Voltar para início">
+          <span class="logo-circle agf-standard-brand-tile">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" aria-hidden="true"><path fill="#fed200" d="M 7.38 11.98 L 16.57 11.98 L 15.85 13.07 L 14.27 15 L 13.07 16.57 L 11.98 18.02 L 12.22 18.51 L 13.91 20.68 L 16.57 24.07 L 16.57 24.32 L 7.62 24.32 L 6.65 23.83 L 5.32 22.14 L 3.99 20.45 L 2.42 18.39 L 2.54 17.66 L 3.87 15.97 L 5.32 14.15 L 6.53 12.58 L 7.14 12.1 Z"/><path fill="#007cc3" d="M 13.67 5.68 L 22.5 5.68 L 23.47 6.05 L 24.43 7.14 L 26.01 9.2 L 27.34 10.89 L 27.82 11.49 L 27.82 12.22 L 26.73 13.67 L 25.4 15.36 L 23.71 17.54 L 22.86 18.02 L 13.79 18.02 L 14.27 17.18 L 15.48 15.73 L 16.7 14.15 L 18.02 12.46 L 18.39 11.86 L 16.93 10.04 L 15.73 8.47 L 14.39 6.77 Z"/><path fill="#003a66" d="M 13.67 5.68 L 21.53 5.68 L 22.14 6.17 L 22.26 7.02 L 21.29 8.35 L 19.96 10.04 L 18.63 11.73 L 18.27 11.73 L 16.7 9.68 L 15.24 7.86 L 13.67 5.8 Z"/><path fill="#d69e00" d="M 11.73 18.14 L 12.34 18.63 L 13.79 20.57 L 15.36 22.5 L 16.57 24.07 L 16.57 24.32 L 8.71 24.32 L 8.11 23.71 L 8.11 22.98 L 8.83 21.89 L 10.28 20.08 Z"/></svg>
+          </span>
+          <span class="agf-standard-copy"><strong>Simulador de Remuneração</strong><small>AGF JOSÉ BONIFÁCIO</small></span>
+        </a>
+        <nav class="dg-header-actions agf-standard-actions" aria-label="Ações rápidas">
+          <button class="dg-header-link agf-standard-action" id="btnReset" type="button">
+            <span class="material-symbols-rounded" aria-hidden="true">restart_alt</span><span>Restaurar</span>
+          </button>
+          <a class="dg-header-link agf-standard-action" href="/"><span class="material-symbols-rounded" aria-hidden="true">home</span><span>Início</span></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="dg-main">
+      <div class="dg-container">
+
+        <section class="dg-intro">
+          <div class="dg-pill">
+            <span class="material-symbols-rounded" aria-hidden="true">query_stats</span>
+            Tabela R2 · Anexo 3 do contrato
+          </div>
+          <h1 class="dg-title">Vale a pena segurar faturamento para não mudar de degrau?</h1>
+          <p class="dg-answer">
+            <strong>Não.</strong> A escada da remuneração é contínua: o fator cai ao subir de degrau, mas o ajuste sobe
+            e compensa. Faturar mais sempre aumenta a remuneração total. A prova está na seção 4.
+          </p>
+        </section>
+
+        <!-- 1. PREMISSA -->
+        <section class="dg-card" aria-labelledby="sec1">
+          <div class="dg-card-head">
+            <span class="dg-step">1</span>
+            <h2 class="dg-card-title" id="sec1">Premissa</h2>
+          </div>
+          <div class="dg-field-row">
+            <label class="dg-field" for="ppcc">
+              <span class="dg-field-label">Valor do PPCC</span>
+              <div class="dg-input-wrap">
+                <span class="dg-prefix">R$</span>
+                <input id="ppcc" class="dg-input" type="text" inputmode="decimal" value="3,85" aria-describedby="ppccHelp" />
+              </div>
+            </label>
+            <p class="dg-help" id="ppccHelp">
+              Primeiro Porte da Carta Comercial. É a régua que converte os degraus em reais.
+              Valor deduzido dos relatórios: R$ 3,70 até março e R$ 3,85 de abril de 2026 em diante.
+            </p>
+          </div>
+        </section>
+
+        <!-- 2. CENARIOS -->
+        <section class="dg-card" aria-labelledby="sec2">
+          <div class="dg-card-head">
+            <span class="dg-step">2</span>
+            <h2 class="dg-card-title" id="sec2">Cenários</h2>
+          </div>
+          <p class="dg-card-sub">Informe dois cenários de faturamento por grupo. A linha de diferença mostra quanto rende cada real adicional.</p>
+
+          <div class="dg-groups" id="grupos"><!-- render por JS --></div>
+        </section>
+
+        <!-- 3. E SE FATURAR MAIS -->
+        <section class="dg-card" aria-labelledby="sec3">
+          <div class="dg-card-head">
+            <span class="dg-step">3</span>
+            <h2 class="dg-card-title" id="sec3">E se faturar mais?</h2>
+          </div>
+          <p class="dg-card-sub">Aplicado ao <strong>cenário A da Mensageria</strong>. A coluna de ganho nunca fica negativa.</p>
+          <div class="dg-table-wrap">
+            <table class="dg-table" id="tblMais">
+              <thead>
+                <tr>
+                  <th>Cenário</th><th class="num">Faturamento</th><th class="ctr">Degrau</th>
+                  <th class="num">Fator</th><th class="num">Remuneração</th><th class="num">Ganho</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 4. CONTINUIDADE -->
+        <section class="dg-card" aria-labelledby="sec4">
+          <div class="dg-card-head">
+            <span class="dg-step">4</span>
+            <h2 class="dg-card-title" id="sec4">Prova de continuidade</h2>
+          </div>
+          <p class="dg-card-sub">
+            No valor exato do teto de cada degrau, as duas fórmulas do contrato dão o mesmo resultado.
+            Diferenças de até R$ 2,00 são arredondamento: o Anexo 3 informa o ajuste em PPCC inteiro.
+          </p>
+          <div class="dg-seg" role="tablist" aria-label="Grupo">
+            <button class="dg-seg-btn is-active" data-grupo="G1" role="tab" aria-selected="true">Mensageria</button>
+            <button class="dg-seg-btn" data-grupo="G2" role="tab" aria-selected="false">Encomenda</button>
+          </div>
+          <div class="dg-table-wrap">
+            <table class="dg-table" id="tblCont">
+              <thead>
+                <tr>
+                  <th>Virada</th><th class="num">Teto do degrau</th>
+                  <th class="num">Fórmula do menor</th><th class="num">Fórmula do maior</th>
+                  <th class="num">Diferença</th><th class="ctr">Situação</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p class="dg-note" id="contResumo"></p>
+        </section>
+
+        <!-- 5. CURVA -->
+        <section class="dg-card" aria-labelledby="sec5">
+          <div class="dg-card-head">
+            <span class="dg-step">5</span>
+            <h2 class="dg-card-title" id="sec5">A curva</h2>
+          </div>
+          <p class="dg-card-sub">Remuneração conforme o faturamento. A linha sobe sem interrupção; o que muda é a inclinação.</p>
+          <div class="dg-chart" id="chart" role="img" aria-label="Gráfico de remuneração por faturamento"></div>
+          <p class="dg-note">O ponto azul marca o cenário A do grupo selecionado na seção 4.</p>
+        </section>
+
+        <!-- TABELA DE FAIXAS -->
+        <section class="dg-card" aria-labelledby="sec6">
+          <div class="dg-card-head">
+            <span class="material-symbols-rounded dg-head-icon" aria-hidden="true">table_view</span>
+            <h2 class="dg-card-title" id="sec6">Degraus do grupo selecionado</h2>
+          </div>
+          <div class="dg-table-wrap">
+            <table class="dg-table" id="tblFaixas">
+              <thead>
+                <tr>
+                  <th class="ctr">Degrau</th><th class="num">De (R$)</th><th class="num">Até (R$)</th>
+                  <th class="num">Fator</th><th class="num">Ajuste (R$)</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <footer class="dg-foot">
+          Percentuais, faixas e ajustes do <strong>Anexo 3 do Contrato de Franquia Postal, AGF Tipo 12, vigência 17/11/2025</strong>.
+          O valor do PPCC não consta do relatório da ECT: é deduzido dividindo o ajuste em reais pelo ajuste em PPCC da faixa aplicada.
+          Cálculo conferido contra os relatórios de 01 a 07/2026, nos 14 blocos de postagem, sem divergência.
+        </footer>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="/remuneracao/remuneracao.js?v=1"></script>
+</body>
+</html>
