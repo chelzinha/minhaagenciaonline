@@ -5,10 +5,10 @@ function v2BuildSummary_(env,date,unitId) {
   entries.forEach(function(e){
     if (e.type==='DESPESA') { s.expenseCents+=e.amountCents; s.expenseCount++; if (e.paymentId==='DINHEIRO') s.cashExpenseCents+=e.amountCents; }
     else {
-      if (e.paymentId==='PIX' && e.pixStatus!=='CONFIRMADO') { s.pixPendingCents+=e.amountCents; return; }
+      if (e.paymentContaAzulMethod === 'PIX_PAGAMENTO_INSTANTANEO' && e.pixStatus !== 'CONFIRMADO') { s.pixPendingCents+=e.amountCents; return; }
       s.revenueCents+=e.amountCents; s.revenueCount++; s.byPayment[e.paymentId]=(s.byPayment[e.paymentId]||0)+e.amountCents; s.countByPayment[e.paymentId]=(s.countByPayment[e.paymentId]||0)+1;
       if (e.paymentId==='DINHEIRO') s.cashRevenueCents+=e.amountCents;
-      if (e.paymentId==='PIX') s.pixConfirmedCents+=e.amountCents;
+      if (e.paymentContaAzulMethod === 'PIX_PAGAMENTO_INSTANTANEO') s.pixConfirmedCents += e.amountCents;
     }
   });
   withdrawals.forEach(function(w){ s.withdrawalsCents += w.amountCents; });
@@ -131,7 +131,7 @@ function v2SyncPix_(payload) {
   var rows=env.entries.getRange(2,1,last-1,CAIXA_V2_CFG.HEADERS.ENTRIES.length).getValues(),index=-1;
   rows.forEach(function(row,i){if((payload.entryId&&String(row[0])===String(payload.entryId))||(payload.txid&&String(row[28])===String(payload.txid)))index=i;});
   if(index<0)throw appError_('Lançamento Pix não encontrado.','ENTRY_NOT_FOUND');
-  var row=rows[index]; if(String(row[15])!=='PIX')throw appError_('O lançamento não é Pix.','NOT_PIX');
+  var row=rows[index]; if (String(row[17]) !== 'PIX_PAGAMENTO_INSTANTANEO')throw appError_('O lançamento não é Pix.','NOT_PIX');
   var received=Math.round(Number(payload.amountCents||0)); if(String(payload.status).toUpperCase()==='CONFIRMADO'&&received>0&&received!==Number(row[14]))throw appError_('Valor Pix divergente.','PIX_AMOUNT_MISMATCH');
   row[27]=String(payload.status||'').toUpperCase(); if(payload.txid)row[28]=payload.txid;if(payload.e2eid)row[29]=payload.e2eid;if(payload.receivedAt)row[30]=payload.receivedAt;if(payload.provider)row[31]=payload.provider;
   env.entries.getRange(index+2,1,1,row.length).setValues([row]);

@@ -13,7 +13,8 @@ function v2ContaAzulPayload_(entry) {
   var unit=v2ReadObjects_(env.units,CAIXA_V2_CFG.HEADERS.UNITS).filter(function(x){return String(x.unit_id)===entry.unitId;})[0]||{};
   var contactId=entry.type==='RECEITA'?String(unit.default_revenue_contact_ca_id||''):String(unit.default_expense_contact_ca_id||'');
   var value=Number(entry.amountCents||0)/100;
-  var body={data_competencia:entry.date,valor:value,observacao:'Caixa à Vista | '+entry.unitId+' | '+entry.id,descricao:entry.description||entry.categoryContaAzulName||'Lançamento de caixa',contato:contactId,conta_financeira:entry.accountContaAzulId,rateio:[{id_categoria:entry.categoryContaAzulId,valor:value,rateio_centro_custo:[{id_centro_custo:entry.costCenterContaAzulId,valor:value}]}],condicao_pagamento:{parcelas:[{descricao:entry.description||'Lançamento de caixa',data_vencimento:entry.date,nota:'Baixa manual pelo financeiro. Forma informada: '+entry.paymentName,conta_financeira:entry.accountContaAzulId,detalhe_valor:{multa:0,juros:0,valor_bruto:value,valor_liquido:value,desconto:0,taxa:0},metodo_pagamento:entry.paymentContaAzulMethod}]}};
+  var descricaoContaAzul=v2ContaAzulDescricao_(entry,unit);
+  var body={data_competencia:entry.date,valor:value,observacao:'Caixa à Vista | '+descricaoContaAzul+' | ID: '+entry.id,descricao:descricaoContaAzul,contato:contactId,conta_financeira:entry.accountContaAzulId,rateio:[{id_categoria:entry.categoryContaAzulId,valor:value,rateio_centro_custo:[{id_centro_custo:entry.costCenterContaAzulId,valor:value}]}],condicao_pagamento:{parcelas:[{descricao:descricaoContaAzul,data_vencimento:entry.date,nota:'Baixa manual pelo financeiro. Forma informada: '+entry.paymentName,conta_financeira:entry.accountContaAzulId,detalhe_valor:{multa:0,juros:0,valor_bruto:value,valor_liquido:value,desconto:0,taxa:0},metodo_pagamento:entry.paymentContaAzulMethod}]}};
   return {ready:Boolean(contactId&&entry.accountContaAzulId&&entry.categoryContaAzulId&&entry.costCenterContaAzulId&&entry.paymentContaAzulMethod),body:body};
 }
 
@@ -117,19 +118,572 @@ function contaAzulExchangeCodeV2(code) {
 }
 
 function syncContaAzulLibraryV2() {
-  var env=v2Environment_(),now=new Date();
-  v2SyncCaSheet_(env.caCategories,CAIXA_V2_CFG.HEADERS.CA_CATEGORIES,v2GetPaged_('/v1/categorias'),function(x){return [x.id,x.codigo||'',x.nome||'',x.tipo||'',x.ativo!==false,now];});
-  v2SyncCaSheet_(env.caCostCenters,CAIXA_V2_CFG.HEADERS.CA_COST_CENTERS,v2GetPaged_('/v1/centro-de-custo'),function(x){return [x.id,x.codigo||'',x.nome||'',x.ativo!==false,now];});
-  v2SyncCaSheet_(env.caAccounts,CAIXA_V2_CFG.HEADERS.CA_ACCOUNTS,v2GetPaged_('/v1/conta-financeira'),function(x){return [x.id,x.nome||'',x.tipo||'',x.ativo!==false,now];});
-  return {ok:true,syncedAt:now.toISOString()};
+  var env = v2Environment_();
+  var now = new Date();
+
+  var categories = v2GetPaged_('/v1/categorias')
+    .filter(v2ContaAzulItemAtivo_);
+
+  var costCenters = v2GetPaged_('/v1/centro-de-custo')
+    .filter(v2ContaAzulItemAtivo_);
+
+  var accounts = v2GetPaged_('/v1/conta-financeira')
+    .filter(v2ContaAzulItemAtivo_);
+
+  v2SyncCaSheet_(
+    env.caCategories,
+    CAIXA_V2_CFG.HEADERS.CA_CATEGORIES,
+    categories,
+    function (x) {
+      return [
+        x.id,
+        x.codigo || '',
+        x.nome || '',
+        x.tipo || '',
+        x.ativo !== false,
+        now
+      ];
+    }
+  );
+
+  v2SyncCaSheet_(
+    env.caCostCenters,
+    CAIXA_V2_CFG.HEADERS.CA_COST_CENTERS,
+    costCenters,
+    function (x) {
+      return [
+        x.id,
+        x.codigo || '',
+        x.nome || '',
+        x.ativo !== false,
+        now
+      ];
+    }
+  );
+
+  v2SyncCaSheet_(
+    env.caAccounts,
+    CAIXA_V2_CFG.HEADERS.CA_ACCOUNTS,
+    accounts,
+    function (x) {
+      return [
+        x.id,
+        x.nome || '',
+        x.tipo || '',
+        x.ativo !== false,
+        now
+      ];
+    }
+  );
+
+  return {
+    ok: true,
+    categorias: categories.length,
+    centrosCusto: costCenters.length,
+    contasFinanceiras: accounts.length,
+    syncedAt: now.toISOString()
+  };
+}
+
+function v2ContaAzulItemAtivo_(item) {
+  return !item || item.ativo !== false;
 }
 
 function v2GetPaged_(path) {
-  var response=v2ContaAzulFetch_(path,{method:'get',muteHttpExceptions:true});if(response.getResponseCode()<200||response.getResponseCode()>=300)throw new Error('Falha ao sincronizar '+path+': '+response.getContentText());
-  var data=JSON.parse(response.getContentText()||'[]');return Array.isArray(data)?data:(data.itens||data.items||data.data||[]);
+  var page = 1;
+  var pageSize = 100;
+  var maxPages = 100;
+  var all = [];
+  var seen = {};
+
+  while (page <= maxPages) {
+    var separator = path.indexOf('?') >= 0 ? '&' : '?';
+
+    var pagedPath =
+      path +
+      separator +
+      'pagina=' + page +
+      '&tamanho_pagina=' + pageSize;
+
+    var response = v2ContaAzulFetch_(pagedPath, {
+      method: 'get',
+      muteHttpExceptions: true
+    });
+
+    var code = response.getResponseCode();
+
+    if (code < 200 || code >= 300) {
+      throw new Error(
+        'Falha ao sincronizar ' +
+        pagedPath +
+        ': HTTP ' +
+        code +
+        ' ' +
+        response.getContentText()
+      );
+    }
+
+    var data = JSON.parse(response.getContentText() || '[]');
+
+    var items = Array.isArray(data)
+      ? data
+      : (
+          data.itens ||
+          data.items ||
+          data.data ||
+          []
+        );
+
+    if (!Array.isArray(items)) {
+      items = [];
+    }
+
+    var added = 0;
+
+    items.forEach(function (item) {
+      var key = String(
+        item && item.id
+          ? item.id
+          : JSON.stringify(item)
+      );
+
+      if (!seen[key]) {
+        seen[key] = true;
+        all.push(item);
+        added += 1;
+      }
+    });
+
+    var total = Number(
+      data.itens_totais ||
+      data.total_itens ||
+      data.total_items ||
+      0
+    );
+
+    if (total > 0 && all.length >= total) {
+      break;
+    }
+
+    if (items.length < pageSize || added === 0) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return all;
 }
 
 function v2SyncCaSheet_(sheet,headers,items,mapper) {
   if(sheet.getLastRow()>1)sheet.getRange(2,1,sheet.getLastRow()-1,headers.length).clearContent();
   var rows=items.map(mapper);if(rows.length)sheet.getRange(2,1,rows.length,headers.length).setValues(rows);
+}
+
+
+function vincularContatosPadraoContaAzulV2() {
+  var env = v2Environment_();
+  var now = new Date();
+
+  var configuracoes = [
+    {
+      unitId: 'AGF',
+      perfil: 'Cliente',
+      campoUnidade: 'default_revenue_contact_ca_id',
+      nome: 'FATURAMENTO BALCÃO AGF À VISTA'
+    },
+    {
+      unitId: 'SHOPPING_METRO',
+      perfil: 'Cliente',
+      campoUnidade: 'default_revenue_contact_ca_id',
+      nome: 'FATURAMENTO METRÔ À VISTA'
+    },
+    {
+      unitId: 'AGF',
+      perfil: 'Fornecedor',
+      campoUnidade: 'default_expense_contact_ca_id',
+      nome: 'DESPESAS BALCÃO AGF'
+    },
+    {
+      unitId: 'SHOPPING_METRO',
+      perfil: 'Fornecedor',
+      campoUnidade: 'default_expense_contact_ca_id',
+      nome: 'DESPESAS METRÔ'
+    }
+  ];
+
+  var encontrados = [];
+  var ausentes = [];
+
+  configuracoes.forEach(function(config) {
+    var path =
+      '/v1/pessoas' +
+      '?pagina=1' +
+      '&tamanho_pagina=100' +
+      '&tipo_perfil=' + encodeURIComponent(config.perfil) +
+      '&com_endereco=false' +
+      '&busca=' + encodeURIComponent(config.nome);
+
+    var response = v2ContaAzulFetch_(path, {
+      method: 'get',
+      muteHttpExceptions: true
+    });
+
+    var code = response.getResponseCode();
+
+    if (code < 200 || code >= 300) {
+      throw new Error(
+        'Erro ao procurar "' +
+        config.nome +
+        '": HTTP ' +
+        code +
+        ' ' +
+        response.getContentText()
+      );
+    }
+
+    var data = JSON.parse(
+      response.getContentText() || '{}'
+    );
+
+    var items = Array.isArray(data)
+      ? data
+      : (
+          data.items ||
+          data.itens ||
+          data.data ||
+          []
+        );
+
+    var nomeEsperado = v2Normalize_(config.nome);
+
+    var contato = items.filter(function(item) {
+      var nomeItem = String(
+        item.nome ||
+        item.nome_empresa ||
+        item.nome_fantasia ||
+        ''
+      );
+
+      return (
+        v2Normalize_(nomeItem) === nomeEsperado &&
+        item.ativo !== false
+      );
+    })[0];
+
+    if (!contato) {
+      ausentes.push({
+        nome: config.nome,
+        perfil: config.perfil
+      });
+
+      return;
+    }
+
+    var id = String(
+      contato.id ||
+      contato.uuid ||
+      ''
+    ).trim();
+
+    if (!id) {
+      ausentes.push({
+        nome: config.nome,
+        perfil: config.perfil,
+        motivo: 'Cadastro encontrado sem UUID.'
+      });
+
+      return;
+    }
+
+    encontrados.push({
+      unitId: config.unitId,
+      campoUnidade: config.campoUnidade,
+      id: id,
+      nome: config.nome,
+      documento: String(
+        contato.documento || ''
+      ),
+      perfil: config.perfil
+    });
+  });
+
+  if (ausentes.length) {
+    return {
+      ok: false,
+      mensagem:
+        'Alguns contatos não foram encontrados no Conta Azul.',
+      encontrados: encontrados,
+      ausentes: ausentes
+    };
+  }
+
+  var headersContatos =
+    CAIXA_V2_CFG.HEADERS.CA_CONTACTS;
+
+  if (env.caContacts.getLastRow() > 1) {
+    env.caContacts
+      .getRange(
+        2,
+        1,
+        env.caContacts.getLastRow() - 1,
+        headersContatos.length
+      )
+      .clearContent();
+  }
+
+  var linhasContatos = encontrados.map(function(item) {
+    return [
+      item.id,
+      item.nome,
+      item.documento,
+      item.perfil,
+      true,
+      now
+    ];
+  });
+
+  env.caContacts
+    .getRange(
+      2,
+      1,
+      linhasContatos.length,
+      headersContatos.length
+    )
+    .setValues(linhasContatos);
+
+  var headersUnidades =
+    CAIXA_V2_CFG.HEADERS.UNITS;
+
+  var indiceReceita =
+    headersUnidades.indexOf(
+      'default_revenue_contact_ca_id'
+    );
+
+  var indiceDespesa =
+    headersUnidades.indexOf(
+      'default_expense_contact_ca_id'
+    );
+
+  var unidades = env.units
+    .getRange(
+      2,
+      1,
+      env.units.getLastRow() - 1,
+      headersUnidades.length
+    )
+    .getValues();
+
+  encontrados.forEach(function(contato) {
+    var indiceLinha = -1;
+
+    unidades.forEach(function(row, index) {
+      if (
+        String(row[0]).trim() === contato.unitId
+      ) {
+        indiceLinha = index;
+      }
+    });
+
+    if (indiceLinha < 0) {
+      throw new Error(
+        'Unidade não encontrada: ' +
+        contato.unitId
+      );
+    }
+
+    var indiceColuna =
+      contato.campoUnidade ===
+      'default_revenue_contact_ca_id'
+        ? indiceReceita
+        : indiceDespesa;
+
+    unidades[indiceLinha][indiceColuna] =
+      contato.id;
+  });
+
+  env.units
+    .getRange(
+      2,
+      1,
+      unidades.length,
+      headersUnidades.length
+    )
+    .setValues(unidades);
+
+  SpreadsheetApp.flush();
+
+  return {
+    ok: true,
+    contatosVinculados: encontrados.length,
+    contatos: encontrados.map(function(item) {
+      return {
+        unidade: item.unitId,
+        perfil: item.perfil,
+        nome: item.nome,
+        id: item.id
+      };
+    }),
+    mensagem:
+      'Contatos técnicos vinculados às unidades.'
+  };
+}
+
+
+function corrigirUnidadesEVincularContatosV2() {
+  var env = v2Environment_();
+  var headers = CAIXA_V2_CFG.HEADERS.UNITS;
+
+  var unidadesDesejadas = [
+    {
+      unitId: 'AGF',
+      name: 'AGF',
+      costCenterName: 'Balcao AGF',
+      costCenterId: '6b32b0e8-76e2-11f0-accb-5f19b1ac8112'
+    },
+    {
+      unitId: 'SHOPPING_METRO',
+      name: 'Shopping Metrô',
+      costCenterName: 'Metrô',
+      costCenterId: '79c33e10-d828-11ef-ba7a-977c5baa773b'
+    }
+  ];
+
+  var rows = [];
+
+  if (env.units.getLastRow() > 1) {
+    rows = env.units
+      .getRange(
+        2,
+        1,
+        env.units.getLastRow() - 1,
+        headers.length
+      )
+      .getValues();
+  }
+
+  unidadesDesejadas.forEach(function(config) {
+    var index = -1;
+
+    rows.forEach(function(row, rowIndex) {
+      var unitId = String(row[0] || '').trim();
+      var nome = v2Normalize_(row[1] || '');
+      var centro = v2Normalize_(row[2] || '');
+
+      if (
+        unitId === config.unitId ||
+        nome === v2Normalize_(config.name) ||
+        centro === v2Normalize_(config.costCenterName)
+      ) {
+        index = rowIndex;
+      }
+    });
+
+    if (index < 0) {
+      rows.push([
+        config.unitId,
+        config.name,
+        config.costCenterName,
+        config.costCenterId,
+        '',
+        '',
+        '',
+        true
+      ]);
+
+      return;
+    }
+
+    var existing = rows[index];
+
+    existing[0] = config.unitId;
+    existing[1] = config.name;
+    existing[2] = config.costCenterName;
+    existing[3] = config.costCenterId;
+    existing[7] = true;
+
+    rows[index] = existing;
+  });
+
+  if (env.units.getLastRow() > 1) {
+    env.units
+      .getRange(
+        2,
+        1,
+        env.units.getLastRow() - 1,
+        headers.length
+      )
+      .clearContent();
+  }
+
+  env.units
+    .getRange(
+      2,
+      1,
+      rows.length,
+      headers.length
+    )
+    .setValues(rows);
+
+  SpreadsheetApp.flush();
+
+  var resultadoContatos =
+    vincularContatosPadraoContaAzulV2();
+
+  return {
+    ok: resultadoContatos.ok,
+    unidadesCorrigidas: [
+      'AGF',
+      'SHOPPING_METRO'
+    ],
+    contatosVinculados:
+      resultadoContatos.contatosVinculados || 0,
+    resultadoContatos: resultadoContatos
+  };
+}
+
+
+function v2ContaAzulDescricao_(entry, unit) {
+  var partes = [];
+
+  if (
+    entry.type === 'RECEITA' &&
+    String(entry.clientName || '').trim()
+  ) {
+    partes.push(
+      String(entry.clientName).trim()
+    );
+  }
+
+  var descricao = String(
+    entry.description ||
+    entry.categoryContaAzulName ||
+    (
+      entry.type === 'DESPESA'
+        ? 'Despesa de caixa'
+        : 'Atendimento de balcão'
+    )
+  ).trim();
+
+  if (descricao) {
+    partes.push(descricao);
+  }
+
+  if (String(entry.paymentName || '').trim()) {
+    partes.push(
+      String(entry.paymentName).trim()
+    );
+  }
+
+  var unidade = String(
+    unit.name ||
+    entry.unitId ||
+    ''
+  ).trim();
+
+  if (unidade) {
+    partes.push(unidade);
+  }
+
+  return partes.join(' | ');
 }

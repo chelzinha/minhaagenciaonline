@@ -1,4 +1,4 @@
-const CACHE = 'caixa-balcao-20260831163035';
+const CACHE = 'caixa-avista-v2-20260831161813-layout';
 const ASSETS = [
   '/caixa-avista/',
   '/caixa-avista/index.html',

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f6ee8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Caixa Balcão | AGF José Bonifácio</title>
+  <title>Caixa à Vista | AGF José Bonifácio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -24,7 +24,7 @@
       <div class="topbar">
         <div class="brand">
           <div class="brand-mark"><span class="material-symbols-rounded">point_of_sale</span></div>
-          <div class="brand-copy"><h1>Caixa Balcão</h1><p id="unitLabel">Carregando...</p></div>
+          <div class="brand-copy"><h1>Caixa à Vista</h1><p id="unitLabel">Carregando...</p></div>
         </div>
         <div class="top-actions">
           <button class="icon-btn" id="btnRefresh" type="button" title="Atualizar" aria-label="Atualizar"><span class="material-symbols-rounded">refresh</span></button>

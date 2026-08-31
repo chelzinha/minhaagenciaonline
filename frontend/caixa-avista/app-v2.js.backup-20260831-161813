@@ -44,7 +44,6 @@
       expenseTypes:[
         {id:'COPA',name:'Copa',descriptionDefault:'Despesa de copa',defaultPaymentId:'DINHEIRO',defaultAccountId:'CAIXA',allowBatch:true,requireDescription:false,icon:'coffee',color:'#ef4444'},
         {id:'ESCRITORIO',name:'Escritório',descriptionDefault:'Material de escritório',defaultPaymentId:'DINHEIRO',defaultAccountId:'CAIXA',allowBatch:true,requireDescription:false,icon:'edit_note',color:'#ef4444'},
-        {id:'TRANSPORTE',name:'Transporte',descriptionDefault:'Despesa de transporte',defaultPaymentId:'DINHEIRO',defaultAccountId:'CAIXA',allowBatch:true,requireDescription:true,icon:'local_shipping',color:'#ef4444'},
         {id:'OUTROS',name:'Outros',descriptionDefault:'',defaultPaymentId:'DINHEIRO',defaultAccountId:'CAIXA',allowBatch:true,requireDescription:true,icon:'more_horiz',color:'#ef4444'}
       ]
     };
@@ -118,194 +117,19 @@
   }
 
   function renderType(){document.querySelectorAll('[data-entry-type]').forEach(b=>b.classList.toggle('active',b.dataset.entryType===state.type));}
-  function availableModes(){
-    return state.type === 'RECEITA'
-      ? [
-          {
-            id:'ATENDIMENTO',
-            icon:'point_of_sale',
-            label:'Atender'
-          },
-          {
-            id:'AVULSO',
-            icon:'add_card',
-            label:'Avulso'
-          },
-          {
-            id:'LOTE',
-            icon:'playlist_add',
-            label:'Em lote'
-          }
-        ]
-      : [
-          {
-            id:'INDIVIDUAL',
-            icon:'remove_circle',
-            label:'Individual'
-          },
-          {
-            id:'LOTE',
-            icon:'playlist_add',
-            label:'Em lote'
-          }
-        ];
-  }
-
+  function availableModes(){return state.type==='RECEITA'?[{id:'ATENDIMENTO',icon:'point_of_sale',label:'Atender'},{id:'AVULSO',icon:'add_card',label:'Avulso'},{id:'LOTE',icon:'playlist_add',label:'Lote'}]:[{id:'INDIVIDUAL',icon:'remove_circle',label:'Individual'},{id:'LOTE',icon:'playlist_add',label:'Lote'}];}
   function renderModes(){
-    const modes = availableModes();
-
-    if(
-      !modes.some(mode => mode.id === state.mode)
-    ){
-      state.mode =
-        state.type === 'RECEITA'
-          ? 'ATENDIMENTO'
-          : 'INDIVIDUAL';
-    }
-
-    const container = $('modeSwitch');
-
-    if(!container){
-      return;
-    }
-
-    container.style.gridTemplateColumns =
-      `repeat(${modes.length},1fr)`;
-
-    container.innerHTML = modes.map(mode => `
-      <button
-        type="button"
-        class="mode-btn ${
-          state.mode === mode.id
-            ? 'active'
-            : ''
-        }"
-        data-mode="${mode.id}"
-        aria-pressed="${
-          state.mode === mode.id
-            ? 'true'
-            : 'false'
-        }"
-      >
-        <span class="material-symbols-rounded">
-          ${mode.icon}
-        </span>
-
-        <span>
-          ${mode.label}
-        </span>
-      </button>
-    `).join('');
-
-    container
-      .querySelectorAll('[data-mode]')
-      .forEach(button => {
-        button.disabled = false;
-
-        button.addEventListener(
-          'click',
-          event => {
-            event.preventDefault();
-            event.stopPropagation();
-
-            if(state.busy){
-              return;
-            }
-
-            const nextMode =
-              String(
-                button.dataset.mode || ''
-              ).trim();
-
-            if(
-              !nextMode ||
-              nextMode === state.mode
-            ){
-              return;
-            }
-
-            changeMode(nextMode);
-          }
-        );
-      });
+    if(!availableModes().some(m=>m.id===state.mode))state.mode=state.type==='RECEITA'?'ATENDIMENTO':'INDIVIDUAL';
+    $('modeSwitch').style.gridTemplateColumns=`repeat(${availableModes().length},1fr)`;
+    $('modeSwitch').innerHTML=availableModes().map(m=>`<button class="mode-btn ${state.mode===m.id?'active':''}" data-mode="${m.id}"><span class="material-symbols-rounded">${m.icon}</span><span>${m.label}</span></button>`).join('');
   }
   function renderOptions(){
-    const isRevenue =
-      state.type === 'RECEITA';
-
-    const categorySection =
-      $('categoryOptions')
-        ?.closest('.option-section');
-
-    if(categorySection){
-      categorySection.classList.toggle(
-        'hidden',
-        isRevenue
-      );
-    }
-
-    $('categoryLabel').textContent =
-      'Tipo de despesa';
-
-    $('categoryOptions').innerHTML =
-      isRevenue
-        ? ''
-        : categories().map(x =>
-            `<button
-              class="option-btn ${
-                state.selectedCategory === x.id
-                  ? 'active'
-                  : ''
-              }"
-              data-category="${x.id}"
-              style="--option-color:${
-                x.color || '#ef4444'
-              }"
-            >
-              <span
-                class="material-symbols-rounded"
-              >
-                ${x.icon || 'category'}
-              </span>
-
-              <span>
-                ${escapeHtml(x.name)}
-              </span>
-            </button>`
-          ).join('');
-
-    $('paymentOptions').innerHTML =
-      payments().map(x =>
-        `<button
-          class="option-btn ${
-            state.selectedPayment === x.id
-              ? 'active'
-              : ''
-          }"
-          data-payment="${x.id}"
-          style="--option-color:${
-            x.color || '#1677ff'
-          }"
-        >
-          <span
-            class="material-symbols-rounded"
-          >
-            ${x.icon || 'payments'}
-          </span>
-
-          <span>
-            ${escapeHtml(x.name)}
-          </span>
-        </button>`
-      ).join('');
+    $('categoryLabel').textContent=state.type==='RECEITA'?'Receita':'Despesa';
+    $('categoryOptions').innerHTML=categories().map(x=>`<button class="option-btn ${state.selectedCategory===x.id?'active':''}" data-category="${x.id}" style="--option-color:${x.color|| (state.type==='RECEITA'?'#1677ff':'#ef4444')}"><span class="material-symbols-rounded">${x.icon||'category'}</span><span>${escapeHtml(x.name)}</span></button>`).join('');
+    $('paymentOptions').innerHTML=payments().map(x=>`<button class="option-btn ${state.selectedPayment===x.id?'active':''}" data-payment="${x.id}" style="--option-color:${x.color||'#1677ff'}"><span class="material-symbols-rounded">${x.icon||'payments'}</span><span>${escapeHtml(x.name)}</span></button>`).join('');
   }
-
   function renderEntryForm(){
     const batch=state.mode==='LOTE',attendance=state.mode==='ATENDIMENTO',revenue=state.type==='RECEITA';
-    const minorGrid = document.querySelector('#singleFields .minor-grid');
-    if(minorGrid){
-      minorGrid.classList.toggle('expense-layout',!revenue);
-    }
     $('singleFields').classList.toggle('hidden',batch);$('batchFields').classList.toggle('hidden',!batch);$('clientSection').classList.toggle('hidden',!attendance||!revenue);$('objectSection').classList.toggle('hidden',!revenue);
     $('amountDisplay').textContent=money(state.amountCents);$('batchAmountDisplay').textContent=money(state.batchAmountCents);$('objectCount').textContent=String(state.objectCount);
     $('clientChip').classList.toggle('hidden',!state.selectedClient);$('clientChip').innerHTML=state.selectedClient?`<span class="material-symbols-rounded">check_circle</span>${escapeHtml(state.selectedClient.name)}`:'';
@@ -407,7 +231,7 @@
     $('withdrawalAmount').addEventListener('input',updateWithdrawalMath);$('btnSaveWithdrawal').addEventListener('click',saveWithdrawal);
     $('countedCash').addEventListener('input',updateCloseMath);$('closingWithdrawal').addEventListener('input',updateCloseMath);$('btnCloseCash').addEventListener('click',closeCash);
     $('btnConfirmManualPix').addEventListener('click',confirmManualPix);$('btnCopyPix').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('pixCode').value);status('pixStatus','Pix copiado.','success');}catch(_){}});
-    $('btnRefresh').addEventListener('click',refresh);$('btnMovementRefresh').addEventListener('click',refresh);$('btnSettings').addEventListener('click',()=>{$('apiUrlInput').value=apiUrl();openModal('settingsModal');});$('btnSaveSettings').addEventListener('click',()=>{localStorage.setItem(STORAGE.API,$('apiUrlInput').value.trim());closeModal('settingsModal');window.location.reload();});
+    $('btnRefresh').addEventListener('click',refresh);$('btnMovementRefresh').addEventListener('click',refresh);$('btnSettings').addEventListener('click',()=>{$('apiUrlInput').value=apiUrl();openModal('settingsModal');});$('btnSaveSettings').addEventListener('click',()=>{localStorage.setItem(STORAGE.API,$('apiUrlInput').value.trim());closeModal('settingsModal');refresh();});
     document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id);}));
     document.addEventListener('click',e=>{if(!e.target.closest('#clientSection'))$('clientSuggestions').classList.add('hidden');});
   }

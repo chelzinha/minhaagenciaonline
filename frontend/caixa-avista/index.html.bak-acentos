@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f6ee8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Caixa Balcão | AGF José Bonifácio</title>
+  <title>Caixa Ã  Vista | AGF JosÃ© BonifÃ¡cio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -24,18 +24,18 @@
       <div class="topbar">
         <div class="brand">
           <div class="brand-mark"><span class="material-symbols-rounded">point_of_sale</span></div>
-          <div class="brand-copy"><h1>Caixa Balcão</h1><p id="unitLabel">Carregando...</p></div>
+          <div class="brand-copy"><h1>Caixa Ã  Vista</h1><p id="unitLabel">Carregando...</p></div>
         </div>
         <div class="top-actions">
           <button class="icon-btn" id="btnRefresh" type="button" title="Atualizar" aria-label="Atualizar"><span class="material-symbols-rounded">refresh</span></button>
-          <button class="icon-btn" id="btnSettings" type="button" title="Configuração local" aria-label="Configuração local"><span class="material-symbols-rounded">settings</span></button>
+          <button class="icon-btn" id="btnSettings" type="button" title="ConfiguraÃ§Ã£o local" aria-label="ConfiguraÃ§Ã£o local"><span class="material-symbols-rounded">settings</span></button>
         </div>
       </div>
     </header>
 
     <main class="page">
       <section class="identity-strip">
-        <div><span class="material-symbols-rounded">badge</span><strong id="operatorLabel">Usuário</strong></div>
+        <div><span class="material-symbols-rounded">badge</span><strong id="operatorLabel">UsuÃ¡rio</strong></div>
         <div><span class="material-symbols-rounded">calendar_today</span><strong id="dateLabel">--/--/----</strong></div>
       </section>
 
@@ -47,7 +47,7 @@
       </section>
 
       <nav class="main-nav">
-        <button class="main-nav-btn active" type="button" data-view="launch"><span class="material-symbols-rounded">add_circle</span><small>Lançar</small></button>
+        <button class="main-nav-btn active" type="button" data-view="launch"><span class="material-symbols-rounded">add_circle</span><small>LanÃ§ar</small></button>
         <button class="main-nav-btn" type="button" data-view="movements"><span class="material-symbols-rounded">receipt_long</span><small>Mov.</small></button>
         <button class="main-nav-btn" type="button" data-view="close"><span class="material-symbols-rounded">fact_check</span><small>Fechar</small></button>
       </nav>
@@ -141,7 +141,7 @@
           <div class="closing-overview">
             <div><small>Inicial</small><strong id="closeOpening">R$ 0,00</strong></div>
             <div><small>Dinheiro +</small><strong id="closeCashRevenue">R$ 0,00</strong></div>
-            <div><small>Dinheiro −</small><strong id="closeCashExpense">R$ 0,00</strong></div>
+            <div><small>Dinheiro âˆ’</small><strong id="closeCashExpense">R$ 0,00</strong></div>
             <div><small>Sangrias</small><strong id="closeWithdrawals">R$ 0,00</strong></div>
             <div class="wide"><small>Esperado na gaveta</small><strong id="closeExpected">R$ 0,00</strong></div>
           </div>
@@ -150,10 +150,10 @@
             <label><span class="material-symbols-rounded">payments</span><span>Dinheiro contado</span><input id="countedCash" inputmode="decimal" placeholder="0,00"></label>
             <label><span class="material-symbols-rounded">outbox</span><span>Sangria no fechamento</span><input id="closingWithdrawal" inputmode="decimal" placeholder="0,00"></label>
             <label><span class="material-symbols-rounded">location_on</span><span>Destino</span><input id="closingDestination" placeholder="Financeiro"></label>
-            <label class="wide"><span class="material-symbols-rounded">edit_note</span><span>Justificativa / observação</span><textarea id="closingNotes" placeholder="Obrigatória somente se houver diferença"></textarea></label>
+            <label class="wide"><span class="material-symbols-rounded">edit_note</span><span>Justificativa / observaÃ§Ã£o</span><textarea id="closingNotes" placeholder="ObrigatÃ³ria somente se houver diferenÃ§a"></textarea></label>
           </div>
-          <div class="closing-result"><div><small>Diferença</small><strong id="closeDifference">R$ 0,00</strong></div><div><small>Ficará no caixa</small><strong id="closeCarryover">R$ 0,00</strong></div></div>
-          <label class="declaration"><input type="checkbox" id="closeDeclaration"><span><strong>Conferi e contei o numerário.</strong><small>Confirmo os valores registrados e a eventual sangria.</small></span></label>
+          <div class="closing-result"><div><small>DiferenÃ§a</small><strong id="closeDifference">R$ 0,00</strong></div><div><small>FicarÃ¡ no caixa</small><strong id="closeCarryover">R$ 0,00</strong></div></div>
+          <label class="declaration"><input type="checkbox" id="closeDeclaration"><span><strong>Conferi e contei o numerÃ¡rio.</strong><small>Confirmo os valores registrados e a eventual sangria.</small></span></label>
           <button id="btnCloseCash" class="primary-action" type="button"><span class="material-symbols-rounded">lock</span><span>Fechar caixa</span></button>
           <div id="closeLinks" class="document-links hidden"></div>
           <div id="closeStatus" class="status-box"></div>
@@ -166,12 +166,12 @@
     <section class="modal">
       <header><h3><span class="material-symbols-rounded">move_up</span>Sangria</h3><button type="button" data-close="withdrawalModal"><span class="material-symbols-rounded">close</span></button></header>
       <div class="modal-body">
-        <div class="withdrawal-balance"><small>Disponível</small><strong id="withdrawalAvailable">R$ 0,00</strong></div>
+        <div class="withdrawal-balance"><small>DisponÃ­vel</small><strong id="withdrawalAvailable">R$ 0,00</strong></div>
         <label class="modal-field"><span>Valor</span><input id="withdrawalAmount" inputmode="decimal" placeholder="0,00"></label>
         <label class="modal-field"><span>Destino</span><input id="withdrawalDestination" placeholder="Financeiro"></label>
-        <label class="modal-field"><span>Observação</span><textarea id="withdrawalNotes" placeholder="Opcional"></textarea></label>
-        <div class="withdrawal-result"><span>Restará</span><strong id="withdrawalRemaining">R$ 0,00</strong></div>
-        <label class="declaration"><input type="checkbox" id="withdrawalDeclaration"><span><strong>Conferi o valor da sangria.</strong><small>Confirmo que o numerário separado corresponde ao valor informado.</small></span></label>
+        <label class="modal-field"><span>ObservaÃ§Ã£o</span><textarea id="withdrawalNotes" placeholder="Opcional"></textarea></label>
+        <div class="withdrawal-result"><span>RestarÃ¡</span><strong id="withdrawalRemaining">R$ 0,00</strong></div>
+        <label class="declaration"><input type="checkbox" id="withdrawalDeclaration"><span><strong>Conferi o valor da sangria.</strong><small>Confirmo que o numerÃ¡rio separado corresponde ao valor informado.</small></span></label>
         <button id="btnSaveWithdrawal" class="danger-action" type="button"><span class="material-symbols-rounded">picture_as_pdf</span><span>Registrar e gerar PDF</span></button>
         <div id="withdrawalStatus" class="status-box"></div>
       </div>
@@ -186,7 +186,7 @@
   </div>
 
   <div id="settingsModal" class="modal-backdrop hidden">
-    <section class="modal"><header><h3><span class="material-symbols-rounded">settings</span>Homologação</h3><button type="button" data-close="settingsModal"><span class="material-symbols-rounded">close</span></button></header><div class="modal-body"><label class="modal-field"><span>URL do Apps Script</span><input id="apiUrlInput" placeholder="Deixe vazio para modo local"></label><button id="btnSaveSettings" class="primary-action" type="button"><span class="material-symbols-rounded">save</span>Salvar</button></div></section>
+    <section class="modal"><header><h3><span class="material-symbols-rounded">settings</span>HomologaÃ§Ã£o</h3><button type="button" data-close="settingsModal"><span class="material-symbols-rounded">close</span></button></header><div class="modal-body"><label class="modal-field"><span>URL do Apps Script</span><input id="apiUrlInput" placeholder="Deixe vazio para modo local"></label><button id="btnSaveSettings" class="primary-action" type="button"><span class="material-symbols-rounded">save</span>Salvar</button></div></section>
   </div>
 
   <div id="loadingOverlay" class="loading-overlay hidden"><div><span class="spinner"></span><strong id="loadingText">Carregando...</strong></div></div>

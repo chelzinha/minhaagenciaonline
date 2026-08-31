@@ -1,6 +1,6 @@
 {
-  "name": "Caixa Balcão - AGF José Bonifácio",
-  "short_name": "Caixa Balcão",
+  "name": "Caixa à Vista - AGF José Bonifácio",
+  "short_name": "Caixa à Vista",
   "start_url": "/caixa-avista/",
   "scope": "/caixa-avista/",
   "display": "standalone",

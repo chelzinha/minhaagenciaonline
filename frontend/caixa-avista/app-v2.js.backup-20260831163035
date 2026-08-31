@@ -152,82 +152,9 @@
   }
 
   function renderModes(){
-    const modes = availableModes();
-
-    if(
-      !modes.some(mode => mode.id === state.mode)
-    ){
-      state.mode =
-        state.type === 'RECEITA'
-          ? 'ATENDIMENTO'
-          : 'INDIVIDUAL';
-    }
-
-    const container = $('modeSwitch');
-
-    if(!container){
-      return;
-    }
-
-    container.style.gridTemplateColumns =
-      `repeat(${modes.length},1fr)`;
-
-    container.innerHTML = modes.map(mode => `
-      <button
-        type="button"
-        class="mode-btn ${
-          state.mode === mode.id
-            ? 'active'
-            : ''
-        }"
-        data-mode="${mode.id}"
-        aria-pressed="${
-          state.mode === mode.id
-            ? 'true'
-            : 'false'
-        }"
-      >
-        <span class="material-symbols-rounded">
-          ${mode.icon}
-        </span>
-
-        <span>
-          ${mode.label}
-        </span>
-      </button>
-    `).join('');
-
-    container
-      .querySelectorAll('[data-mode]')
-      .forEach(button => {
-        button.disabled = false;
-
-        button.addEventListener(
-          'click',
-          event => {
-            event.preventDefault();
-            event.stopPropagation();
-
-            if(state.busy){
-              return;
-            }
-
-            const nextMode =
-              String(
-                button.dataset.mode || ''
-              ).trim();
-
-            if(
-              !nextMode ||
-              nextMode === state.mode
-            ){
-              return;
-            }
-
-            changeMode(nextMode);
-          }
-        );
-      });
+    if(!availableModes().some(m=>m.id===state.mode))state.mode=state.type==='RECEITA'?'ATENDIMENTO':'INDIVIDUAL';
+    $('modeSwitch').style.gridTemplateColumns=`repeat(${availableModes().length},1fr)`;
+    $('modeSwitch').innerHTML=availableModes().map(m=>`<button class="mode-btn ${state.mode===m.id?'active':''}" data-mode="${m.id}"><span class="material-symbols-rounded">${m.icon}</span><span>${m.label}</span></button>`).join('');
   }
   function renderOptions(){
     const isRevenue =

@@ -49,30 +49,3 @@
 .mode-btn:not(.active):hover {
   background: rgba(255, 255, 255, 0.72);
 }
-/* CAIXA-MODE-BUTTONS-CLICK-FIX */
-.mode-switch {
-  position: relative;
-  z-index: 5;
-  pointer-events: auto;
-}
-
-.mode-switch .mode-btn {
-  position: relative;
-  z-index: 6;
-  pointer-events: auto !important;
-  touch-action: manipulation;
-}
-
-.mode-switch .mode-btn:not(:disabled) {
-  cursor: pointer;
-}
-
-.mode-switch .mode-btn:focus-visible {
-  outline: 3px solid rgba(15, 110, 232, 0.28);
-  outline-offset: 2px;
-}
-
-body[data-entry-type="DESPESA"]
-.mode-switch .mode-btn:focus-visible {
-  outline-color: rgba(220, 75, 80, 0.28);
-}
