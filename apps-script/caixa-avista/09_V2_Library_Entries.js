@@ -1,0 +1,196 @@
+function v2ResolveContext_(env, user) {
+  var username = String(user && user.id || 'sem-sessao-monitor').trim();
+  var users = v2ReadObjects_(env.users, CAIXA_V2_CFG.HEADERS.USERS).filter(function(item){ return v2Bool_(item.active); });
+  var map = users.filter(function(item){ return String(item.username).toLowerCase() === username.toLowerCase(); })[0]
+    || users.filter(function(item){ return String(item.username).trim() === '*'; })[0];
+  if (!map) throw appError_('Usuário sem unidade configurada na Biblioteca_Usuarios.', 'UNIT_MAPPING_REQUIRED');
+  var unitId = String(map.unit_id || '').trim();
+  var unit = v2ReadObjects_(env.units, CAIXA_V2_CFG.HEADERS.UNITS).filter(function(item){
+    return String(item.unit_id) === unitId && v2Bool_(item.active);
+  })[0];
+  if (!unit) throw appError_('Unidade do usuário não encontrada ou inativa.', 'UNIT_NOT_FOUND');
+  return {
+    user: user,
+    unit: unit,
+    permissions: {
+      revenue: v2Bool_(map.can_revenue), expense: v2Bool_(map.can_expense),
+      close: v2Bool_(map.can_close), withdraw: v2Bool_(map.can_withdraw)
+    }
+  };
+}
+
+function v2Library_(env, context) {
+  var unitId = String(context.unit.unit_id);
+  var accounts = v2ActiveForUnit_(v2ReadObjects_(env.accounts, CAIXA_V2_CFG.HEADERS.ACCOUNTS), unitId);
+  var payments = v2ReadObjects_(env.payments, CAIXA_V2_CFG.HEADERS.PAYMENTS).filter(function(item){ return v2Bool_(item.active); })
+    .sort(function(a,b){ return Number(a.sort_order || 999)-Number(b.sort_order || 999); });
+  var revenues = v2ActiveForUnit_(v2ReadObjects_(env.revenues, CAIXA_V2_CFG.HEADERS.REVENUES), unitId);
+  var expenses = v2ActiveForUnit_(v2ReadObjects_(env.expenses, CAIXA_V2_CFG.HEADERS.EXPENSES), unitId);
+  return {
+    unit: {
+      id: unitId, name: String(context.unit.name || unitId),
+      costCenterName: String(context.unit.cost_center_name || ''),
+      costCenterContaAzulId: String(context.unit.cost_center_ca_id || '')
+    },
+    permissions: context.permissions,
+    accounts: accounts.map(function(x){ return { id:String(x.account_id), name:String(x.name_front), contaAzulName:String(x.name_conta_azul || ''), contaAzulId:String(x.conta_azul_id || '') }; }),
+    payments: payments.map(function(x){ return {
+      id:String(x.payment_id), name:String(x.name_front), contaAzulMethod:String(x.conta_azul_method || ''), accountId:String(x.account_id || ''),
+      allowRevenue:v2Bool_(x.allow_revenue), allowExpense:v2Bool_(x.allow_expense), allowBatch:v2Bool_(x.allow_batch), generatePix:v2Bool_(x.generate_pix),
+      icon:String(x.icon || 'payments'), color:String(x.color || '#1677ff')
+    }; }),
+    revenueTypes: revenues.map(function(x){ return {
+      id:String(x.revenue_type_id), name:String(x.name_front), descriptionDefault:String(x.description_default || ''), categoryName:String(x.category_name || ''),
+      categoryContaAzulId:String(x.category_ca_id || ''), allowAttendance:v2Bool_(x.allow_attendance), allowSingle:v2Bool_(x.allow_single), allowBatch:v2Bool_(x.allow_batch),
+      requireClient:v2Bool_(x.require_client), requireDescription:v2Bool_(x.require_description), icon:String(x.icon || 'point_of_sale'), color:String(x.color || '#1677ff')
+    }; }),
+    expenseTypes: expenses.map(function(x){ return {
+      id:String(x.expense_type_id), name:String(x.name_front), descriptionDefault:String(x.description_default || ''), categoryName:String(x.category_name || ''),
+      categoryContaAzulId:String(x.category_ca_id || ''), defaultPaymentId:String(x.default_payment_id || ''), defaultAccountId:String(x.default_account_id || ''),
+      allowBatch:v2Bool_(x.allow_batch), requireDescription:v2Bool_(x.require_description), icon:String(x.icon || 'remove_circle'), color:String(x.color || '#ef4444')
+    }; })
+  };
+}
+
+function v2Init_(dateValue, user) {
+  var env = v2Environment_();
+  v2SeedLibrary_(env);
+  var context = v2ResolveContext_(env, user);
+  var date = v2Date_(dateValue || v2Today_());
+  return {
+    ok: true,
+    user: { id: user.id, name: user.name, role: user.role },
+    library: v2Library_(env, context),
+    clients: v2ListClients_(env),
+    entries: v2EntriesByDate_(env, date, String(context.unit.unit_id)),
+    withdrawals: v2WithdrawalsByDate_(env, date, String(context.unit.unit_id)),
+    summary: v2BuildSummary_(env, date, String(context.unit.unit_id)),
+    closure: v2FindClosure_(env, date, String(context.unit.unit_id))
+  };
+}
+
+function v2ListClients_(env) {
+  return v2ReadObjects_(env.clients, CAIXA_V2_CFG.HEADERS.CLIENTS).filter(function(x){ return v2Bool_(x.active); }).map(function(x){
+    return { id:String(x.client_id), name:String(x.name) };
+  });
+}
+
+function v2SaveClient_(nameValue, user) {
+  var env = v2Environment_();
+  var name = String(nameValue || '').replace(/\s+/g,' ').trim();
+  if (name.length < 2 || name.length > 120) throw appError_('Nome de cliente inválido.', 'INVALID_CLIENT');
+  var normalized = v2Normalize_(name);
+  var clients = v2ReadObjects_(env.clients, CAIXA_V2_CFG.HEADERS.CLIENTS);
+  var existing = clients.filter(function(x){ return String(x.normalized_name) === normalized && v2Bool_(x.active); })[0];
+  if (existing) return { ok:true, client:{ id:String(existing.client_id), name:String(existing.name) } };
+  var id = Utilities.getUuid();
+  env.clients.appendRow([id,name,normalized,new Date(),user.id,true]);
+  return { ok:true, client:{ id:id, name:name } };
+}
+
+function v2SaveEntry_(payload, user) {
+  var env = v2Environment_();
+  var context = v2ResolveContext_(env, user);
+  var library = v2Library_(env, context);
+  var draft = v2ValidateDraft_(payload, context, library);
+  v2AssertOpen_(env, draft.date, draft.unitId);
+  var entry = v2BuildEntry_(draft, user, context, library, '', 1);
+  env.entries.appendRow(v2EntryRow_(entry));
+  return { ok:true, entry:entry, summary:v2BuildSummary_(env,draft.date,draft.unitId) };
+}
+
+function v2SaveBatch_(payloads, user) {
+  if (!Array.isArray(payloads) || !payloads.length) throw appError_('Lote vazio.', 'EMPTY_BATCH');
+  if (payloads.length > CAIXA_V2_CFG.MAX_BATCH) throw appError_('O lote aceita no máximo 100 itens.', 'BATCH_TOO_LARGE');
+  var env = v2Environment_();
+  var context = v2ResolveContext_(env, user);
+  var library = v2Library_(env, context);
+  var drafts = payloads.map(function(payload){ return v2ValidateDraft_(payload, context, library); });
+  var date = drafts[0].date;
+  var unitId = drafts[0].unitId;
+  drafts.forEach(function(d){ if (d.date !== date || d.unitId !== unitId) throw appError_('Todos os itens do lote devem ter a mesma data e unidade.', 'MIXED_BATCH'); });
+  v2AssertOpen_(env,date,unitId);
+  var batchId = Utilities.getUuid();
+  var entries = drafts.map(function(draft,index){ return v2BuildEntry_(draft,user,context,library,batchId,index+1); });
+  env.entries.getRange(env.entries.getLastRow()+1,1,entries.length,CAIXA_V2_CFG.HEADERS.ENTRIES.length).setValues(entries.map(v2EntryRow_));
+  return { ok:true, batchId:batchId, entries:entries, summary:v2BuildSummary_(env,date,unitId) };
+}
+
+function v2ValidateDraft_(payload, context, library) {
+  if (!payload || typeof payload !== 'object') throw appError_('Dados ausentes.', 'INVALID_PAYLOAD');
+  var type = String(payload.type || '').toUpperCase();
+  if (type !== 'RECEITA' && type !== 'DESPESA') throw appError_('Tipo inválido.', 'INVALID_TYPE');
+  if (type === 'RECEITA' && !context.permissions.revenue) throw appError_('Usuário sem permissão para receitas.', 'FORBIDDEN');
+  if (type === 'DESPESA' && !context.permissions.expense) throw appError_('Usuário sem permissão para despesas.', 'FORBIDDEN');
+  var date = v2Date_(payload.date || v2Today_());
+  var amount = Math.round(Number(payload.amountCents || 0));
+  if (!(amount > 0)) throw appError_('Valor inválido.', 'INVALID_AMOUNT');
+  var payment = library.payments.filter(function(x){ return x.id === String(payload.paymentId || ''); })[0];
+  if (!payment) throw appError_('Forma de pagamento não configurada.', 'PAYMENT_REQUIRED');
+  if (type === 'RECEITA' && !payment.allowRevenue) throw appError_('Pagamento não permitido para receita.', 'PAYMENT_NOT_ALLOWED');
+  if (type === 'DESPESA' && !payment.allowExpense) throw appError_('Pagamento não permitido para despesa.', 'PAYMENT_NOT_ALLOWED');
+  var categoryId = String(payload.categoryId || '');
+  var category = type === 'RECEITA'
+    ? library.revenueTypes.filter(function(x){ return x.id === categoryId; })[0]
+    : library.expenseTypes.filter(function(x){ return x.id === categoryId; })[0];
+  if (!category) throw appError_('Categoria não configurada.', 'CATEGORY_REQUIRED');
+  var mode = String(payload.mode || (type === 'RECEITA' ? 'AVULSO' : 'INDIVIDUAL')).toUpperCase();
+  var clientName = String(payload.clientName || '').replace(/\s+/g,' ').trim();
+  var clientId = String(payload.clientId || '').trim();
+  if (type === 'RECEITA' && mode === 'ATENDIMENTO' && !clientName) throw appError_('Selecione ou cadastre o cliente do atendimento.', 'CLIENT_REQUIRED');
+  if (type === 'RECEITA' && category.requireClient && !clientName) throw appError_('Cliente obrigatório para esta categoria.', 'CLIENT_REQUIRED');
+  var description = String(payload.description || '').replace(/\s+/g,' ').trim() || String(category.descriptionDefault || '');
+  if (category.requireDescription && !description) throw appError_('Descrição obrigatória.', 'DESCRIPTION_REQUIRED');
+  var accountId = String(payload.accountId || payment.accountId || (category.defaultAccountId || '')).trim();
+  var account = library.accounts.filter(function(x){ return x.id === accountId; })[0];
+  if (!account) throw appError_('Conta financeira não configurada.', 'ACCOUNT_REQUIRED');
+  return {
+    entryId:String(payload.entryId || '').trim(), type:type, mode:mode, date:date, unitId:String(context.unit.unit_id), amountCents:amount,
+    clientId:clientId, clientName:clientName, clientSource:clientName ? (clientId ? 'CADASTRADO' : 'INFORMADO') : 'SEM_CLIENTE',
+    objectCount:Math.max(0,Math.min(999,parseInt(payload.objectCount,10)||0)),
+    payment:payment, account:account, category:category, description:description,
+    pixStatus:String(payload.pixStatus || '').toUpperCase(), pixTxid:String(payload.pixTxid || ''),
+    pixProvider:String(payload.pixProvider || '')
+  };
+}
+
+function v2BuildEntry_(draft, user, context, library, batchId, batchIndex) {
+  var pixStatus = '';
+  if (draft.payment.id === 'PIX') pixStatus = draft.pixStatus || (draft.mode === 'ATENDIMENTO' ? 'ATIVA' : 'CONFIRMADO');
+  return {
+    id:draft.entryId || Utilities.getUuid(), batchId:batchId || '', batchIndex:batchIndex || 1, date:draft.date, createdAt:new Date().toISOString(),
+    type:draft.type, mode:draft.mode, unitId:draft.unitId, operatorId:user.id, operatorName:user.name,
+    clientId:draft.clientId, clientName:draft.clientName, clientSource:draft.clientSource,
+    objectCount:draft.type === 'RECEITA' ? (draft.objectCount || 0) : 0, amountCents:draft.amountCents,
+    paymentId:draft.payment.id, paymentName:draft.payment.name, paymentContaAzulMethod:draft.payment.contaAzulMethod,
+    accountId:draft.account.id, accountContaAzulId:draft.account.contaAzulId, accountContaAzulName:draft.account.contaAzulName,
+    categoryId:draft.category.id, categoryContaAzulId:draft.category.categoryContaAzulId, categoryContaAzulName:draft.category.categoryName,
+    costCenterContaAzulId:String(context.unit.cost_center_ca_id || ''), costCenterContaAzulName:String(context.unit.cost_center_name || ''),
+    description:draft.description, pixStatus:pixStatus, pixTxid:draft.pixTxid, pixE2eid:'', pixReceivedAt:'', pixProvider:draft.pixProvider,
+    status:'ATIVO', closureId:'', contaAzulStatus:'NAO_ENVIADO', contaAzulProtocol:'', contaAzulLastError:'', contaAzulAttempts:0, contaAzulSyncedAt:''
+  };
+}
+
+function v2EntryRow_(e) {
+  return [e.id,e.batchId,e.batchIndex,e.date,new Date(e.createdAt),e.type,e.mode,e.unitId,e.operatorId,e.operatorName,e.clientId,e.clientName,e.clientSource,e.objectCount,e.amountCents,e.paymentId,e.paymentName,e.paymentContaAzulMethod,e.accountId,e.accountContaAzulId,e.accountContaAzulName,e.categoryId,e.categoryContaAzulId,e.categoryContaAzulName,e.costCenterContaAzulId,e.costCenterContaAzulName,e.description,e.pixStatus,e.pixTxid,e.pixE2eid,e.pixReceivedAt,e.pixProvider,e.status,e.closureId,e.contaAzulStatus,e.contaAzulProtocol,e.contaAzulLastError,e.contaAzulAttempts,e.contaAzulSyncedAt];
+}
+
+function v2RowEntry_(row) {
+  var h = CAIXA_V2_CFG.HEADERS.ENTRIES;
+  var o = {}; h.forEach(function(k,i){ o[k]=row[i]; });
+  return {
+    id:String(o.entry_id),batchId:String(o.batch_id||''),batchIndex:Number(o.batch_index||1),date:String(o.date_iso),createdAt:v2Iso_(o.created_at),type:String(o.type),mode:String(o.mode),unitId:String(o.unit_id),operatorId:String(o.operator_id),operatorName:String(o.operator_name),clientId:String(o.client_id||''),clientName:String(o.client_name||''),clientSource:String(o.client_source||''),objectCount:Number(o.object_count||0),amountCents:Number(o.amount_cents||0),paymentId:String(o.payment_id),paymentName:String(o.payment_name),paymentContaAzulMethod:String(o.payment_ca_method||''),accountId:String(o.account_id||''),accountContaAzulId:String(o.account_ca_id_snapshot||''),accountContaAzulName:String(o.account_ca_name_snapshot||''),categoryId:String(o.category_id||''),categoryContaAzulId:String(o.category_ca_id_snapshot||''),categoryContaAzulName:String(o.category_ca_name_snapshot||''),costCenterContaAzulId:String(o.cost_center_ca_id_snapshot||''),costCenterContaAzulName:String(o.cost_center_ca_name_snapshot||''),description:String(o.description||''),pixStatus:String(o.pix_status||''),pixTxid:String(o.pix_txid||''),pixE2eid:String(o.pix_e2eid||''),pixReceivedAt:v2Iso_(o.pix_received_at),pixProvider:String(o.pix_provider||''),status:String(o.status||'ATIVO'),closureId:String(o.closure_id||''),contaAzulStatus:String(o.conta_azul_status||'NAO_ENVIADO'),contaAzulProtocol:String(o.conta_azul_protocol||''),contaAzulLastError:String(o.conta_azul_last_error||''),contaAzulAttempts:Number(o.conta_azul_attempts||0),contaAzulSyncedAt:v2Iso_(o.conta_azul_synced_at)
+  };
+}
+
+function v2EntriesByDate_(env,date,unitId) {
+  var last = env.entries.getLastRow(); if (last < 2) return [];
+  return env.entries.getRange(2,1,last-1,CAIXA_V2_CFG.HEADERS.ENTRIES.length).getValues().map(v2RowEntry_).filter(function(e){ return e.date===date && e.unitId===unitId && e.status!=='EXCLUIDO'; });
+}
+
+function v2WithdrawalsByDate_(env,date,unitId) {
+  return v2ReadObjects_(env.withdrawals,CAIXA_V2_CFG.HEADERS.WITHDRAWALS).filter(function(x){ return String(x.date_iso)===date && String(x.unit_id)===unitId; }).map(function(x){ return {
+    id:String(x.withdrawal_id),date:String(x.date_iso),createdAt:v2Iso_(x.created_at),unitId:String(x.unit_id),operatorId:String(x.operator_id),operatorName:String(x.operator_name),amountCents:Number(x.amount_cents||0),destination:String(x.destination||''),notes:String(x.notes||''),balanceBeforeCents:Number(x.balance_before_cents||0),balanceAfterCents:Number(x.balance_after_cents||0),confirmed:v2Bool_(x.confirmed),pdfStatus:String(x.pdf_status||''),pdfUrl:String(x.pdf_url||'')
+  }; });
+}
+
