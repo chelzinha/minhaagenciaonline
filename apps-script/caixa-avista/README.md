@@ -1,149 +1,258 @@
-# Caixa à Vista V1 - Apps Script
+# Caixa à Vista V2 - Apps Script
 
-Backend novo e independente do caixa legado.
+Backend novo e independente do caixa legado em `/caixa/`.
 
-## Segurança e isolamento
+## O que esta versão controla
 
-- não reutiliza as planilhas do caixa atual;
-- não contém IDs, chaves Pix ou segredos no código;
-- valida a sessão AGF pelo gate JWT;
-- permite migração gradual de `monitor` para `enforce`;
-- usa `LockService` em todas as gravações concorrentes;
-- mantém histórico completo, sem rotação diária destrutiva;
-- recebe confirmações do Cloudflare Worker por HMAC com expiração de cinco minutos.
+- receitas de atendimento, avulsas e em lote;
+- despesas individuais e em lote;
+- categorias e meios de pagamento carregados da planilha-biblioteca;
+- usuário vinculado à unidade AGF ou Metrô;
+- saldo inicial e saldo esperado em dinheiro;
+- sangrias, sem classificá-las como despesas;
+- fechamento com contagem, diferença, justificativa e declaração;
+- PDFs separados de fechamento e de cada sangria;
+- fila de criação de contas a receber e a pagar no Conta Azul;
+- Pix Santander com confirmação por `txid` e webhook.
+
+Nenhum endpoint de baixa do Conta Azul é chamado. Os títulos permanecem em aberto para conferência e baixa manual pelo financeiro.
 
 ## Configuração inicial
 
-1. Crie um novo projeto Apps Script.
-2. Adicione `00_AGF_AUTH_GATE.js`, os módulos numerados de `01_Config_Router.js` até `07_Validation_Utils.js` e `appsscript.json`.
-3. Execute `setupCaixaAvista()` manualmente uma vez.
-4. Autorize o acesso ao Google Sheets.
-5. Confira no log a URL da nova planilha criada.
-6. Em Propriedades do script, configure:
+1. Crie ou atualize o projeto Apps Script do Caixa à Vista.
+2. Adicione todos os arquivos da pasta `apps-script/caixa-avista`.
+3. Execute manualmente:
 
-| Propriedade | Obrigatória | Conteúdo |
-|---|---:|---|
-| `CAIXA_AVISTA_SPREADSHEET_ID` | automática | criada por `setupCaixaAvista()` |
-| `CAIXA_AVISTA_PIX_KEY` | sim para fallback | chave Pix local |
-| `CAIXA_AVISTA_PIX_NAME` | sim para fallback | nome do recebedor, até 25 caracteres |
-| `CAIXA_AVISTA_PIX_CITY` | sim para fallback | cidade, até 15 caracteres |
-| `CAIXA_INTERNAL_SECRET` | sim para Santander | mesmo segredo cadastrado no Worker |
-| `AGF_AUTH_JWT_SECRET` | sim | mesmo segredo do projeto AGF_AUTH |
-| `AGF_API_AUTH_MODE` | sim | começar com `monitor`; depois usar `enforce` |
-| `CAIXA_AVISTA_ACCOUNT_CASH` | opcional | padrão `CAIXA À VISTA` |
-| `CAIXA_AVISTA_ACCOUNT_PIX` | opcional | padrão `SANTANDER AGUANAMBI` |
-| `CAIXA_AVISTA_ACCOUNT_CARD` | opcional | padrão `Cloudwalk Instituição de Pagamento` |
-| `CAIXA_AVISTA_COST_CENTER` | opcional | padrão `Metro (Projeto Rachel)` |
+```javascript
+setupCaixaAvistaV2()
+```
 
-7. Publique como Web App:
-   - executar como usuário que fez a implantação;
-   - acesso para qualquer pessoa;
-   - segurança das chamadas de usuário feita pelo gate JWT;
-   - segurança do webhook feita por HMAC interno.
-8. Copie a URL `/exec` para a tela Configurações do frontend e para `CAIXA_APPS_SCRIPT_URL` no Worker.
+4. Autorize Google Sheets, Google Drive, Google Docs e chamadas externas.
+5. A função cria a base e dois gatilhos:
+   - fila do Conta Azul a cada 5 minutos;
+   - nova tentativa de PDFs a cada 30 minutos.
+6. Preencha a biblioteca antes de publicar para usuários reais.
+7. Publique como Web App e informe a URL `/exec` no frontend.
 
-## Abas criadas
+## Abas da biblioteca
+
+### `Biblioteca_Unidades`
+
+Uma linha por unidade. Campos principais:
+
+- `unit_id`: código estável, como `AGF` ou `METRO`;
+- `name`: nome exibido;
+- `cost_center_name`: nome do centro de custo no Conta Azul;
+- `cost_center_ca_id`: UUID do centro de custo;
+- `default_revenue_contact_ca_id`: contato genérico para contas a receber sem cliente sincronizado;
+- `default_expense_contact_ca_id`: fornecedor genérico para contas a pagar;
+- `drive_root_folder_id`: pasta raiz onde serão criadas as árvores de PDFs;
+- `active`.
+
+### `Biblioteca_Usuarios`
+
+Vincula o `username` autenticado a uma unidade e às permissões:
+
+- receita;
+- despesa;
+- fechamento;
+- sangria.
+
+A linha `*` serve apenas para homologação. Remova-a ou desative-a antes da produção e cadastre os usuários reais.
+
+### `Biblioteca_Contas`
+
+Relaciona o código interno da conta com o nome e UUID reais do Conta Azul.
+
+### `Biblioteca_Pagamentos`
+
+Define:
+
+- nome e ícone no frontend;
+- método do Conta Azul;
+- conta financeira;
+- uso em receita, despesa e lote;
+- se gera cobrança Pix;
+- cor, ordem e situação.
+
+### `Biblioteca_Receitas`
+
+Define quais receitas aparecem no frontend e se permitem:
+
+- atendimento;
+- avulso;
+- lote;
+- cliente opcional ou obrigatório;
+- descrição opcional ou obrigatória.
+
+Também guarda categoria e UUID do Conta Azul.
+
+### `Biblioteca_Despesas`
+
+Define:
+
+- tipo de despesa;
+- categoria do Conta Azul;
+- forma e conta padrão;
+- permissão de lote;
+- exigência de descrição;
+- ícone, cor e ordem.
+
+Alterações nessas abas aparecem no frontend sem novo deploy.
+
+## Abas operacionais
 
 - `Clientes`
-- `Lancamentos`
-- `Fechamentos`
-- `Export_ContaAzul_Receitas`
-- `Export_ContaAzul_Despesas`
-- `_Export_Control`
+- `Lancamentos_V2`
+- `Saldos_Diarios`
+- `Sangrias`
+- `Fechamentos_V2`
+- `ContaAzul_Fila`
 
-## Campos Pix nos lançamentos
+As linhas de lançamento guardam snapshots de categoria, conta e centro de custo. Alterações futuras na biblioteca não reclassificam o histórico já fechado.
 
-Além dos campos operacionais, cada lançamento pode armazenar:
+## Caixa físico
 
-- `pix_status`
-- `pix_txid`
-- `pix_e2eid`
-- `pix_received_at`
-- `pix_provider`
-
-Esses campos permitem conciliar o atendimento com a cobrança e com a liquidação bancária.
-
-## Confirmação automática
-
-O Worker envia:
-
-```json
-{
-  "action": "internalPixWebhook",
-  "timestamp": "...",
-  "payload": {
-    "txid": "...",
-    "entryId": "...",
-    "status": "CONFIRMADO",
-    "e2eid": "...",
-    "amountCents": 15000,
-    "receivedAt": "...",
-    "provider": "santander"
-  },
-  "signature": "..."
-}
-```
-
-O Apps Script:
-
-1. verifica se a mensagem tem no máximo cinco minutos;
-2. recalcula o HMAC SHA-256;
-3. localiza por `entryId` ou `txid`;
-4. confere o valor recebido;
-5. grava status, `e2eid` e horário;
-6. processa repetições de forma idempotente.
-
-## Exportação Conta Azul
-
-As abas de exportação mantêm os mesmos 32 cabeçalhos usados pelo caixa atual. O nome do cliente passa a ser o nome selecionado no atendimento.
-
-A exportação acontece somente no fechamento operacional. Isso cria um snapshot imutável e evita que edição ou exclusão posterior deixe o financeiro divergente.
-
-A aba `_Export_Control` impede exportação duplicada de um mesmo `entry_id`.
-
-Para Pix, o campo de observações inclui `txid` e `e2eid`.
-
-## Fechamento
-
-### Operacional
-
-- total de receitas;
-- total de despesas;
-- saldo;
-- dinheiro esperado;
-- Pix confirmado esperado;
-- geração das linhas de exportação;
-- bloqueio dos lançamentos fechados.
-
-O fechamento é recusado enquanto existir Pix aguardando confirmação, expirado, cancelado ou com erro sem tratamento.
-
-### Conferência financeira
-
-- dinheiro contado;
-- Pix localizado na conta;
-- diferença de dinheiro;
-- diferença de Pix;
-- observações;
-- usuário e horário.
-
-## Lote
-
-O frontend valida todas as linhas antes de enviar. O backend valida novamente e grava as linhas financeiras em um único `setValues`.
-
-Formato:
+O saldo esperado usa somente dinheiro físico:
 
 ```text
-cliente;valor;pagamento;objetos
-Loja Raquel Moda;150,00;PIX;3
-Cliente de Balcão;50,00;Dinheiro;1
+saldo inicial
++ receitas em dinheiro
+- despesas pagas em dinheiro
+- sangrias
+= saldo esperado na gaveta
 ```
 
-Pix inserido em lote é tratado como confirmado e recebe o provedor `manual-lote`, pois o lote serve para registrar recebimentos já conhecidos.
+Pix, débito e crédito não possuem saldo inicial no aplicativo.
+
+O saldo remanescente após a sangria do fechamento é transportado para o próximo dia.
+
+## Sangrias
+
+Sangria é uma movimentação de numerário, não uma despesa. Ela:
+
+- reduz o saldo físico;
+- não reduz o resultado financeiro;
+- não entra na fila do Conta Azul;
+- exige permissão e checkbox de conferência;
+- não pode ultrapassar o saldo esperado;
+- gera um PDF individual imediatamente.
+
+## PDFs no Google Drive
+
+Para cada unidade, configure `drive_root_folder_id`. O sistema cria:
+
+```text
+Pasta raiz
+├── Fechamentos
+│   └── AAAA
+│       └── MM - Mês
+│           └── UNIDADE
+└── Sangrias
+    └── AAAA
+        └── MM - Mês
+            └── UNIDADE
+```
+
+### PDF de fechamento
+
+Contém:
+
+- unidade, centro de custo, data, usuário e horário;
+- posição completa do dinheiro físico;
+- receitas, despesas e resultado;
+- quantidades e totais por meio de pagamento;
+- movimentos detalhados;
+- sangrias;
+- declaração e registro do checkbox;
+- diferença e justificativa, quando houver.
+
+### PDF de sangria
+
+Cada retirada gera um arquivo exclusivo com:
+
+- ID e horário da sangria;
+- unidade e atendente;
+- saldo antes e depois;
+- valor retirado;
+- destino e observação;
+- texto da declaração;
+- indicação de confirmação registrada.
+
+Falha do Drive não desfaz a sangria ou o fechamento. O registro fica com erro e o gatilho tenta gerar o PDF novamente.
+
+## Conta Azul
+
+A integração cria somente:
+
+- contas a receber para receitas;
+- contas a pagar para despesas.
+
+O processamento ocorre depois do fechamento. Cada item entra em `ContaAzul_Fila` e passa por estados como:
+
+- `CONFIGURACAO_PENDENTE`;
+- `PENDENTE`;
+- `AGUARDANDO_PROTOCOLO`;
+- `SINCRONIZADO`;
+- `ERRO`.
+
+A criação retorna um protocolo. O sistema consulta `/v1/protocolo/{id}` até `SUCCESS` ou `ERROR`.
+
+A baixa permanece manual no Conta Azul.
+
+### Propriedades OAuth
+
+Configure nas Propriedades do script:
+
+- `CAIXA_CONTA_AZUL_CLIENT_ID`
+- `CAIXA_CONTA_AZUL_CLIENT_SECRET`
+- `CAIXA_CONTA_AZUL_ACCESS_TOKEN`
+- `CAIXA_CONTA_AZUL_REFRESH_TOKEN`
+- `CAIXA_CONTA_AZUL_EXPIRES_AT`
+- `CAIXA_CONTA_AZUL_REDIRECT_URI`
+
+Use `contaAzulExchangeCodeV2(codigo)` para a primeira troca do código de autorização. Os tokens seguintes são renovados automaticamente e o novo `refresh_token` é persistido.
+
+Execute `syncContaAzulLibraryV2()` para copiar categorias, centros de custo e contas financeiras para as abas técnicas `CA_*`. Depois, use os UUIDs dessas abas na biblioteca.
+
+## Pix Santander
+
+- atendimento Pix cria lançamento `CRIANDO` antes da chamada ao Worker;
+- o Worker retorna QR Code, Pix Copia e Cola e `txid`;
+- webhook atualiza status, `e2eid` e horário;
+- todo Pix diferente de `CONFIRMADO` fica fora das receitas e bloqueia o fechamento;
+- Pix avulso ou em lote é marcado como confirmação manual.
+
+## Segurança
+
+- sessão JWT AGF;
+- unidade resolvida no backend;
+- nenhum centro de custo enviado livremente pelo frontend;
+- segredos somente em Script Properties ou secrets do Cloudflare;
+- datas fechadas ficam bloqueadas;
+- lotes são gravados em uma única operação;
+- declarações são versionadas;
+- PDFs e integrações externas possuem nova tentativa.
+
+## Homologação obrigatória
+
+Antes da produção:
+
+1. cadastrar AGF e Metrô na biblioteca;
+2. vincular todos os usuários;
+3. configurar pastas do Drive;
+4. preencher UUIDs reais do Conta Azul;
+5. validar OAuth na conta teste;
+6. validar os payloads de contas a receber e a pagar no sandbox;
+7. testar sangria comum e sangria no fechamento;
+8. conferir visualmente os dois tipos de PDF;
+9. testar Pix confirmado, expirado, cancelado e com erro;
+10. manter a PR em rascunho até a aprovação final.
 
 ## Rollback
 
-- não alterar `/caixa/`;
-- definir `SANTANDER_MODE=disabled` no Worker;
-- o frontend volta automaticamente ao Pix local;
-- remover ou ignorar a URL do novo Apps Script;
-- como a base é separada, o caixa legado continua disponível durante toda a homologação.
+- `/caixa/` continua intacto;
+- a base V2 é independente;
+- o frontend funciona em homologação local sem URL de Apps Script;
+- o Santander pode permanecer em `disabled`;
+- falhas de Drive ou Conta Azul permanecem em fila, sem reabrir o caixa.
