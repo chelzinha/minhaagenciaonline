@@ -26,3 +26,5 @@ serve-crm.mjs
 
 # Cloudflare local
 .wrangler/
+frontend/caixa-avista/*.backup-*
+frontend/caixa-avista/*.bak-*

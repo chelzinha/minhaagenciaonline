@@ -1,5 +1,5 @@
 /**
- * CAIXA Ãƒâ‚¬ VISTA V2 - Router
+ * CAIXA À VISTA V2 - Router
  */
 
 var CFG = {
@@ -21,32 +21,32 @@ var CFG = {
   ENTRY_HEADERS: ['entry_id','date_iso','created_at','type','client_id','client_name','object_count','amount_cents','payment_method','pix_status','expense_category','description','operator_id','operator_name','status','deleted_at','deleted_by','closure_id','pix_txid','pix_e2eid','pix_received_at','pix_provider'],
   CLOSURE_HEADERS: ['closure_id','date_iso','created_at','created_by','status','revenue_cents','expense_cents','balance_cents','pix_pending_cents','cash_expected_cents','pix_confirmed_expected_cents','cash_counted_cents','pix_counted_cents','cash_difference_cents','pix_difference_cents','notes','reconciled_at'],
   EXPORT_CONTROL_HEADERS: ['closure_id','entry_id','mode','exported_at'],
-  PAYMENT_OPTIONS: ['Dinheiro','PIX','CartÃƒÂ£o de dÃƒÂ©bito','CartÃƒÂ£o de crÃƒÂ©dito'],
+  PAYMENT_OPTIONS: ['Dinheiro','PIX','Cartão de débito','Cartão de crédito'],
   PIX_STATUSES: ['CRIANDO','ATIVA','PENDENTE','CONFIRMADO','EXPIRADO','CANCELADO','ERRO'],
-  EXPENSE_CATEGORIES: ['Copa','EscritÃƒÂ³rio','Taxi','Outros'],
+  EXPENSE_CATEGORIES: ['Copa','Escritório','Taxi','Outros'],
   REVENUE_CATEGORY: '1.3.3. Balcao (Shopping Metro)',
-  EXPENSE_CATEGORY_MAP: {'Copa':'3.6.3. Copa e Cozinha','EscritÃƒÂ³rio':'3.6.4. Material de EscritÃƒÂ³rio','Taxi':'3.4.6. Terceirizados coletas','Outros':'3.6.6. Outras despesas administrativas'},
+  EXPENSE_CATEGORY_MAP: {'Copa':'3.6.3. Copa e Cozinha','Escritório':'3.6.4. Material de Escritório','Taxi':'3.4.6. Terceirizados coletas','Outros':'3.6.6. Outras despesas administrativas'},
   DEFAULT_SUPPLIER: 'GAS SHOPPING METRO',
   REVENUE_HEADERS: [
-    'Identificador do cliente', 'Nome do cliente', 'CÃƒÂ³digo de referÃƒÂªncia', 'Data de competÃƒÂªncia',
-    'Data de vencimento', 'Data prevista', 'RecorrÃƒÂªncia', 'Quantidade de recorrÃƒÂªncia', 'DescriÃƒÂ§ÃƒÂ£o',
-    'Origem do lanÃƒÂ§amento', 'SituaÃƒÂ§ÃƒÂ£o', 'Agendado', 'Valor original da parcela (R$)',
+    'Identificador do cliente', 'Nome do cliente', 'Código de referência', 'Data de competência',
+    'Data de vencimento', 'Data prevista', 'Recorrência', 'Quantidade de recorrência', 'Descrição',
+    'Origem do lançamento', 'Situação', 'Agendado', 'Valor original da parcela (R$)',
     'Forma de recebimento', 'Valor recebido da parcela (R$)', 'Juros realizado (R$)',
     'Multa realizado (R$)', 'Desconto realizado (R$)', 'Valor total recebido da parcela (R$)',
     'Valor da parcela em aberto (R$)', 'Juros previsto (R$)', 'Multa previsto (R$)',
-    'Desconto previsto (R$)', 'Valor total da parcela em aberto (R$)', 'Conta bancÃƒÂ¡ria',
-    'Data do ÃƒÂºltimo pagamento', 'Nota fiscal', 'ObservaÃƒÂ§ÃƒÂµes', 'Categoria 1',
+    'Desconto previsto (R$)', 'Valor total da parcela em aberto (R$)', 'Conta bancária',
+    'Data do último pagamento', 'Nota fiscal', 'Observações', 'Categoria 1',
     'Valor na Categoria 1', 'Centro de Custo 1', 'Valor no Centro de Custo 1'
   ],
   EXPENSE_HEADERS: [
-    'Identificador do fornecedor', 'Nome do fornecedor', 'CÃƒÂ³digo de referÃƒÂªncia', 'Data de competÃƒÂªncia',
-    'Data de vencimento', 'Data prevista', 'RecorrÃƒÂªncia', 'Quantidade de recorrÃƒÂªncia', 'DescriÃƒÂ§ÃƒÂ£o',
-    'Origem do lanÃƒÂ§amento', 'SituaÃƒÂ§ÃƒÂ£o', 'Agendado', 'Valor original da parcela (R$)',
+    'Identificador do fornecedor', 'Nome do fornecedor', 'Código de referência', 'Data de competência',
+    'Data de vencimento', 'Data prevista', 'Recorrência', 'Quantidade de recorrência', 'Descrição',
+    'Origem do lançamento', 'Situação', 'Agendado', 'Valor original da parcela (R$)',
     'Forma de pagamento', 'Valor pago da parcela (R$)', 'Juros pago (R$)', 'Multa paga (R$)',
     'Desconto pago (R$)', 'Valor total pago da parcela (R$)', 'Valor da parcela em aberto (R$)',
     'Juros previsto (R$)', 'Multa previsto (R$)', 'Desconto previsto (R$)',
-    'Valor total da parcela em aberto (R$)', 'Conta bancÃƒÂ¡ria', 'Data do ÃƒÂºltimo pagamento',
-    'Nota fiscal', 'ObservaÃƒÂ§ÃƒÂµes', 'Categoria 1', 'Valor na Categoria 1',
+    'Valor total da parcela em aberto (R$)', 'Conta bancária', 'Data do último pagamento',
+    'Nota fiscal', 'Observações', 'Categoria 1', 'Valor na Categoria 1',
     'Centro de Custo 1', 'Valor no Centro de Custo 1'
   ]
 };
@@ -54,7 +54,7 @@ var CFG = {
 function doGet(e) {
   var params = e && e.parameter ? e.parameter : {};
   if (String(params.action || '') === 'ping') return jsonOutput_({ ok:true, service:'caixa-avista-v2', date:v2Today_() });
-  return jsonOutput_({ ok:true, service:'caixa-avista-v2', message:'Use POST para operaÃƒÂ§ÃƒÂµes do caixa.' });
+  return jsonOutput_({ ok:true, service:'caixa-avista-v2', message:'Use POST para operações do caixa.' });
 }
 
 function doPost(e) {
@@ -87,7 +87,7 @@ function doPost(e) {
       case 'syncContaAzulLibrary': return jsonOutput_(syncContaAzulLibraryV2());
       case 'retryPdfs': return jsonOutput_(retryPendingPdfsV2());
       case 'ping': return jsonOutput_({ ok:true, service:'caixa-avista-v2', date:v2Today_(), authMode:gate.mode });
-      default: return jsonOutput_(fail_('AÃƒÂ§ÃƒÂ£o invÃƒÂ¡lida ou ausente.', 'INVALID_ACTION'));
+      default: return jsonOutput_(fail_('Ação inválida ou ausente.', 'INVALID_ACTION'));
     }
   } catch (error) {
     console.error('[CAIXA_AVISTA_V2][doPost] ' + (error && error.stack ? error.stack : error));
