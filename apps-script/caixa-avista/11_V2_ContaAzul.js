@@ -20,28 +20,73 @@ function v2ContaAzulPayload_(entry) {
 function processContaAzulQueueV2(limitValue) {
   var env=v2Environment_(),limit=Math.max(1,Math.min(100,Number(limitValue||20))),rows=v2ReadObjects_(env.caQueue,CAIXA_V2_CFG.HEADERS.CA_QUEUE),processed=0;
   for(var i=0;i<rows.length&&processed<limit;i++){
-    var item=rows[i],status=String(item.status);
-    if(['PENDENTE','ERRO'].indexOf(status)<0)continue;
+    var item=rows[i],status=String(item.status),protocol=String(item.protocol||'');
+    if(['PENDENTE','ERRO','AGUARDANDO_PROTOCOLO'].indexOf(status)<0)continue;
     try{
-      var body=JSON.parse(String(item.payload_json||'{}'));
-      var endpoint=String(item.entry_type)==='DESPESA'?'/v1/financeiro/eventos-financeiros/contas-a-pagar':'/v1/financeiro/eventos-financeiros/contas-a-receber';
-      var result=v2ContaAzulFetch_(endpoint,{method:'post',contentType:'application/json',payload:JSON.stringify(body),muteHttpExceptions:true});
-      var code=result.getResponseCode(),data=JSON.parse(result.getContentText()||'{}');
-      if(code<200||code>=300)throw new Error('HTTP '+code+': '+(data.message||data.error||result.getContentText()));
-      env.caQueue.getRange(i+2,6,1,7).setValues([['ENVIADO',Number(item.attempts||0)+1,String(data.protocolo||data.protocolId||''),JSON.stringify(body),'',item.created_at||new Date(),new Date()]]);
-      v2UpdateEntryContaAzul_(env,String(item.entry_id),'ENVIADO',String(data.protocolo||data.protocolId||''),'');
+      if(status==='AGUARDANDO_PROTOCOLO'&&protocol){
+        var protocolResult=v2CheckContaAzulProtocol_(protocol);
+        v2ApplyProtocolResult_(env,item,i,protocolResult);
+      }else{
+        var body=JSON.parse(String(item.payload_json||'{}'));
+        var endpoint=String(item.entry_type)==='DESPESA'?'/v1/financeiro/eventos-financeiros/contas-a-pagar':'/v1/financeiro/eventos-financeiros/contas-a-receber';
+        var result=v2ContaAzulFetch_(endpoint,{method:'post',contentType:'application/json',payload:JSON.stringify(body),muteHttpExceptions:true});
+        var code=result.getResponseCode(),data=JSON.parse(result.getContentText()||'{}');
+        if(code<200||code>=300)throw new Error('HTTP '+code+': '+(data.message||data.error||result.getContentText()));
+        protocol=String(data.protocolo||data.protocolId||'');
+        if(!protocol)throw new Error('Conta Azul não retornou o protocolo da operação.');
+        v2ApplyProtocolResult_(env,item,i,{protocol:protocol,status:String(data.status||'PENDING').toUpperCase(),message:String(data.mensagem||data.message||'')});
+      }
     }catch(error){
-      env.caQueue.getRange(i+2,6).setValue('ERRO');env.caQueue.getRange(i+2,7).setValue(Number(item.attempts||0)+1);env.caQueue.getRange(i+2,10).setValue(String(error.message||error));env.caQueue.getRange(i+2,12).setValue(new Date());
-      v2UpdateEntryContaAzul_(env,String(item.entry_id),'ERRO','',String(error.message||error));
+      v2SetQueueRow_(env,i+2,'ERRO',Number(item.attempts||0)+1,protocol,String(error.message||error),item.created_at||new Date());
+      v2UpdateEntryContaAzul_(env,String(item.entry_id),'ERRO',protocol,String(error.message||error));
+      v2RefreshClosureContaAzulStatus_(env,String(item.closure_id));
     }
     processed++;
   }
   return {ok:true,processed:processed};
 }
 
+function v2CheckContaAzulProtocol_(protocol) {
+  var response=v2ContaAzulFetch_('/v1/protocolo/'+encodeURIComponent(protocol),{method:'get',muteHttpExceptions:true});
+  var code=response.getResponseCode(),data=JSON.parse(response.getContentText()||'{}');
+  if(code<200||code>=300)throw new Error('Falha ao consultar protocolo '+protocol+': HTTP '+code+' '+response.getContentText());
+  return {protocol:protocol,status:String(data.status||'PENDING').toUpperCase(),message:String(data.mensagem||data.message||data.erro||data.error||'')};
+}
+
+function v2ApplyProtocolResult_(env,item,index,result) {
+  var protocol=String(result.protocol||item.protocol||''),status=String(result.status||'PENDING').toUpperCase(),attempts=Number(item.attempts||0)+1;
+  if(status==='SUCCESS'){
+    v2SetQueueRow_(env,index+2,'SINCRONIZADO',attempts,protocol,'',item.created_at||new Date());
+    v2UpdateEntryContaAzul_(env,String(item.entry_id),'SINCRONIZADO',protocol,'');
+  }else if(status==='ERROR'){
+    var message=result.message||'O protocolo foi concluído com erro no Conta Azul.';
+    v2SetQueueRow_(env,index+2,'ERRO',attempts,protocol,message,item.created_at||new Date());
+    v2UpdateEntryContaAzul_(env,String(item.entry_id),'ERRO',protocol,message);
+  }else{
+    v2SetQueueRow_(env,index+2,'AGUARDANDO_PROTOCOLO',attempts,protocol,'',item.created_at||new Date());
+    v2UpdateEntryContaAzul_(env,String(item.entry_id),'AGUARDANDO_PROTOCOLO',protocol,'');
+  }
+  v2RefreshClosureContaAzulStatus_(env,String(item.closure_id));
+}
+
+function v2SetQueueRow_(env,sheetRow,status,attempts,protocol,error,createdAt) {
+  var payload=env.caQueue.getRange(sheetRow,9).getValue();
+  env.caQueue.getRange(sheetRow,6,1,7).setValues([[status,attempts,protocol,payload,error,createdAt,new Date()]]);
+}
+
+function v2RefreshClosureContaAzulStatus_(env,closureId) {
+  if(!closureId)return;
+  var queue=v2ReadObjects_(env.caQueue,CAIXA_V2_CFG.HEADERS.CA_QUEUE).filter(function(x){return String(x.closure_id)===closureId;});
+  var status='PENDENTE';
+  if(queue.length&&queue.every(function(x){return String(x.status)==='SINCRONIZADO';}))status='SINCRONIZADO';
+  else if(queue.some(function(x){return ['ERRO','CONFIGURACAO_PENDENTE'].indexOf(String(x.status))>=0;}))status='COM_ERRO';
+  var closures=v2ReadObjects_(env.closures,CAIXA_V2_CFG.HEADERS.CLOSURES);
+  for(var i=0;i<closures.length;i++)if(String(closures[i].closure_id)===closureId){env.closures.getRange(i+2,33).setValue(status);break;}
+}
+
 function v2UpdateEntryContaAzul_(env,entryId,status,protocol,error) {
   var last=env.entries.getLastRow();if(last<2)return;var rows=env.entries.getRange(2,1,last-1,CAIXA_V2_CFG.HEADERS.ENTRIES.length).getValues();
-  for(var i=0;i<rows.length;i++)if(String(rows[i][0])===entryId){rows[i][34]=status;if(protocol)rows[i][35]=protocol;rows[i][36]=error||'';rows[i][37]=Number(rows[i][37]||0)+1;if(status==='ENVIADO')rows[i][38]=new Date();env.entries.getRange(i+2,1,1,rows[i].length).setValues([rows[i]]);break;}
+  for(var i=0;i<rows.length;i++)if(String(rows[i][0])===entryId){rows[i][34]=status;if(protocol)rows[i][35]=protocol;rows[i][36]=error||'';rows[i][37]=Number(rows[i][37]||0)+1;if(status==='SINCRONIZADO')rows[i][38]=new Date();env.entries.getRange(i+2,1,1,rows[i].length).setValues([rows[i]]);break;}
 }
 
 function v2ContaAzulFetch_(path,options) {
@@ -88,4 +133,3 @@ function v2SyncCaSheet_(sheet,headers,items,mapper) {
   if(sheet.getLastRow()>1)sheet.getRange(2,1,sheet.getLastRow()-1,headers.length).clearContent();
   var rows=items.map(mapper);if(rows.length)sheet.getRange(2,1,rows.length,headers.length).setValues(rows);
 }
-
