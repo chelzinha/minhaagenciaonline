@@ -5,7 +5,7 @@ function v2BuildSummary_(env,date,unitId) {
   entries.forEach(function(e){
     if (e.type==='DESPESA') { s.expenseCents+=e.amountCents; s.expenseCount++; if (e.paymentId==='DINHEIRO') s.cashExpenseCents+=e.amountCents; }
     else {
-      if (e.paymentId==='PIX' && ['ATIVA','PENDENTE','CRIANDO'].indexOf(e.pixStatus)>=0) { s.pixPendingCents+=e.amountCents; return; }
+      if (e.paymentId==='PIX' && e.pixStatus!=='CONFIRMADO') { s.pixPendingCents+=e.amountCents; return; }
       s.revenueCents+=e.amountCents; s.revenueCount++; s.byPayment[e.paymentId]=(s.byPayment[e.paymentId]||0)+e.amountCents; s.countByPayment[e.paymentId]=(s.countByPayment[e.paymentId]||0)+1;
       if (e.paymentId==='DINHEIRO') s.cashRevenueCents+=e.amountCents;
       if (e.paymentId==='PIX') s.pixConfirmedCents+=e.amountCents;
@@ -137,4 +137,3 @@ function v2SyncPix_(payload) {
   env.entries.getRange(index+2,1,1,row.length).setValues([row]);
   var e=v2RowEntry_(row); return {ok:true,entry:e,summary:v2BuildSummary_(env,e.date,e.unitId)};
 }
-
