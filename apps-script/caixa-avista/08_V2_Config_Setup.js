@@ -155,7 +155,7 @@ function v2SeedLibrary_(env) {
     env.revenues.appendRow(['ATENDIMENTO_BALCAO','*','Balcão','Atendimento de balcão','','',true,true,true,false,false,'point_of_sale','#1677ff',true,10]);
   }
   if (env.expenses.getLastRow() < 2) {
-    env.expenses.getRange(2,1,4,15).setValues([
+    env.expenses.getRange(2,1,4,14).setValues([
       ['COPA','*','Copa','Despesa de copa','','','DINHEIRO','CAIXA',true,false,'coffee','#ef4444',true,10],
       ['ESCRITORIO','*','Escritório','Material de escritório','','','DINHEIRO','CAIXA',true,false,'edit_note','#ef4444',true,20],
       ['TRANSPORTE','*','Transporte','Despesa de transporte','','','DINHEIRO','CAIXA',true,true,'local_taxi','#ef4444',true,30],
@@ -188,4 +188,3 @@ function v2ActiveForUnit_(items, unitId) {
     return v2Bool_(item.active) && (itemUnit === '*' || itemUnit === unitId);
   }).sort(function(a,b){ return Number(a.sort_order || 999) - Number(b.sort_order || 999); });
 }
-
