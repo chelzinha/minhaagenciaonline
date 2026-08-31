@@ -231,21 +231,155 @@ function v2EntryRow_(e) {
   return [e.id,e.batchId,e.batchIndex,e.date,new Date(e.createdAt),e.type,e.mode,e.unitId,e.operatorId,e.operatorName,e.clientId,e.clientName,e.clientSource,e.objectCount,e.amountCents,e.paymentId,e.paymentName,e.paymentContaAzulMethod,e.accountId,e.accountContaAzulId,e.accountContaAzulName,e.categoryId,e.categoryContaAzulId,e.categoryContaAzulName,e.costCenterContaAzulId,e.costCenterContaAzulName,e.description,e.pixStatus,e.pixTxid,e.pixE2eid,e.pixReceivedAt,e.pixProvider,e.status,e.closureId,e.contaAzulStatus,e.contaAzulProtocol,e.contaAzulLastError,e.contaAzulAttempts,e.contaAzulSyncedAt];
 }
 
+function v2SheetDateIso_(value) {
+  if (
+    Object.prototype.toString.call(value) ===
+      '[object Date]' &&
+    !isNaN(value.getTime())
+  ) {
+    return Utilities.formatDate(
+      value,
+      CAIXA_V2_CFG.TIMEZONE,
+      'yyyy-MM-dd'
+    );
+  }
+
+  var text = String(
+    value == null ? '' : value
+  ).trim();
+
+  if (!text) {
+    return '';
+  }
+
+  var isoMatch = text.match(
+    /^(\d{4})-(\d{2})-(\d{2})/
+  );
+
+  if (isoMatch) {
+    return (
+      isoMatch[1] +
+      '-' +
+      isoMatch[2] +
+      '-' +
+      isoMatch[3]
+    );
+  }
+
+  var brMatch = text.match(
+    /^(\d{2})\/(\d{2})\/(\d{4})/
+  );
+
+  if (brMatch) {
+    return (
+      brMatch[3] +
+      '-' +
+      brMatch[2] +
+      '-' +
+      brMatch[1]
+    );
+  }
+
+  var parsed = new Date(text);
+
+  if (!isNaN(parsed.getTime())) {
+    return Utilities.formatDate(
+      parsed,
+      CAIXA_V2_CFG.TIMEZONE,
+      'yyyy-MM-dd'
+    );
+  }
+
+  return text;
+}
 function v2RowEntry_(row) {
   var h = CAIXA_V2_CFG.HEADERS.ENTRIES;
   var o = {}; h.forEach(function(k,i){ o[k]=row[i]; });
   return {
-    id:String(o.entry_id),batchId:String(o.batch_id||''),batchIndex:Number(o.batch_index||1),date:String(o.date_iso),createdAt:v2Iso_(o.created_at),type:String(o.type),mode:String(o.mode),unitId:String(o.unit_id),operatorId:String(o.operator_id),operatorName:String(o.operator_name),clientId:String(o.client_id||''),clientName:String(o.client_name||''),clientSource:String(o.client_source||''),objectCount:Number(o.object_count||0),amountCents:Number(o.amount_cents||0),paymentId:String(o.payment_id),paymentName:String(o.payment_name),paymentContaAzulMethod:String(o.payment_ca_method||''),accountId:String(o.account_id||''),accountContaAzulId:String(o.account_ca_id_snapshot||''),accountContaAzulName:String(o.account_ca_name_snapshot||''),categoryId:String(o.category_id||''),categoryContaAzulId:String(o.category_ca_id_snapshot||''),categoryContaAzulName:String(o.category_ca_name_snapshot||''),costCenterContaAzulId:String(o.cost_center_ca_id_snapshot||''),costCenterContaAzulName:String(o.cost_center_ca_name_snapshot||''),description:String(o.description||''),pixStatus:String(o.pix_status||''),pixTxid:String(o.pix_txid||''),pixE2eid:String(o.pix_e2eid||''),pixReceivedAt:v2Iso_(o.pix_received_at),pixProvider:String(o.pix_provider||''),status:String(o.status||'ATIVO'),closureId:String(o.closure_id||''),contaAzulStatus:String(o.conta_azul_status||'NAO_ENVIADO'),contaAzulProtocol:String(o.conta_azul_protocol||''),contaAzulLastError:String(o.conta_azul_last_error||''),contaAzulAttempts:Number(o.conta_azul_attempts||0),contaAzulSyncedAt:v2Iso_(o.conta_azul_synced_at)
+    id:String(o.entry_id),batchId:String(o.batch_id||''),batchIndex:Number(o.batch_index||1),date:v2SheetDateIso_(o.date_iso),createdAt:v2Iso_(o.created_at),type:String(o.type),mode:String(o.mode),unitId:String(o.unit_id),operatorId:String(o.operator_id),operatorName:String(o.operator_name),clientId:String(o.client_id||''),clientName:String(o.client_name||''),clientSource:String(o.client_source||''),objectCount:Number(o.object_count||0),amountCents:Number(o.amount_cents||0),paymentId:String(o.payment_id),paymentName:String(o.payment_name),paymentContaAzulMethod:String(o.payment_ca_method||''),accountId:String(o.account_id||''),accountContaAzulId:String(o.account_ca_id_snapshot||''),accountContaAzulName:String(o.account_ca_name_snapshot||''),categoryId:String(o.category_id||''),categoryContaAzulId:String(o.category_ca_id_snapshot||''),categoryContaAzulName:String(o.category_ca_name_snapshot||''),costCenterContaAzulId:String(o.cost_center_ca_id_snapshot||''),costCenterContaAzulName:String(o.cost_center_ca_name_snapshot||''),description:String(o.description||''),pixStatus:String(o.pix_status||''),pixTxid:String(o.pix_txid||''),pixE2eid:String(o.pix_e2eid||''),pixReceivedAt:v2Iso_(o.pix_received_at),pixProvider:String(o.pix_provider||''),status:String(o.status||'ATIVO'),closureId:String(o.closure_id||''),contaAzulStatus:String(o.conta_azul_status||'NAO_ENVIADO'),contaAzulProtocol:String(o.conta_azul_protocol||''),contaAzulLastError:String(o.conta_azul_last_error||''),contaAzulAttempts:Number(o.conta_azul_attempts||0),contaAzulSyncedAt:v2Iso_(o.conta_azul_synced_at)
   };
 }
 
 function v2EntriesByDate_(env,date,unitId) {
-  var last = env.entries.getLastRow(); if (last < 2) return [];
-  return env.entries.getRange(2,1,last-1,CAIXA_V2_CFG.HEADERS.ENTRIES.length).getValues().map(v2RowEntry_).filter(function(e){ return e.date===date && e.unitId===unitId && e.status!=='EXCLUIDO'; });
+  var wantedDate = v2SheetDateIso_(date);
+
+  var wantedUnit = String(
+    unitId || ''
+  ).trim();
+
+  var last = env.entries.getLastRow();
+
+  if (last < 2) {
+    return [];
+  }
+
+  return env.entries
+    .getRange(
+      2,
+      1,
+      last - 1,
+      CAIXA_V2_CFG.HEADERS.ENTRIES.length
+    )
+    .getValues()
+    .map(v2RowEntry_)
+    .filter(function(entry) {
+      return (
+        v2SheetDateIso_(entry.date) ===
+          wantedDate &&
+        String(entry.unitId || '').trim() ===
+          wantedUnit &&
+        entry.status !== 'EXCLUIDO'
+      );
+    });
 }
 
 function v2WithdrawalsByDate_(env,date,unitId) {
-  return v2ReadObjects_(env.withdrawals,CAIXA_V2_CFG.HEADERS.WITHDRAWALS).filter(function(x){ return String(x.date_iso)===date && String(x.unit_id)===unitId; }).map(function(x){ return {
-    id:String(x.withdrawal_id),date:String(x.date_iso),createdAt:v2Iso_(x.created_at),unitId:String(x.unit_id),operatorId:String(x.operator_id),operatorName:String(x.operator_name),amountCents:Number(x.amount_cents||0),destination:String(x.destination||''),notes:String(x.notes||''),balanceBeforeCents:Number(x.balance_before_cents||0),balanceAfterCents:Number(x.balance_after_cents||0),confirmed:v2Bool_(x.confirmed),pdfStatus:String(x.pdf_status||''),pdfUrl:String(x.pdf_url||'')
-  }; });
+  var wantedDate = v2SheetDateIso_(date);
+
+  var wantedUnit = String(
+    unitId || ''
+  ).trim();
+
+  return v2ReadObjects_(
+    env.withdrawals,
+    CAIXA_V2_CFG.HEADERS.WITHDRAWALS
+  )
+    .filter(function(item) {
+      return (
+        v2SheetDateIso_(item.date_iso) ===
+          wantedDate &&
+        String(item.unit_id || '').trim() ===
+          wantedUnit
+      );
+    })
+    .map(function(item) {
+      return {
+        id: String(item.withdrawal_id),
+        date: v2SheetDateIso_(item.date_iso),
+        createdAt: v2Iso_(item.created_at),
+        unitId: String(item.unit_id),
+        operatorId: String(item.operator_id),
+        operatorName: String(item.operator_name),
+        amountCents:
+          Number(item.amount_cents || 0),
+        destination:
+          String(item.destination || ''),
+        notes:
+          String(item.notes || ''),
+        balanceBeforeCents:
+          Number(
+            item.balance_before_cents || 0
+          ),
+        balanceAfterCents:
+          Number(
+            item.balance_after_cents || 0
+          ),
+        confirmed:
+          v2Bool_(item.confirmed),
+        pdfStatus:
+          String(item.pdf_status || ''),
+        pdfUrl:
+          String(item.pdf_url || '')
+      };
+    });
 }

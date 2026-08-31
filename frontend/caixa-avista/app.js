@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   const script = document.createElement('script');
-  script.src = '/caixa-avista/app-v2.js?v=20260831182600';
+  script.src = '/caixa-avista/app-v2.js?v=20260831204825';
   script.async = false;
   script.onerror = () => {
     const node = document.getElementById('launchStatus');

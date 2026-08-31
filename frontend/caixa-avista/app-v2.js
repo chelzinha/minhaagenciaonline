@@ -414,9 +414,90 @@
 
   async function closeCash(){if(state.closure)return;if(!$('closeDeclaration').checked)return status('closeStatus','Confirme a declaração de conferência.','warning');const counted=parseMoney($('countedCash').value),closing=parseMoney($('closingWithdrawal').value);setBusy(true,'Fechando caixa, gerando PDF e preparando Conta Azul...');try{const result=await callApi('closeCash',{payload:{date:todayIso(),countedCashCents:counted,closingWithdrawalCents:closing,withdrawalDestination:$('closingDestination').value.trim()||'Financeiro',notes:$('closingNotes').value.trim(),declarationConfirmed:true}});state.closure=result.closure;state.summary=result.summary||state.summary;renderAll();status('closeStatus',state.closure.pdfUrl?'Caixa fechado. PDF salvo no Drive.':'Caixa fechado. PDF aguardando nova tentativa.','success');}catch(error){status('closeStatus',error.message,'error');}finally{setBusy(false);}}
 
-  function renderClientSuggestions(){const q=$('clientInput').value.trim(),box=$('clientSuggestions');state.selectedClient=null;$('clientChip').classList.add('hidden');if(!q){box.classList.add('hidden');$('btnAddClient').disabled=true;return;}const tokens=normalize(q).split(' ').filter(Boolean),found=state.clients.filter(c=>tokens.every(t=>normalize(c.name).includes(t))).slice(0,10);box.innerHTML=found.length?found.map(c=>`<button class="suggestion" data-client-id="${c.id}">${escapeHtml(c.name)}</button>`).join(''):'<div class="suggestion">Sem resultado</div>';box.classList.remove('hidden');$('btnAddClient').disabled=state.clients.some(c=>normalize(c.name)===normalize(q));}
+  function renderClientSuggestions(){
+    const input = $('clientInput');
+    const box = $('clientSuggestions');
+    const query = input.value.trim();
+
+    const selectedStillMatches = Boolean(
+      state.selectedClient &&
+      normalize(state.selectedClient.name) ===
+        normalize(query)
+    );
+
+    /*
+     * O cliente somente é removido quando o texto digitado
+     * deixa de corresponder ao cliente selecionado.
+     */
+    if (!selectedStillMatches) {
+      state.selectedClient = null;
+
+      $('clientChip').classList.add('hidden');
+      $('clientChip').innerHTML = '';
+    }
+
+    if (!query) {
+      box.classList.add('hidden');
+      $('btnAddClient').disabled = true;
+      return;
+    }
+
+    if (selectedStillMatches) {
+      box.classList.add('hidden');
+      $('btnAddClient').disabled = true;
+
+      renderEntryForm();
+      return;
+    }
+
+    const tokens = normalize(query)
+      .split(' ')
+      .filter(Boolean);
+
+    const found = state.clients
+      .filter(client =>
+        tokens.every(token =>
+          normalize(client.name).includes(token)
+        )
+      )
+      .slice(0, 10);
+
+    box.innerHTML = found.length
+      ? found.map(client => `
+          <button
+            class="suggestion"
+            type="button"
+            data-client-id="${client.id}"
+          >
+            ${escapeHtml(client.name)}
+          </button>
+        `).join('')
+      : '<div class="suggestion">Sem resultado</div>';
+
+    box.classList.remove('hidden');
+
+    $('btnAddClient').disabled =
+      state.clients.some(client =>
+        normalize(client.name) ===
+          normalize(query)
+      );
+  }
+
   async function addClient(){const name=$('clientInput').value.trim();if(!name)return;setBusy(true,'Cadastrando cliente...');try{const result=await callApi('saveClient',{name});state.clients.push(result.client);selectClient(result.client);status('launchStatus','Cliente cadastrado.','success');}catch(error){status('launchStatus',error.message,'error');}finally{setBusy(false);}}
-  function selectClient(client){state.selectedClient=client;$('clientInput').value=client.name;$('clientSuggestions').classList.add('hidden');renderEntryForm();}
+  function selectClient(client){
+    if (!client) {
+      return;
+    }
+
+    state.selectedClient = client;
+
+    $('clientInput').value = client.name;
+    $('clientSuggestions').classList.add('hidden');
+    $('btnAddClient').disabled = true;
+
+    renderEntryForm();
+    clearStatus('launchStatus');
+  }
 
   function switchView(view){document.querySelectorAll('.main-nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['Launch','Movements','Close'].forEach(v=>$('view'+v).classList.toggle('hidden',v.toLowerCase()!==view));window.scrollTo({top:0,behavior:'smooth'});}
   function openModal(id){$(id).classList.remove('hidden');document.body.style.overflow='hidden';}
@@ -561,7 +642,7 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
 
       saveSingle();
     });
-    
+
     $('btnObjectMinus').addEventListener('click',()=>{state.objectCount=Math.max(1,state.objectCount-1);renderEntryForm();});$('btnObjectPlus').addEventListener('click',()=>{state.objectCount=Math.min(999,state.objectCount+1);renderEntryForm();});
     $('btnSaveSingle').addEventListener(
       'click',
