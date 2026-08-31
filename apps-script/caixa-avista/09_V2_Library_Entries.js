@@ -123,8 +123,8 @@ function v2ValidateDraft_(payload, context, library) {
   if (type === 'RECEITA' && !context.permissions.revenue) throw appError_('Usuário sem permissão para receitas.', 'FORBIDDEN');
   if (type === 'DESPESA' && !context.permissions.expense) throw appError_('Usuário sem permissão para despesas.', 'FORBIDDEN');
   var date = v2Date_(payload.date || v2Today_());
-  var amount = Math.round(Number(payload.amountCents || 0));
-  if (!(amount > 0)) throw appError_('Valor inválido.', 'INVALID_AMOUNT');
+  var amountCents = Math.round(Number(payload.amountCents || 0));
+  if (!(amountCents > 0)) throw appError_('Valor inválido.', 'INVALID_AMOUNT');
   var payment = library.payments.filter(function(x){ return x.id === String(payload.paymentId || ''); })[0];
   if (!payment) throw appError_('Forma de pagamento não configurada.', 'PAYMENT_REQUIRED');
   if (type === 'RECEITA' && !payment.allowRevenue) throw appError_('Pagamento não permitido para receita.', 'PAYMENT_NOT_ALLOWED');
@@ -135,6 +135,14 @@ function v2ValidateDraft_(payload, context, library) {
     : library.expenseTypes.filter(function(x){ return x.id === categoryId; })[0];
   if (!category) throw appError_('Categoria não configurada.', 'CATEGORY_REQUIRED');
   var mode = String(payload.mode || (type === 'RECEITA' ? 'AVULSO' : 'INDIVIDUAL')).toUpperCase();
+  if (mode === 'LOTE' && !payment.allowBatch) throw appError_('Esta forma de pagamento não permite lançamento em lote.', 'BATCH_PAYMENT_NOT_ALLOWED');
+  if (type === 'RECEITA') {
+    if (mode === 'ATENDIMENTO' && !category.allowAttendance) throw appError_('Esta receita não permite atendimento.', 'MODE_NOT_ALLOWED');
+    if (mode === 'AVULSO' && !category.allowSingle) throw appError_('Esta receita não permite lançamento avulso.', 'MODE_NOT_ALLOWED');
+    if (mode === 'LOTE' && !category.allowBatch) throw appError_('Esta receita não permite lote.', 'MODE_NOT_ALLOWED');
+  } else if (mode === 'LOTE' && !category.allowBatch) {
+    throw appError_('Esta despesa não permite lote.', 'MODE_NOT_ALLOWED');
+  }
   var clientName = String(payload.clientName || '').replace(/\s+/g,' ').trim();
   var clientId = String(payload.clientId || '').trim();
   if (type === 'RECEITA' && mode === 'ATENDIMENTO' && !clientName) throw appError_('Selecione ou cadastre o cliente do atendimento.', 'CLIENT_REQUIRED');
@@ -145,7 +153,7 @@ function v2ValidateDraft_(payload, context, library) {
   var account = library.accounts.filter(function(x){ return x.id === accountId; })[0];
   if (!account) throw appError_('Conta financeira não configurada.', 'ACCOUNT_REQUIRED');
   return {
-    entryId:String(payload.entryId || '').trim(), type:type, mode:mode, date:date, unitId:String(context.unit.unit_id), amountCents:amount,
+    entryId:String(payload.entryId || '').trim(), type:type, mode:mode, date:date, unitId:String(context.unit.unit_id), amountCents:amountCents,
     clientId:clientId, clientName:clientName, clientSource:clientName ? (clientId ? 'CADASTRADO' : 'INFORMADO') : 'SEM_CLIENTE',
     objectCount:Math.max(0,Math.min(999,parseInt(payload.objectCount,10)||0)),
     payment:payment, account:account, category:category, description:description,
@@ -193,4 +201,3 @@ function v2WithdrawalsByDate_(env,date,unitId) {
     id:String(x.withdrawal_id),date:String(x.date_iso),createdAt:v2Iso_(x.created_at),unitId:String(x.unit_id),operatorId:String(x.operator_id),operatorName:String(x.operator_name),amountCents:Number(x.amount_cents||0),destination:String(x.destination||''),notes:String(x.notes||''),balanceBeforeCents:Number(x.balance_before_cents||0),balanceAfterCents:Number(x.balance_after_cents||0),confirmed:v2Bool_(x.confirmed),pdfStatus:String(x.pdf_status||''),pdfUrl:String(x.pdf_url||'')
   }; });
 }
-
