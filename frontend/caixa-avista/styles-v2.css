@@ -76,3 +76,17 @@ body[data-entry-type="DESPESA"]
 .mode-switch .mode-btn:focus-visible {
   outline-color: rgba(220, 75, 80, 0.28);
 }
+/* CAIXA-EXPENSE-BATCH-RED */
+body[data-entry-type="DESPESA"] .batch-amount {
+  background: linear-gradient(
+    145deg,
+    #b72d36,
+    var(--red),
+    #ff777b
+  );
+  box-shadow: 0 13px 25px rgba(220, 75, 80, 0.20);
+}
+
+body[data-entry-type="DESPESA"] .batch-amount small {
+  color: rgba(255, 255, 255, 0.78);
+}

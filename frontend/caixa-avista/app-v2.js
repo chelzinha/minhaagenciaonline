@@ -371,7 +371,39 @@
   function renderQr(code){$('pixQr').innerHTML='';if(code&&window.QRCode)new QRCode($('pixQr'),{text:code,width:270,height:270,correctLevel:QRCode.CorrectLevel.M});}
   async function confirmManualPix(){if(!state.pixEntry)return;setBusy(true,'Confirmando Pix...');try{const result=await callApi('syncPixPayment',{payload:{entryId:state.pixEntry.id,txid:state.pixEntry.pixTxid||'',status:'CONFIRMADO',amountCents:state.pixEntry.amountCents,provider:state.pixEntry.pixProvider||'manual'}});state.summary=result.summary;closeModal('pixModal');resetEntry();await refresh();status('launchStatus','Pix confirmado.','success');}catch(error){status('pixStatus',error.message,'error');}finally{setBusy(false);}}
 
-  function addBatchItem(){if(!(state.batchAmountCents>0))return status('launchStatus','Digite um valor para adicionar.','warning');state.batchItems.push({amountCents:state.batchAmountCents});state.batchAmountCents=0;renderEntryForm();clearStatus('launchStatus');}
+  function addBatchItem(){
+    clearStatus('launchStatus');
+
+    if(!(state.batchAmountCents > 0)){
+      status(
+        'launchStatus',
+        'Digite um valor para adicionar.',
+        'warning'
+      );
+
+      return;
+    }
+
+    const amountCents =
+      state.batchAmountCents;
+
+    /*
+     * Preserva explicitamente o modo de lote.
+     */
+    state.mode = 'LOTE';
+
+    state.batchItems.push({
+      amountCents
+    });
+
+    state.batchAmountCents = 0;
+
+    renderModes();
+    renderEntryForm();
+
+    clearStatus('launchStatus');
+  }
+
   async function saveBatch(){if(!state.batchItems.length)return status('launchStatus','Adicione pelo menos um valor.','warning');if(!selectedCategory()||!selectedPayment())return status('launchStatus','Selecione tipo e pagamento.','warning');setBusy(true,'Salvando lote...');try{const payloads=state.batchItems.map(item=>draft(item.amountCents,{pixStatus:isPixPayment(selectedPayment())?'CONFIRMADO':'',pixProvider:isPixPayment(selectedPayment())?'manual-batch':''}));const result=await callApi('saveBatch',{payloads});state.entries.push(...(result.entries||[]));state.summary=result.summary;state.batchItems=[];state.batchAmountCents=0;renderAll();status('launchStatus',`${result.entries?.length||payloads.length} lançamentos salvos.`, 'success');}catch(error){status('launchStatus',error.message,'error');}finally{setBusy(false);}}
 
   function applySaveResult(result){if(result.entry)state.entries.push(result.entry);state.summary=result.summary||state.summary;renderAll();}
@@ -394,13 +426,175 @@
   function bind(){
     document.querySelectorAll('.main-nav-btn').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
     document.querySelectorAll('[data-entry-type]').forEach(b=>b.addEventListener('click',()=>changeType(b.dataset.entryType)));
-    $('modeSwitch').addEventListener('click',e=>{const b=e.target.closest('[data-mode]');if(b)changeMode(b.dataset.mode);});
-    $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[data-category]');if(!b)return;state.selectedCategory=b.dataset.category;if(state.type==='DESPESA'&&selectedCategory()?.defaultPaymentId)state.selectedPayment=selectedCategory().defaultPaymentId;renderAll();});
+$('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[data-category]');if(!b)return;state.selectedCategory=b.dataset.category;if(state.type==='DESPESA'&&selectedCategory()?.defaultPaymentId)state.selectedPayment=selectedCategory().defaultPaymentId;renderAll();});
     $('paymentOptions').addEventListener('click',e=>{const b=e.target.closest('[data-payment]');if(b){state.selectedPayment=b.dataset.payment;renderOptions();renderEntryForm();}});
-    $('keypad').addEventListener('click',e=>{const b=e.target.closest('[data-key]');if(b)handleKey('single',b.dataset.key);});
-    $('batchKeypad').addEventListener('click',e=>{const b=e.target.closest('[data-key]');if(b)handleKey('batch',b.dataset.key);});
+
+    /*
+     * Entrada de valores.
+     * Usa captura no documento para funcionar mesmo após mudanças
+     * entre Atender, Avulso, Individual e Em lote.
+     */
+    document.addEventListener('click', event => {
+      const button = event.target.closest(
+        '#keypad [data-key], #batchKeypad [data-key]'
+      );
+
+      if (!button) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const target = button.closest('#batchKeypad')
+        ? 'batch'
+        : 'single';
+
+      handleKey(
+        target,
+        String(button.dataset.key || '')
+      );
+    }, true);
+
+    /*
+     * Teclado físico do computador.
+     */
+    document.addEventListener('keydown', event => {
+      const targetElement = event.target;
+
+      const editable = Boolean(
+        targetElement &&
+        targetElement.closest &&
+        targetElement.closest(
+          'input, textarea, select, [contenteditable="true"]'
+        )
+      );
+
+      if (
+        editable ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.metaKey ||
+        event.defaultPrevented
+      ) {
+        return;
+      }
+
+      const modalOpen =
+        document.querySelector(
+          '.modal-backdrop:not(.hidden)'
+        );
+
+      if (modalOpen) {
+        return;
+      }
+
+      let key = '';
+
+      if (/^\d$/.test(event.key)) {
+        key = event.key;
+      } else if (/^Numpad\d$/.test(event.code)) {
+        key = event.code.slice(-1);
+      } else if (event.key === 'Backspace') {
+        key = 'backspace';
+      } else if (
+        event.key === 'Delete' ||
+        event.key === 'Escape'
+      ) {
+        key = 'clear';
+      }
+
+      if (key) {
+        event.preventDefault();
+
+        handleKey(
+          state.mode === 'LOTE'
+            ? 'batch'
+            : 'single',
+          key
+        );
+
+        return;
+      }
+
+      const addToBatchShortcut =
+
+        state.mode === 'LOTE' &&
+
+        (
+
+          event.key === '+' ||
+
+          event.code === 'NumpadAdd'
+
+        );
+
+
+      if (addToBatchShortcut) {
+
+        event.preventDefault();
+
+        addBatchItem();
+
+        return;
+
+      }
+
+
+      if (event.key !== 'Enter') {
+
+        return;
+
+      }
+
+      event.preventDefault();
+
+      if (state.mode === 'LOTE') {
+        if (event.shiftKey) {
+          saveBatch();
+        } else {
+          addBatchItem();
+        }
+
+        return;
+      }
+
+      saveSingle();
+    });
+    
     $('btnObjectMinus').addEventListener('click',()=>{state.objectCount=Math.max(1,state.objectCount-1);renderEntryForm();});$('btnObjectPlus').addEventListener('click',()=>{state.objectCount=Math.min(999,state.objectCount+1);renderEntryForm();});
-    $('btnSaveSingle').addEventListener('click',saveSingle);$('btnAddBatchItem').addEventListener('click',addBatchItem);$('btnSaveBatch').addEventListener('click',saveBatch);
+    $('btnSaveSingle').addEventListener(
+      'click',
+      event => {
+        event.preventDefault();
+        event.stopPropagation();
+        saveSingle();
+      }
+    );
+
+    $('btnAddBatchItem').addEventListener(
+      'click',
+      event => {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        state.mode = 'LOTE';
+        addBatchItem();
+      }
+    );
+
+    $('btnSaveBatch').addEventListener(
+      'click',
+      event => {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        state.mode = 'LOTE';
+        saveBatch();
+      }
+    );
     $('batchItems').addEventListener('click',e=>{const b=e.target.closest('[data-remove-batch]');if(!b)return;state.batchItems.splice(Number(b.dataset.removeBatch),1);renderEntryForm();});
     $('clientInput').addEventListener('input',renderClientSuggestions);$('clientInput').addEventListener('focus',renderClientSuggestions);$('clientSuggestions').addEventListener('click',e=>{const b=e.target.closest('[data-client-id]');if(b)selectClient(state.clients.find(c=>c.id===b.dataset.clientId));});$('btnAddClient').addEventListener('click',addClient);
     $('btnOpenWithdrawal').addEventListener('click',()=>{if(state.closure)return status('launchStatus','O caixa de hoje já foi fechado.','warning');$('withdrawalAvailable').textContent=money(state.summary?.expectedCashCents||0);$('withdrawalAmount').value='';$('withdrawalDestination').value='Financeiro';$('withdrawalNotes').value='';$('withdrawalDeclaration').checked=false;updateWithdrawalMath();clearStatus('withdrawalStatus');openModal('withdrawalModal');});
