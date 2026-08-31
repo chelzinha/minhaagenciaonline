@@ -2,290 +2,197 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-  <meta name="theme-color" content="#004a78">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#0f6ee8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Caixa à Vista | AGF José Bonifácio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,600,0,0" rel="stylesheet">
-  <link rel="stylesheet" href="/caixa-avista/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,600,1,0" rel="stylesheet">
+  <link rel="stylesheet" href="/caixa-avista/styles-v2.css">
   <link rel="manifest" href="/caixa-avista/manifest.webmanifest">
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
-  <script>window.AGF_ACCESS = { roles: ['admin', 'manager', 'user'], app: 'caixa' };</script>
+  <script>window.AGF_ACCESS={roles:['admin','manager','user'],app:'caixa'};</script>
   <script src="/shared/auth/agf-route-guard.js"></script>
 </head>
-<body>
+<body data-entry-type="RECEITA">
   <div class="app-shell">
     <header class="topbar-shell">
       <div class="topbar">
         <div class="brand">
-          <div class="brand-mark" aria-hidden="true"><span class="material-symbols-rounded">point_of_sale</span></div>
-          <div class="brand-copy">
-            <h1>Caixa à Vista</h1>
-            <p>AGF JOSÉ BONIFÁCIO</p>
-          </div>
+          <div class="brand-mark"><span class="material-symbols-rounded">point_of_sale</span></div>
+          <div class="brand-copy"><h1>Caixa à Vista</h1><p id="unitLabel">Carregando...</p></div>
         </div>
         <div class="top-actions">
-          <button class="icon-btn" id="btnSettings" type="button" aria-label="Configurações" title="Configurações">
-            <span class="material-symbols-rounded">settings</span>
-          </button>
-          <button class="icon-btn" id="btnRefresh" type="button" aria-label="Atualizar" title="Atualizar">
-            <span class="material-symbols-rounded">refresh</span>
-          </button>
+          <button class="icon-btn" id="btnRefresh" type="button" title="Atualizar" aria-label="Atualizar"><span class="material-symbols-rounded">refresh</span></button>
+          <button class="icon-btn" id="btnSettings" type="button" title="Configuração local" aria-label="Configuração local"><span class="material-symbols-rounded">settings</span></button>
         </div>
       </div>
     </header>
 
     <main class="page">
-      <section class="hero">
-        <div class="hero-row">
-          <div>
-            <h2 id="heroGreeting">Novo atendimento</h2>
-            <p id="heroDate">Carregando data...</p>
-          </div>
-          <span class="mode-pill" id="modePill">HOMOLOGAÇÃO</span>
-        </div>
+      <section class="identity-strip">
+        <div><span class="material-symbols-rounded">badge</span><strong id="operatorLabel">Usuário</strong></div>
+        <div><span class="material-symbols-rounded">calendar_today</span><strong id="dateLabel">--/--/----</strong></div>
       </section>
 
-      <nav class="view-tabs" aria-label="Seções do caixa">
-        <button class="view-tab active" type="button" data-view="sale">
-          <span class="material-symbols-rounded">shopping_cart_checkout</span><span>Atendimento</span>
-        </button>
-        <button class="view-tab" type="button" data-view="movements">
-          <span class="material-symbols-rounded">receipt_long</span><span>Movimentos</span>
-        </button>
-        <button class="view-tab" type="button" data-view="close">
-          <span class="material-symbols-rounded">fact_check</span><span>Fechamento</span>
-        </button>
+      <section class="cash-strip">
+        <div class="cash-stat"><span class="material-symbols-rounded">account_balance_wallet</span><small>Inicial</small><strong id="cashOpening">R$ 0,00</strong></div>
+        <div class="cash-stat main"><span class="material-symbols-rounded">payments</span><small>Em caixa</small><strong id="cashExpected">R$ 0,00</strong></div>
+        <div class="cash-stat"><span class="material-symbols-rounded">outbox</span><small>Sangrias</small><strong id="cashWithdrawals">R$ 0,00</strong></div>
+        <button class="cash-action" id="btnOpenWithdrawal" type="button" title="Nova sangria" aria-label="Nova sangria"><span class="material-symbols-rounded">move_up</span></button>
+      </section>
+
+      <nav class="main-nav">
+        <button class="main-nav-btn active" type="button" data-view="launch"><span class="material-symbols-rounded">add_circle</span><small>Lançar</small></button>
+        <button class="main-nav-btn" type="button" data-view="movements"><span class="material-symbols-rounded">receipt_long</span><small>Mov.</small></button>
+        <button class="main-nav-btn" type="button" data-view="close"><span class="material-symbols-rounded">fact_check</span><small>Fechar</small></button>
       </nav>
 
-      <section id="viewSale" class="view-panel">
-        <div class="layout">
-          <section class="card">
-            <div class="card-head">
-              <div>
-                <h3 class="card-title"><span class="material-symbols-rounded">add_card</span>Novo recebimento</h3>
-                <p class="card-subtitle">Um lançamento por atendimento, mesmo com vários objetos.</p>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="step">
-                <div class="step-label"><span><span class="step-number">1</span>Como o cliente vai pagar?</span></div>
-                <div class="payment-grid" id="paymentGrid">
-                  <button type="button" class="payment-btn" data-method="Dinheiro">
-                    <span class="material-symbols-rounded">payments</span><span>Dinheiro</span>
-                  </button>
-                  <button type="button" class="payment-btn" data-method="PIX">
-                    <span class="material-symbols-rounded">qr_code_2</span><span>Pix</span>
-                  </button>
-                  <button type="button" class="payment-btn" data-method="Cartão de débito">
-                    <span class="material-symbols-rounded">credit_card</span><span>Débito</span>
-                  </button>
-                  <button type="button" class="payment-btn" data-method="Cartão de crédito">
-                    <span class="material-symbols-rounded">card_membership</span><span>Crédito</span>
-                  </button>
-                </div>
-              </div>
-
-              <div class="step">
-                <div class="step-label"><span><span class="step-number">2</span>Cliente</span></div>
-                <div class="client-combobox" id="clientCombobox">
-                  <div class="client-input-row">
-                    <input id="clientInput" class="client-input" type="text" autocomplete="off" spellcheck="false" placeholder="Digite qualquer parte do nome" aria-autocomplete="list" aria-controls="clientSuggestions">
-                    <button id="btnAddClient" class="add-client-btn" type="button" aria-label="Cadastrar o nome digitado" title="Cadastrar novo cliente" disabled>
-                      <span class="material-symbols-rounded">add</span>
-                    </button>
-                  </div>
-                  <div id="clientSuggestions" class="suggestions hidden" role="listbox"></div>
-                  <div id="clientSelected" class="client-selected hidden"><span class="material-symbols-rounded">check_circle</span><span></span></div>
-                </div>
-              </div>
-
-              <div class="step inline-row">
-                <div>
-                  <div class="step-label"><span><span class="step-number">3</span>Quantidade de objetos</span><span class="optional">opcional</span></div>
-                  <div class="quantity-control">
-                    <button id="btnQtyMinus" class="quantity-btn" type="button" aria-label="Diminuir quantidade"><span class="material-symbols-rounded">remove</span></button>
-                    <div id="qtyValue" class="quantity-value">1</div>
-                    <button id="btnQtyPlus" class="quantity-btn" type="button" aria-label="Aumentar quantidade"><span class="material-symbols-rounded">add</span></button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="step">
-                <div class="step-label"><span><span class="step-number">4</span>Valor total do atendimento</span></div>
-                <div class="amount-panel" aria-live="polite">
-                  <div class="amount-caption">Valor a receber</div>
-                  <div id="amountDisplay" class="amount-display">R$ 0,00</div>
-                </div>
-                <div class="keypad" id="saleKeypad" aria-label="Teclado numérico">
-                  <button type="button" class="key" data-key="1">1</button>
-                  <button type="button" class="key" data-key="2">2</button>
-                  <button type="button" class="key" data-key="3">3</button>
-                  <button type="button" class="key" data-key="4">4</button>
-                  <button type="button" class="key" data-key="5">5</button>
-                  <button type="button" class="key" data-key="6">6</button>
-                  <button type="button" class="key" data-key="7">7</button>
-                  <button type="button" class="key" data-key="8">8</button>
-                  <button type="button" class="key" data-key="9">9</button>
-                  <button type="button" class="key utility" data-key="clear" aria-label="Limpar"><span class="material-symbols-rounded">delete_sweep</span></button>
-                  <button type="button" class="key" data-key="0">0</button>
-                  <button type="button" class="key utility" data-key="backspace" aria-label="Apagar último número"><span class="material-symbols-rounded">backspace</span></button>
-                </div>
-              </div>
-
-              <button id="btnCompleteSale" class="primary-action" type="button" disabled>
-                <span class="material-symbols-rounded">check_circle</span><span>Registrar recebimento</span>
-              </button>
-              <button id="btnOpenExpense" class="secondary-action" type="button">
-                <span class="material-symbols-rounded">remove_circle</span>Registrar despesa
-              </button>
-              <div id="saleStatus" class="status-box" role="status"></div>
-            </div>
-          </section>
-
-          <aside class="card quick-summary">
-            <div class="card-head">
-              <div><h3 class="card-title"><span class="material-symbols-rounded">monitoring</span>Hoje</h3><p class="card-subtitle" id="summaryDate"></p></div>
-            </div>
-            <div class="card-body">
-              <div class="summary-grid">
-                <div class="summary-item"><div class="summary-label">Receitas</div><div id="sideRevenue" class="summary-value positive">R$ 0,00</div></div>
-                <div class="summary-item"><div class="summary-label">Despesas</div><div id="sideExpense" class="summary-value negative">R$ 0,00</div></div>
-                <div class="summary-item wide"><div class="summary-label">Saldo operacional</div><div id="sideBalance" class="summary-value">R$ 0,00</div></div>
-              </div>
-              <div id="paymentBreakdown" class="payment-breakdown"></div>
-            </div>
-          </aside>
+      <section id="viewLaunch" class="view-panel">
+        <div class="type-switch">
+          <button class="type-btn revenue active" type="button" data-entry-type="RECEITA"><span class="material-symbols-rounded">add_circle</span><span>Receita</span></button>
+          <button class="type-btn expense" type="button" data-entry-type="DESPESA"><span class="material-symbols-rounded">remove_circle</span><span>Despesa</span></button>
         </div>
+
+        <section class="card launch-card">
+          <div class="mode-switch" id="modeSwitch"></div>
+          <div class="card-body">
+            <div class="option-section">
+              <div class="compact-label"><span class="material-symbols-rounded">category</span><span id="categoryLabel">Tipo</span></div>
+              <div class="icon-options" id="categoryOptions"></div>
+            </div>
+
+            <div class="option-section">
+              <div class="compact-label"><span class="material-symbols-rounded">payments</span><span>Pagamento</span></div>
+              <div class="icon-options payments" id="paymentOptions"></div>
+            </div>
+
+            <div id="clientSection" class="option-section">
+              <div class="client-row">
+                <div class="client-box"><span class="material-symbols-rounded">person_search</span><input id="clientInput" autocomplete="off" placeholder="Cliente"></div>
+                <button id="btnAddClient" class="square-btn teal" type="button" title="Cadastrar cliente" disabled><span class="material-symbols-rounded">person_add</span></button>
+              </div>
+              <div id="clientSuggestions" class="suggestions hidden"></div>
+              <div id="clientChip" class="selected-chip hidden"></div>
+            </div>
+
+            <div id="singleFields">
+              <div class="minor-grid">
+                <div id="objectSection" class="minor-box">
+                  <span class="minor-title"><span class="material-symbols-rounded">inventory_2</span>Objetos</span>
+                  <div class="counter"><button id="btnObjectMinus" type="button"><span class="material-symbols-rounded">remove</span></button><strong id="objectCount">1</strong><button id="btnObjectPlus" type="button"><span class="material-symbols-rounded">add</span></button></div>
+                </div>
+                <div class="minor-box description-box">
+                  <span class="minor-title"><span class="material-symbols-rounded">edit_note</span>Obs.</span>
+                  <input id="descriptionInput" placeholder="Opcional">
+                </div>
+              </div>
+
+              <div class="amount-card"><small>Valor</small><strong id="amountDisplay">R$ 0,00</strong></div>
+              <div class="keypad" id="keypad">
+                <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
+                <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
+                <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
+                <button type="button" class="utility" data-key="clear"><span class="material-symbols-rounded">delete_sweep</span></button><button type="button" data-key="0">0</button><button type="button" class="utility" data-key="backspace"><span class="material-symbols-rounded">backspace</span></button>
+              </div>
+              <button id="btnSaveSingle" class="primary-action" type="button"><span class="material-symbols-rounded">check_circle</span><span>Registrar</span></button>
+            </div>
+
+            <div id="batchFields" class="hidden">
+              <div class="batch-entry-row">
+                <div class="batch-amount"><small>Novo valor</small><strong id="batchAmountDisplay">R$ 0,00</strong></div>
+                <button id="btnAddBatchItem" class="batch-add" type="button" aria-label="Adicionar ao lote"><span class="material-symbols-rounded">add</span></button>
+              </div>
+              <div class="keypad batch" id="batchKeypad">
+                <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
+                <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
+                <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
+                <button type="button" class="utility" data-key="clear"><span class="material-symbols-rounded">delete_sweep</span></button><button type="button" data-key="0">0</button><button type="button" class="utility" data-key="backspace"><span class="material-symbols-rounded">backspace</span></button>
+              </div>
+              <div class="batch-total"><div><span class="material-symbols-rounded">format_list_numbered</span><strong id="batchCount">0</strong></div><div><span class="material-symbols-rounded">calculate</span><strong id="batchTotal">R$ 0,00</strong></div></div>
+              <div id="batchItems" class="batch-items"></div>
+              <button id="btnSaveBatch" class="primary-action" type="button"><span class="material-symbols-rounded">playlist_add_check</span><span>Fechar lote</span></button>
+            </div>
+            <div id="launchStatus" class="status-box"></div>
+          </div>
+        </section>
       </section>
 
       <section id="viewMovements" class="view-panel hidden">
         <section class="card">
-          <div class="card-head">
-            <div><h3 class="card-title"><span class="material-symbols-rounded">receipt_long</span>Movimentos do dia</h3><p class="card-subtitle">Recebimentos e despesas registrados.</p></div>
+          <div class="card-head"><h2><span class="material-symbols-rounded">receipt_long</span>Movimentos</h2><button id="btnMovementRefresh" class="small-icon" type="button"><span class="material-symbols-rounded">refresh</span></button></div>
+          <div class="summary-cards">
+            <div class="summary-card blue"><small>Receitas</small><strong id="summaryRevenue">R$ 0,00</strong></div>
+            <div class="summary-card red"><small>Despesas</small><strong id="summaryExpense">R$ 0,00</strong></div>
+            <div class="summary-card green"><small>Resultado</small><strong id="summaryNet">R$ 0,00</strong></div>
           </div>
-          <div class="card-body">
-            <div class="toolbar">
-              <button class="toolbar-btn" id="btnFilterAll" type="button"><span class="material-symbols-rounded">list</span>Todos</button>
-              <button class="toolbar-btn" id="btnFilterPixPending" type="button"><span class="material-symbols-rounded">schedule</span>Pix pendentes</button>
-              <button class="toolbar-btn" id="btnBatch" type="button"><span class="material-symbols-rounded">playlist_add</span>Lançar em lote</button>
-            </div>
-            <div id="entriesList" class="entries"></div>
-            <div id="movementStatus" class="status-box" role="status"></div>
-          </div>
+          <div id="paymentSummary" class="payment-summary"></div>
+          <div id="movementList" class="movement-list"></div>
         </section>
       </section>
 
       <section id="viewClose" class="view-panel hidden">
-        <section class="card">
-          <div class="card-head">
-            <div><h3 class="card-title"><span class="material-symbols-rounded">fact_check</span>Fechamento do dia</h3><p class="card-subtitle">Movimento operacional e conferência financeira em etapas separadas.</p></div>
+        <section class="card close-card">
+          <div class="card-head"><h2><span class="material-symbols-rounded">fact_check</span>Fechamento</h2><span id="closeState" class="state-pill">Aberto</span></div>
+          <div class="closing-overview">
+            <div><small>Inicial</small><strong id="closeOpening">R$ 0,00</strong></div>
+            <div><small>Dinheiro +</small><strong id="closeCashRevenue">R$ 0,00</strong></div>
+            <div><small>Dinheiro −</small><strong id="closeCashExpense">R$ 0,00</strong></div>
+            <div><small>Sangrias</small><strong id="closeWithdrawals">R$ 0,00</strong></div>
+            <div class="wide"><small>Esperado na gaveta</small><strong id="closeExpected">R$ 0,00</strong></div>
           </div>
-          <div class="card-body">
-            <div class="close-grid">
-              <div class="close-box"><h4>Movimento operacional</h4><div id="closeOperationalTotal" class="close-total">R$ 0,00</div><div class="card-subtitle">Receitas menos despesas</div></div>
-              <div class="close-box"><h4>Pix aguardando conferência</h4><div id="closePixPending" class="close-total">R$ 0,00</div><div class="card-subtitle">Cobranças ainda não confirmadas</div></div>
-            </div>
-            <button id="btnOperationalClose" class="primary-action" type="button"><span class="material-symbols-rounded">lock</span>Fechar movimento operacional</button>
 
-            <div class="step">
-              <div class="step-label"><span>Conferência financeira</span></div>
-              <div class="field"><label for="cashCounted">Dinheiro contado no caixa</label><input id="cashCounted" type="text" inputmode="decimal" placeholder="0,00"></div>
-              <div class="field"><label for="pixConfirmedCounted">Pix efetivamente localizado na conta</label><input id="pixConfirmedCounted" type="text" inputmode="decimal" placeholder="0,00"></div>
-              <div class="field"><label for="reconciliationNotes">Observações</label><textarea id="reconciliationNotes" placeholder="Explique diferenças, pendências ou ajustes"></textarea></div>
-              <div id="reconciliationDifference" class="diff-result">Diferença: R$ 0,00</div>
-              <button id="btnReconcile" class="secondary-action" type="button"><span class="material-symbols-rounded">done_all</span>Salvar conferência financeira</button>
-            </div>
-            <div id="closeStatus" class="status-box" role="status"></div>
+          <div class="field-grid">
+            <label><span class="material-symbols-rounded">payments</span><span>Dinheiro contado</span><input id="countedCash" inputmode="decimal" placeholder="0,00"></label>
+            <label><span class="material-symbols-rounded">outbox</span><span>Sangria no fechamento</span><input id="closingWithdrawal" inputmode="decimal" placeholder="0,00"></label>
+            <label><span class="material-symbols-rounded">location_on</span><span>Destino</span><input id="closingDestination" placeholder="Financeiro"></label>
+            <label class="wide"><span class="material-symbols-rounded">edit_note</span><span>Justificativa / observação</span><textarea id="closingNotes" placeholder="Obrigatória somente se houver diferença"></textarea></label>
           </div>
+          <div class="closing-result"><div><small>Diferença</small><strong id="closeDifference">R$ 0,00</strong></div><div><small>Ficará no caixa</small><strong id="closeCarryover">R$ 0,00</strong></div></div>
+          <label class="declaration"><input type="checkbox" id="closeDeclaration"><span><strong>Conferi e contei o numerário.</strong><small>Confirmo os valores registrados e a eventual sangria.</small></span></label>
+          <button id="btnCloseCash" class="primary-action" type="button"><span class="material-symbols-rounded">lock</span><span>Fechar caixa</span></button>
+          <div id="closeLinks" class="document-links hidden"></div>
+          <div id="closeStatus" class="status-box"></div>
         </section>
       </section>
     </main>
-
-    <footer class="bottom-summary" aria-label="Resumo financeiro">
-      <div class="bottom-summary-inner">
-        <div class="bottom-metric"><span>Receitas</span><strong id="footerRevenue">R$ 0,00</strong></div>
-        <div class="bottom-metric"><span>Despesas</span><strong id="footerExpense">R$ 0,00</strong></div>
-        <div class="bottom-metric balance"><span>Saldo</span><strong id="footerBalance">R$ 0,00</strong></div>
-      </div>
-    </footer>
   </div>
 
-  <div id="pixModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="pixModalTitle">
+  <div id="withdrawalModal" class="modal-backdrop hidden">
     <section class="modal">
-      <header class="modal-head"><h3 id="pixModalTitle">Cobrança Pix</h3><button class="close-modal" type="button" data-close-modal="pixModal" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button></header>
+      <header><h3><span class="material-symbols-rounded">move_up</span>Sangria</h3><button type="button" data-close="withdrawalModal"><span class="material-symbols-rounded">close</span></button></header>
       <div class="modal-body">
-        <div id="pixModalAmount" class="pix-amount">R$ 0,00</div>
-        <div id="pixQr" class="qr-wrap" aria-label="QR Code Pix"></div>
-        <textarea id="pixCode" class="pix-code" readonly aria-label="Pix Copia e Cola"></textarea>
-        <div class="modal-actions">
-          <button id="btnCopyPix" class="secondary-action" type="button"><span class="material-symbols-rounded">content_copy</span>Copiar Pix</button>
-          <button id="btnSharePix" class="secondary-action" type="button"><span class="material-symbols-rounded">share</span>WhatsApp</button>
-          <button id="btnPixConfirmed" class="primary-action full" type="button"><span class="material-symbols-rounded">check_circle</span>Pix recebido</button>
-          <button id="btnPixPending" class="secondary-action full" type="button"><span class="material-symbols-rounded">schedule</span>Registrar como pendente</button>
-        </div>
-        <div id="pixStatus" class="status-box" role="status"></div>
+        <div class="withdrawal-balance"><small>Disponível</small><strong id="withdrawalAvailable">R$ 0,00</strong></div>
+        <label class="modal-field"><span>Valor</span><input id="withdrawalAmount" inputmode="decimal" placeholder="0,00"></label>
+        <label class="modal-field"><span>Destino</span><input id="withdrawalDestination" placeholder="Financeiro"></label>
+        <label class="modal-field"><span>Observação</span><textarea id="withdrawalNotes" placeholder="Opcional"></textarea></label>
+        <div class="withdrawal-result"><span>Restará</span><strong id="withdrawalRemaining">R$ 0,00</strong></div>
+        <label class="declaration"><input type="checkbox" id="withdrawalDeclaration"><span><strong>Conferi o valor da sangria.</strong><small>Confirmo que o numerário separado corresponde ao valor informado.</small></span></label>
+        <button id="btnSaveWithdrawal" class="danger-action" type="button"><span class="material-symbols-rounded">picture_as_pdf</span><span>Registrar e gerar PDF</span></button>
+        <div id="withdrawalStatus" class="status-box"></div>
       </div>
     </section>
   </div>
 
-  <div id="expenseModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
-    <section class="modal">
-      <header class="modal-head"><h3 id="expenseModalTitle">Nova despesa</h3><button class="close-modal" type="button" data-close-modal="expenseModal" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button></header>
-      <div class="modal-body">
-        <div class="field"><label for="expenseCategory">Categoria</label><select id="expenseCategory"><option value="">Selecione</option><option>Copa</option><option>Escritório</option><option>Taxi</option><option>Outros</option></select></div>
-        <div class="field"><label for="expenseDescription">Descrição</label><input id="expenseDescription" type="text" placeholder="Ex.: Material de limpeza"></div>
-        <div class="step">
-          <div class="amount-panel"><div class="amount-caption">Valor da despesa</div><div id="expenseAmountDisplay" class="amount-display">R$ 0,00</div></div>
-          <div class="keypad" id="expenseKeypad">
-            <button type="button" class="key" data-key="1">1</button><button type="button" class="key" data-key="2">2</button><button type="button" class="key" data-key="3">3</button>
-            <button type="button" class="key" data-key="4">4</button><button type="button" class="key" data-key="5">5</button><button type="button" class="key" data-key="6">6</button>
-            <button type="button" class="key" data-key="7">7</button><button type="button" class="key" data-key="8">8</button><button type="button" class="key" data-key="9">9</button>
-            <button type="button" class="key utility" data-key="clear"><span class="material-symbols-rounded">delete_sweep</span></button><button type="button" class="key" data-key="0">0</button><button type="button" class="key utility" data-key="backspace"><span class="material-symbols-rounded">backspace</span></button>
-          </div>
-        </div>
-        <button id="btnSaveExpense" class="danger-action" type="button"><span class="material-symbols-rounded">remove_circle</span>Registrar despesa</button>
-        <div id="expenseStatus" class="status-box" role="status"></div>
-      </div>
+  <div id="pixModal" class="modal-backdrop hidden">
+    <section class="modal pix-modal">
+      <header><h3><span class="material-symbols-rounded">qr_code_2</span>Pix</h3><button type="button" data-close="pixModal"><span class="material-symbols-rounded">close</span></button></header>
+      <div class="modal-body"><div id="pixAmount" class="pix-amount">R$ 0,00</div><div id="pixQr" class="qr-wrap"></div><textarea id="pixCode" readonly></textarea><div class="modal-actions"><button id="btnCopyPix" class="secondary-action" type="button"><span class="material-symbols-rounded">content_copy</span>Copiar</button><button id="btnConfirmManualPix" class="primary-action" type="button"><span class="material-symbols-rounded">check_circle</span>Confirmar</button></div><div id="pixStatus" class="status-box"></div></div>
     </section>
   </div>
 
-  <div id="batchModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="batchModalTitle">
-    <section class="modal">
-      <header class="modal-head"><h3 id="batchModalTitle">Lançamento em lote</h3><button class="close-modal" type="button" data-close-modal="batchModal" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button></header>
-      <div class="modal-body">
-        <p class="card-subtitle">Cole uma linha por atendimento no formato: cliente;valor;pagamento;objetos</p>
-        <div class="field"><label for="batchText">Lançamentos</label><textarea id="batchText" placeholder="Loja Raquel Moda;150,00;PIX;3&#10;Cliente de Balcão;50,00;Dinheiro;1"></textarea></div>
-        <button id="btnSaveBatch" class="primary-action" type="button"><span class="material-symbols-rounded">playlist_add_check</span>Validar e salvar lote</button>
-        <div id="batchStatus" class="status-box" role="status"></div>
-      </div>
-    </section>
+  <div id="settingsModal" class="modal-backdrop hidden">
+    <section class="modal"><header><h3><span class="material-symbols-rounded">settings</span>Homologação</h3><button type="button" data-close="settingsModal"><span class="material-symbols-rounded">close</span></button></header><div class="modal-body"><label class="modal-field"><span>URL do Apps Script</span><input id="apiUrlInput" placeholder="Deixe vazio para modo local"></label><button id="btnSaveSettings" class="primary-action" type="button"><span class="material-symbols-rounded">save</span>Salvar</button></div></section>
   </div>
 
-  <div id="settingsModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
-    <section class="modal">
-      <header class="modal-head"><h3 id="settingsModalTitle">Configuração da homologação</h3><button class="close-modal" type="button" data-close-modal="settingsModal" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button></header>
-      <div class="modal-body">
-        <div class="field"><label for="settingApiUrl">URL do novo Apps Script</label><input id="settingApiUrl" type="url" placeholder="Deixe vazio para usar dados locais"></div>
-        <div class="field"><label for="settingPixKey">Chave Pix</label><input id="settingPixKey" type="text" autocomplete="off" placeholder="CNPJ, telefone, e-mail ou chave aleatória"></div>
-        <div class="field"><label for="settingPixName">Nome do recebedor</label><input id="settingPixName" type="text" maxlength="25" placeholder="Até 25 caracteres"></div>
-        <div class="field"><label for="settingPixCity">Cidade</label><input id="settingPixCity" type="text" maxlength="15" placeholder="FORTALEZA"></div>
-        <button id="btnSaveSettings" class="primary-action" type="button"><span class="material-symbols-rounded">save</span>Salvar configurações</button>
-        <div id="settingsStatus" class="status-box" role="status"></div>
-      </div>
-    </section>
-  </div>
-
-  <div id="loadingOverlay" class="loading-overlay hidden"><div class="loading-card"><span class="spinner"></span><span id="loadingText">Carregando...</span></div></div>
-
+  <div id="loadingOverlay" class="loading-overlay hidden"><div><span class="spinner"></span><strong id="loadingText">Carregando...</strong></div></div>
   <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
   <script src="/caixa-avista/app.js"></script>
   <script src="/shared/ui/agf-ui.js"></script>
-  <script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/caixa-avista/sw.js').catch(() => {}));</script>
+  <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/caixa-avista/sw.js').catch(()=>{}));</script>
 </body>
 </html>
