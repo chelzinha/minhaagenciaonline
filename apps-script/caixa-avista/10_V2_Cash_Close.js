@@ -19,24 +19,155 @@ function v2BuildSummary_(env,date,unitId) {
 }
 
 function v2OpeningBalance_(env,date,unitId) {
-  var rows = v2ReadObjects_(env.dailyBalances,CAIXA_V2_CFG.HEADERS.DAILY_BALANCES);
-  var current = rows.filter(function(x){ return String(x.unit_id)===unitId && String(x.date_iso)===date; })[0];
-  if (current) return Number(current.opening_cash_cents||0);
-  var previous = rows.filter(function(x){ return String(x.unit_id)===unitId && String(x.date_iso)<date && String(x.status)==='FECHADO'; })
-    .sort(function(a,b){ return String(b.date_iso).localeCompare(String(a.date_iso)); })[0];
-  var opening = previous ? Number(previous.carryover_cents||0) : 0;
-  env.dailyBalances.appendRow([unitId,date,opening,previous?'SALDO_ANTERIOR':'INICIAL_ZERO',new Date(),'sistema','','','','','', 'ABERTO']);
+  var wantedDate = v2SheetDateIso_(date);
+  var wantedUnit = String(
+    unitId || ''
+  ).trim();
+
+  var rows = v2ReadObjects_(
+    env.dailyBalances,
+    CAIXA_V2_CFG.HEADERS.DAILY_BALANCES
+  );
+
+  var current = rows.filter(function(item) {
+    return (
+      String(item.unit_id || '').trim() ===
+        wantedUnit &&
+      v2SheetDateIso_(item.date_iso) ===
+        wantedDate
+    );
+  })[0];
+
+  if (current) {
+    return Number(
+      current.opening_cash_cents || 0
+    );
+  }
+
+  var previous = rows
+    .filter(function(item) {
+      return (
+        String(item.unit_id || '').trim() ===
+          wantedUnit &&
+        v2SheetDateIso_(item.date_iso) <
+          wantedDate &&
+        String(item.status || '') ===
+          'FECHADO'
+      );
+    })
+    .sort(function(a,b) {
+      return v2SheetDateIso_(b.date_iso)
+        .localeCompare(
+          v2SheetDateIso_(a.date_iso)
+        );
+    })[0];
+
+  var opening = previous
+    ? Number(previous.carryover_cents || 0)
+    : 0;
+
+  env.dailyBalances.appendRow([
+    wantedUnit,
+    wantedDate,
+    opening,
+    previous
+      ? 'SALDO_ANTERIOR'
+      : 'INICIAL_ZERO',
+    new Date(),
+    'sistema',
+    '',
+    '',
+    '',
+    '',
+    '',
+    'ABERTO'
+  ]);
+
   return opening;
 }
 
-function v2SetOpeningBalance_(dateValue,amountValue,user) {
-  var env=v2Environment_(),context=v2ResolveContext_(env,user),date=v2Date_(dateValue||v2Today_()),amount=Math.round(Number(amountValue||0));
-  if (amount<0) throw appError_('Saldo inicial inválido.','INVALID_OPENING');
-  v2AssertOpen_(env,date,String(context.unit.unit_id));
-  var rows=v2ReadObjects_(env.dailyBalances,CAIXA_V2_CFG.HEADERS.DAILY_BALANCES), found=rows.filter(function(x){return String(x.unit_id)===String(context.unit.unit_id)&&String(x.date_iso)===date;})[0];
-  if (found) env.dailyBalances.getRange(found._sheetRow,3).setValue(amount);
-  else env.dailyBalances.appendRow([context.unit.unit_id,date,amount,'MANUAL',new Date(),user.id,'','','','','','ABERTO']);
-  return {ok:true,summary:v2BuildSummary_(env,date,String(context.unit.unit_id))};
+function v2SetOpeningBalance_(
+  dateValue,
+  amountValue,
+  user
+) {
+  var env = v2Environment_();
+
+  var context = v2ResolveContext_(
+    env,
+    user
+  );
+
+  var date = v2SheetDateIso_(
+    v2Date_(
+      dateValue || v2Today_()
+    )
+  );
+
+  var unitId = String(
+    context.unit.unit_id || ''
+  ).trim();
+
+  var amount = Math.round(
+    Number(amountValue || 0)
+  );
+
+  if (amount < 0) {
+    throw appError_(
+      'Saldo inicial inválido.',
+      'INVALID_OPENING'
+    );
+  }
+
+  v2AssertOpen_(
+    env,
+    date,
+    unitId
+  );
+
+  var rows = v2ReadObjects_(
+    env.dailyBalances,
+    CAIXA_V2_CFG.HEADERS.DAILY_BALANCES
+  );
+
+  var found = rows.filter(function(item) {
+    return (
+      String(item.unit_id || '').trim() ===
+        unitId &&
+      v2SheetDateIso_(item.date_iso) ===
+        date
+    );
+  })[0];
+
+  if (found) {
+    env.dailyBalances
+      .getRange(found._sheetRow, 3)
+      .setValue(amount);
+  } else {
+    env.dailyBalances.appendRow([
+      unitId,
+      date,
+      amount,
+      'MANUAL',
+      new Date(),
+      user.id,
+      '',
+      '',
+      '',
+      '',
+      '',
+      'ABERTO'
+    ]);
+  }
+
+  return {
+    ok: true,
+    summary: v2BuildSummary_(
+      env,
+      date,
+      unitId
+    )
+  };
 }
 
 function v2RecordWithdrawal_(env, context, user, data) {
@@ -105,23 +236,208 @@ function v2Close_(payload,user) {
 }
 
 function v2FindClosure_(env,date,unitId) {
-  var x=v2ReadObjects_(env.closures,CAIXA_V2_CFG.HEADERS.CLOSURES).filter(function(r){return String(r.date_iso)===date&&String(r.unit_id)===unitId;})[0];
-  if(!x)return null;
-  return {id:String(x.closure_id),date:String(x.date_iso),unitId:String(x.unit_id),unitName:String(x.unit_name),status:String(x.status),createdAt:v2Iso_(x.created_at),createdBy:String(x.created_by),createdByName:String(x.created_by_name),revenueCents:Number(x.revenue_cents||0),expenseCents:Number(x.expense_cents||0),netCents:Number(x.net_cents||0),openingCashCents:Number(x.opening_cash_cents||0),cashRevenueCents:Number(x.cash_revenue_cents||0),cashExpenseCents:Number(x.cash_expense_cents||0),withdrawalsBeforeCloseCents:Number(x.withdrawals_before_close_cents||0),expectedCashCents:Number(x.expected_cash_cents||0),countedCashCents:Number(x.counted_cash_cents||0),differenceCents:Number(x.difference_cents||0),closingWithdrawalCents:Number(x.closing_withdrawal_cents||0),carryoverCents:Number(x.carryover_cents||0),notes:String(x.notes||''),declarationConfirmed:v2Bool_(x.declaration_confirmed),pdfStatus:String(x.pdf_status||''),pdfUrl:String(x.pdf_url||''),contaAzulStatus:String(x.conta_azul_status||'')};
+  var wantedDate = v2SheetDateIso_(date);
+  var wantedUnit = String(
+    unitId || ''
+  ).trim();
+
+  var closure = v2ReadObjects_(
+    env.closures,
+    CAIXA_V2_CFG.HEADERS.CLOSURES
+  ).filter(function(item) {
+    return (
+      v2SheetDateIso_(item.date_iso) ===
+        wantedDate &&
+      String(item.unit_id || '').trim() ===
+        wantedUnit
+    );
+  })[0];
+
+  if (!closure) {
+    return null;
+  }
+
+  return {
+    id: String(closure.closure_id),
+    date: v2SheetDateIso_(
+      closure.date_iso
+    ),
+    unitId: String(closure.unit_id),
+    unitName: String(closure.unit_name),
+    status: String(closure.status),
+    createdAt: v2Iso_(
+      closure.created_at
+    ),
+    createdBy: String(
+      closure.created_by
+    ),
+    createdByName: String(
+      closure.created_by_name
+    ),
+    revenueCents: Number(
+      closure.revenue_cents || 0
+    ),
+    expenseCents: Number(
+      closure.expense_cents || 0
+    ),
+    netCents: Number(
+      closure.net_cents || 0
+    ),
+    openingCashCents: Number(
+      closure.opening_cash_cents || 0
+    ),
+    cashRevenueCents: Number(
+      closure.cash_revenue_cents || 0
+    ),
+    cashExpenseCents: Number(
+      closure.cash_expense_cents || 0
+    ),
+    withdrawalsBeforeCloseCents: Number(
+      closure.withdrawals_before_close_cents ||
+        0
+    ),
+    expectedCashCents: Number(
+      closure.expected_cash_cents || 0
+    ),
+    countedCashCents: Number(
+      closure.counted_cash_cents || 0
+    ),
+    differenceCents: Number(
+      closure.difference_cents || 0
+    ),
+    closingWithdrawalCents: Number(
+      closure.closing_withdrawal_cents || 0
+    ),
+    carryoverCents: Number(
+      closure.carryover_cents || 0
+    ),
+    notes: String(
+      closure.notes || ''
+    ),
+    declarationConfirmed:
+      v2Bool_(
+        closure.declaration_confirmed
+      ),
+    pdfStatus: String(
+      closure.pdf_status || ''
+    ),
+    pdfUrl: String(
+      closure.pdf_url || ''
+    ),
+    contaAzulStatus: String(
+      closure.conta_azul_status || ''
+    )
+  };
 }
 
-function v2MarkEntriesClosed_(env,date,unitId,closureId) {
-  var last=env.entries.getLastRow(); if(last<2)return;
-  var values=env.entries.getRange(2,1,last-1,CAIXA_V2_CFG.HEADERS.ENTRIES.length).getValues();
-  values.forEach(function(row){ if(String(row[3])===date&&String(row[7])===unitId&&String(row[32])!=='EXCLUIDO') row[33]=closureId; });
-  env.entries.getRange(2,1,values.length,values[0].length).setValues(values);
+function v2MarkEntriesClosed_(
+  env,
+  date,
+  unitId,
+  closureId
+) {
+  var last = env.entries.getLastRow();
+
+  if (last < 2) {
+    return;
+  }
+
+  var wantedDate = v2SheetDateIso_(date);
+
+  var wantedUnit = String(
+    unitId || ''
+  ).trim();
+
+  var values = env.entries
+    .getRange(
+      2,
+      1,
+      last - 1,
+      CAIXA_V2_CFG.HEADERS.ENTRIES.length
+    )
+    .getValues();
+
+  values.forEach(function(row) {
+    if (
+      v2SheetDateIso_(row[3]) ===
+        wantedDate &&
+      String(row[7] || '').trim() ===
+        wantedUnit &&
+      String(row[32] || '') !==
+        'EXCLUIDO'
+    ) {
+      row[33] = closureId;
+    }
+  });
+
+  env.entries
+    .getRange(
+      2,
+      1,
+      values.length,
+      values[0].length
+    )
+    .setValues(values);
 }
 
-function v2UpdateDailyBalanceClose_(env,date,unitId,summary,counted,difference,closingWithdrawal,carryover,user) {
-  var rows=v2ReadObjects_(env.dailyBalances,CAIXA_V2_CFG.HEADERS.DAILY_BALANCES),index=-1;
-  rows.forEach(function(x,i){if(String(x.unit_id)===unitId&&String(x.date_iso)===date)index=i;});
-  var row=[unitId,date,summary.openingCashCents,'FECHAMENTO',new Date(),user.id,summary.expectedCashCents,counted,difference,closingWithdrawal,carryover,'FECHADO'];
-  if(index>=0) env.dailyBalances.getRange(index+2,1,1,row.length).setValues([row]); else env.dailyBalances.appendRow(row);
+function v2UpdateDailyBalanceClose_(
+  env,
+  date,
+  unitId,
+  summary,
+  counted,
+  difference,
+  closingWithdrawal,
+  carryover,
+  user
+) {
+  var wantedDate = v2SheetDateIso_(date);
+
+  var wantedUnit = String(
+    unitId || ''
+  ).trim();
+
+  var rows = v2ReadObjects_(
+    env.dailyBalances,
+    CAIXA_V2_CFG.HEADERS.DAILY_BALANCES
+  );
+
+  var found = rows.filter(function(item) {
+    return (
+      String(item.unit_id || '').trim() ===
+        wantedUnit &&
+      v2SheetDateIso_(item.date_iso) ===
+        wantedDate
+    );
+  })[0];
+
+  var row = [
+    wantedUnit,
+    wantedDate,
+    summary.openingCashCents,
+    'FECHAMENTO',
+    new Date(),
+    user.id,
+    summary.expectedCashCents,
+    counted,
+    difference,
+    closingWithdrawal,
+    carryover,
+    'FECHADO'
+  ];
+
+  if (found) {
+    env.dailyBalances
+      .getRange(
+        found._sheetRow,
+        1,
+        1,
+        row.length
+      )
+      .setValues([row]);
+  } else {
+    env.dailyBalances.appendRow(row);
+  }
 }
 
 function v2AssertOpen_(env,date,unitId) { if(v2FindClosure_(env,date,unitId)) throw appError_('O caixa desta data já foi fechado.','DATE_CLOSED'); }
