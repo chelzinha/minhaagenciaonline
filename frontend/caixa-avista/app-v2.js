@@ -2,6 +2,10 @@
 
 (() => {
   const $ = id => document.getElementById(id);
+
+  const DEFAULT_API_URL =
+    'https://script.google.com/macros/s/AKfycbxH-9PPg_R5i5YGYuZOgizOK-_i9XssRvvoA21XFnxt0nZr9SF87jFysf4s3bhNVSIe/exec';
+
   const STORAGE = {
     API: 'caixa_avista_v2_api_url',
     LOCAL: 'caixa_avista_v2_local_data',
@@ -25,7 +29,13 @@
   const normalize = value => String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
   const parseMoney = value => { const t=String(value||'').replace(/R\$/gi,'').replace(/\s/g,''); if(!t)return 0; let n=t; if(t.includes(',')&&t.includes('.'))n=t.replace(/\./g,'').replace(',','.'); else if(t.includes(','))n=t.replace(',','.'); const x=Number(n.replace(/[^\d.-]/g,'')); return Number.isFinite(x)?Math.round(Math.abs(x)*100):0; };
   const uid = () => crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now()+'-'+Math.random().toString(36).slice(2);
-  const apiUrl = () => localStorage.getItem(STORAGE.API) || '';
+  const apiUrl = () =>
+    String(
+      localStorage.getItem(
+        STORAGE.API
+      ) ||
+      DEFAULT_API_URL
+    ).trim();
   const token = () => window.AgfAuth?.getToken?.() || '';
 
   const selectedUnitId = () =>
@@ -2310,7 +2320,8 @@
 
     localStorage.setItem(
       STORAGE.API,
-      nextApiUrl
+      nextApiUrl ||
+        DEFAULT_API_URL
     );
 
     status(
@@ -2324,6 +2335,8 @@
         closeModal(
           'settingsModal'
         );
+
+        window.location.reload();
       },
       400
     );

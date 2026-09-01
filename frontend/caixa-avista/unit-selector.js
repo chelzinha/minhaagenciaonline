@@ -2,6 +2,10 @@
 
 (() => {
   const API_STORAGE = 'caixa_avista_v2_api_url';
+
+  const DEFAULT_API_URL =
+    'https://script.google.com/macros/s/AKfycbxH-9PPg_R5i5YGYuZOgizOK-_i9XssRvvoA21XFnxt0nZr9SF87jFysf4s3bhNVSIe/exec';
+
   const UNIT_STORAGE_PREFIX =
     'caixa_avista_v2_selected_unit:';
 
@@ -14,7 +18,10 @@
 
   const apiUrl = () =>
     String(
-      localStorage.getItem(API_STORAGE) || ''
+      localStorage.getItem(
+        API_STORAGE
+      ) ||
+      DEFAULT_API_URL
     ).trim();
 
   const authToken = () =>
@@ -168,7 +175,7 @@
 
     const script = document.createElement('script');
 
-    script.src = '/caixa-avista/app.js?v=20260901143428';
+    script.src = '/caixa-avista/app.js?v=20260901173553';
     script.async = false;
     script.dataset.caixaApplication = 'true';
 
