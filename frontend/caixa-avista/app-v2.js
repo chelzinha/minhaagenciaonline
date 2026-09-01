@@ -411,6 +411,14 @@
   const isPixPayment = payment =>
     payment?.contaAzulMethod === 'PIX_PAGAMENTO_INSTANTANEO';
 
+  function shouldGenerateLocalPix(payment) {
+    return Boolean(
+      state.type === 'RECEITA' &&
+      state.mode === 'ATENDIMENTO' &&
+      isPixPayment(payment)
+    );
+  }
+
   const isPixEntry = entry =>
     entry?.paymentContaAzulMethod === 'PIX_PAGAMENTO_INSTANTANEO' ||
     /^PIX(?:_|$)/.test(String(entry?.paymentId || ''));
@@ -911,10 +919,7 @@
       attendance &&
       isPixPayment(payment)
     ) {
-      saveLabel =
-        payment.generatePix
-          ? 'Gerar Pix'
-          : 'Registrar Pix manual';
+      saveLabel = 'Gerar Pix';
     }
 
     $('btnSaveSingle')
@@ -1169,10 +1174,7 @@
     }
 
     const generateLocalPix =
-      state.type === 'RECEITA' &&
-      state.mode === 'ATENDIMENTO' &&
-      isPixPayment(payment) &&
-      Boolean(payment.generatePix);
+      shouldGenerateLocalPix(payment);
 
     const manualPix =
       isPixPayment(payment) &&
@@ -1238,11 +1240,16 @@
   async function startPix(payment) {
     if (
       !payment ||
-      !isPixPayment(payment) ||
-      !payment.generatePix
+      !isPixPayment(payment)
     ) {
       throw new Error(
-        'A forma de pagamento selecionada não gera cobrança Pix.'
+        'A forma de pagamento selecionada não é Pix.'
+      );
+    }
+
+    if (!shouldGenerateLocalPix(payment)) {
+      throw new Error(
+        'A cobrança Pix local só pode ser gerada no modo Atender.'
       );
     }
 

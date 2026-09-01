@@ -168,7 +168,7 @@
 
     const script = document.createElement('script');
 
-    script.src = '/caixa-avista/app.js?v=20260901101620';
+    script.src = '/caixa-avista/app.js?v=20260901111214';
     script.async = false;
     script.dataset.caixaApplication = 'true';
 
