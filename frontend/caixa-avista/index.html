@@ -178,21 +178,218 @@
     </section>
   </div>
 
-  <div id="pixModal" class="modal-backdrop hidden">
+  <div
+    id="pixModal"
+    class="modal-backdrop hidden"
+  >
     <section class="modal pix-modal">
-      <header><h3><span class="material-symbols-rounded">qr_code_2</span>Pix</h3><button type="button" data-close="pixModal"><span class="material-symbols-rounded">close</span></button></header>
-      <div class="modal-body"><div id="pixAmount" class="pix-amount">R$ 0,00</div><div id="pixQr" class="qr-wrap"></div><textarea id="pixCode" readonly></textarea><div class="modal-actions"><button id="btnCopyPix" class="secondary-action" type="button"><span class="material-symbols-rounded">content_copy</span>Copiar</button><button id="btnConfirmManualPix" class="primary-action" type="button"><span class="material-symbols-rounded">check_circle</span>Confirmar</button></div><div id="pixStatus" class="status-box"></div></div>
+      <header>
+        <h3>
+          <span class="material-symbols-rounded">
+            qr_code_2
+          </span>
+          Pix
+        </h3>
+
+        <button
+          id="btnCancelPixTop"
+          type="button"
+          aria-label="Cancelar cobrança Pix"
+        >
+          <span class="material-symbols-rounded">
+            close
+          </span>
+        </button>
+      </header>
+
+      <div class="modal-body">
+        <div
+          id="pixAmount"
+          class="pix-amount"
+        >
+          R$ 0,00
+        </div>
+
+        <p class="pix-helper">
+          O valor já está incluído no QR Code
+          e no Pix Copia e Cola.
+        </p>
+
+        <div
+          id="pixQr"
+          class="qr-wrap"
+        ></div>
+
+        <label class="modal-field">
+          <span>Pix Copia e Cola</span>
+
+          <textarea
+            id="pixCode"
+            readonly
+          ></textarea>
+        </label>
+
+        <div class="modal-actions pix-actions">
+          <button
+            id="btnCopyPix"
+            class="secondary-action"
+            type="button"
+          >
+            <span class="material-symbols-rounded">
+              content_copy
+            </span>
+            Copiar Pix
+          </button>
+
+          <button
+            id="btnSharePix"
+            class="whatsapp-action"
+            type="button"
+          >
+            <span class="material-symbols-rounded">
+              share
+            </span>
+            WhatsApp
+          </button>
+
+          <button
+            id="btnConfirmManualPix"
+            class="primary-action"
+            type="button"
+          >
+            <span class="material-symbols-rounded">
+              check_circle
+            </span>
+            Confirmar recebimento
+          </button>
+
+          <button
+            id="btnCancelPix"
+            class="cancel-pix-action"
+            type="button"
+          >
+            <span class="material-symbols-rounded">
+              cancel
+            </span>
+            Cancelar cobrança
+          </button>
+        </div>
+
+        <div
+          id="pixStatus"
+          class="status-box"
+        ></div>
+      </div>
     </section>
   </div>
 
-  <div id="settingsModal" class="modal-backdrop hidden">
-    <section class="modal"><header><h3><span class="material-symbols-rounded">settings</span>Homologação</h3><button type="button" data-close="settingsModal"><span class="material-symbols-rounded">close</span></button></header><div class="modal-body"><label class="modal-field"><span>URL do Apps Script</span><input id="apiUrlInput" placeholder="Deixe vazio para modo local"></label><button id="btnSaveSettings" class="primary-action" type="button"><span class="material-symbols-rounded">save</span>Salvar</button></div></section>
+  <div
+    id="settingsModal"
+    class="modal-backdrop hidden"
+  >
+    <section class="modal">
+      <header>
+        <h3>
+          <span class="material-symbols-rounded">
+            settings
+          </span>
+          Configurações
+        </h3>
+
+        <button
+          type="button"
+          data-close="settingsModal"
+        >
+          <span class="material-symbols-rounded">
+            close
+          </span>
+        </button>
+      </header>
+
+      <div class="modal-body">
+        <div class="settings-unit">
+          <small>Unidade atual</small>
+          <strong id="settingsUnitLabel">
+            Unidade
+          </strong>
+        </div>
+
+        <label class="modal-field">
+          <span>URL do Apps Script</span>
+
+          <input
+            id="apiUrlInput"
+            placeholder="URL da implantação /exec"
+          >
+        </label>
+
+        <div class="settings-section-title">
+          <span class="material-symbols-rounded">
+            qr_code_2
+          </span>
+
+          Pix desta unidade
+        </div>
+
+        <label class="modal-field">
+          <span>Chave Pix</span>
+
+          <input
+            id="pixKeyInput"
+            autocomplete="off"
+            placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
+          >
+        </label>
+
+        <label class="modal-field">
+          <span>Nome do recebedor</span>
+
+          <input
+            id="pixNameInput"
+            autocomplete="off"
+            placeholder="Nome vinculado à conta"
+          >
+        </label>
+
+        <label class="modal-field">
+          <span>Cidade</span>
+
+          <input
+            id="pixCityInput"
+            autocomplete="off"
+            placeholder="FORTALEZA"
+          >
+        </label>
+
+        <p class="settings-note">
+          Os dados Pix ficam salvos neste
+          navegador, separadamente para cada
+          unidade.
+        </p>
+
+        <button
+          id="btnSaveSettings"
+          class="primary-action"
+          type="button"
+        >
+          <span class="material-symbols-rounded">
+            save
+          </span>
+          Salvar
+        </button>
+
+        <div
+          id="settingsStatus"
+          class="status-box"
+        ></div>
+      </div>
+    </section>
   </div>
 
   <div id="loadingOverlay" class="loading-overlay hidden"><div><span class="spinner"></span><strong id="loadingText">Carregando...</strong></div></div>
   <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
-  <script src="/caixa-avista/unit-selector.js?v=20260831230119"></script>
+  <script src="/caixa-avista/unit-selector.js?v=20260901085353"></script>
   <script src="/shared/ui/agf-ui.js"></script>
-  <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/caixa-avista/sw.js?v=20260831230119').catch(()=>{}));</script>
+  <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/caixa-avista/sw.js?v=20260901085353').catch(()=>{}));</script>
 </body>
 </html>

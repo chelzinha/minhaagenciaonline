@@ -4,13 +4,19 @@
   const $ = id => document.getElementById(id);
   const STORAGE = {
     API: 'caixa_avista_v2_api_url',
-    LOCAL: 'caixa_avista_v2_local_data'
+    LOCAL: 'caixa_avista_v2_local_data',
+    PIX_PREFIX:
+      'caixa_avista_v2_pix_config:'
   };
   const state = {
     type: 'RECEITA', mode: 'ATENDIMENTO', amountCents: 0, batchAmountCents: 0,
     objectCount: 1, selectedCategory: '', selectedPayment: '', selectedClient: null,
     batchItems: [], library: null, clients: [], entries: [], withdrawals: [], summary: null,
-    closure: null, user: null, busy: false, pixEntry: null
+    closure: null,
+    user: null,
+    busy: false,
+    pixEntry: null,
+    pixPayload: ''
   };
 
   const money = cents => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(cents)||0)/100);
@@ -21,6 +27,260 @@
   const uid = () => crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now()+'-'+Math.random().toString(36).slice(2);
   const apiUrl = () => localStorage.getItem(STORAGE.API) || '';
   const token = () => window.AgfAuth?.getToken?.() || '';
+
+  const selectedUnitId = () =>
+    String(
+      window.CaixaUnitContext
+        ?.getSelectedUnitId?.() ||
+      state.library?.unit?.id ||
+      'PADRAO'
+    ).trim();
+
+  function pixStorageKey() {
+    return (
+      STORAGE.PIX_PREFIX +
+      selectedUnitId()
+    );
+  }
+
+  function loadPixConfig() {
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem(
+          pixStorageKey()
+        ) || '{}'
+      );
+
+      return {
+        key: String(
+          stored.key || ''
+        ).trim(),
+        name: String(
+          stored.name || ''
+        ).trim(),
+        city: String(
+          stored.city || 'FORTALEZA'
+        ).trim()
+      };
+    } catch (_) {
+      return {
+        key: '',
+        name: '',
+        city: 'FORTALEZA'
+      };
+    }
+  }
+
+  function savePixConfig(config) {
+    localStorage.setItem(
+      pixStorageKey(),
+      JSON.stringify(config)
+    );
+  }
+
+  function sanitizePixText(
+    value,
+    maxLength
+  ) {
+    return String(value || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .normalize('NFD')
+      .replace(
+        /[\u0300-\u036f]/g,
+        ''
+      )
+      .toUpperCase()
+      .replace(
+        /[^A-Z0-9 $%*+\-./:]/g,
+        ''
+      )
+      .slice(0, maxLength);
+  }
+
+  function pixEmv(id, value) {
+    const text = String(
+      value == null ? '' : value
+    );
+
+    return (
+      id +
+      String(text.length)
+        .padStart(2, '0') +
+      text
+    );
+  }
+
+  function pixCrc16(value) {
+    let crc = 0xFFFF;
+
+    for (
+      let index = 0;
+      index < value.length;
+      index += 1
+    ) {
+      crc ^=
+        value.charCodeAt(index) << 8;
+
+      for (
+        let bit = 0;
+        bit < 8;
+        bit += 1
+      ) {
+        crc =
+          crc & 0x8000
+            ? (
+                (crc << 1) ^
+                0x1021
+              )
+            : crc << 1;
+
+        crc &= 0xFFFF;
+      }
+    }
+
+    return crc
+      .toString(16)
+      .toUpperCase()
+      .padStart(4, '0');
+  }
+
+  function buildLocalPixPayload(
+    config,
+    amountCents
+  ) {
+    if (!config.key) {
+      throw new Error(
+        'Configure a chave Pix desta unidade.'
+      );
+    }
+
+    if (!(amountCents > 0)) {
+      throw new Error(
+        'O valor da cobrança Pix é inválido.'
+      );
+    }
+
+    const name = sanitizePixText(
+      config.name,
+      25
+    );
+
+    const city = sanitizePixText(
+      config.city,
+      15
+    );
+
+    if (!name || !city) {
+      throw new Error(
+        'Configure o nome do recebedor e a cidade.'
+      );
+    }
+
+    const merchantAccount =
+      pixEmv(
+        '00',
+        'BR.GOV.BCB.PIX'
+      ) +
+      pixEmv(
+        '01',
+        config.key
+      );
+
+    const additional =
+      pixEmv(
+        '05',
+        '***'
+      );
+
+    const amount =
+      (
+        Number(amountCents) / 100
+      ).toFixed(2);
+
+    const payloadWithoutCrc = [
+      pixEmv('00', '01'),
+      pixEmv(
+        '26',
+        merchantAccount
+      ),
+      pixEmv('52', '0000'),
+      pixEmv('53', '986'),
+      pixEmv('54', amount),
+      pixEmv('58', 'BR'),
+      pixEmv('59', name),
+      pixEmv('60', city),
+      pixEmv(
+        '62',
+        additional
+      ),
+      '6304'
+    ].join('');
+
+    return (
+      payloadWithoutCrc +
+      pixCrc16(payloadWithoutCrc)
+    );
+  }
+
+  function requirePixConfig() {
+    const config = loadPixConfig();
+
+    if (
+      !config.key ||
+      !config.name ||
+      !config.city
+    ) {
+      throw new Error(
+        'Configure os dados Pix desta unidade antes de gerar a cobrança.'
+      );
+    }
+
+    return config;
+  }
+
+  async function copyText(text) {
+    const value = String(
+      text || ''
+    );
+
+    if (
+      navigator.clipboard &&
+      window.isSecureContext
+    ) {
+      await navigator.clipboard
+        .writeText(value);
+
+      return;
+    }
+
+    const textarea =
+      document.createElement(
+        'textarea'
+      );
+
+    textarea.value = value;
+    textarea.style.position =
+      'fixed';
+    textarea.style.opacity = '0';
+
+    document.body.appendChild(
+      textarea
+    );
+
+    textarea.select();
+
+    const copied =
+      document.execCommand('copy');
+
+    textarea.remove();
+
+    if (!copied) {
+      throw new Error(
+        'Não foi possível copiar.'
+      );
+    }
+  }
 
   const isPixPayment = payment =>
     payment?.contaAzulMethod === 'PIX_PAGAMENTO_INSTANTANEO';
@@ -453,17 +713,370 @@
     }catch(error){status('launchStatus',error.message,'error');}finally{setBusy(false);}
   }
 
-  async function startPix(){
-    const entryId=uid();
-    const saved=await callApi('saveEntry',{payload:draft(state.amountCents,{entryId,pixStatus:'CRIANDO',pixProvider:'santander'})});applySaveResult(saved);state.pixEntry=saved.entry;
-    try{
-      const response=await fetch('/api/santander/pix/create',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},body:JSON.stringify({entryId,amountCents:state.amountCents,clientName:resolveAttendanceClient()?.name||'',objectCount:state.objectCount,description:$('descriptionInput').value.trim()||'Atendimento de balcão'})});
-      const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.error||'Santander indisponível.');
-      const charge=data.charge;await callApi('syncPixPayment',{payload:{entryId,txid:charge.txid,status:charge.status||'ATIVA',provider:'santander'}});state.pixEntry.pixTxid=charge.txid;state.pixEntry.pixStatus=charge.status||'ATIVA';$('pixAmount').textContent=money(state.amountCents);$('pixCode').value=charge.copyPaste||'';renderQr(charge.copyPaste||'');openModal('pixModal');
-    }catch(error){$('pixAmount').textContent=money(state.amountCents);$('pixCode').value='';$('pixQr').innerHTML='<span class="material-symbols-rounded" style="font-size:80px;color:#d6e2ef">qr_code_2</span>';openModal('pixModal');status('pixStatus',error.message+' O lançamento ficou pendente e pode ser confirmado manualmente.','warning');}
+  async function startPix() {
+    let config;
+
+    try {
+      config = requirePixConfig();
+    } catch (error) {
+      openSettings();
+      throw error;
+    }
+
+    const amountCents =
+      state.amountCents;
+
+    const pixPayload =
+      buildLocalPixPayload(
+        config,
+        amountCents
+      );
+
+    const entryId = uid();
+
+    const saved = await callApi(
+      'saveEntry',
+      {
+        payload: draft(
+          amountCents,
+          {
+            entryId,
+            pixStatus: 'PENDENTE',
+            pixTxid: '***',
+            pixProvider: 'local'
+          }
+        )
+      }
+    );
+
+    applySaveResult(saved);
+
+    state.pixEntry =
+      saved.entry;
+
+    state.pixPayload =
+      pixPayload;
+
+    $('pixAmount').textContent =
+      money(amountCents);
+
+    $('pixCode').value =
+      pixPayload;
+
+    const qrRendered =
+      renderQr(pixPayload);
+
+    openModal('pixModal');
+
+    status(
+      'pixStatus',
+      qrRendered
+        ? 'Aguardando pagamento. Confirme somente depois de conferir o crédito.'
+        : 'O Pix foi gerado. Use o Copia e Cola porque o QR Code não carregou.',
+      qrRendered
+        ? 'info'
+        : 'warning'
+    );
   }
-  function renderQr(code){$('pixQr').innerHTML='';if(code&&window.QRCode)new QRCode($('pixQr'),{text:code,width:270,height:270,correctLevel:QRCode.CorrectLevel.M});}
-  async function confirmManualPix(){if(!state.pixEntry)return;setBusy(true,'Confirmando Pix...');try{const result=await callApi('syncPixPayment',{payload:{entryId:state.pixEntry.id,txid:state.pixEntry.pixTxid||'',status:'CONFIRMADO',amountCents:state.pixEntry.amountCents,provider:state.pixEntry.pixProvider||'manual'}});state.summary=result.summary;closeModal('pixModal');resetEntry();await refresh();status('launchStatus','Pix confirmado.','success');}catch(error){status('pixStatus',error.message,'error');}finally{setBusy(false);}}
+
+  function renderQr(code) {
+    const container = $('pixQr');
+
+    container.innerHTML = '';
+
+    if (!code) {
+      return false;
+    }
+
+    if (
+      typeof window.QRCode !==
+      'function'
+    ) {
+      container.innerHTML =
+        '<span class="material-symbols-rounded pix-placeholder">qr_code_2</span>';
+
+      return false;
+    }
+
+    try {
+      new window.QRCode(
+        container,
+        {
+          text: code,
+          width: 270,
+          height: 270,
+          correctLevel:
+            window.QRCode
+              .CorrectLevel.M
+        }
+      );
+
+      return true;
+    } catch (error) {
+      console.error(
+        '[CAIXA_PIX_QR]',
+        error
+      );
+
+      container.innerHTML =
+        '<span class="material-symbols-rounded pix-placeholder">qr_code_2</span>';
+
+      return false;
+    }
+  }
+
+  async function copyLocalPix() {
+    try {
+      await copyText(
+        state.pixPayload ||
+        $('pixCode').value
+      );
+
+      status(
+        'pixStatus',
+        'Pix Copia e Cola copiado.',
+        'success'
+      );
+    } catch (error) {
+      status(
+        'pixStatus',
+        error.message ||
+          'Não foi possível copiar o Pix.',
+        'error'
+      );
+    }
+  }
+
+  async function shareLocalPix() {
+    const code =
+      state.pixPayload ||
+      $('pixCode').value;
+
+    const amountCents =
+      state.pixEntry
+        ?.amountCents ||
+      state.amountCents;
+
+    if (!code) {
+      status(
+        'pixStatus',
+        'O código Pix não está disponível.',
+        'warning'
+      );
+
+      return;
+    }
+
+    const message = [
+      'Olá! Segue a cobrança Pix da sua postagem.',
+      '',
+      'Valor: ' +
+        money(amountCents),
+      '',
+      'Pix Copia e Cola:',
+      code
+    ].join('\n');
+
+    try {
+      if (
+        typeof navigator.share ===
+        'function'
+      ) {
+        await navigator.share({
+          title: 'Cobrança Pix',
+          text: message
+        });
+      } else {
+        window.open(
+          'https://wa.me/?text=' +
+            encodeURIComponent(
+              message
+            ),
+          '_blank',
+          'noopener,noreferrer'
+        );
+      }
+
+      status(
+        'pixStatus',
+        'Cobrança preparada para compartilhamento.',
+        'success'
+      );
+    } catch (error) {
+      if (
+        error &&
+        error.name === 'AbortError'
+      ) {
+        return;
+      }
+
+      try {
+        await copyText(message);
+
+        window.open(
+          'https://wa.me/?text=' +
+            encodeURIComponent(
+              message
+            ),
+          '_blank',
+          'noopener,noreferrer'
+        );
+      } catch (_) {
+        status(
+          'pixStatus',
+          'Não foi possível abrir o compartilhamento.',
+          'error'
+        );
+      }
+    }
+  }
+
+  async function confirmManualPix() {
+    if (!state.pixEntry) {
+      return;
+    }
+
+    setBusy(
+      true,
+      'Confirmando Pix...'
+    );
+
+    try {
+      const result = await callApi(
+        'syncPixPayment',
+        {
+          payload: {
+            entryId:
+              state.pixEntry.id,
+            txid:
+              state.pixEntry
+                .pixTxid ||
+              '***',
+            status:
+              'CONFIRMADO',
+            amountCents:
+              state.pixEntry
+                .amountCents,
+            provider:
+              'local'
+          }
+        }
+      );
+
+      const index =
+        state.entries.findIndex(
+          entry =>
+            entry.id ===
+            state.pixEntry.id
+        );
+
+      if (
+        index >= 0 &&
+        result.entry
+      ) {
+        state.entries[index] =
+          result.entry;
+      }
+
+      state.summary =
+        result.summary ||
+        state.summary;
+
+      closeModal('pixModal');
+      resetEntry();
+      renderAll();
+
+      status(
+        'launchStatus',
+        'Pix confirmado e recebimento registrado.',
+        'success'
+      );
+    } catch (error) {
+      status(
+        'pixStatus',
+        error.message ||
+          'Não foi possível confirmar o Pix.',
+        'error'
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function cancelManualPix() {
+    if (!state.pixEntry) {
+      closeModal('pixModal');
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        'Cancelar esta cobrança Pix?'
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBusy(
+      true,
+      'Cancelando cobrança Pix...'
+    );
+
+    try {
+      const entryId =
+        state.pixEntry.id;
+
+      const result = await callApi(
+        'syncPixPayment',
+        {
+          payload: {
+            entryId,
+            txid:
+              state.pixEntry
+                .pixTxid ||
+              '***',
+            status:
+              'CANCELADO',
+            amountCents:
+              state.pixEntry
+                .amountCents,
+            provider:
+              'local'
+          }
+        }
+      );
+
+      state.entries =
+        state.entries.filter(
+          entry =>
+            entry.id !== entryId
+        );
+
+      state.summary =
+        result.summary ||
+        state.summary;
+
+      closeModal('pixModal');
+      resetEntry();
+      renderAll();
+
+      status(
+        'launchStatus',
+        'Cobrança Pix cancelada.',
+        'success'
+      );
+    } catch (error) {
+      status(
+        'pixStatus',
+        error.message ||
+          'Não foi possível cancelar a cobrança.',
+        'error'
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
   function addBatchItem(){
     clearStatus('launchStatus');
@@ -501,7 +1114,18 @@
   async function saveBatch(){if(!state.batchItems.length)return status('launchStatus','Adicione pelo menos um valor.','warning');if(!selectedCategory()||!selectedPayment())return status('launchStatus','Selecione tipo e pagamento.','warning');setBusy(true,'Salvando lote...');try{const payloads=state.batchItems.map(item=>draft(item.amountCents,{pixStatus:isPixPayment(selectedPayment())?'CONFIRMADO':'',pixProvider:isPixPayment(selectedPayment())?'manual-batch':''}));const result=await callApi('saveBatch',{payloads});state.entries.push(...(result.entries||[]));state.summary=result.summary;state.batchItems=[];state.batchAmountCents=0;renderAll();status('launchStatus',`${result.entries?.length||payloads.length} lançamentos salvos.`, 'success');}catch(error){status('launchStatus',error.message,'error');}finally{setBusy(false);}}
 
   function applySaveResult(result){if(result.entry)state.entries.push(result.entry);state.summary=result.summary||state.summary;renderAll();}
-  function resetEntry(){state.amountCents=0;state.objectCount=1;state.selectedClient=null;$('clientInput').value='';$('descriptionInput').value='';renderEntryForm();}
+  function resetEntry() {
+    state.amountCents = 0;
+    state.objectCount = 1;
+    state.selectedClient = null;
+    state.pixEntry = null;
+    state.pixPayload = '';
+
+    $('clientInput').value = '';
+    $('descriptionInput').value = '';
+
+    renderEntryForm();
+  }
 
   async function saveWithdrawal(){const amount=parseMoney($('withdrawalAmount').value);if(!(amount>0))return status('withdrawalStatus','Informe o valor.','warning');if(!$('withdrawalDeclaration').checked)return status('withdrawalStatus','Confirme a contagem da sangria.','warning');setBusy(true,'Registrando sangria e gerando PDF...');try{const result=await callApi('createWithdrawal',{payload:{date:todayIso(),amountCents:amount,destination:$('withdrawalDestination').value.trim()||'Financeiro',notes:$('withdrawalNotes').value.trim(),confirmed:true}});state.withdrawals.push(result.withdrawal);state.summary=result.summary;closeModal('withdrawalModal');renderAll();status('launchStatus',result.withdrawal.pdfUrl?'Sangria registrada e PDF gerado.':'Sangria registrada. PDF pendente.','success');}catch(error){status('withdrawalStatus',error.message,'error');}finally{setBusy(false);}}
   function updateWithdrawalMath(){const amount=parseMoney($('withdrawalAmount').value),available=state.summary?.expectedCashCents||0;$('withdrawalRemaining').textContent=money(available-amount);}
@@ -606,6 +1230,125 @@
 
     renderEntryForm();
     clearStatus('launchStatus');
+  }
+
+  function openSettings() {
+    const config = loadPixConfig();
+
+    $('apiUrlInput').value =
+      apiUrl();
+
+    $('settingsUnitLabel')
+      .textContent =
+        state.library?.unit?.name ||
+        selectedUnitId();
+
+    $('pixKeyInput').value =
+      config.key;
+
+    $('pixNameInput').value =
+      config.name;
+
+    $('pixCityInput').value =
+      config.city ||
+      'FORTALEZA';
+
+    clearStatus(
+      'settingsStatus'
+    );
+
+    openModal(
+      'settingsModal'
+    );
+  }
+
+  function saveSettings() {
+    const nextApiUrl =
+      $('apiUrlInput')
+        .value.trim();
+
+    const config = {
+      key:
+        $('pixKeyInput')
+          .value.trim(),
+      name:
+        $('pixNameInput')
+          .value
+          .replace(/\s+/g, ' ')
+          .trim()
+          .toUpperCase(),
+      city:
+        $('pixCityInput')
+          .value
+          .replace(/\s+/g, ' ')
+          .trim()
+          .toUpperCase()
+    };
+
+    if (
+      nextApiUrl &&
+      !/^https:\/\/script\.google\.com\/macros\/s\//
+        .test(nextApiUrl)
+    ) {
+      status(
+        'settingsStatus',
+        'Informe uma URL válida do Apps Script.',
+        'error'
+      );
+
+      return;
+    }
+
+    const hasAnyPixValue =
+      Boolean(
+        config.key ||
+        config.name ||
+        config.city
+      );
+
+    const hasCompletePixConfig =
+      Boolean(
+        config.key &&
+        config.name &&
+        config.city
+      );
+
+    if (
+      hasAnyPixValue &&
+      !hasCompletePixConfig
+    ) {
+      status(
+        'settingsStatus',
+        'Preencha chave Pix, nome do recebedor e cidade.',
+        'warning'
+      );
+
+      return;
+    }
+
+    localStorage.setItem(
+      STORAGE.API,
+      nextApiUrl
+    );
+
+    savePixConfig(config);
+
+    status(
+      'settingsStatus',
+      'Configurações salvas para esta unidade.',
+      'success'
+    );
+
+    window.setTimeout(
+      () => {
+        closeModal(
+          'settingsModal'
+        );
+
+        window.location.reload();
+      },
+      400
+    );
   }
 
   function switchView(view){document.querySelectorAll('.main-nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['Launch','Movements','Close'].forEach(v=>$('view'+v).classList.toggle('hidden',v.toLowerCase()!==view));window.scrollTo({top:0,behavior:'smooth'});}
@@ -790,9 +1533,37 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
     $('btnOpenWithdrawal').addEventListener('click',()=>{if(state.closure)return status('launchStatus','O caixa de hoje já foi fechado.','warning');$('withdrawalAvailable').textContent=money(state.summary?.expectedCashCents||0);$('withdrawalAmount').value='';$('withdrawalDestination').value='Financeiro';$('withdrawalNotes').value='';$('withdrawalDeclaration').checked=false;updateWithdrawalMath();clearStatus('withdrawalStatus');openModal('withdrawalModal');});
     $('withdrawalAmount').addEventListener('input',updateWithdrawalMath);$('btnSaveWithdrawal').addEventListener('click',saveWithdrawal);
     $('countedCash').addEventListener('input',updateCloseMath);$('closingWithdrawal').addEventListener('input',updateCloseMath);$('btnCloseCash').addEventListener('click',closeCash);
-    $('btnConfirmManualPix').addEventListener('click',confirmManualPix);$('btnCopyPix').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('pixCode').value);status('pixStatus','Pix copiado.','success');}catch(_){}});
-    $('btnRefresh').addEventListener('click',refresh);$('btnMovementRefresh').addEventListener('click',refresh);$('btnSettings').addEventListener('click',()=>{$('apiUrlInput').value=apiUrl();openModal('settingsModal');});$('btnSaveSettings').addEventListener('click',()=>{localStorage.setItem(STORAGE.API,$('apiUrlInput').value.trim());closeModal('settingsModal');window.location.reload();});
-    document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id);}));
+    $('btnConfirmManualPix')
+      .addEventListener(
+        'click',
+        confirmManualPix
+      );
+
+    $('btnCopyPix')
+      .addEventListener(
+        'click',
+        copyLocalPix
+      );
+
+    $('btnSharePix')
+      .addEventListener(
+        'click',
+        shareLocalPix
+      );
+
+    $('btnCancelPix')
+      .addEventListener(
+        'click',
+        cancelManualPix
+      );
+
+    $('btnCancelPixTop')
+      .addEventListener(
+        'click',
+        cancelManualPix
+      );
+    $('btnRefresh').addEventListener('click',refresh);$('btnMovementRefresh').addEventListener('click',refresh);$('btnSettings').addEventListener('click',openSettings);$('btnSaveSettings').addEventListener('click',saveSettings);
+    document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m&&m.id!=='pixModal')closeModal(m.id);}));
     document.addEventListener('click',e=>{if(!e.target.closest('#clientSection'))$('clientSuggestions').classList.add('hidden');});
   }
 

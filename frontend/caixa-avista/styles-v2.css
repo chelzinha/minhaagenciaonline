@@ -90,3 +90,110 @@ body[data-entry-type="DESPESA"] .batch-amount {
 body[data-entry-type="DESPESA"] .batch-amount small {
   color: rgba(255, 255, 255, 0.78);
 }
+
+/*
+ * PIX LOCAL E COMPARTILHAMENTO
+ */
+
+.pix-helper {
+  margin: -4px 0 12px;
+  color: #62758a;
+  font-size: 15px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.pix-placeholder {
+  font-size: 82px;
+  color: #d6e2ef;
+}
+
+.pix-actions {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pix-actions button {
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 14px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pix-actions
+.primary-action {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.whatsapp-action {
+  background: #e7f8ef;
+  color: #167344;
+}
+
+.cancel-pix-action {
+  grid-column: 1 / -1;
+  background: #fff0f0;
+  color: #a72929;
+}
+
+.settings-unit {
+  padding: 13px 15px;
+  border: 1px solid #dce8f5;
+  border-radius: 14px;
+  background: #f5f9fd;
+}
+
+.settings-unit small,
+.settings-unit strong {
+  display: block;
+}
+
+.settings-unit small {
+  color: #718399;
+  font-size: 13px;
+}
+
+.settings-unit strong {
+  margin-top: 2px;
+  color: #17324d;
+  font-size: 18px;
+}
+
+.settings-section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 6px 0 0;
+  color: #17324d;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.settings-note {
+  margin: 0;
+  color: #718399;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+@media (max-width: 560px) {
+  .pix-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .pix-actions
+  .primary-action,
+  .cancel-pix-action {
+    grid-column: auto;
+  }
+}
