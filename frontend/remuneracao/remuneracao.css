@@ -281,3 +281,56 @@ a { color: inherit; text-decoration: none; }
   body { background: #fff; }
   .dg-card { box-shadow: none; break-inside: avoid; }
 }
+
+/* ---------- comparativo de esforço ---------- */
+.dg-esforco {
+  display: grid; gap: 14px; padding: 13px 14px;
+  border-top: 1px solid var(--agf-border, #dce6ef);
+  background: #FBFDFF;
+}
+@media (min-width: 640px) { .dg-esforco { grid-template-columns: 1fr 1fr; gap: 20px; } }
+.dg-esforco.is-off { display: none; }
+
+.dg-esf-bloco { min-width: 0; }
+.dg-esf-tit {
+  font-size: 11.5px; color: var(--agf-muted, #60788d);
+  margin-bottom: 7px; letter-spacing: .01em;
+}
+.dg-esf-tit b { color: var(--agf-text, #14324a); font-weight: 800; }
+
+.dg-esf-linha {
+  display: grid; grid-template-columns: 62px minmax(0, 1fr) auto;
+  align-items: center; gap: 8px; margin-bottom: 5px;
+}
+.dg-esf-rot {
+  font-size: 11px; font-weight: 700; color: var(--agf-muted, #60788d);
+  white-space: nowrap;
+}
+.dg-esf-bar {
+  display: block; height: 13px; background: #EDF1F5;
+  border-radius: 7px; overflow: hidden;
+}
+.dg-esf-bar i {
+  display: block; height: 100%; border-radius: 7px;
+  transition: width .25s ease;
+}
+.dg-esf-val {
+  font-size: 14px; font-weight: 800; white-space: nowrap;
+  font-variant-numeric: tabular-nums; text-align: right;
+}
+.dg-esf-sub {
+  grid-column: 3; font-size: 9.5px; font-weight: 700; text-align: right;
+  color: var(--agf-muted, #60788d); margin-top: -3px;
+}
+.dg-esf-linha { grid-template-areas: "rot bar val" ".  .  sub"; }
+.dg-esf-rot { grid-area: rot; } .dg-esf-bar { grid-area: bar; }
+.dg-esf-val { grid-area: val; } .dg-esf-sub { grid-area: sub; }
+
+.dg-esf-badge {
+  display: inline-block; margin-top: 4px;
+  padding: 3px 9px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 700;
+  background: #E7F6EC; color: #14532D;
+}
+.dg-esf-badge b { font-size: 12px; font-weight: 800; }
+.dg-esf-badge.alerta { background: #FDECEB; color: #7F1D1D; }
