@@ -39,6 +39,14 @@
   var PPCC = 3.85;
   var DELTAS = [0, 1000, 5000, 10000, 15000, 25000, 50000, 100000, 200000];
 
+  /* Referências para o comparativo de esforço. Médias apuradas nos
+   * relatórios da ECT de 01 a 07/2026. */
+  var REF = {
+    fatorEncomenda: 0.29,      // R2 Grupo II, degrau 1
+    ticketCarta: 3.85,         // carta comercial simples, cód. 80152
+    ticketSedex: 54.70         // SEDEX contrato, cód. 03220
+  };
+
   // ---------------------------------------------------
   // Formatação e parsing pt-BR
   // ---------------------------------------------------
@@ -124,6 +132,7 @@
           cenarioHTML(1, 'Cenário B') +
         '</div>' +
         '<div class="dg-diff" id="diff"></div>' +
+        '<div class="dg-esforco" id="esforco"></div>' +
       '</div>';
 
     $$('.dg-cen-input').forEach(function (inp) {
@@ -196,6 +205,44 @@
       '<div class="dg-diff-item"><span class="dg-diff-k">Rende por real adicional</span>' +
         '<span class="dg-diff-v ' + cls + '">' + (dFat !== 0 ? pct(retorno) : '—') + '</span></div>' +
       '<p class="dg-diff-note">' + nota + '</p>';
+  }
+
+  function pintarEsforco(a, b) {
+    var el = $('#esforco');
+    var dFat = b.faturamento - a.faturamento;
+    var dRem = b.remuneracao - a.remuneracao;
+    if (dFat <= 0 || dRem <= 0) { el.innerHTML = ''; el.classList.add('is-off'); return; }
+    el.classList.remove('is-off');
+
+    var remEnc = dFat * REF.fatorEncomenda;
+    var vezes = remEnc / dRem;
+    var objCarta = dFat / REF.ticketCarta;
+    var objSedex = (dRem / REF.fatorEncomenda) / REF.ticketSedex;
+    var maxObj = Math.max(objCarta, objSedex);
+    var maxRem = Math.max(dRem, remEnc);
+
+    function linha(rot, valor, texto, pctBarra, cor, forte) {
+      return '<div class="dg-esf-linha">' +
+        '<span class="dg-esf-rot">' + rot + '</span>' +
+        '<span class="dg-esf-bar"><i style="width:' + Math.max(pctBarra, 1.2).toFixed(1) + '%;background:' + cor + '"></i></span>' +
+        '<span class="dg-esf-val"' + (forte ? ' style="color:' + cor + '"' : '') + '>' + valor + '</span>' +
+        '<span class="dg-esf-sub">' + texto + '</span>' +
+      '</div>';
+    }
+
+    el.innerHTML =
+      '<div class="dg-esf-bloco">' +
+        '<div class="dg-esf-tit">Faturar <b>' + brl(dFat) + '</b> a mais rende</div>' +
+        linha('Mensageria', brl(dRem), pct(dRem / dFat, 1), dRem / maxRem * 100, '#0077b6', true) +
+        linha('Encomenda', brl(remEnc), '29,0%', remEnc / maxRem * 100, '#15803D', true) +
+        '<div class="dg-esf-badge">encomenda rende <b>' + vezes.toFixed(1).replace('.', ',') + 'x</b> mais</div>' +
+      '</div>' +
+      '<div class="dg-esf-bloco">' +
+        '<div class="dg-esf-tit">Para ganhar os mesmos <b>' + brl(dRem) + '</b></div>' +
+        linha('Carta', num(objCarta), 'objetos', objCarta / maxObj * 100, '#c0392b', true) +
+        linha('SEDEX', num(objSedex), 'objetos', objSedex / maxObj * 100, '#15803D', true) +
+        '<div class="dg-esf-badge alerta">a carta exige <b>' + Math.round(objCarta / objSedex) + 'x</b> mais objetos</div>' +
+      '</div>';
   }
 
   // ---------------------------------------------------
@@ -356,6 +403,7 @@
     pintarCenario(0, a);
     pintarCenario(1, b);
     pintarDiferenca(a, b);
+    pintarEsforco(a, b);
     pintarFaixas(a.degrau, b.degrau);
     pintarMais();
     pintarContinuidade();
