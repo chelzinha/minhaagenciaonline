@@ -6,6 +6,8 @@
 # Segredos e variaveis locais
 .env
 .env.*
+.dev.vars
+.dev.vars.*
 *.secret
 *.key
 *.pem
@@ -21,3 +23,8 @@ Thumbs.db
 # Netlify local e utilitarios de dev local
 .netlify/
 serve-crm.mjs
+
+# Cloudflare local
+.wrangler/
+frontend/caixa-avista/*.backup-*
+frontend/caixa-avista/*.bak-*
