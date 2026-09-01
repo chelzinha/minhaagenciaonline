@@ -442,163 +442,288 @@ function v2UpdateDailyBalanceClose_(
 
 function v2AssertOpen_(env,date,unitId) { if(v2FindClosure_(env,date,unitId)) throw appError_('O caixa desta data já foi fechado.','DATE_CLOSED'); }
 
-function v2SyncPix_(payload) {
+function v2SyncPix_(payload, user) {
   payload = payload || {};
 
-  var env = v2Environment_();
-  var last = env.entries.getLastRow();
+  var lock =
+    LockService.getScriptLock();
 
-  if (last < 2) {
-    throw appError_(
-      'Lançamento Pix não encontrado.',
-      'ENTRY_NOT_FOUND'
-    );
-  }
+  lock.waitLock(10000);
 
-  var status = String(
-    payload.status ||
-    payload.pixStatus ||
-    ''
-  ).toUpperCase().trim();
+  try {
+    var env =
+      v2Environment_();
 
-  var allowedStatuses = [
-    'CRIANDO',
-    'ATIVA',
-    'PENDENTE',
-    'CONFIRMADO',
-    'EXPIRADO',
-    'CANCELADO',
-    'ERRO'
-  ];
+    var last =
+      env.entries.getLastRow();
 
-  if (
-    allowedStatuses.indexOf(status) <
-    0
-  ) {
-    throw appError_(
-      'Status Pix inválido.',
-      'INVALID_PIX_STATUS'
-    );
-  }
-
-  var rows = env.entries
-    .getRange(
-      2,
-      1,
-      last - 1,
-      CAIXA_V2_CFG
-        .HEADERS
-        .ENTRIES
-        .length
-    )
-    .getValues();
-
-  var index = -1;
-
-  rows.forEach(function(row, rowIndex) {
-    var sameEntry =
-      payload.entryId &&
-      String(row[0]) ===
-        String(payload.entryId);
-
-    var sameTxid =
-      payload.txid &&
-      String(row[28]) ===
-        String(payload.txid);
-
-    if (sameEntry || sameTxid) {
-      index = rowIndex;
+    if (last < 2) {
+      throw appError_(
+        'Lançamento Pix não encontrado.',
+        'ENTRY_NOT_FOUND'
+      );
     }
-  });
 
-  if (index < 0) {
-    throw appError_(
-      'Lançamento Pix não encontrado.',
-      'ENTRY_NOT_FOUND'
+    var status = String(
+      payload.status ||
+      payload.pixStatus ||
+      ''
+    ).toUpperCase().trim();
+
+    var allowedStatuses = [
+      'CRIANDO',
+      'ATIVA',
+      'PENDENTE',
+      'CONFIRMADO',
+      'EXPIRADO',
+      'CANCELADO',
+      'ERRO'
+    ];
+
+    if (
+      allowedStatuses.indexOf(status) <
+      0
+    ) {
+      throw appError_(
+        'Status Pix inválido.',
+        'INVALID_PIX_STATUS'
+      );
+    }
+
+    var rows = env.entries
+      .getRange(
+        2,
+        1,
+        last - 1,
+        CAIXA_V2_CFG
+          .HEADERS
+          .ENTRIES
+          .length
+      )
+      .getValues();
+
+    var entryId = String(
+      payload.entryId || ''
+    ).trim();
+
+    var txid = String(
+      payload.txid || ''
+    ).trim();
+
+    var index = -1;
+
+    /*
+     * O entryId sempre tem prioridade.
+     * Nunca combinamos entryId com busca por txid.
+     */
+    if (entryId) {
+      rows.some(function(row, rowIndex) {
+        if (
+          String(row[0]) === entryId
+        ) {
+          index = rowIndex;
+          return true;
+        }
+
+        return false;
+      });
+    } else if (
+      txid &&
+      txid !== '***'
+    ) {
+      rows.some(function(row, rowIndex) {
+        if (
+          String(row[28]) === txid
+        ) {
+          index = rowIndex;
+          return true;
+        }
+
+        return false;
+      });
+    } else {
+      throw appError_(
+        'Informe o identificador da cobrança Pix.',
+        'PIX_REFERENCE_REQUIRED'
+      );
+    }
+
+    if (index < 0) {
+      throw appError_(
+        'Lançamento Pix não encontrado.',
+        'ENTRY_NOT_FOUND'
+      );
+    }
+
+    var row = rows[index];
+
+    if (
+      String(row[17]) !==
+      'PIX_PAGAMENTO_INSTANTANEO'
+    ) {
+      throw appError_(
+        'O lançamento não é Pix.',
+        'NOT_PIX'
+      );
+    }
+
+    /*
+     * Nas ações feitas pelo aplicativo,
+     * o lançamento precisa pertencer à unidade
+     * atualmente selecionada pelo usuário.
+     *
+     * Webhooks internos continuam protegidos
+     * pelo segredo interno do router.
+     */
+    if (user) {
+      var context =
+        v2ResolveContext_(env, user);
+
+      var rowUnit = String(
+        row[7] || ''
+      ).trim();
+
+      var contextUnit = String(
+        context.unit.unit_id || ''
+      ).trim();
+
+      if (
+        !context.permissions.revenue
+      ) {
+        throw appError_(
+          'Usuário sem permissão para confirmar Pix.',
+          'FORBIDDEN'
+        );
+      }
+
+      if (
+        rowUnit !== contextUnit
+      ) {
+        throw appError_(
+          'A cobrança Pix pertence a outra unidade.',
+          'UNIT_MISMATCH'
+        );
+      }
+    }
+
+    var currentStatus = String(
+      row[27] || ''
+    ).toUpperCase().trim();
+
+    var entryStatus = String(
+      row[32] || ''
+    ).toUpperCase().trim();
+
+    var closureId = String(
+      row[33] || ''
+    ).trim();
+
+    /*
+     * Repetições da mesma confirmação são aceitas.
+     * Alterações após o fechamento não são aceitas.
+     */
+    if (
+      closureId &&
+      status !== currentStatus
+    ) {
+      throw appError_(
+        'O caixa deste lançamento já foi fechado.',
+        'DATE_CLOSED'
+      );
+    }
+
+    if (
+      (
+        entryStatus === 'EXCLUIDO' ||
+        currentStatus === 'CANCELADO'
+      ) &&
+      status !== 'CANCELADO'
+    ) {
+      throw appError_(
+        'Esta cobrança Pix foi cancelada.',
+        'PIX_CANCELLED'
+      );
+    }
+
+    if (
+      currentStatus === 'CONFIRMADO' &&
+      status !== 'CONFIRMADO'
+    ) {
+      throw appError_(
+        'Este Pix já foi confirmado.',
+        'PIX_ALREADY_CONFIRMED'
+      );
+    }
+
+    var received = Math.round(
+      Number(
+        payload.amountCents || 0
+      )
     );
+
+    if (
+      status === 'CONFIRMADO' &&
+      received > 0 &&
+      received !== Number(row[14])
+    ) {
+      throw appError_(
+        'Valor Pix divergente.',
+        'PIX_AMOUNT_MISMATCH'
+      );
+    }
+
+    row[27] = status;
+
+    if (txid) {
+      row[28] = txid;
+    }
+
+    if (payload.e2eid) {
+      row[29] = payload.e2eid;
+    }
+
+    if (payload.receivedAt) {
+      row[30] = payload.receivedAt;
+    }
+
+    if (payload.provider) {
+      row[31] = payload.provider;
+    }
+
+    if (status === 'CANCELADO') {
+      row[32] = 'EXCLUIDO';
+      row[34] = 'CANCELADO';
+    }
+
+    if (
+      status === 'CONFIRMADO' &&
+      entryStatus !== 'EXCLUIDO'
+    ) {
+      row[32] = 'ATIVO';
+    }
+
+    env.entries
+      .getRange(
+        index + 2,
+        1,
+        1,
+        row.length
+      )
+      .setValues([row]);
+
+    var entry =
+      v2RowEntry_(row);
+
+    return {
+      ok: true,
+      entry: entry,
+      summary: v2BuildSummary_(
+        env,
+        entry.date,
+        entry.unitId
+      )
+    };
+  } finally {
+    lock.releaseLock();
   }
-
-  var row = rows[index];
-
-  if (
-    String(row[17]) !==
-    'PIX_PAGAMENTO_INSTANTANEO'
-  ) {
-    throw appError_(
-      'O lançamento não é Pix.',
-      'NOT_PIX'
-    );
-  }
-
-  if (
-    String(row[32]) ===
-      'EXCLUIDO' &&
-    status !== 'CANCELADO'
-  ) {
-    throw appError_(
-      'Esta cobrança Pix foi cancelada.',
-      'PIX_CANCELLED'
-    );
-  }
-
-  var received = Math.round(
-    Number(
-      payload.amountCents || 0
-    )
-  );
-
-  if (
-    status === 'CONFIRMADO' &&
-    received > 0 &&
-    received !== Number(row[14])
-  ) {
-    throw appError_(
-      'Valor Pix divergente.',
-      'PIX_AMOUNT_MISMATCH'
-    );
-  }
-
-  row[27] = status;
-
-  if (payload.txid) {
-    row[28] = payload.txid;
-  }
-
-  if (payload.e2eid) {
-    row[29] = payload.e2eid;
-  }
-
-  if (payload.receivedAt) {
-    row[30] = payload.receivedAt;
-  }
-
-  if (payload.provider) {
-    row[31] = payload.provider;
-  }
-
-  if (status === 'CANCELADO') {
-    row[32] = 'EXCLUIDO';
-    row[34] = 'CANCELADO';
-  }
-
-  env.entries
-    .getRange(
-      index + 2,
-      1,
-      1,
-      row.length
-    )
-    .setValues([row]);
-
-  var entry = v2RowEntry_(row);
-
-  return {
-    ok: true,
-    entry: entry,
-    summary: v2BuildSummary_(
-      env,
-      entry.date,
-      entry.unitId
-    )
-  };
 }

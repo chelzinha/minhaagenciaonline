@@ -145,9 +145,34 @@
       .padStart(4, '0');
   }
 
+  function generateLocalPixTxid() {
+    const timestamp =
+      Date.now()
+        .toString(36)
+        .toUpperCase();
+
+    const random =
+      Math.random()
+        .toString(36)
+        .slice(2, 10)
+        .toUpperCase();
+
+    return (
+      'CX' +
+      timestamp +
+      random
+    )
+      .replace(
+        /[^A-Z0-9]/g,
+        ''
+      )
+      .slice(0, 25);
+  }
+
   function buildLocalPixPayload(
     config,
-    amountCents
+    amountCents,
+    txid
   ) {
     if (!config.key) {
       throw new Error(
@@ -187,10 +212,25 @@
         config.key
       );
 
+    const normalizedTxid =
+      String(txid || '')
+        .toUpperCase()
+        .replace(
+          /[^A-Z0-9]/g,
+          ''
+        )
+        .slice(0, 25);
+
+    if (!normalizedTxid) {
+      throw new Error(
+        'Não foi possível gerar o identificador da cobrança Pix.'
+      );
+    }
+
     const additional =
       pixEmv(
         '05',
-        '***'
+        normalizedTxid
       );
 
     const amount =
@@ -337,7 +377,64 @@
     if(action==='saveClient'){const client={id:uid(),name:data.name};db.clients.push(client);saveLocal(db);return {ok:true,client};}
     if(action==='saveEntry'){const e=localEntry(data.payload);db.entries.push(e);saveLocal(db);return {ok:true,entry:e,summary:localSummary(db.entries,db.withdrawals,todayIso())};}
     if(action==='saveBatch'){const batchId=uid(),items=data.payloads.map((p,i)=>localEntry({...p,batchId,batchIndex:i+1}));db.entries.push(...items);saveLocal(db);return {ok:true,entries:items,batchId,summary:localSummary(db.entries,db.withdrawals,todayIso())};}
-    if(action==='syncPixPayment'){const e=db.entries.find(x=>x.id===data.payload.entryId||x.pixTxid===data.payload.txid);if(e){e.pixStatus=data.payload.status||data.payload.pixStatus;e.pixTxid=data.payload.txid||e.pixTxid;e.pixProvider=data.payload.provider||e.pixProvider;}saveLocal(db);return {ok:true,entry:e,summary:localSummary(db.entries,db.withdrawals,todayIso())};}
+    if(action==='syncPixPayment'){
+      const payload=data.payload||{};
+      let e=null;
+
+      if(payload.entryId){
+        e=db.entries.find(
+          item=>
+            item.id===payload.entryId
+        );
+      }else if(
+        payload.txid &&
+        payload.txid!=='***'
+      ){
+        e=db.entries.find(
+          item=>
+            item.pixTxid===payload.txid
+        );
+      }
+
+      if(!e){
+        throw new Error(
+          'Lançamento Pix não encontrado.'
+        );
+      }
+
+      e.pixStatus=
+        payload.status||
+        payload.pixStatus;
+
+      e.pixTxid=
+        payload.txid||
+        e.pixTxid;
+
+      e.pixProvider=
+        payload.provider||
+        e.pixProvider;
+
+      if(
+        String(e.pixStatus)
+          .toUpperCase()===
+        'CANCELADO'
+      ){
+        e.status='EXCLUIDO';
+        e.contaAzulStatus='CANCELADO';
+      }
+
+      saveLocal(db);
+
+      return {
+        ok:true,
+        entry:e,
+        summary:localSummary(
+          db.entries,
+          db.withdrawals,
+          todayIso()
+        )
+      };
+    }
     if(action==='createWithdrawal'){const s=localSummary(db.entries,db.withdrawals,todayIso()),w={id:uid(),date:todayIso(),createdAt:new Date().toISOString(),operatorName:'Homologação local',amountCents:data.payload.amountCents,destination:data.payload.destination,notes:data.payload.notes,balanceBeforeCents:s.expectedCashCents,balanceAfterCents:s.expectedCashCents-data.payload.amountCents,confirmed:true,pdfStatus:'SIMULADO',pdfUrl:''};db.withdrawals.push(w);saveLocal(db);return {ok:true,withdrawal:w,summary:localSummary(db.entries,db.withdrawals,todayIso())};}
     if(action==='closeCash'){const s=localSummary(db.entries,db.withdrawals,todayIso()),c={id:uid(),date:todayIso(),unitId:'PADRAO',unitName:'Unidade padrão',status:'FECHADO',createdAt:new Date().toISOString(),createdByName:'Homologação local',revenueCents:s.revenueCents,expenseCents:s.expenseCents,netCents:s.netCents,openingCashCents:s.openingCashCents,cashRevenueCents:s.cashRevenueCents,cashExpenseCents:s.cashExpenseCents,withdrawalsBeforeCloseCents:s.withdrawalsCents,expectedCashCents:s.expectedCashCents,countedCashCents:data.payload.countedCashCents,differenceCents:data.payload.countedCashCents-s.expectedCashCents,closingWithdrawalCents:data.payload.closingWithdrawalCents||0,carryoverCents:data.payload.countedCashCents-(data.payload.closingWithdrawalCents||0),declarationConfirmed:true,pdfStatus:'SIMULADO',pdfUrl:'',contaAzulStatus:'PENDENTE'};db.closures.push(c);saveLocal(db);return {ok:true,closure:c,summary:s};}
     throw new Error('Ação local não implementada.');
@@ -726,13 +823,17 @@
     const amountCents =
       state.amountCents;
 
+    const entryId = uid();
+
+    const pixTxid =
+      generateLocalPixTxid();
+
     const pixPayload =
       buildLocalPixPayload(
         config,
-        amountCents
+        amountCents,
+        pixTxid
       );
-
-    const entryId = uid();
 
     const saved = await callApi(
       'saveEntry',
@@ -742,7 +843,7 @@
           {
             entryId,
             pixStatus: 'PENDENTE',
-            pixTxid: '***',
+            pixTxid,
             pixProvider: 'local'
           }
         )
@@ -877,57 +978,41 @@
       code
     ].join('\n');
 
+    const url =
+      'https://wa.me/?text=' +
+      encodeURIComponent(message);
+
+    const opened =
+      window.open(
+        url,
+        '_blank',
+        'noopener,noreferrer'
+      );
+
+    if (opened) {
+      status(
+        'pixStatus',
+        'Cobrança aberta no WhatsApp.',
+        'success'
+      );
+
+      return;
+    }
+
     try {
-      if (
-        typeof navigator.share ===
-        'function'
-      ) {
-        await navigator.share({
-          title: 'Cobrança Pix',
-          text: message
-        });
-      } else {
-        window.open(
-          'https://wa.me/?text=' +
-            encodeURIComponent(
-              message
-            ),
-          '_blank',
-          'noopener,noreferrer'
-        );
-      }
+      await copyText(message);
 
       status(
         'pixStatus',
-        'Cobrança preparada para compartilhamento.',
-        'success'
+        'A mensagem foi copiada. Abra o WhatsApp e cole no atendimento.',
+        'warning'
       );
-    } catch (error) {
-      if (
-        error &&
-        error.name === 'AbortError'
-      ) {
-        return;
-      }
-
-      try {
-        await copyText(message);
-
-        window.open(
-          'https://wa.me/?text=' +
-            encodeURIComponent(
-              message
-            ),
-          '_blank',
-          'noopener,noreferrer'
-        );
-      } catch (_) {
-        status(
-          'pixStatus',
-          'Não foi possível abrir o compartilhamento.',
-          'error'
-        );
-      }
+    } catch (_) {
+      status(
+        'pixStatus',
+        'Não foi possível abrir o WhatsApp.',
+        'error'
+      );
     }
   }
 
@@ -1302,8 +1387,7 @@
     const hasAnyPixValue =
       Boolean(
         config.key ||
-        config.name ||
-        config.city
+        config.name
       );
 
     const hasCompletePixConfig =

@@ -78,7 +78,7 @@ function doPost(e) {
       case 'saveClient': return jsonOutput_(v2SaveClient_(request.name, user));
       case 'saveEntry': return jsonOutput_(v2SaveEntry_(request.payload, user));
       case 'saveBatch': return jsonOutput_(v2SaveBatch_(request.payloads, user));
-      case 'syncPixPayment': return jsonOutput_(v2SyncPix_(request.payload || {}));
+      case 'syncPixPayment': return jsonOutput_(v2SyncPix_(request.payload || {}, user));
       case 'summary': return jsonOutput_(v2Init_(request.date, user));
       case 'setOpeningBalance': return jsonOutput_(v2SetOpeningBalance_(request.date, request.amountCents, user));
       case 'createWithdrawal': return jsonOutput_(v2CreateWithdrawal_(request.payload, user));
