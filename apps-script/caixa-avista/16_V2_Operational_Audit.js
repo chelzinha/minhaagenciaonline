@@ -221,3 +221,91 @@ function auditarResumoCaixaV2(dateValue) {
 
   return result;
 }
+/**
+ * Lista linhas de saldo sem alterar a planilha.
+ */
+function inspecionarSaldosDuplicadosV2(
+  dateValue,
+  unitValue
+) {
+  var env = v2Environment_();
+
+  var date = v2SheetDateIso_(
+    dateValue || v2Today_()
+  );
+
+  var unitId = String(
+    unitValue || 'SHOPPING_METRO'
+  ).trim();
+
+  var rows = v2ReadObjects_(
+    env.dailyBalances,
+    CAIXA_V2_CFG.HEADERS.DAILY_BALANCES
+  )
+    .filter(function(item) {
+      return (
+        String(item.unit_id || '').trim() ===
+          unitId &&
+        v2SheetDateIso_(item.date_iso) ===
+          date
+      );
+    })
+    .map(function(item) {
+      return {
+        sheetRow: item._sheetRow,
+        unitId: String(item.unit_id || ''),
+        date: v2SheetDateIso_(
+          item.date_iso
+        ),
+        openingCashCents: Number(
+          item.opening_cash_cents || 0
+        ),
+        openingSource: String(
+          item.opening_source || ''
+        ),
+        createdAt: v2Iso_(
+          item.created_at
+        ),
+        createdBy: String(
+          item.created_by || ''
+        ),
+        expectedCashCents: Number(
+          item.expected_cash_cents || 0
+        ),
+        countedCashCents: Number(
+          item.counted_cash_cents || 0
+        ),
+        differenceCents: Number(
+          item.difference_cents || 0
+        ),
+        closingWithdrawalCents: Number(
+          item.closing_withdrawal_cents || 0
+        ),
+        carryoverCents: Number(
+          item.carryover_cents || 0
+        ),
+        status: String(
+          item.status || ''
+        )
+      };
+    });
+
+  var result = {
+    ok: true,
+    date: date,
+    unitId: unitId,
+    total: rows.length,
+    rows: rows
+  };
+
+  var output = JSON.stringify(
+    result,
+    null,
+    2
+  );
+
+  console.log(output);
+  Logger.log(output);
+
+  return result;
+}
