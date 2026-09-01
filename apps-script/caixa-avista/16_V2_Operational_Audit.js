@@ -201,7 +201,7 @@ function auditarResumoCaixaV2(dateValue) {
     };
   });
 
-  return {
+  var result = {
     ok: errors.length === 0,
     seguroParaTeste:
       errors.length === 0,
@@ -209,4 +209,15 @@ function auditarResumoCaixaV2(dateValue) {
     errors: errors,
     units: units
   };
+
+  var output = JSON.stringify(
+    result,
+    null,
+    2
+  );
+
+  console.log(output);
+  Logger.log(output);
+
+  return result;
 }
