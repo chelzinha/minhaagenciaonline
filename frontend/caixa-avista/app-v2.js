@@ -111,6 +111,63 @@
   function selectedPayment(){return payments().find(x=>x.id===state.selectedPayment);}
   function selectedAccountId(){return selectedCategory()?.defaultAccountId||selectedPayment()?.accountId||'';}
 
+  function findExactClientByName(value) {
+    const wanted = normalize(value);
+
+    if (!wanted) {
+      return null;
+    }
+
+    return state.clients.find(client =>
+      normalize(client.name) === wanted
+    ) || null;
+  }
+
+  function resolveAttendanceClient() {
+    if (
+      state.type !== 'RECEITA' ||
+      state.mode !== 'ATENDIMENTO'
+    ) {
+      return null;
+    }
+
+    const input = $('clientInput');
+
+    const typedName = String(
+      input?.value || ''
+    ).trim();
+
+    const selectedStillMatches = Boolean(
+      state.selectedClient &&
+      normalize(state.selectedClient.name) ===
+        normalize(typedName)
+    );
+
+    if (selectedStillMatches) {
+      return state.selectedClient;
+    }
+
+    const exactClient =
+      findExactClientByName(typedName);
+
+    if (exactClient) {
+      state.selectedClient = exactClient;
+
+      if (input) {
+        input.value = exactClient.name;
+      }
+
+      renderEntryForm();
+
+      return exactClient;
+    }
+
+    state.selectedClient = null;
+    renderEntryForm();
+
+    return null;
+  }
+
   function renderAll(){
     document.body.dataset.entryType=state.type;
     $('unitLabel').textContent=state.library?.unit?.name||'Unidade';$('operatorLabel').textContent=state.user?.name||'Usuário';$('dateLabel').textContent=brDate(todayIso());
@@ -345,12 +402,49 @@
   function handleKey(target,key){const prop=target==='batch'?'batchAmountCents':'amountCents';if(/^\d$/.test(key))state[prop]=Math.min(999999999,state[prop]*10+Number(key));else if(key==='backspace')state[prop]=Math.floor(state[prop]/10);else state[prop]=0;renderEntryForm();}
 
   function draft(amountCents,extra={}){
-    const category=selectedCategory(),payment=selectedPayment();
-    return {entryId:extra.entryId||'',type:state.type,mode:state.mode,date:todayIso(),categoryId:category?.id||'',paymentId:payment?.id||'',accountId:selectedAccountId(),clientId:state.selectedClient?.id||'',clientName:state.mode==='ATENDIMENTO'?(state.selectedClient?.name||'Cliente de Balcão'):'',objectCount:state.type==='RECEITA'?state.objectCount:0,amountCents,description:$('descriptionInput').value.trim(),pixStatus:extra.pixStatus||'',pixTxid:extra.pixTxid||'',pixProvider:extra.pixProvider||''};
+    const category = selectedCategory();
+    const payment = selectedPayment();
+
+    const client =
+      state.mode === 'ATENDIMENTO'
+        ? resolveAttendanceClient()
+        : null;
+
+    return {
+      entryId: extra.entryId || '',
+      type: state.type,
+      mode: state.mode,
+      date: todayIso(),
+      categoryId: category?.id || '',
+      paymentId: payment?.id || '',
+      accountId: selectedAccountId(),
+      clientId: client?.id || '',
+      clientName: client?.name || '',
+      objectCount:
+        state.type === 'RECEITA'
+          ? state.objectCount
+          : 0,
+      amountCents,
+      description:
+        $('descriptionInput').value.trim(),
+      pixStatus: extra.pixStatus || '',
+      pixTxid: extra.pixTxid || '',
+      pixProvider: extra.pixProvider || ''
+    };
   }
 
   async function saveSingle(){
-    clearStatus('launchStatus');if(!(state.amountCents>0))return status('launchStatus','Digite o valor.','warning');if(!selectedCategory()||!selectedPayment())return status('launchStatus','Selecione tipo e pagamento.','warning');if(state.type==='RECEITA'&&state.mode==='ATENDIMENTO'&&!state.selectedClient)return status('launchStatus','Selecione ou cadastre o cliente.','warning');
+    clearStatus('launchStatus');if(!(state.amountCents>0))return status('launchStatus','Digite o valor.','warning');if(!selectedCategory()||!selectedPayment())return status('launchStatus','Selecione tipo e pagamento.','warning');if(
+      state.type === 'RECEITA' &&
+      state.mode === 'ATENDIMENTO' &&
+      !resolveAttendanceClient()
+    ){
+      return status(
+        'launchStatus',
+        'Selecione ou cadastre o cliente.',
+        'warning'
+      );
+    }
     const isLivePix=state.type==='RECEITA'&&state.mode==='ATENDIMENTO'&&selectedPayment().generatePix;
     setBusy(true,isLivePix?'Criando cobrança Pix...':'Salvando...');
     try{
@@ -363,7 +457,7 @@
     const entryId=uid();
     const saved=await callApi('saveEntry',{payload:draft(state.amountCents,{entryId,pixStatus:'CRIANDO',pixProvider:'santander'})});applySaveResult(saved);state.pixEntry=saved.entry;
     try{
-      const response=await fetch('/api/santander/pix/create',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},body:JSON.stringify({entryId,amountCents:state.amountCents,clientName:state.selectedClient?.name||'Cliente de Balcão',objectCount:state.objectCount,description:$('descriptionInput').value.trim()||'Atendimento de balcão'})});
+      const response=await fetch('/api/santander/pix/create',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},body:JSON.stringify({entryId,amountCents:state.amountCents,clientName:resolveAttendanceClient()?.name||'',objectCount:state.objectCount,description:$('descriptionInput').value.trim()||'Atendimento de balcão'})});
       const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.error||'Santander indisponível.');
       const charge=data.charge;await callApi('syncPixPayment',{payload:{entryId,txid:charge.txid,status:charge.status||'ATIVA',provider:'santander'}});state.pixEntry.pixTxid=charge.txid;state.pixEntry.pixStatus=charge.status||'ATIVA';$('pixAmount').textContent=money(state.amountCents);$('pixCode').value=charge.copyPaste||'';renderQr(charge.copyPaste||'');openModal('pixModal');
     }catch(error){$('pixAmount').textContent=money(state.amountCents);$('pixCode').value='';$('pixQr').innerHTML='<span class="material-symbols-rounded" style="font-size:80px;color:#d6e2ef">qr_code_2</span>';openModal('pixModal');status('pixStatus',error.message+' O lançamento ficou pendente e pode ser confirmado manualmente.','warning');}
@@ -424,6 +518,21 @@
       normalize(state.selectedClient.name) ===
         normalize(query)
     );
+
+    const exactClient =
+      findExactClientByName(query);
+
+    /*
+     * Um nome completo que já existe deve ser reconhecido
+     * automaticamente, mesmo sem um segundo clique.
+     */
+    if (
+      !selectedStillMatches &&
+      exactClient
+    ) {
+      selectClient(exactClient);
+      return;
+    }
 
     /*
      * O cliente somente é removido quando o texto digitado

@@ -1,11 +1,11 @@
-const CACHE = 'caixa-balcao-date-client-20260831204825';
+const CACHE = 'caixa-balcao-client-fix-20260831230119';
 const ASSETS = [
   '/caixa-avista/',
   '/caixa-avista/index.html',
   '/caixa-avista/styles-v2.css',
-  '/caixa-avista/app.js',
-  '/caixa-avista/unit-selector.js',
-  '/caixa-avista/app-v2.js',
+  '/caixa-avista/app.js?v=20260831230119',
+  '/caixa-avista/unit-selector.js?v=20260831230119',
+  '/caixa-avista/app-v2.js?v=20260831230119',
   '/caixa-avista/manifest.webmanifest'
 ];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
