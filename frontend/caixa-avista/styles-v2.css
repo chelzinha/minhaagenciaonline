@@ -258,3 +258,16 @@ body[data-entry-type="DESPESA"] .batch-amount small {
 .option-btn:not(:disabled) {
   cursor: pointer;
 }
+
+
+/* CAIXA-PIX-DOWNLOAD-PNG */
+
+.pix-download-action {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.pix-download-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}

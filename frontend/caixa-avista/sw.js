@@ -1,11 +1,11 @@
-const CACHE = 'caixa-balcao-payment-click-20260901095544';
+const CACHE = 'caixa-balcao-pix-flow-20260901101620';
 const ASSETS = [
   '/caixa-avista/',
   '/caixa-avista/index.html',
   '/caixa-avista/styles-v2.css',
-  '/caixa-avista/app.js?v=20260901095544',
-  '/caixa-avista/unit-selector.js?v=20260901095544',
-  '/caixa-avista/app-v2.js?v=20260901095544',
+  '/caixa-avista/app.js?v=20260901101620',
+  '/caixa-avista/unit-selector.js?v=20260901101620',
+  '/caixa-avista/app-v2.js?v=20260901101620',
   '/caixa-avista/manifest.webmanifest'
 ];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));

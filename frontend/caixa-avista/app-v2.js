@@ -631,7 +631,27 @@
     renderType();renderModes();renderOptions();renderEntryForm();renderSummary();renderMovements();renderClose();
   }
 
-  function renderType(){document.querySelectorAll('[data-entry-type]').forEach(b=>b.classList.toggle('active',b.dataset.entryType===state.type));}
+  function renderType() {
+    document
+      .querySelectorAll(
+        '.type-btn[data-entry-type]'
+      )
+      .forEach(button => {
+        button.classList.toggle(
+          'active',
+          button.dataset.entryType ===
+            state.type
+        );
+
+        button.setAttribute(
+          'aria-pressed',
+          button.dataset.entryType ===
+            state.type
+            ? 'true'
+            : 'false'
+        );
+      });
+  }
   function availableModes(){
     return state.type === 'RECEITA'
       ? [
@@ -878,7 +898,30 @@
     $('clientChip').classList.toggle('hidden',!state.selectedClient);$('clientChip').innerHTML=state.selectedClient?`<span class="material-symbols-rounded">check_circle</span>${escapeHtml(state.selectedClient.name)}`:'';
     $('batchCount').textContent=String(state.batchItems.length);$('batchTotal').textContent=money(state.batchItems.reduce((a,b)=>a+b.amountCents,0));
     $('batchItems').innerHTML=state.batchItems.map((item,index)=>`<div class="batch-item"><div><small>${index+1}</small><strong>${money(item.amountCents)}</strong></div><button data-remove-batch="${index}"><span class="material-symbols-rounded">delete</span></button></div>`).join('');
-    $('btnSaveSingle').querySelector('span:last-child').textContent=state.type==='RECEITA'?(selectedPayment()?.generatePix&&attendance?'Gerar Pix':'Registrar'):'Salvar despesa';
+    const payment =
+      selectedPayment();
+
+    let saveLabel =
+      state.type === 'RECEITA'
+        ? 'Registrar'
+        : 'Salvar despesa';
+
+    if (
+      state.type === 'RECEITA' &&
+      attendance &&
+      isPixPayment(payment)
+    ) {
+      saveLabel =
+        payment.generatePix
+          ? 'Gerar Pix'
+          : 'Registrar Pix manual';
+    }
+
+    $('btnSaveSingle')
+      .querySelector(
+        'span:last-child'
+      )
+      .textContent = saveLabel;
   }
   function renderSummary(){
     const s=state.summary||{};$('cashOpening').textContent=money(s.openingCashCents);$('cashExpected').textContent=money(state.closure?state.closure.carryoverCents:s.expectedCashCents);$('cashWithdrawals').textContent=money(s.withdrawalsCents);
@@ -1088,27 +1131,121 @@
     };
   }
 
-  async function saveSingle(){
-    clearStatus('launchStatus');if(!(state.amountCents>0))return status('launchStatus','Digite o valor.','warning');if(!selectedCategory()||!selectedPayment())return status('launchStatus','Selecione tipo e pagamento.','warning');if(
+  async function saveSingle() {
+    clearStatus('launchStatus');
+
+    if (!(state.amountCents > 0)) {
+      return status(
+        'launchStatus',
+        'Digite o valor.',
+        'warning'
+      );
+    }
+
+    const category =
+      selectedCategory();
+
+    const payment =
+      selectedPayment();
+
+    if (!category || !payment) {
+      return status(
+        'launchStatus',
+        'Selecione tipo e pagamento.',
+        'warning'
+      );
+    }
+
+    if (
       state.type === 'RECEITA' &&
       state.mode === 'ATENDIMENTO' &&
       !resolveAttendanceClient()
-    ){
+    ) {
       return status(
         'launchStatus',
         'Selecione ou cadastre o cliente.',
         'warning'
       );
     }
-    const isLivePix=state.type==='RECEITA'&&state.mode==='ATENDIMENTO'&&selectedPayment().generatePix;
-    setBusy(true,isLivePix?'Criando cobrança Pix...':'Salvando...');
-    try{
-      if(isLivePix){await startPix();return;}
-      const result=await callApi('saveEntry',{payload:draft(state.amountCents,{pixStatus:isPixPayment(selectedPayment())?'CONFIRMADO':'',pixProvider:isPixPayment(selectedPayment())?'manual-single':''})});applySaveResult(result);status('launchStatus',state.type==='RECEITA'?'Receita registrada.':'Despesa registrada.','success');resetEntry();
-    }catch(error){status('launchStatus',error.message,'error');}finally{setBusy(false);}
+
+    const generateLocalPix =
+      state.type === 'RECEITA' &&
+      state.mode === 'ATENDIMENTO' &&
+      isPixPayment(payment) &&
+      Boolean(payment.generatePix);
+
+    const manualPix =
+      isPixPayment(payment) &&
+      !generateLocalPix;
+
+    setBusy(
+      true,
+      generateLocalPix
+        ? 'Gerando cobrança Pix...'
+        : 'Salvando...'
+    );
+
+    try {
+      if (generateLocalPix) {
+        await startPix(payment);
+        return;
+      }
+
+      const result = await callApi(
+        'saveEntry',
+        {
+          payload: draft(
+            state.amountCents,
+            {
+              pixStatus:
+                manualPix
+                  ? 'CONFIRMADO'
+                  : '',
+              pixProvider:
+                manualPix
+                  ? 'manual-single'
+                  : ''
+            }
+          )
+        }
+      );
+
+      applySaveResult(result);
+
+      status(
+        'launchStatus',
+        manualPix
+          ? 'Pix manual registrado.'
+          : state.type === 'RECEITA'
+            ? 'Receita registrada.'
+            : 'Despesa registrada.',
+        'success'
+      );
+
+      resetEntry();
+    } catch (error) {
+      status(
+        'launchStatus',
+        error.message ||
+          'Não foi possível concluir o lançamento.',
+        'error'
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
-  async function startPix() {
+  async function startPix(payment) {
+    if (
+      !payment ||
+      !isPixPayment(payment) ||
+      !payment.generatePix
+    ) {
+      throw new Error(
+        'A forma de pagamento selecionada não gera cobrança Pix.'
+      );
+    }
+
     let config;
 
     try {
@@ -1170,6 +1307,7 @@
 
     $('btnCopyPix').disabled = false;
     $('btnSharePix').disabled = false;
+    $('btnDownloadPix').disabled = false;
 
     $('pixAmount').textContent =
       money(amountCents);
@@ -1268,6 +1406,9 @@
     $('btnSharePix').disabled =
       !payload;
 
+    $('btnDownloadPix').disabled =
+      !payload;
+
     const qrRendered =
       payload
         ? renderQr(payload)
@@ -1304,6 +1445,87 @@
       'pixStatus',
       'Cobrança pendente localizada, mas o QR Code foi criado em outro navegador ou o armazenamento local foi apagado. Confira o recebimento para confirmar ou cancele a cobrança.',
       'warning'
+    );
+  }
+
+  function pixQrPngDataUrl() {
+    const container =
+      $('pixQr');
+
+    const canvas =
+      container.querySelector(
+        'canvas'
+      );
+
+    if (
+      canvas &&
+      canvas.width > 0 &&
+      canvas.height > 0
+    ) {
+      return canvas.toDataURL(
+        'image/png'
+      );
+    }
+
+    const image =
+      container.querySelector(
+        'img'
+      );
+
+    if (
+      image &&
+      String(image.src || '')
+        .startsWith('data:image/png')
+    ) {
+      return image.src;
+    }
+
+    return '';
+  }
+
+  function downloadPixQrPng() {
+    const dataUrl =
+      pixQrPngDataUrl();
+
+    if (!dataUrl) {
+      status(
+        'pixStatus',
+        'O QR Code ainda não está disponível para salvar.',
+        'warning'
+      );
+
+      return;
+    }
+
+    const entryReference =
+      String(
+        state.pixEntry?.pixTxid ||
+        state.pixEntry?.id ||
+        Date.now()
+      )
+        .replace(
+          /[^a-zA-Z0-9_-]/g,
+          ''
+        )
+        .slice(0, 40);
+
+    const link =
+      document.createElement('a');
+
+    link.href = dataUrl;
+    link.download =
+      'pix-' +
+      entryReference +
+      '.png';
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    status(
+      'pixStatus',
+      'Imagem do QR Code salva em PNG.',
+      'success'
     );
   }
 
@@ -1831,7 +2053,38 @@
 
   function bind(){
     document.querySelectorAll('.main-nav-btn').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
-    document.querySelectorAll('[data-entry-type]').forEach(b=>b.addEventListener('click',()=>changeType(b.dataset.entryType)));
+    document
+      .querySelectorAll(
+        '.type-btn[data-entry-type]'
+      )
+      .forEach(button => {
+        button.addEventListener(
+          'click',
+          event => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (state.busy) {
+              return;
+            }
+
+            const nextType =
+              String(
+                button.dataset.entryType ||
+                ''
+              ).trim();
+
+            if (
+              !nextType ||
+              nextType === state.type
+            ) {
+              return;
+            }
+
+            changeType(nextType);
+          }
+        );
+      });
 $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[data-category]');if(!b)return;state.selectedCategory=b.dataset.category;if(state.type==='DESPESA'&&selectedCategory()?.defaultPaymentId)state.selectedPayment=selectedCategory().defaultPaymentId;renderAll();});
     /*
      * Os botões de pagamento recebem eventos diretos
@@ -2055,6 +2308,12 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
       .addEventListener(
         'click',
         shareLocalPix
+      );
+
+    $('btnDownloadPix')
+      .addEventListener(
+        'click',
+        downloadPixQrPng
       );
 
     $('btnCancelPix')
