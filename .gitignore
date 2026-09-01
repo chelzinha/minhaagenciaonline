@@ -21,3 +21,5 @@ Thumbs.db
 # Netlify local e utilitarios de dev local
 .netlify/
 serve-crm.mjs
+
+.wrangler/
