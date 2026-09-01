@@ -32,7 +32,11 @@
     }
   };
 
-  var PPCC_PADRAO = 3.85;
+  /* Valor do PPCC (Primeiro Porte da Carta Comercial). Não aparece na tela:
+   * é a régua que converte os degraus do contrato em reais. Deduzido dos
+   * relatórios da ECT — R$ 3,70 até 03/2026 e R$ 3,85 a partir de 04/2026.
+   * Quando a ECT reajustar, altere APENAS esta linha. */
+  var PPCC = 3.85;
   var DELTAS = [0, 1000, 5000, 10000, 15000, 25000, 50000, 100000, 200000];
 
   // ---------------------------------------------------
@@ -96,7 +100,7 @@
   // ---------------------------------------------------
   var GRUPO = 'G1';
   var estado = {
-    ppcc: PPCC_PADRAO,
+    ppcc: PPCC,
     valores: FAIXAS.G1.padrao.slice()
   };
 
@@ -362,19 +366,9 @@
   // Eventos
   // ---------------------------------------------------
   function ligar() {
-    var ppccEl = $('#ppcc');
-    ppccEl.addEventListener('input', function () {
-      var v = parseNum(ppccEl.value);
-      if (v > 0) { estado.ppcc = v; recalcular(); }
-    });
-    ppccEl.addEventListener('blur', function () {
-      ppccEl.value = fmtBRL.format(estado.ppcc);
-    });
-
     $('#btnReset').addEventListener('click', function () {
-      estado.ppcc = PPCC_PADRAO;
+      estado.ppcc = PPCC;
       estado.valores = FAIXAS.G1.padrao.slice();
-      $('#ppcc').value = fmtBRL.format(PPCC_PADRAO);
       montarGrupos();
       recalcular();
     });
@@ -393,7 +387,7 @@
 
   // Ponto de verificação: permite conferir o cálculo contra a planilha
   // sem depender da interface. Uso: __REMUNERACAO__.calcular('G1', 419474.13, 3.85)
-  window.__REMUNERACAO__ = { calcular: calcular, faixas: FAIXAS, versao: '1.0.0' };
+  window.__REMUNERACAO__ = { calcular: calcular, faixas: FAIXAS, versao: '2.0.0' };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
   else iniciar();
