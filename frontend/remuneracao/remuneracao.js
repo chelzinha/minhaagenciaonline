@@ -29,22 +29,6 @@
         [11, 282001, 374000, 0.0681, 22873],
         [12, 374001, null, 0.0602, 25828]
       ]
-    },
-    G2: {
-      nome: 'Encomenda',
-      desc: 'R2 Grupo II · PAC e SEDEX',
-      padrao: [651041.84, 700000],
-      faixas: [
-        [1, 0, 247000, 0.2900, 0],
-        [2, 247001, 319000, 0.2236, 16401],
-        [3, 319001, 376000, 0.1995, 24089],
-        [4, 376001, 437000, 0.1809, 31083],
-        [5, 437001, 493000, 0.1698, 35934],
-        [6, 493001, 558000, 0.1554, 43033],
-        [7, 558001, 680000, 0.1355, 54137],
-        [8, 680001, 828000, 0.1239, 62025],
-        [9, 828001, null, 0.0881, 91667]
-      ]
     }
   };
 
@@ -110,10 +94,10 @@
   // ---------------------------------------------------
   // Estado
   // ---------------------------------------------------
+  var GRUPO = 'G1';
   var estado = {
     ppcc: PPCC_PADRAO,
-    valores: { G1: FAIXAS.G1.padrao.slice(), G2: FAIXAS.G2.padrao.slice() },
-    grupoTabela: 'G1'
+    valores: FAIXAS.G1.padrao.slice()
   };
 
   var $ = function (sel, ctx) { return (ctx || document).querySelector(sel); };
@@ -124,40 +108,34 @@
   // ---------------------------------------------------
   function montarGrupos() {
     var wrap = $('#grupos');
-    wrap.innerHTML = '';
-    ['G1', 'G2'].forEach(function (g) {
-      var cfg = FAIXAS[g];
-      var el = document.createElement('div');
-      el.className = 'dg-group';
-      el.innerHTML =
+    var cfg = FAIXAS[GRUPO];
+    wrap.innerHTML =
+      '<div class="dg-group">' +
         '<div class="dg-group-head">' +
           '<span class="dg-group-name">' + cfg.nome + '</span>' +
           '<span class="dg-group-tag">' + cfg.desc + '</span>' +
         '</div>' +
         '<div class="dg-cenarios">' +
-          cenarioHTML(g, 0, 'Cenário A') +
-          cenarioHTML(g, 1, 'Cenário B') +
+          cenarioHTML(0, 'Cenário A') +
+          cenarioHTML(1, 'Cenário B') +
         '</div>' +
-        '<div class="dg-diff" id="diff-' + g + '"></div>';
-      wrap.appendChild(el);
-    });
+        '<div class="dg-diff" id="diff"></div>' +
+      '</div>';
 
     $$('.dg-cen-input').forEach(function (inp) {
       inp.addEventListener('input', function () {
-        var g = inp.dataset.grupo, i = Number(inp.dataset.idx);
-        estado.valores[g][i] = parseNum(inp.value);
+        estado.valores[Number(inp.dataset.idx)] = parseNum(inp.value);
         recalcular();
       });
       inp.addEventListener('blur', function () {
-        var g = inp.dataset.grupo, i = Number(inp.dataset.idx);
-        inp.value = fmtBRL.format(estado.valores[g][i]);
+        inp.value = fmtBRL.format(estado.valores[Number(inp.dataset.idx)]);
       });
       inp.addEventListener('focus', function () { inp.select(); });
     });
   }
 
-  function cenarioHTML(g, idx, rotulo) {
-    var id = 'in-' + g + '-' + idx;
+  function cenarioHTML(idx, rotulo) {
+    var id = 'in-' + idx;
     return '' +
       '<div class="dg-cen">' +
         '<div class="dg-cen-label">' + rotulo + '</div>' +
@@ -166,30 +144,30 @@
           '<div class="dg-input-wrap">' +
             '<span class="dg-prefix">R$</span>' +
             '<input id="' + id + '" class="dg-input dg-cen-input" type="text" inputmode="decimal" ' +
-              'data-grupo="' + g + '" data-idx="' + idx + '" ' +
-              'value="' + fmtBRL.format(estado.valores[g][idx]) + '" />' +
+              'data-idx="' + idx + '" ' +
+              'value="' + fmtBRL.format(estado.valores[idx]) + '" />' +
           '</div>' +
         '</label>' +
-        '<div class="dg-metrics" id="m-' + g + '-' + idx + '"></div>' +
+        '<div class="dg-metrics" id="m-' + idx + '"></div>' +
         '<div class="dg-rem">' +
           '<div class="dg-rem-label">Remuneração</div>' +
-          '<div class="dg-rem-value" id="r-' + g + '-' + idx + '">—</div>' +
+          '<div class="dg-rem-value" id="r-' + idx + '">—</div>' +
         '</div>' +
       '</div>';
   }
 
-  function pintarCenario(g, idx, c) {
-    $('#m-' + g + '-' + idx).innerHTML =
+  function pintarCenario(idx, c) {
+    $('#m-' + idx).innerHTML =
       '<div class="dg-metric"><span>Em PPCC</span><span>' + num(c.emPpcc) + '</span></div>' +
       '<div class="dg-metric"><span>Degrau</span><span class="dg-badge">' + c.degrau + '</span></div>' +
       '<div class="dg-metric"><span>Fator</span><span>' + pct(c.fator) + '</span></div>' +
       '<div class="dg-metric"><span>Ajuste</span><span>' + brl(c.ajuste) + '</span></div>' +
       '<div class="dg-metric"><span>Teto do degrau</span><span>' + (c.teto === null ? 'sem teto' : brl(c.teto)) + '</span></div>' +
       '<div class="dg-metric"><span>% efetivo</span><span>' + pct(c.efetivo) + '</span></div>';
-    $('#r-' + g + '-' + idx).textContent = brl(c.remuneracao);
+    $('#r-' + idx).textContent = brl(c.remuneracao);
   }
 
-  function pintarDiferenca(g, a, b) {
+  function pintarDiferenca(a, b) {
     var dFat = b.faturamento - a.faturamento;
     var dRem = b.remuneracao - a.remuneracao;
     var dDeg = b.degrau - a.degrau;
@@ -206,7 +184,7 @@
     } else {
       nota = 'Os dois cenários ficam no mesmo degrau, então o retorno do valor adicional é igual ao fator da faixa.';
     }
-    $('#diff-' + g).innerHTML =
+    $('#diff').innerHTML =
       '<div class="dg-diff-item"><span class="dg-diff-k">Diferença de faturamento</span>' +
         '<span class="dg-diff-v">' + (dFat >= 0 ? '+ ' : '− ') + brl(Math.abs(dFat)) + '</span></div>' +
       '<div class="dg-diff-item"><span class="dg-diff-k">Diferença de remuneração</span>' +
@@ -220,11 +198,11 @@
   // Seção 3 — e se faturar mais
   // ---------------------------------------------------
   function pintarMais() {
-    var base = estado.valores.G1[0];
-    var ref = calcular('G1', base, estado.ppcc);
+    var base = estado.valores[0];
+    var ref = calcular(GRUPO, base, estado.ppcc);
     var tb = $('#tblMais tbody');
     tb.innerHTML = DELTAS.map(function (d) {
-      var c = calcular('G1', base + d, estado.ppcc);
+      var c = calcular(GRUPO, base + d, estado.ppcc);
       var ganho = c.remuneracao - ref.remuneracao;
       var classe = d === 0 ? ' class="is-ref"' : (c.degrau !== ref.degrau ? ' class="is-cross"' : '');
       var rotulo = d === 0 ? 'cenário A' : '+ ' + brl(d).replace('R$ ', 'R$ ');
@@ -244,8 +222,7 @@
   // Seção 4 — continuidade
   // ---------------------------------------------------
   function pintarContinuidade() {
-    var g = estado.grupoTabela;
-    var lista = FAIXAS[g].faixas;
+    var lista = FAIXAS[GRUPO].faixas;
     var ppcc = estado.ppcc;
     var linhas = [];
     var maiorQueda = 0;
@@ -277,10 +254,9 @@
   // Seção 5 — curva em SVG
   // ---------------------------------------------------
   function pintarCurva() {
-    var g = estado.grupoTabela;
     var ppcc = estado.ppcc;
-    var lista = FAIXAS[g].faixas;
-    var atual = estado.valores[g][0];
+    var lista = FAIXAS[GRUPO].faixas;
+    var atual = estado.valores[0];
     var maxPpcc = lista[lista.length - 1][1] * 1.15;
     var maxFat = Math.max(maxPpcc * ppcc, atual * 1.3);
     var W = 900, H = 320, ML = 78, MR = 16, MT = 16, MB = 44;
@@ -290,7 +266,7 @@
     var N = 120;
     for (var i = 0; i <= N; i++) {
       var f = maxFat * i / N;
-      pts.push([f, calcular(g, f, ppcc).remuneracao]);
+      pts.push([f, calcular(GRUPO, f, ppcc).remuneracao]);
     }
     var maxRem = pts[pts.length - 1][1];
     var x = function (f) { return ML + (f / maxFat) * iw; };
@@ -324,7 +300,7 @@
                   num(fv / 1000) + 'k</text>';
     }
 
-    var cAtual = calcular(g, atual, ppcc);
+    var cAtual = calcular(GRUPO, atual, ppcc);
     var marcador = (atual > 0 && atual <= maxFat)
       ? '<circle cx="' + x(atual).toFixed(1) + '" cy="' + y(cAtual.remuneracao).toFixed(1) + '" r="6" fill="#0077b6" stroke="#fff" stroke-width="2.5"/>' +
         '<text x="' + Math.min(x(atual) + 12, W - MR - 120).toFixed(1) + '" y="' + Math.max(y(cAtual.remuneracao) - 10, MT + 12).toFixed(1) +
@@ -342,20 +318,28 @@
   }
 
   // ---------------------------------------------------
-  // Tabela de faixas
+  // Lembrete das faixas, ao lado do simulador
   // ---------------------------------------------------
-  function pintarFaixas() {
-    var g = estado.grupoTabela, ppcc = estado.ppcc;
-    var atual = calcular(g, estado.valores[g][0], ppcc);
-    $('#tblFaixas tbody').innerHTML = FAIXAS[g].faixas.map(function (f) {
-      var marca = f[0] === atual.degrau ? ' class="is-ref"' : '';
-      return '<tr' + marca + '>' +
-        '<td class="ctr"><strong>' + f[0] + '</strong></td>' +
-        '<td class="num">' + brl(f[1] * ppcc) + '</td>' +
-        '<td class="num">' + (f[2] === null ? 'sem teto' : brl(f[2] * ppcc)) + '</td>' +
-        '<td class="num"><strong>' + pct(f[3]) + '</strong></td>' +
-        '<td class="num">' + brl(f[4] * ppcc) + '</td>' +
-      '</tr>';
+  function pintarFaixas(degA, degB) {
+    var ppcc = estado.ppcc;
+    var lista = FAIXAS[GRUPO].faixas;
+    var fmax = 0;
+    lista.forEach(function (f) { if (f[3] > fmax) fmax = f[3]; });
+    $('#faixasLista').innerHTML = lista.map(function (f) {
+      var marcas = '';
+      if (f[0] === degA) marcas += '<i class="dg-dot dg-dot-a" title="cenário A"></i>';
+      if (f[0] === degB) marcas += '<i class="dg-dot dg-dot-b" title="cenário B"></i>';
+      var ativo = (f[0] === degA || f[0] === degB) ? ' is-on' : '';
+      var faixa = f[2] === null
+        ? 'acima de ' + num(f[1] * ppcc)
+        : num(f[1] * ppcc) + ' a ' + num(f[2] * ppcc);
+      return '<div class="dg-faixa' + ativo + '">' +
+        '<span class="dg-faixa-n">' + f[0] + '</span>' +
+        '<span class="dg-faixa-r">' + faixa + '</span>' +
+        '<span class="dg-faixa-p">' + pct(f[3]) + '</span>' +
+        '<span class="dg-faixa-bar"><i style="width:' + (f[3] / fmax * 100).toFixed(0) + '%"></i></span>' +
+        '<span class="dg-faixa-m">' + marcas + '</span>' +
+      '</div>';
     }).join('');
   }
 
@@ -363,17 +347,15 @@
   // Recalcular tudo
   // ---------------------------------------------------
   function recalcular() {
-    ['G1', 'G2'].forEach(function (g) {
-      var a = calcular(g, estado.valores[g][0], estado.ppcc);
-      var b = calcular(g, estado.valores[g][1], estado.ppcc);
-      pintarCenario(g, 0, a);
-      pintarCenario(g, 1, b);
-      pintarDiferenca(g, a, b);
-    });
+    var a = calcular(GRUPO, estado.valores[0], estado.ppcc);
+    var b = calcular(GRUPO, estado.valores[1], estado.ppcc);
+    pintarCenario(0, a);
+    pintarCenario(1, b);
+    pintarDiferenca(a, b);
+    pintarFaixas(a.degrau, b.degrau);
     pintarMais();
     pintarContinuidade();
     pintarCurva();
-    pintarFaixas();
   }
 
   // ---------------------------------------------------
@@ -389,25 +371,9 @@
       ppccEl.value = fmtBRL.format(estado.ppcc);
     });
 
-    $$('.dg-seg-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        $$('.dg-seg-btn').forEach(function (b) {
-          b.classList.remove('is-active');
-          b.setAttribute('aria-selected', 'false');
-        });
-        btn.classList.add('is-active');
-        btn.setAttribute('aria-selected', 'true');
-        estado.grupoTabela = btn.dataset.grupo;
-        pintarContinuidade();
-        pintarCurva();
-        pintarFaixas();
-      });
-    });
-
     $('#btnReset').addEventListener('click', function () {
       estado.ppcc = PPCC_PADRAO;
-      estado.valores.G1 = FAIXAS.G1.padrao.slice();
-      estado.valores.G2 = FAIXAS.G2.padrao.slice();
+      estado.valores = FAIXAS.G1.padrao.slice();
       $('#ppcc').value = fmtBRL.format(PPCC_PADRAO);
       montarGrupos();
       recalcular();
