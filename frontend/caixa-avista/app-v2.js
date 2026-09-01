@@ -6,7 +6,9 @@
     API: 'caixa_avista_v2_api_url',
     LOCAL: 'caixa_avista_v2_local_data',
     PIX_PREFIX:
-      'caixa_avista_v2_pix_config:'
+      'caixa_avista_v2_pix_config:',
+    PIX_PAYLOAD_PREFIX:
+      'caixa_avista_v2_pix_payload:'
   };
   const state = {
     type: 'RECEITA', mode: 'ATENDIMENTO', amountCents: 0, batchAmountCents: 0,
@@ -75,6 +77,90 @@
     localStorage.setItem(
       pixStorageKey(),
       JSON.stringify(config)
+    );
+  }
+
+  function pixPayloadStorageKey(entryId) {
+    return [
+      STORAGE.PIX_PAYLOAD_PREFIX,
+      selectedUnitId(),
+      String(entryId || '').trim()
+    ].join(':');
+  }
+
+  function savePendingPixPayload(
+    entryId,
+    payload
+  ) {
+    if (!entryId || !payload) {
+      return;
+    }
+
+    try {
+      localStorage.setItem(
+        pixPayloadStorageKey(entryId),
+        String(payload)
+      );
+    } catch (error) {
+      console.warn(
+        '[CAIXA_PIX_STORAGE]',
+        error
+      );
+    }
+  }
+
+  function loadPendingPixPayload(entryId) {
+    if (!entryId) {
+      return '';
+    }
+
+    try {
+      return String(
+        localStorage.getItem(
+          pixPayloadStorageKey(entryId)
+        ) || ''
+      );
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function clearPendingPixPayload(entryId) {
+    if (!entryId) {
+      return;
+    }
+
+    try {
+      localStorage.removeItem(
+        pixPayloadStorageKey(entryId)
+      );
+    } catch (_) {
+      // A confirmação não deve falhar por causa do cache local.
+    }
+  }
+
+  function isPendingPixEntry(entry) {
+    const pixStatus = String(
+      entry?.pixStatus || ''
+    )
+      .toUpperCase()
+      .trim();
+
+    return Boolean(
+      entry &&
+      entry.status !== 'EXCLUIDO' &&
+      isPixEntry(entry) &&
+      [
+        'CRIANDO',
+        'ATIVA',
+        'PENDENTE'
+      ].includes(pixStatus)
+    );
+  }
+
+  function pendingPixEntries() {
+    return state.entries.filter(
+      isPendingPixEntry
     );
   }
 
@@ -453,7 +539,21 @@
     try{
       const result=await callApi('init',{date:todayIso()});
       state.user=result.user;state.library=result.library;state.clients=result.clients||[];state.entries=result.entries||[];state.withdrawals=result.withdrawals||[];state.summary=result.summary;state.closure=result.closure||null;
-      chooseDefaults();renderAll();
+      chooseDefaults();
+      renderAll();
+
+      const pending =
+        pendingPixEntries();
+
+      if (pending.length > 0) {
+        status(
+          'launchStatus',
+          pending.length === 1
+            ? 'Existe 1 cobrança Pix aguardando confirmação. Abra Mov. para continuar.'
+            : `Existem ${pending.length} cobranças Pix aguardando confirmação. Abra Mov. para continuar.`,
+          'warning'
+        );
+      }
     }catch(error){status('launchStatus',error.message,'error');}
     finally{setBusy(false);}
   }
@@ -732,23 +832,168 @@
     $('summaryRevenue').textContent=money(s.revenueCents);$('summaryExpense').textContent=money(s.expenseCents);$('summaryNet').textContent=money(s.netCents);
     $('paymentSummary').innerHTML=(state.library?.payments||[]).map(p=>`<div class="payment-chip"><small>${escapeHtml(p.name)}</small><strong>${money(s.byPayment?.[p.id]||0)}</strong></div>`).join('');
   }
-  function renderMovements(){
-    const movements=[
-      ...state.entries.map(e=>({kind:'ENTRY',createdAt:e.createdAt,data:e})),
-      ...state.withdrawals.map(w=>({kind:'WITHDRAWAL',createdAt:w.createdAt,data:w}))
-    ].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
-    $('movementList').innerHTML=movements.length?movements.map(item=>{
-      if(item.kind==='WITHDRAWAL'){
-        const w=item.data;
-        return `<article class="movement-item withdrawal"><div><h4>Sangria · ${escapeHtml(w.destination||'Financeiro')}</h4><p>${escapeHtml(w.operatorName||'')} ${w.pdfUrl?`· <a href="${escapeHtml(w.pdfUrl)}" target="_blank">PDF</a>`:''}</p></div><strong>- ${money(w.amountCents)}</strong></article>`;
-      }
-      const e=item.data;
-      return `<article class="movement-item ${e.type==='DESPESA'?'expense':''}"><div><h4>${escapeHtml(e.type==='DESPESA'?(e.description||e.categoryId):(e.clientName||'Sem cliente'))}</h4><p>${escapeHtml(e.paymentName||e.paymentId)} · ${escapeHtml(e.mode)}${e.batchId?' · Lote':''}${e.pixStatus?' · '+escapeHtml(e.pixStatus):''}</p></div><strong>${e.type==='DESPESA'?'- ':''}${money(e.amountCents)}</strong></article>`;
-    }).join(''):'<div class="movement-item"><div><h4>Sem movimentos</h4></div></div>';
+  function renderMovements() {
+    const movements = [
+      ...state.entries.map(entry => ({
+        kind: 'ENTRY',
+        createdAt: entry.createdAt,
+        data: entry
+      })),
+      ...state.withdrawals.map(withdrawal => ({
+        kind: 'WITHDRAWAL',
+        createdAt: withdrawal.createdAt,
+        data: withdrawal
+      }))
+    ].sort(
+      (first, second) =>
+        String(second.createdAt)
+          .localeCompare(
+            String(first.createdAt)
+          )
+    );
+
+    $('movementList').innerHTML =
+      movements.length
+        ? movements.map(item => {
+            if (
+              item.kind === 'WITHDRAWAL'
+            ) {
+              const withdrawal =
+                item.data;
+
+              return `
+                <article class="movement-item withdrawal">
+                  <div>
+                    <h4>
+                      Sangria ·
+                      ${escapeHtml(
+                        withdrawal.destination ||
+                        'Financeiro'
+                      )}
+                    </h4>
+
+                    <p>
+                      ${escapeHtml(
+                        withdrawal.operatorName ||
+                        ''
+                      )}
+                      ${withdrawal.pdfUrl
+                        ? `· <a href="${escapeHtml(
+                            withdrawal.pdfUrl
+                          )}" target="_blank">PDF</a>`
+                        : ''}
+                    </p>
+                  </div>
+
+                  <strong>
+                    - ${money(
+                      withdrawal.amountCents
+                    )}
+                  </strong>
+                </article>
+              `;
+            }
+
+            const entry = item.data;
+            const pending =
+              isPendingPixEntry(entry);
+
+            return `
+              <article class="movement-item
+                ${entry.type === 'DESPESA'
+                  ? 'expense'
+                  : ''}
+                ${pending
+                  ? 'pix-pending'
+                  : ''}">
+                <div>
+                  <h4>
+                    ${escapeHtml(
+                      entry.type === 'DESPESA'
+                        ? (
+                            entry.description ||
+                            entry.categoryId
+                          )
+                        : (
+                            entry.clientName ||
+                            'Sem cliente'
+                          )
+                    )}
+                  </h4>
+
+                  <p>
+                    ${escapeHtml(
+                      entry.paymentName ||
+                      entry.paymentId
+                    )}
+                    ·
+                    ${escapeHtml(entry.mode)}
+                    ${entry.batchId
+                      ? ' · Lote'
+                      : ''}
+                    ${entry.pixStatus
+                      ? ' · ' +
+                        escapeHtml(
+                          entry.pixStatus
+                        )
+                      : ''}
+                  </p>
+
+                  ${pending
+                    ? `
+                      <button
+                        class="movement-pix-action"
+                        type="button"
+                        data-open-pending-pix="${escapeHtml(
+                          entry.id
+                        )}"
+                      >
+                        <span class="material-symbols-rounded">
+                          qr_code_2
+                        </span>
+                        Abrir cobrança
+                      </button>
+                    `
+                    : ''}
+                </div>
+
+                <strong>
+                  ${entry.type === 'DESPESA'
+                    ? '- '
+                    : ''}
+                  ${money(entry.amountCents)}
+                </strong>
+              </article>
+            `;
+          }).join('')
+        : `
+          <div class="movement-item">
+            <div>
+              <h4>Sem movimentos</h4>
+            </div>
+          </div>
+        `;
   }
+
   function renderClose(){
     const s=state.summary||{};$('closeOpening').textContent=money(s.openingCashCents);$('closeCashRevenue').textContent=money(s.cashRevenueCents);$('closeCashExpense').textContent=money(s.cashExpenseCents);$('closeWithdrawals').textContent=money(s.withdrawalsCents);$('closeExpected').textContent=money(s.expectedCashCents);
-    $('closeState').textContent=state.closure?'Fechado':'Aberto';$('btnCloseCash').disabled=!!state.closure;
+    const hasPixPending =
+      Number(
+        s.pixPendingCents || 0
+      ) > 0;
+
+    $('closeState').textContent =
+      state.closure
+        ? 'Fechado'
+        : hasPixPending
+          ? 'Pix pendente'
+          : 'Aberto';
+
+    $('btnCloseCash').disabled =
+      Boolean(
+        state.closure ||
+        hasPixPending
+      );
     updateCloseMath();
     if(state.closure){const links=[];if(state.closure.pdfUrl)links.push(`<a href="${escapeHtml(state.closure.pdfUrl)}" target="_blank"><span class="material-symbols-rounded">picture_as_pdf</span> PDF do fechamento</a>`);$('closeLinks').classList.toggle('hidden',!links.length);$('closeLinks').innerHTML=links.join('');}
   }
@@ -835,20 +1080,32 @@
         pixTxid
       );
 
-    const saved = await callApi(
-      'saveEntry',
-      {
-        payload: draft(
-          amountCents,
-          {
-            entryId,
-            pixStatus: 'PENDENTE',
-            pixTxid,
-            pixProvider: 'local'
-          }
-        )
-      }
+    savePendingPixPayload(
+      entryId,
+      pixPayload
     );
+
+    let saved;
+
+    try {
+      saved = await callApi(
+        'saveEntry',
+        {
+          payload: draft(
+            amountCents,
+            {
+              entryId,
+              pixStatus: 'PENDENTE',
+              pixTxid,
+              pixProvider: 'local'
+            }
+          )
+        }
+      );
+    } catch (error) {
+      clearPendingPixPayload(entryId);
+      throw error;
+    }
 
     applySaveResult(saved);
 
@@ -857,6 +1114,9 @@
 
     state.pixPayload =
       pixPayload;
+
+    $('btnCopyPix').disabled = false;
+    $('btnSharePix').disabled = false;
 
     $('pixAmount').textContent =
       money(amountCents);
@@ -924,6 +1184,74 @@
 
       return false;
     }
+  }
+
+  function openPendingPix(entry) {
+    if (!entry) {
+      status(
+        'launchStatus',
+        'Cobrança Pix não encontrada.',
+        'error'
+      );
+
+      return;
+    }
+
+    const payload =
+      loadPendingPixPayload(entry.id);
+
+    state.pixEntry = entry;
+    state.pixPayload = payload;
+
+    $('pixAmount').textContent =
+      money(entry.amountCents);
+
+    $('pixCode').value =
+      payload;
+
+    $('btnCopyPix').disabled =
+      !payload;
+
+    $('btnSharePix').disabled =
+      !payload;
+
+    const qrRendered =
+      payload
+        ? renderQr(payload)
+        : false;
+
+    if (!payload) {
+      $('pixQr').innerHTML =
+        '<span class="material-symbols-rounded pix-placeholder">qr_code_2</span>';
+    }
+
+    openModal('pixModal');
+
+    if (payload && qrRendered) {
+      status(
+        'pixStatus',
+        'Cobrança pendente recuperada. Confirme somente depois de conferir o crédito.',
+        'warning'
+      );
+
+      return;
+    }
+
+    if (payload) {
+      status(
+        'pixStatus',
+        'Cobrança recuperada. O QR Code não carregou, mas o Pix Copia e Cola está disponível.',
+        'warning'
+      );
+
+      return;
+    }
+
+    status(
+      'pixStatus',
+      'Cobrança pendente localizada, mas o QR Code foi criado em outro navegador ou o armazenamento local foi apagado. Confira o recebimento para confirmar ou cancele a cobrança.',
+      'warning'
+    );
   }
 
   async function copyLocalPix() {
@@ -1067,6 +1395,10 @@
         result.summary ||
         state.summary;
 
+      clearPendingPixPayload(
+        state.pixEntry.id
+      );
+
       closeModal('pixModal');
       resetEntry();
       renderAll();
@@ -1141,6 +1473,10 @@
       state.summary =
         result.summary ||
         state.summary;
+
+      clearPendingPixPayload(
+        state.pixEntry.id
+      );
 
       closeModal('pixModal');
       resetEntry();
@@ -1613,6 +1949,36 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
       }
     );
     $('batchItems').addEventListener('click',e=>{const b=e.target.closest('[data-remove-batch]');if(!b)return;state.batchItems.splice(Number(b.dataset.removeBatch),1);renderEntryForm();});
+
+    $('movementList').addEventListener(
+      'click',
+      event => {
+        const button =
+          event.target.closest(
+            '[data-open-pending-pix]'
+          );
+
+        if (!button) {
+          return;
+        }
+
+        const entryId =
+          String(
+            button.dataset
+              .openPendingPix ||
+            ''
+          );
+
+        const entry =
+          state.entries.find(
+            item =>
+              item.id === entryId
+          );
+
+        openPendingPix(entry);
+      }
+    );
+
     $('clientInput').addEventListener('input',renderClientSuggestions);$('clientInput').addEventListener('focus',renderClientSuggestions);$('clientSuggestions').addEventListener('click',e=>{const b=e.target.closest('[data-client-id]');if(b)selectClient(state.clients.find(c=>c.id===b.dataset.clientId));});$('btnAddClient').addEventListener('click',addClient);
     $('btnOpenWithdrawal').addEventListener('click',()=>{if(state.closure)return status('launchStatus','O caixa de hoje já foi fechado.','warning');$('withdrawalAvailable').textContent=money(state.summary?.expectedCashCents||0);$('withdrawalAmount').value='';$('withdrawalDestination').value='Financeiro';$('withdrawalNotes').value='';$('withdrawalDeclaration').checked=false;updateWithdrawalMath();clearStatus('withdrawalStatus');openModal('withdrawalModal');});
     $('withdrawalAmount').addEventListener('input',updateWithdrawalMath);$('btnSaveWithdrawal').addEventListener('click',saveWithdrawal);

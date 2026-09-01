@@ -197,3 +197,41 @@ body[data-entry-type="DESPESA"] .batch-amount small {
     grid-column: auto;
   }
 }
+
+
+/*
+ * RECUPERAÇÃO DE PIX PENDENTE
+ */
+
+.movement-item.pix-pending {
+  border-color: #f0bd53;
+  background: #fffaf0;
+}
+
+.movement-pix-action {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 9px;
+  padding: 7px 12px;
+  border: 1px solid #d8991d;
+  border-radius: 11px;
+  background: #fff3d5;
+  color: #7c5200;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.movement-pix-action
+.material-symbols-rounded {
+  font-size: 20px;
+}
+
+.pix-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
