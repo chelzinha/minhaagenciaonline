@@ -235,3 +235,26 @@ body[data-entry-type="DESPESA"] .batch-amount small {
   cursor: not-allowed;
   opacity: 0.46;
 }
+
+
+/* CAIXA-PAYMENT-BUTTONS-CLICK-FIX */
+
+.icon-options.payments {
+  position: relative;
+  z-index: 8;
+  pointer-events: auto;
+}
+
+.icon-options.payments
+.option-btn {
+  position: relative;
+  z-index: 9;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.icon-options.payments
+.option-btn:not(:disabled) {
+  cursor: pointer;
+}

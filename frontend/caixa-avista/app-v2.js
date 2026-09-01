@@ -788,15 +788,24 @@
             </button>`
           ).join('');
 
-    $('paymentOptions').innerHTML =
+    const paymentContainer =
+      $('paymentOptions');
+
+    paymentContainer.innerHTML =
       payments().map(x =>
         `<button
+          type="button"
           class="option-btn ${
             state.selectedPayment === x.id
               ? 'active'
               : ''
           }"
           data-payment="${x.id}"
+          aria-pressed="${
+            state.selectedPayment === x.id
+              ? 'true'
+              : 'false'
+          }"
           style="--option-color:${
             x.color || '#1677ff'
           }"
@@ -812,6 +821,50 @@
           </span>
         </button>`
       ).join('');
+
+    paymentContainer
+      .querySelectorAll(
+        '[data-payment]'
+      )
+      .forEach(button => {
+        button.disabled = false;
+
+        button.addEventListener(
+          'click',
+          event => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (state.busy) {
+              return;
+            }
+
+            const nextPayment =
+              String(
+                button.dataset.payment ||
+                ''
+              ).trim();
+
+            if (
+              !nextPayment ||
+              nextPayment ===
+                state.selectedPayment
+            ) {
+              return;
+            }
+
+            state.selectedPayment =
+              nextPayment;
+
+            renderOptions();
+            renderEntryForm();
+
+            clearStatus(
+              'launchStatus'
+            );
+          }
+        );
+      });
   }
 
   function renderEntryForm(){
@@ -1780,7 +1833,10 @@
     document.querySelectorAll('.main-nav-btn').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
     document.querySelectorAll('[data-entry-type]').forEach(b=>b.addEventListener('click',()=>changeType(b.dataset.entryType)));
 $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[data-category]');if(!b)return;state.selectedCategory=b.dataset.category;if(state.type==='DESPESA'&&selectedCategory()?.defaultPaymentId)state.selectedPayment=selectedCategory().defaultPaymentId;renderAll();});
-    $('paymentOptions').addEventListener('click',e=>{const b=e.target.closest('[data-payment]');if(b){state.selectedPayment=b.dataset.payment;renderOptions();renderEntryForm();}});
+    /*
+     * Os botões de pagamento recebem eventos diretos
+     * sempre que renderOptions recria seus elementos.
+     */
 
     /*
      * Entrada de valores.
