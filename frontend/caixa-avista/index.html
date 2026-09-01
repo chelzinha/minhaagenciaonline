@@ -335,48 +335,11 @@
           >
         </label>
 
-        <div class="settings-section-title">
-          <span class="material-symbols-rounded">
-            qr_code_2
-          </span>
-
-          Pix desta unidade
-        </div>
-
-        <label class="modal-field">
-          <span>Chave Pix</span>
-
-          <input
-            id="pixKeyInput"
-            autocomplete="off"
-            placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
-          >
-        </label>
-
-        <label class="modal-field">
-          <span>Nome do recebedor</span>
-
-          <input
-            id="pixNameInput"
-            autocomplete="off"
-            placeholder="Nome vinculado à conta"
-          >
-        </label>
-
-        <label class="modal-field">
-          <span>Cidade</span>
-
-          <input
-            id="pixCityInput"
-            autocomplete="off"
-            placeholder="FORTALEZA"
-          >
-        </label>
-
         <p class="settings-note">
-          Os dados Pix ficam salvos neste
-          navegador, separadamente para cada
-          unidade.
+          As chaves e os dados Pix são
+          administrados na planilha central,
+          separadamente por unidade e forma
+          de pagamento.
         </p>
 
         <button
@@ -400,8 +363,8 @@
 
   <div id="loadingOverlay" class="loading-overlay hidden"><div><span class="spinner"></span><strong id="loadingText">Carregando...</strong></div></div>
   <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
-  <script src="/caixa-avista/unit-selector.js?v=20260901135833"></script>
+  <script src="/caixa-avista/unit-selector.js?v=20260901143428"></script>
   <script src="/shared/ui/agf-ui.js"></script>
-  <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/caixa-avista/sw.js?v=20260901135833').catch(()=>{}));</script>
+  <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/caixa-avista/sw.js?v=20260901143428').catch(()=>{}));</script>
 </body>
 </html>

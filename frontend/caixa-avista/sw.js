@@ -1,11 +1,11 @@
-const CACHE = 'caixa-balcao-pix-central-delete-20260901135833';
+const CACHE = 'caixa-balcao-pix-planilha-20260901143428';
 const ASSETS = [
   '/caixa-avista/',
   '/caixa-avista/index.html',
   '/caixa-avista/styles-v2.css',
-  '/caixa-avista/app.js?v=20260901135833',
-  '/caixa-avista/unit-selector.js?v=20260901135833',
-  '/caixa-avista/app-v2.js?v=20260901135833',
+  '/caixa-avista/app.js?v=20260901143428',
+  '/caixa-avista/unit-selector.js?v=20260901143428',
+  '/caixa-avista/app-v2.js?v=20260901143428',
   '/caixa-avista/manifest.webmanifest'
 ];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));

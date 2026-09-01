@@ -5,8 +5,6 @@
   const STORAGE = {
     API: 'caixa_avista_v2_api_url',
     LOCAL: 'caixa_avista_v2_local_data',
-    PIX_PREFIX:
-      'caixa_avista_v2_pix_config:',
     PIX_PAYLOAD_PREFIX:
       'caixa_avista_v2_pix_payload:'
   };
@@ -38,45 +36,90 @@
       'PADRAO'
     ).trim();
 
-  function pixStorageKey() {
-    return (
-      STORAGE.PIX_PREFIX +
-      selectedUnitId()
-    );
-  }
-
-  function loadPixConfig() {
+  function clearLegacyPixConfig() {
     try {
-      const stored = JSON.parse(
-        localStorage.getItem(
-          pixStorageKey()
-        ) || '{}'
-      );
+      const prefix =
+        'caixa_avista_v2_pix_config:';
 
-      return {
-        key: String(
-          stored.key || ''
-        ).trim(),
-        name: String(
-          stored.name || ''
-        ).trim(),
-        city: String(
-          stored.city || 'FORTALEZA'
-        ).trim()
-      };
+      const keys = [];
+
+      for (
+        let index = 0;
+        index < localStorage.length;
+        index += 1
+      ) {
+        const key =
+          localStorage.key(index);
+
+        if (
+          key &&
+          key.startsWith(prefix)
+        ) {
+          keys.push(key);
+        }
+      }
+
+      keys.forEach(key => {
+        localStorage.removeItem(key);
+      });
     } catch (_) {
-      return {
-        key: '',
-        name: '',
-        city: 'FORTALEZA'
-      };
+      // A limpeza não deve impedir a abertura do caixa.
     }
   }
 
-  function savePixConfig(config) {
-    localStorage.setItem(
-      pixStorageKey(),
-      JSON.stringify(config)
+  function paymentById(paymentId) {
+    return (
+      state.library?.payments || []
+    ).find(
+      payment =>
+        payment.id ===
+        String(paymentId || '')
+    ) || null;
+  }
+
+  function paymentPixConfig(payment) {
+    return {
+      mode: String(
+        payment?.pixMode || ''
+      )
+        .trim()
+        .toUpperCase(),
+
+      key: String(
+        payment?.pixKey || ''
+      ).trim(),
+
+      name: String(
+        payment?.pixReceiverName || ''
+      ).trim(),
+
+      city: String(
+        payment?.pixCity ||
+        'FORTALEZA'
+      ).trim(),
+
+      active:
+        payment?.pixActive === true,
+
+      shareMessage: String(
+        payment?.pixShareMessage ||
+        'Olá! Segue a cobrança Pix da sua postagem.'
+      ).trim()
+    };
+  }
+
+  function isPaymentPixConfigured(payment) {
+    const config =
+      paymentPixConfig(payment);
+
+    return Boolean(
+      isPixPayment(payment) &&
+      config.active &&
+      config.mode ===
+        'LOCAL_STATIC' &&
+      config.key &&
+      config.name &&
+      config.city
     );
   }
 
@@ -349,8 +392,38 @@
     );
   }
 
-  function requirePixConfig() {
-    const config = loadPixConfig();
+  function requirePixConfig(payment) {
+    if (!payment) {
+      throw new Error(
+        'Forma de pagamento Pix não encontrada.'
+      );
+    }
+
+    if (!isPixPayment(payment)) {
+      throw new Error(
+        'A forma de pagamento selecionada não é Pix.'
+      );
+    }
+
+    const config =
+      paymentPixConfig(payment);
+
+    if (!config.active) {
+      throw new Error(
+        payment.name +
+        ' está desativado na planilha.'
+      );
+    }
+
+    if (
+      config.mode !==
+      'LOCAL_STATIC'
+    ) {
+      throw new Error(
+        payment.name +
+        ' não está configurado para gerar QR Code local.'
+      );
+    }
 
     if (
       !config.key ||
@@ -358,7 +431,8 @@
       !config.city
     ) {
       throw new Error(
-        'Configure os dados Pix desta unidade antes de gerar a cobrança.'
+        payment.name +
+        ' ainda não possui chave, recebedor e cidade configurados na planilha.'
       );
     }
 
@@ -1360,7 +1434,7 @@
     let config;
 
     try {
-      config = requirePixConfig();
+      config = requirePixConfig(payment);
     } catch (error) {
       openSettings();
       throw error;
@@ -1491,7 +1565,7 @@
   function openPendingPix(entry) {
     if (!entry) {
       status(
-        'launchStatus',
+        'movementStatus',
         'Cobrança Pix não encontrada.',
         'error'
       );
@@ -1499,8 +1573,45 @@
       return;
     }
 
-    const payload =
-      loadPendingPixPayload(entry.id);
+    const payment =
+      paymentById(
+        entry.paymentId
+      );
+
+    let payload =
+      loadPendingPixPayload(
+        entry.id
+      );
+
+    let recoveryError = '';
+
+    if (
+      !payload &&
+      entry.pixTxid &&
+      payment
+    ) {
+      try {
+        const config =
+          requirePixConfig(
+            payment
+          );
+
+        payload =
+          buildLocalPixPayload(
+            config,
+            entry.amountCents,
+            entry.pixTxid
+          );
+
+        savePendingPixPayload(
+          entry.id,
+          payload
+        );
+      } catch (error) {
+        recoveryError =
+          error.message || '';
+      }
+    }
 
     state.pixEntry = entry;
     state.pixPayload = payload;
@@ -1532,10 +1643,13 @@
 
     openModal('pixModal');
 
-    if (payload && qrRendered) {
+    if (
+      payload &&
+      qrRendered
+    ) {
       status(
         'pixStatus',
-        'Cobrança pendente recuperada. Confirme somente depois de conferir o crédito.',
+        'Cobrança pendente recuperada pela configuração central da planilha.',
         'warning'
       );
 
@@ -1545,7 +1659,7 @@
     if (payload) {
       status(
         'pixStatus',
-        'Cobrança recuperada. O QR Code não carregou, mas o Pix Copia e Cola está disponível.',
+        'Cobrança recuperada. Use o Pix Copia e Cola porque o QR Code não carregou.',
         'warning'
       );
 
@@ -1554,8 +1668,9 @@
 
     status(
       'pixStatus',
-      'Cobrança pendente localizada, mas o QR Code foi criado em outro navegador ou o armazenamento local foi apagado. Confira o recebimento para confirmar ou cancele a cobrança.',
-      'warning'
+      recoveryError ||
+        'Não foi possível reconstruir a cobrança pendente.',
+      'error'
     );
   }
 
@@ -1682,8 +1797,21 @@
       return;
     }
 
+    const payment =
+      paymentById(
+        state.pixEntry
+          ?.paymentId ||
+        state.selectedPayment
+      );
+
+    const baseMessage =
+      paymentPixConfig(
+        payment
+      ).shareMessage ||
+      'Olá! Segue a cobrança Pix da sua postagem.';
+
     const message = [
-      'Olá! Segue a cobrança Pix da sua postagem.',
+      baseMessage,
       '',
       'Valor: ' +
         money(amountCents),
@@ -1694,7 +1822,9 @@
 
     const url =
       'https://wa.me/?text=' +
-      encodeURIComponent(message);
+      encodeURIComponent(
+        message
+      );
 
     const opened =
       window.open(
@@ -2142,8 +2272,6 @@
   }
 
   function openSettings() {
-    const config = loadPixConfig();
-
     $('apiUrlInput').value =
       apiUrl();
 
@@ -2151,16 +2279,6 @@
       .textContent =
         state.library?.unit?.name ||
         selectedUnitId();
-
-    $('pixKeyInput').value =
-      config.key;
-
-    $('pixNameInput').value =
-      config.name;
-
-    $('pixCityInput').value =
-      config.city ||
-      'FORTALEZA';
 
     clearStatus(
       'settingsStatus'
@@ -2176,27 +2294,9 @@
       $('apiUrlInput')
         .value.trim();
 
-    const config = {
-      key:
-        $('pixKeyInput')
-          .value.trim(),
-      name:
-        $('pixNameInput')
-          .value
-          .replace(/\s+/g, ' ')
-          .trim()
-          .toUpperCase(),
-      city:
-        $('pixCityInput')
-          .value
-          .replace(/\s+/g, ' ')
-          .trim()
-          .toUpperCase()
-    };
-
     if (
       nextApiUrl &&
-      !/^https:\/\/script\.google\.com\/macros\/s\//
+      !/^https://script.google.com/macros/s//
         .test(nextApiUrl)
     ) {
       status(
@@ -2208,42 +2308,14 @@
       return;
     }
 
-    const hasAnyPixValue =
-      Boolean(
-        config.key ||
-        config.name
-      );
-
-    const hasCompletePixConfig =
-      Boolean(
-        config.key &&
-        config.name &&
-        config.city
-      );
-
-    if (
-      hasAnyPixValue &&
-      !hasCompletePixConfig
-    ) {
-      status(
-        'settingsStatus',
-        'Preencha chave Pix, nome do recebedor e cidade.',
-        'warning'
-      );
-
-      return;
-    }
-
     localStorage.setItem(
       STORAGE.API,
       nextApiUrl
     );
 
-    savePixConfig(config);
-
     status(
       'settingsStatus',
-      'Configurações salvas para esta unidade.',
+      'Configuração técnica salva.',
       'success'
     );
 
@@ -2252,8 +2324,6 @@
         closeModal(
           'settingsModal'
         );
-
-        window.location.reload();
       },
       400
     );
@@ -2568,5 +2638,7 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
     document.addEventListener('click',e=>{if(!e.target.closest('#clientSection'))$('clientSuggestions').classList.add('hidden');});
   }
 
-  bind();refresh();
+  clearLegacyPixConfig();
+  bind();
+  refresh();
 })();
