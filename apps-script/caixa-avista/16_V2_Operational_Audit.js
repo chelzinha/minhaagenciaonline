@@ -309,3 +309,176 @@ function inspecionarSaldosDuplicadosV2(
 
   return result;
 }
+/**
+ * Remove somente saldos diários duplicados considerados seguros.
+ *
+ * Mantém a primeira linha e exclui as demais apenas quando:
+ * - não existe fechamento para a data;
+ * - todas as linhas estão abertas;
+ * - todos os valores financeiros estão zerados;
+ * - a origem é INICIAL_ZERO;
+ * - a criação foi feita pelo sistema.
+ */
+function corrigirSaldosDuplicadosSeguroV2(
+  dateValue,
+  unitValue
+) {
+  var lock = LockService.getScriptLock();
+
+  lock.waitLock(30000);
+
+  try {
+    var env = v2Environment_();
+
+    var date = v2SheetDateIso_(
+      dateValue || v2Today_()
+    );
+
+    var unitId = String(
+      unitValue || 'SHOPPING_METRO'
+    ).trim();
+
+    var closures = v2ReadObjects_(
+      env.closures,
+      CAIXA_V2_CFG.HEADERS.CLOSURES
+    ).filter(function(item) {
+      return (
+        String(item.unit_id || '').trim() ===
+          unitId &&
+        v2SheetDateIso_(item.date_iso) ===
+          date
+      );
+    });
+
+    if (closures.length) {
+      throw new Error(
+        'A limpeza foi bloqueada porque existe ' +
+        'fechamento para esta data e unidade.'
+      );
+    }
+
+    var rows = v2ReadObjects_(
+      env.dailyBalances,
+      CAIXA_V2_CFG.HEADERS.DAILY_BALANCES
+    )
+      .filter(function(item) {
+        return (
+          String(item.unit_id || '').trim() ===
+            unitId &&
+          v2SheetDateIso_(item.date_iso) ===
+            date
+        );
+      })
+      .sort(function(a,b) {
+        return a._sheetRow - b._sheetRow;
+      });
+
+    if (rows.length <= 1) {
+      var nothingResult = {
+        ok: true,
+        altered: false,
+        date: date,
+        unitId: unitId,
+        message:
+          'Não existem saldos duplicados.',
+        remainingRows: rows.length
+      };
+
+      console.log(
+        JSON.stringify(
+          nothingResult,
+          null,
+          2
+        )
+      );
+
+      return nothingResult;
+    }
+
+    var unsafeRows = rows.filter(function(item) {
+      return (
+        String(item.status || '') !==
+          'ABERTO' ||
+        String(item.opening_source || '') !==
+          'INICIAL_ZERO' ||
+        String(item.created_by || '') !==
+          'sistema' ||
+        Number(item.opening_cash_cents || 0) !==
+          0 ||
+        Number(item.expected_cash_cents || 0) !==
+          0 ||
+        Number(item.counted_cash_cents || 0) !==
+          0 ||
+        Number(item.difference_cents || 0) !==
+          0 ||
+        Number(
+          item.closing_withdrawal_cents || 0
+        ) !== 0 ||
+        Number(item.carryover_cents || 0) !==
+          0
+      );
+    });
+
+    if (unsafeRows.length) {
+      throw new Error(
+        'A limpeza foi bloqueada porque ' +
+        unsafeRows.length +
+        ' linha(s) possuem dados que não são ' +
+        'duplicatas vazias e abertas.'
+      );
+    }
+
+    var keptRow = rows[0]._sheetRow;
+
+    var rowsToDelete = rows
+      .slice(1)
+      .map(function(item) {
+        return item._sheetRow;
+      })
+      .sort(function(a,b) {
+        return b - a;
+      });
+
+    rowsToDelete.forEach(function(sheetRow) {
+      env.dailyBalances.deleteRow(sheetRow);
+    });
+
+    SpreadsheetApp.flush();
+
+    var remainingRows = v2ReadObjects_(
+      env.dailyBalances,
+      CAIXA_V2_CFG.HEADERS.DAILY_BALANCES
+    ).filter(function(item) {
+      return (
+        String(item.unit_id || '').trim() ===
+          unitId &&
+        v2SheetDateIso_(item.date_iso) ===
+          date
+      );
+    });
+
+    var result = {
+      ok: remainingRows.length === 1,
+      altered: true,
+      date: date,
+      unitId: unitId,
+      keptOriginalSheetRow: keptRow,
+      deletedRows: rowsToDelete,
+      deletedCount: rowsToDelete.length,
+      remainingRows: remainingRows.length
+    };
+
+    var output = JSON.stringify(
+      result,
+      null,
+      2
+    );
+
+    console.log(output);
+    Logger.log(output);
+
+    return result;
+  } finally {
+    lock.releaseLock();
+  }
+}
