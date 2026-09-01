@@ -39,7 +39,27 @@ var CAIXA_V2_CFG = Object.freeze({
     UNITS: ['unit_id','name','cost_center_name','cost_center_ca_id','default_revenue_contact_ca_id','default_expense_contact_ca_id','drive_root_folder_id','active'],
     USERS: ['username','unit_id','can_revenue','can_expense','can_close','can_withdraw','active'],
     ACCOUNTS: ['account_id','unit_id','name_front','name_conta_azul','conta_azul_id','active','sort_order'],
-    PAYMENTS: ['payment_id','unit_id','name_front','conta_azul_method','account_id','allow_revenue','allow_expense','allow_batch','generate_pix','icon','color','active','sort_order'],
+    PAYMENTS: [
+      'payment_id',
+      'unit_id',
+      'name_front',
+      'conta_azul_method',
+      'account_id',
+      'allow_revenue',
+      'allow_expense',
+      'allow_batch',
+      'generate_pix',
+      'icon',
+      'color',
+      'active',
+      'sort_order',
+      'pix_mode',
+      'pix_key',
+      'pix_receiver_name',
+      'pix_city',
+      'pix_active',
+      'pix_share_message'
+    ],
     REVENUES: ['revenue_type_id','unit_id','name_front','description_default','category_name','category_ca_id','allow_attendance','allow_single','allow_batch','require_client','require_description','icon','color','active','sort_order'],
     EXPENSES: ['expense_type_id','unit_id','name_front','description_default','category_name','category_ca_id','default_payment_id','default_account_id','allow_batch','require_description','icon','color','active','sort_order'],
     CLIENTS: ['client_id','name','normalized_name','created_at','created_by','active'],
@@ -48,7 +68,8 @@ var CAIXA_V2_CFG = Object.freeze({
       'client_id','client_name','client_source','object_count','amount_cents','payment_id','payment_name','payment_ca_method',
       'account_id','account_ca_id_snapshot','account_ca_name_snapshot','category_id','category_ca_id_snapshot','category_ca_name_snapshot',
       'cost_center_ca_id_snapshot','cost_center_ca_name_snapshot','description','pix_status','pix_txid','pix_e2eid','pix_received_at',
-      'pix_provider','status','closure_id','conta_azul_status','conta_azul_protocol','conta_azul_last_error','conta_azul_attempts','conta_azul_synced_at'
+      'pix_provider','status','closure_id','conta_azul_status','conta_azul_protocol','conta_azul_last_error','conta_azul_attempts','conta_azul_synced_at',
+      'deleted_at','deleted_by','deleted_by_name','delete_reason'
     ],
     DAILY_BALANCES: ['unit_id','date_iso','opening_cash_cents','opening_source','created_at','created_by','expected_cash_cents','counted_cash_cents','difference_cents','closing_withdrawal_cents','carryover_cents','status'],
     WITHDRAWALS: ['withdrawal_id','date_iso','created_at','unit_id','operator_id','operator_name','amount_cents','destination','notes','balance_before_cents','balance_after_cents','declaration_version','declaration_text','confirmed','confirmed_at','closure_id','pdf_status','pdf_file_id','pdf_url'],
@@ -133,6 +154,169 @@ function v2Sheet_(ss, name, headers) {
   return sheet;
 }
 
+
+function v2PadPaymentConfigRow_(row) {
+  var base = (row || []).slice(0, 13);
+
+  while (base.length < 13) {
+    base.push('');
+  }
+
+  var extra = (row || []).slice(13, 19);
+
+  while (extra.length < 6) {
+    extra.push('');
+  }
+
+  var isPix =
+    String(base[3] || '') ===
+    'PIX_PAGAMENTO_INSTANTANEO';
+
+  if (isPix) {
+    if (!extra[0]) {
+      extra[0] = 'LOCAL_STATIC';
+    }
+
+    if (!extra[3]) {
+      extra[3] = 'FORTALEZA';
+    }
+
+    if (
+      extra[4] === '' ||
+      extra[4] == null
+    ) {
+      extra[4] = true;
+    }
+
+    if (!extra[5]) {
+      extra[5] =
+        'Olá! Segue a cobrança Pix da sua postagem.';
+    }
+  }
+
+  return base.concat(extra);
+}
+
+function migrarConfiguracaoPixEExclusaoV2() {
+  var env = v2Environment_();
+  var ss = env.ss;
+
+  if (
+    !ss.getSheetByName(
+      'BACKUP_Pagamentos_pre_pix'
+    )
+  ) {
+    env.payments
+      .copyTo(ss)
+      .setName(
+        'BACKUP_Pagamentos_pre_pix'
+      );
+  }
+
+  if (
+    !ss.getSheetByName(
+      'BACKUP_Lancamentos_pre_exclusao'
+    )
+  ) {
+    env.entries
+      .copyTo(ss)
+      .setName(
+        'BACKUP_Lancamentos_pre_exclusao'
+      );
+  }
+
+  var headers =
+    CAIXA_V2_CFG.HEADERS.PAYMENTS;
+
+  var pixRows = 0;
+  var incompleteRows = [];
+
+  v2ReadObjects_(
+    env.payments,
+    headers
+  ).forEach(function(item) {
+    var isPix =
+      String(
+        item.conta_azul_method || ''
+      ) ===
+      'PIX_PAGAMENTO_INSTANTANEO';
+
+    if (!isPix) {
+      return;
+    }
+
+    var row =
+      v2PadPaymentConfigRow_(
+        item._row
+      );
+
+    var generatePixIndex =
+      headers.indexOf(
+        'generate_pix'
+      );
+
+    if (generatePixIndex >= 0) {
+      row[generatePixIndex] = true;
+    }
+
+    env.payments
+      .getRange(
+        item._sheetRow,
+        1,
+        1,
+        headers.length
+      )
+      .setValues([row]);
+
+    pixRows += 1;
+
+    var key = String(
+      row[
+        headers.indexOf(
+          'pix_key'
+        )
+      ] || ''
+    ).trim();
+
+    var receiverName = String(
+      row[
+        headers.indexOf(
+          'pix_receiver_name'
+        )
+      ] || ''
+    ).trim();
+
+    if (!key || !receiverName) {
+      incompleteRows.push({
+        paymentId:
+          String(item.payment_id || ''),
+        unitId:
+          String(item.unit_id || '')
+      });
+    }
+  });
+
+  SpreadsheetApp.flush();
+
+  return {
+    ok: true,
+    pixRows: pixRows,
+    incompleteRows: incompleteRows,
+    paymentHeaders:
+      CAIXA_V2_CFG
+        .HEADERS
+        .PAYMENTS
+        .length,
+    entryHeaders:
+      CAIXA_V2_CFG
+        .HEADERS
+        .ENTRIES
+        .length,
+    message:
+      'Estrutura Pix e auditoria de exclusão preparadas.'
+  };
+}
+
 function v2SeedLibrary_(env) {
   if (env.units.getLastRow() < 2) env.units.appendRow(['PADRAO','Unidade padrão','','','','','',true]);
   if (env.users.getLastRow() < 2) env.users.appendRow(['*','PADRAO',true,true,true,true,true]);
@@ -207,7 +391,9 @@ function migrateBibliotecaPagamentosV2() {
       ['PIX','*','Pix','PIX_PAGAMENTO_INSTANTANEO','BANCO_PIX',true,true,true,true,'qr_code_2','#00a99d',true,20],
       ['DEBITO','*','Débito','CARTAO_DEBITO','CARTAO',true,true,true,false,'credit_card','#3b82f6',true,30],
       ['CREDITO','*','Crédito','CARTAO_CREDITO','CARTAO',true,true,true,false,'credit_card','#7c3aed',true,40]
-    ]);
+    ].map(
+      v2PadPaymentConfigRow_
+    ));
 
   sheet.setFrozenRows(1);
 
@@ -547,7 +733,11 @@ function configurarFinanceiroCaixaV2() {
       pagamentos.length,
       CAIXA_V2_CFG.HEADERS.PAYMENTS.length
     )
-    .setValues(pagamentos);
+    .setValues(
+      pagamentos.map(
+        v2PadPaymentConfigRow_
+      )
+    );
 
   env.accounts.setFrozenRows(1);
   env.payments.setFrozenRows(1);

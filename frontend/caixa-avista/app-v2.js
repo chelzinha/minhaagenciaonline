@@ -529,6 +529,73 @@
         )
       };
     }
+    if(action==='deleteEntry'){
+      const payload=data.payload||{};
+      const entry=db.entries.find(
+        item=>
+          item.id===payload.entryId
+      );
+
+      if(!entry){
+        throw new Error(
+          'Lançamento não encontrado.'
+        );
+      }
+
+      const reason=String(
+        payload.reason||''
+      ).trim();
+
+      if(reason.length<3){
+        throw new Error(
+          'Informe o motivo da exclusão.'
+        );
+      }
+
+      if(entry.closureId){
+        throw new Error(
+          'Este lançamento já foi fechado.'
+        );
+      }
+
+      entry.status='EXCLUIDO';
+      entry.deletedAt=
+        new Date().toISOString();
+      entry.deletedBy='local';
+      entry.deletedByName=
+        'Homologação local';
+      entry.deleteReason=reason;
+      entry.contaAzulStatus=
+        'CANCELADO';
+
+      if(
+        [
+          'CRIANDO',
+          'ATIVA',
+          'PENDENTE'
+        ].includes(
+          String(
+            entry.pixStatus||''
+          ).toUpperCase()
+        )
+      ){
+        entry.pixStatus=
+          'CANCELADO';
+      }
+
+      saveLocal(db);
+
+      return {
+        ok:true,
+        entry,
+        summary:localSummary(
+          db.entries,
+          db.withdrawals,
+          todayIso()
+        )
+      };
+    }
+
     if(action==='createWithdrawal'){const s=localSummary(db.entries,db.withdrawals,todayIso()),w={id:uid(),date:todayIso(),createdAt:new Date().toISOString(),operatorName:'Homologação local',amountCents:data.payload.amountCents,destination:data.payload.destination,notes:data.payload.notes,balanceBeforeCents:s.expectedCashCents,balanceAfterCents:s.expectedCashCents-data.payload.amountCents,confirmed:true,pdfStatus:'SIMULADO',pdfUrl:''};db.withdrawals.push(w);saveLocal(db);return {ok:true,withdrawal:w,summary:localSummary(db.entries,db.withdrawals,todayIso())};}
     if(action==='closeCash'){const s=localSummary(db.entries,db.withdrawals,todayIso()),c={id:uid(),date:todayIso(),unitId:'PADRAO',unitName:'Unidade padrão',status:'FECHADO',createdAt:new Date().toISOString(),createdByName:'Homologação local',revenueCents:s.revenueCents,expenseCents:s.expenseCents,netCents:s.netCents,openingCashCents:s.openingCashCents,cashRevenueCents:s.cashRevenueCents,cashExpenseCents:s.cashExpenseCents,withdrawalsBeforeCloseCents:s.withdrawalsCents,expectedCashCents:s.expectedCashCents,countedCashCents:data.payload.countedCashCents,differenceCents:data.payload.countedCashCents-s.expectedCashCents,closingWithdrawalCents:data.payload.closingWithdrawalCents||0,carryoverCents:data.payload.countedCashCents-(data.payload.closingWithdrawalCents||0),declarationConfirmed:true,pdfStatus:'SIMULADO',pdfUrl:'',contaAzulStatus:'PENDENTE'};db.closures.push(c);saveLocal(db);return {ok:true,closure:c,summary:s};}
     throw new Error('Ação local não implementada.');
@@ -996,8 +1063,26 @@
             }
 
             const entry = item.data;
+
             const pending =
               isPendingPixEntry(entry);
+
+            const contaAzulStatus =
+              String(
+                entry.contaAzulStatus ||
+                ''
+              ).toUpperCase();
+
+            const canDelete =
+              !state.closure &&
+              !entry.closureId &&
+              [
+                '',
+                'NAO_ENVIADO',
+                'CANCELADO'
+              ].includes(
+                contaAzulStatus
+              );
 
             return `
               <article class="movement-item
@@ -1007,7 +1092,7 @@
                 ${pending
                   ? 'pix-pending'
                   : ''}">
-                <div>
+                <div class="movement-main">
                   <h4>
                     ${escapeHtml(
                       entry.type === 'DESPESA'
@@ -1040,22 +1125,41 @@
                       : ''}
                   </p>
 
-                  ${pending
-                    ? `
-                      <button
-                        class="movement-pix-action"
-                        type="button"
-                        data-open-pending-pix="${escapeHtml(
-                          entry.id
-                        )}"
-                      >
-                        <span class="material-symbols-rounded">
-                          qr_code_2
-                        </span>
-                        Abrir cobrança
-                      </button>
-                    `
-                    : ''}
+                  <div class="movement-actions">
+                    ${pending
+                      ? `
+                        <button
+                          class="movement-pix-action"
+                          type="button"
+                          data-open-pending-pix="${escapeHtml(
+                            entry.id
+                          )}"
+                        >
+                          <span class="material-symbols-rounded">
+                            qr_code_2
+                          </span>
+                          Abrir cobrança
+                        </button>
+                      `
+                      : ''}
+
+                    ${canDelete
+                      ? `
+                        <button
+                          class="movement-delete-action"
+                          type="button"
+                          data-delete-entry="${escapeHtml(
+                            entry.id
+                          )}"
+                        >
+                          <span class="material-symbols-rounded">
+                            delete
+                          </span>
+                          Excluir
+                        </button>
+                      `
+                      : ''}
+                  </div>
                 </div>
 
                 <strong>
@@ -1781,6 +1885,108 @@
     }
   }
 
+  async function deleteMovementEntry(entry) {
+    if (!entry) {
+      status(
+        'movementStatus',
+        'Lançamento não encontrado.',
+        'error'
+      );
+
+      return;
+    }
+
+    const reason =
+      window.prompt(
+        'Informe o motivo da exclusão deste registro:'
+      );
+
+    if (reason === null) {
+      return;
+    }
+
+    const cleanReason =
+      String(reason)
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    if (cleanReason.length < 3) {
+      status(
+        'movementStatus',
+        'Informe um motivo com pelo menos 3 caracteres.',
+        'warning'
+      );
+
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        [
+          'Confirma a exclusão deste registro?',
+          '',
+          entry.paymentName ||
+            entry.paymentId,
+          money(entry.amountCents),
+          '',
+          'O registro permanecerá na auditoria da planilha.'
+        ].join('\n')
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBusy(
+      true,
+      'Excluindo lançamento...'
+    );
+
+    try {
+      const result =
+        await callApi(
+          'deleteEntry',
+          {
+            payload: {
+              entryId: entry.id,
+              reason: cleanReason
+            }
+          }
+        );
+
+      state.entries =
+        state.entries.filter(
+          item =>
+            item.id !== entry.id
+        );
+
+      state.summary =
+        result.summary ||
+        state.summary;
+
+      clearPendingPixPayload(
+        entry.id
+      );
+
+      renderAll();
+
+      status(
+        'movementStatus',
+        'Registro excluído e removido dos totais.',
+        'success'
+      );
+    } catch (error) {
+      status(
+        'movementStatus',
+        error.message ||
+          'Não foi possível excluir o registro.',
+        'error'
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function addBatchItem(){
     clearStatus('launchStatus');
 
@@ -2269,19 +2475,42 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
     $('movementList').addEventListener(
       'click',
       event => {
-        const button =
+        const pixButton =
           event.target.closest(
             '[data-open-pending-pix]'
           );
 
-        if (!button) {
+        if (pixButton) {
+          const entryId =
+            String(
+              pixButton.dataset
+                .openPendingPix ||
+              ''
+            );
+
+          const entry =
+            state.entries.find(
+              item =>
+                item.id === entryId
+            );
+
+          openPendingPix(entry);
+          return;
+        }
+
+        const deleteButton =
+          event.target.closest(
+            '[data-delete-entry]'
+          );
+
+        if (!deleteButton) {
           return;
         }
 
         const entryId =
           String(
-            button.dataset
-              .openPendingPix ||
+            deleteButton.dataset
+              .deleteEntry ||
             ''
           );
 
@@ -2291,7 +2520,7 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
               item.id === entryId
           );
 
-        openPendingPix(entry);
+        deleteMovementEntry(entry);
       }
     );
 

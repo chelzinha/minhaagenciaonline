@@ -83,9 +83,22 @@ function v2Library_(env, context) {
     permissions: context.permissions,
     accounts: accounts.map(function(x){ return { id:String(x.account_id), name:String(x.name_front), contaAzulName:String(x.name_conta_azul || ''), contaAzulId:String(x.conta_azul_id || '') }; }),
     payments: payments.map(function(x){ return {
-      id:String(x.payment_id), name:String(x.name_front), contaAzulMethod:String(x.conta_azul_method || ''), accountId:String(x.account_id || ''),
-      allowRevenue:v2Bool_(x.allow_revenue), allowExpense:v2Bool_(x.allow_expense), allowBatch:v2Bool_(x.allow_batch), generatePix:v2Bool_(x.generate_pix),
-      icon:String(x.icon || 'payments'), color:String(x.color || '#1677ff')
+      id:String(x.payment_id),
+      name:String(x.name_front),
+      contaAzulMethod:String(x.conta_azul_method || ''),
+      accountId:String(x.account_id || ''),
+      allowRevenue:v2Bool_(x.allow_revenue),
+      allowExpense:v2Bool_(x.allow_expense),
+      allowBatch:v2Bool_(x.allow_batch),
+      generatePix:v2Bool_(x.generate_pix),
+      pixMode:String(x.pix_mode || ''),
+      pixKey:String(x.pix_key || ''),
+      pixReceiverName:String(x.pix_receiver_name || ''),
+      pixCity:String(x.pix_city || ''),
+      pixActive:v2Bool_(x.pix_active),
+      pixShareMessage:String(x.pix_share_message || ''),
+      icon:String(x.icon || 'payments'),
+      color:String(x.color || '#1677ff')
     }; }),
     revenueTypes: revenues.map(function(x){ return {
       id:String(x.revenue_type_id), name:String(x.name_front), descriptionDefault:String(x.description_default || ''), categoryName:String(x.category_name || ''),
@@ -228,7 +241,51 @@ function v2BuildEntry_(draft, user, context, library, batchId, batchIndex) {
 }
 
 function v2EntryRow_(e) {
-  return [e.id,e.batchId,e.batchIndex,e.date,new Date(e.createdAt),e.type,e.mode,e.unitId,e.operatorId,e.operatorName,e.clientId,e.clientName,e.clientSource,e.objectCount,e.amountCents,e.paymentId,e.paymentName,e.paymentContaAzulMethod,e.accountId,e.accountContaAzulId,e.accountContaAzulName,e.categoryId,e.categoryContaAzulId,e.categoryContaAzulName,e.costCenterContaAzulId,e.costCenterContaAzulName,e.description,e.pixStatus,e.pixTxid,e.pixE2eid,e.pixReceivedAt,e.pixProvider,e.status,e.closureId,e.contaAzulStatus,e.contaAzulProtocol,e.contaAzulLastError,e.contaAzulAttempts,e.contaAzulSyncedAt];
+  return [
+    e.id,
+    e.batchId,
+    e.batchIndex,
+    e.date,
+    new Date(e.createdAt),
+    e.type,
+    e.mode,
+    e.unitId,
+    e.operatorId,
+    e.operatorName,
+    e.clientId,
+    e.clientName,
+    e.clientSource,
+    e.objectCount,
+    e.amountCents,
+    e.paymentId,
+    e.paymentName,
+    e.paymentContaAzulMethod,
+    e.accountId,
+    e.accountContaAzulId,
+    e.accountContaAzulName,
+    e.categoryId,
+    e.categoryContaAzulId,
+    e.categoryContaAzulName,
+    e.costCenterContaAzulId,
+    e.costCenterContaAzulName,
+    e.description,
+    e.pixStatus,
+    e.pixTxid,
+    e.pixE2eid,
+    e.pixReceivedAt,
+    e.pixProvider,
+    e.status,
+    e.closureId,
+    e.contaAzulStatus,
+    e.contaAzulProtocol,
+    e.contaAzulLastError,
+    e.contaAzulAttempts,
+    e.contaAzulSyncedAt,
+    e.deletedAt || '',
+    e.deletedBy || '',
+    e.deletedByName || '',
+    e.deleteReason || ''
+  ];
 }
 
 function v2SheetDateIso_(value) {
@@ -296,7 +353,11 @@ function v2RowEntry_(row) {
   var h = CAIXA_V2_CFG.HEADERS.ENTRIES;
   var o = {}; h.forEach(function(k,i){ o[k]=row[i]; });
   return {
-    id:String(o.entry_id),batchId:String(o.batch_id||''),batchIndex:Number(o.batch_index||1),date:v2SheetDateIso_(o.date_iso),createdAt:v2Iso_(o.created_at),type:String(o.type),mode:String(o.mode),unitId:String(o.unit_id),operatorId:String(o.operator_id),operatorName:String(o.operator_name),clientId:String(o.client_id||''),clientName:String(o.client_name||''),clientSource:String(o.client_source||''),objectCount:Number(o.object_count||0),amountCents:Number(o.amount_cents||0),paymentId:String(o.payment_id),paymentName:String(o.payment_name),paymentContaAzulMethod:String(o.payment_ca_method||''),accountId:String(o.account_id||''),accountContaAzulId:String(o.account_ca_id_snapshot||''),accountContaAzulName:String(o.account_ca_name_snapshot||''),categoryId:String(o.category_id||''),categoryContaAzulId:String(o.category_ca_id_snapshot||''),categoryContaAzulName:String(o.category_ca_name_snapshot||''),costCenterContaAzulId:String(o.cost_center_ca_id_snapshot||''),costCenterContaAzulName:String(o.cost_center_ca_name_snapshot||''),description:String(o.description||''),pixStatus:String(o.pix_status||''),pixTxid:String(o.pix_txid||''),pixE2eid:String(o.pix_e2eid||''),pixReceivedAt:v2Iso_(o.pix_received_at),pixProvider:String(o.pix_provider||''),status:String(o.status||'ATIVO'),closureId:String(o.closure_id||''),contaAzulStatus:String(o.conta_azul_status||'NAO_ENVIADO'),contaAzulProtocol:String(o.conta_azul_protocol||''),contaAzulLastError:String(o.conta_azul_last_error||''),contaAzulAttempts:Number(o.conta_azul_attempts||0),contaAzulSyncedAt:v2Iso_(o.conta_azul_synced_at)
+    id:String(o.entry_id),batchId:String(o.batch_id||''),batchIndex:Number(o.batch_index||1),date:v2SheetDateIso_(o.date_iso),createdAt:v2Iso_(o.created_at),type:String(o.type),mode:String(o.mode),unitId:String(o.unit_id),operatorId:String(o.operator_id),operatorName:String(o.operator_name),clientId:String(o.client_id||''),clientName:String(o.client_name||''),clientSource:String(o.client_source||''),objectCount:Number(o.object_count||0),amountCents:Number(o.amount_cents||0),paymentId:String(o.payment_id),paymentName:String(o.payment_name),paymentContaAzulMethod:String(o.payment_ca_method||''),accountId:String(o.account_id||''),accountContaAzulId:String(o.account_ca_id_snapshot||''),accountContaAzulName:String(o.account_ca_name_snapshot||''),categoryId:String(o.category_id||''),categoryContaAzulId:String(o.category_ca_id_snapshot||''),categoryContaAzulName:String(o.category_ca_name_snapshot||''),costCenterContaAzulId:String(o.cost_center_ca_id_snapshot||''),costCenterContaAzulName:String(o.cost_center_ca_name_snapshot||''),description:String(o.description||''),pixStatus:String(o.pix_status||''),pixTxid:String(o.pix_txid||''),pixE2eid:String(o.pix_e2eid||''),pixReceivedAt:v2Iso_(o.pix_received_at),pixProvider:String(o.pix_provider||''),status:String(o.status||'ATIVO'),closureId:String(o.closure_id||''),contaAzulStatus:String(o.conta_azul_status||'NAO_ENVIADO'),contaAzulProtocol:String(o.conta_azul_protocol||''),contaAzulLastError:String(o.conta_azul_last_error||''),contaAzulAttempts:Number(o.conta_azul_attempts||0),contaAzulSyncedAt:v2Iso_(o.conta_azul_synced_at),
+    deletedAt:v2Iso_(o.deleted_at),
+    deletedBy:String(o.deleted_by||''),
+    deletedByName:String(o.deleted_by_name||''),
+    deleteReason:String(o.delete_reason||'')
   };
 }
 
@@ -382,4 +443,265 @@ function v2WithdrawalsByDate_(env,date,unitId) {
           String(item.pdf_url || '')
       };
     });
+}
+
+function v2DeleteEntry_(payload, user) {
+  payload = payload || {};
+
+  var entryId = String(
+    payload.entryId || ''
+  ).trim();
+
+  var reason = String(
+    payload.reason || ''
+  )
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!entryId) {
+    throw appError_(
+      'Informe o lançamento que será excluído.',
+      'ENTRY_REQUIRED'
+    );
+  }
+
+  if (
+    reason.length < 3 ||
+    reason.length > 250
+  ) {
+    throw appError_(
+      'Informe um motivo de exclusão entre 3 e 250 caracteres.',
+      'DELETE_REASON_REQUIRED'
+    );
+  }
+
+  var lock =
+    LockService.getScriptLock();
+
+  lock.waitLock(10000);
+
+  try {
+    var env =
+      v2Environment_();
+
+    var context =
+      v2ResolveContext_(
+        env,
+        user
+      );
+
+    var headers =
+      CAIXA_V2_CFG
+        .HEADERS
+        .ENTRIES;
+
+    var item =
+      v2ReadObjects_(
+        env.entries,
+        headers
+      ).filter(function(record) {
+        return (
+          String(record.entry_id) ===
+          entryId
+        );
+      })[0];
+
+    if (!item) {
+      throw appError_(
+        'Lançamento não encontrado.',
+        'ENTRY_NOT_FOUND'
+      );
+    }
+
+    var unitId = String(
+      item.unit_id || ''
+    ).trim();
+
+    var contextUnitId = String(
+      context.unit.unit_id || ''
+    ).trim();
+
+    if (
+      unitId !== contextUnitId
+    ) {
+      throw appError_(
+        'O lançamento pertence a outra unidade.',
+        'UNIT_MISMATCH'
+      );
+    }
+
+    var type = String(
+      item.type || ''
+    ).toUpperCase();
+
+    if (
+      type === 'RECEITA' &&
+      !context.permissions.revenue
+    ) {
+      throw appError_(
+        'Usuário sem permissão para excluir receitas.',
+        'FORBIDDEN'
+      );
+    }
+
+    if (
+      type === 'DESPESA' &&
+      !context.permissions.expense
+    ) {
+      throw appError_(
+        'Usuário sem permissão para excluir despesas.',
+        'FORBIDDEN'
+      );
+    }
+
+    var status = String(
+      item.status || 'ATIVO'
+    ).toUpperCase();
+
+    if (status === 'EXCLUIDO') {
+      return {
+        ok: true,
+        alreadyDeleted: true,
+        entry:
+          v2RowEntry_(item._row),
+        summary:
+          v2BuildSummary_(
+            env,
+            v2SheetDateIso_(
+              item.date_iso
+            ),
+            unitId
+          )
+      };
+    }
+
+    if (
+      String(
+        item.closure_id || ''
+      ).trim()
+    ) {
+      throw appError_(
+        'Este lançamento já pertence a um fechamento e não pode ser excluído.',
+        'ENTRY_ALREADY_CLOSED'
+      );
+    }
+
+    var contaAzulStatus = String(
+      item.conta_azul_status ||
+      'NAO_ENVIADO'
+    ).toUpperCase();
+
+    if (
+      [
+        '',
+        'NAO_ENVIADO',
+        'CANCELADO'
+      ].indexOf(
+        contaAzulStatus
+      ) < 0
+    ) {
+      throw appError_(
+        'Este lançamento já entrou no fluxo do Conta Azul e não pode ser excluído.',
+        'ENTRY_ALREADY_SYNCED'
+      );
+    }
+
+    var date =
+      v2SheetDateIso_(
+        item.date_iso
+      );
+
+    v2AssertOpen_(
+      env,
+      date,
+      unitId
+    );
+
+    var row =
+      item._row.slice();
+
+    function setField(
+      name,
+      value
+    ) {
+      var index =
+        headers.indexOf(name);
+
+      if (index >= 0) {
+        row[index] = value;
+      }
+    }
+
+    setField(
+      'status',
+      'EXCLUIDO'
+    );
+
+    setField(
+      'deleted_at',
+      new Date()
+    );
+
+    setField(
+      'deleted_by',
+      String(user.id || '')
+    );
+
+    setField(
+      'deleted_by_name',
+      String(user.name || '')
+    );
+
+    setField(
+      'delete_reason',
+      reason
+    );
+
+    setField(
+      'conta_azul_status',
+      'CANCELADO'
+    );
+
+    var pixStatus = String(
+      item.pix_status || ''
+    ).toUpperCase();
+
+    if (
+      [
+        'CRIANDO',
+        'ATIVA',
+        'PENDENTE'
+      ].indexOf(
+        pixStatus
+      ) >= 0
+    ) {
+      setField(
+        'pix_status',
+        'CANCELADO'
+      );
+    }
+
+    env.entries
+      .getRange(
+        item._sheetRow,
+        1,
+        1,
+        headers.length
+      )
+      .setValues([row]);
+
+    return {
+      ok: true,
+      entry:
+        v2RowEntry_(row),
+      summary:
+        v2BuildSummary_(
+          env,
+          date,
+          unitId
+        )
+    };
+  } finally {
+    lock.releaseLock();
+  }
 }

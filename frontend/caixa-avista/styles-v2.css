@@ -271,3 +271,45 @@ body[data-entry-type="DESPESA"] .batch-amount small {
   cursor: not-allowed;
   opacity: 0.46;
 }
+
+
+/* CAIXA-MOVEMENT-DELETE */
+
+.movement-main {
+  min-width: 0;
+}
+
+.movement-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.movement-delete-action {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid #e4a0a0;
+  border-radius: 11px;
+  background: #fff1f1;
+  color: #aa2d2d;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.movement-delete-action:hover {
+  border-color: #d74b4b;
+  background: #ffe5e5;
+}
+
+.movement-delete-action
+.material-symbols-rounded {
+  font-size: 20px;
+}
