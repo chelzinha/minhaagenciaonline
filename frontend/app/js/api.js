@@ -150,6 +150,8 @@ const Api = (function () {
 
     reimprimirEtiqueta: (idRegistro) => call('reimprimirEtiqueta', { idRegistro: idRegistro }, { timeoutMs: APP_CONFIG.REIMPRIMIR_TIMEOUT_MS || 115000 }),
 
+    recuperarEtiqueta: (idRegistro) => call('recuperarEtiqueta', { idRegistro: idRegistro }, { timeoutMs: APP_CONFIG.REIMPRIMIR_TIMEOUT_MS || 115000 }),
+
     listarHistorico: (filtros) => call('listarHistorico', { filtros: filtros || {} }),
 
     detalheEtiqueta: (idRegistro) => call('detalheEtiqueta', { idRegistro: idRegistro }),
