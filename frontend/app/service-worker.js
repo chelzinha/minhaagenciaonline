@@ -1,4 +1,4 @@
-const CACHE_NAME = 'postagens-agf-app-v37-idem-svgfix';
+const CACHE_NAME = 'postagens-agf-app-v38-historico-recuperar';
 const PRECACHE_URLS = [
   './',
   './index.html',
