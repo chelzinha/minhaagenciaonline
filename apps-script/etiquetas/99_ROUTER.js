@@ -27,6 +27,7 @@ const ROUTES = {
   'criarEtiquetaDireta':    action_criarEtiquetaDireta_,
   'cancelarEtiqueta':       action_cancelarEtiqueta_,
   'reimprimirEtiqueta':     action_reimprimirEtiqueta_,
+  'recuperarEtiqueta':      action_recuperarEtiqueta_,
   'listarHistorico':        action_listarHistorico_,
   'detalheEtiqueta':        action_detalheEtiqueta_,
   'rastrearObjeto':         action_rastrearObjeto_,
