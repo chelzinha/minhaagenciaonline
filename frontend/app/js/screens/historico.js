@@ -1,19 +1,9 @@
 /* =====================================================
-   APP ETIQUETAS — Screen: historico
-   =====================================================
-   Lista as etiquetas geradas pelo usuário logado.
-   Funcionalidades:
-     - Filtro por mês, status e UF
-     - Resumo financeiro das postagens concluídas no mês
-     - Busca livre por nome/código/id (input)
-     - Reimprimir (baixa PDF do Drive ou regera)
-     - Cancelar (DELETE /prepostagens/{id} nos Correios)
-     - Rastrear objeto via API Rastro dos Correios
-     - Debounce na busca (não spammar o backend)
+   APP ETIQUETAS - Screen: historico
+   Hotfix: permite recuperar etiquetas presas em processamento.
    ===================================================== */
 
 Screens.historico = (function () {
-
   let _buscaTimer = null;
 
   function $(id) { return document.getElementById(id); }
@@ -29,24 +19,7 @@ Screens.historico = (function () {
     'CANCELADO':             { label: 'Cancelado', badge: 'badge-muted' }
   };
 
-
-  function formatMonthLabel_(value) {
-    if (!/^\d{4}-\d{2}$/.test(String(value || ''))) return 'Todos os meses';
-    const parts = String(value).split('-');
-    const date = new Date(Number(parts[0]), Number(parts[1]) - 1, 1);
-    try {
-      const label = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-      return label.charAt(0).toUpperCase() + label.slice(1);
-    } catch (e) {
-      return parts[1] + '/' + parts[0];
-    }
-  }
-
-  /**
- * O resumo financeiro saiu do Histórico: ele agora vive na aba Entregas.
- * Aqui só sobrou a contagem de resultados, mostrada como linha discreta.
- */
-function renderResumo(data) {
+  function renderResumo(data) {
     const resumo = (data && data.resumo) || {};
     const resultados = Number(resumo.totalResultados != null ? resumo.totalResultados : ((data && data.total) || 0));
     const el = $('histContagem');
@@ -54,63 +27,51 @@ function renderResumo(data) {
   }
 
   function statusBadge(status) {
-    const s = STATUS_LABEL[status] || { label: status || '—', badge: 'badge-muted' };
+    const s = STATUS_LABEL[status] || { label: status || '-', badge: 'badge-muted' };
     return '<span class="badge ' + s.badge + '">' + UI.escapeHtml(s.label) + '</span>';
   }
 
-  /**
-   * Avisa o destinatário sobre a situação atual do objeto.
-   * Diferente do botão de envio, que comunica a postagem, este comunica
-   * o que está acontecendo com a entrega agora.
-   */
-  function avisarSituacao(celular, nome, codigoObjeto, situacao) {
-    const numero = normalizarWhatsapp_(celular);
-    if (!numero) { UI.toast('Celular do destinatário não cadastrado.', 'error'); return; }
-    if (!codigoObjeto) { UI.toast('Número de rastreio não disponível.', 'error'); return; }
-    const rastreioUrl = window.location.origin + '/rastreio/?objeto=' + encodeURIComponent(codigoObjeto);
-    const texto = 'Olá' + (nome ? ' ' + nome : '') + '! Queremos te atualizar sobre a situação do seu envio.\n\n' +
-      'A sua encomenda se encontra ' + String(situacao || '').toUpperCase() + '.\n\n' +
-      '\uD83D\uDCE6 Código de rastreio:\n' + codigoObjeto + '\n\n' +
-      'Confira o rastreamento da sua encomenda para maiores informações:\n' + rastreioUrl;
-    window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(texto), '_blank', 'noopener,noreferrer');
+  function isProcessando(status) {
+    return String(status || '').toUpperCase().indexOf('PROCESSANDO') === 0;
   }
 
   function itemActions(item) {
-    const status = (item.status || '').toUpperCase();
+    const status = String(item.status || '').toUpperCase();
     const parts = [];
+
+    if (isProcessando(status) && item.idPrepostagem) {
+      parts.push('<button class="btn btn-ghost btn-sm" data-act="reimprimir" data-id="' + UI.escapeHtml(item.idRegistro) + '">' +
+                 '<span class="material-symbols-rounded">refresh</span>Recuperar etiqueta</button>');
+      parts.push('<button class="btn btn-ghost btn-sm" data-act="cancelar" data-id="' + UI.escapeHtml(item.idRegistro) + '">' +
+                 '<span class="material-symbols-rounded">cancel</span>Cancelar</button>');
+      return parts.join('');
+    }
 
     if (status === 'CONCLUIDO') {
       if (item.codigoObjeto && item.destCelular) {
         parts.push('<button class="btn btn-whatsapp btn-sm" data-act="whatsapp" data-celular="' + UI.escapeHtml(item.destCelular) + '" data-nome="' + UI.escapeHtml(item.destNome || '') + '" data-codigo="' + UI.escapeHtml(item.codigoObjeto) + '">' +
                    '<span class="material-symbols-rounded">send</span>Enviar rastreio</button>');
-        // Só oferece o aviso quando existe situação e ela não é "entregue":
-        // avisar alguém que já recebeu não serve para nada.
         if (item.situacao && item.situacaoClasse !== 'ok') {
           parts.push('<button class="btn btn-aviso btn-sm" data-act="avisar" data-celular="' + UI.escapeHtml(item.destCelular) + '" data-nome="' + UI.escapeHtml(item.destNome || '') + '" data-codigo="' + UI.escapeHtml(item.codigoObjeto) + '" data-situacao="' + UI.escapeHtml(item.situacao) + '">' +
                      '<span class="material-symbols-rounded">campaign</span>Avisar situação</button>');
         }
       }
-      parts.push('<button class="btn btn-ghost btn-sm" data-act="reimprimir" data-id="' +
-                 UI.escapeHtml(item.idRegistro) + '">' +
+      parts.push('<button class="btn btn-ghost btn-sm" data-act="reimprimir" data-id="' + UI.escapeHtml(item.idRegistro) + '">' +
                  '<span class="material-symbols-rounded">print</span>Reimprimir</button>');
       if (item.idPrepostagem) {
-        parts.push('<button class="btn btn-ghost btn-sm" data-act="cancelar" data-id="' +
-                   UI.escapeHtml(item.idRegistro) + '">' +
+        parts.push('<button class="btn btn-ghost btn-sm" data-act="cancelar" data-id="' + UI.escapeHtml(item.idRegistro) + '">' +
                    '<span class="material-symbols-rounded">cancel</span>Cancelar</button>');
       }
     } else if (status === 'ERRO_ROTULO' && item.idPrepostagem) {
-      parts.push('<button class="btn btn-ghost btn-sm" data-act="reimprimir" data-id="' +
-                 UI.escapeHtml(item.idRegistro) + '">' +
+      parts.push('<button class="btn btn-ghost btn-sm" data-act="reimprimir" data-id="' + UI.escapeHtml(item.idRegistro) + '">' +
                  '<span class="material-symbols-rounded">refresh</span>Tentar novamente</button>');
-      parts.push('<button class="btn btn-ghost btn-sm" data-act="cancelar" data-id="' +
-                 UI.escapeHtml(item.idRegistro) + '">' +
+      parts.push('<button class="btn btn-ghost btn-sm" data-act="cancelar" data-id="' + UI.escapeHtml(item.idRegistro) + '">' +
                  '<span class="material-symbols-rounded">cancel</span>Cancelar</button>');
     }
 
     return parts.join('');
   }
 
-  /** Selo com a situação atual do objeto, vinda do rastreio sincronizado. */
   function situacaoChip(item) {
     const sit = item.situacao || '';
     if (!sit) return '';
@@ -118,7 +79,7 @@ function renderResumo(data) {
     const icone = classe === 'ok' ? 'check_circle' : (classe === 'acao' ? 'warning' : 'local_shipping');
     return '<span class="hist-item-situacao is-' + classe + '" title="' + UI.escapeHtml(sit) + '">' +
              '<span class="material-symbols-rounded">' + icone + '</span>' +
-             UI.escapeHtml(sit.toUpperCase()) +
+             UI.escapeHtml(String(sit).toUpperCase()) +
            '</span>';
   }
 
@@ -129,7 +90,6 @@ function renderResumo(data) {
              UI.escapeHtml(codigo) +
            '</button>';
   }
-
 
   function getPdfUrl(data) {
     if (!data) return '';
@@ -162,7 +122,7 @@ function renderResumo(data) {
     }
 
     list.innerHTML = items.map(it => {
-      const dest = UI.escapeHtml(it.destNome || '—');
+      const dest = UI.escapeHtml(it.destNome || '-');
       const meta = UI.joinNonEmpty([
         it.dataHora,
         (it.destCidade || '') + (it.destUf ? '/' + it.destUf : ''),
@@ -171,12 +131,14 @@ function renderResumo(data) {
         Number(it.precoCotadoNumero) > 0 ? UI.fmtMoney(it.precoCotadoNumero) : (it.precoCotado ? ('R$ ' + String(it.precoCotado).replace('.', ',')) : '')
       ], ' • ');
       const codigo = it.codigoObjeto || it.idPrepostagem || '';
-      const erroMsg = (it.status || '').indexOf('ERRO') === 0 && it.mensagemErro
-        ? '<div class="hist-item-meta" style="color:var(--err);margin-top:4px">' +
-          UI.escapeHtml(it.mensagemErro) + '</div>'
+      const erroMsg = String(it.status || '').indexOf('ERRO') === 0 && it.mensagemErro
+        ? '<div class="hist-item-meta" style="color:var(--err);margin-top:4px">' + UI.escapeHtml(it.mensagemErro) + '</div>'
         : '';
-
+      const procMsg = isProcessando(it.status) && it.idPrepostagem
+        ? '<div class="hist-item-meta" style="margin-top:6px">Se a etiqueta não abriu, toque em Recuperar etiqueta. Não gere outra igual.</div>'
+        : '';
       const acoes = itemActions(it);
+
       return '<div class="hist-item">' +
                '<div class="hist-item-head">' +
                  '<div class="hist-item-nome">' + dest + '</div>' +
@@ -187,7 +149,7 @@ function renderResumo(data) {
                  (codigo ? rastreioChip(codigo) : '') +
                  situacaoChip(it) +
                '</div>' +
-               erroMsg +
+               procMsg + erroMsg +
                (acoes ? '<div class="hist-item-actions">' + acoes + '</div>' : '') +
              '</div>';
     }).join('');
@@ -211,12 +173,12 @@ function renderResumo(data) {
     if (list) list.innerHTML = '<div class="hist-empty">Carregando...</div>';
 
     const filtros = {
-      mes:    $('histMes') ? ($('histMes').value || '') : '',
+      mes: $('histMes') ? ($('histMes').value || '') : '',
       status: $('histStatus') ? ($('histStatus').value || '') : '',
-      uf:     $('histUf') ? ($('histUf').value || '') : '',
+      uf: $('histUf') ? ($('histUf').value || '') : '',
       situacao: $('histSituacao') ? ($('histSituacao').value || '') : '',
-      busca:  $('histBusca') ? ($('histBusca').value.trim() || '') : '',
-      limit:  500
+      busca: $('histBusca') ? ($('histBusca').value.trim() || '') : '',
+      limit: 500
     };
 
     try {
@@ -231,16 +193,12 @@ function renderResumo(data) {
     }
   }
 
-  /** Preenche o filtro de situação com os rótulos curtos do período. */
   function renderSituacaoOptions(situacoes) {
     const select = $('histSituacao');
     if (!select) return;
     const current = select.value || '';
     select.innerHTML = '<option value="">Todas as situações</option>' +
-      (situacoes || []).map(function (s) {
-        return '<option value="' + UI.escapeHtml(s) + '">' + UI.escapeHtml(s) + '</option>';
-      }).join('');
-    // Se o filtro atual sumiu da lista (mudou o mês, por exemplo), volta para "todas".
+      (situacoes || []).map(s => '<option value="' + UI.escapeHtml(s) + '">' + UI.escapeHtml(s) + '</option>').join('');
     select.value = (situacoes || []).indexOf(current) >= 0 ? current : '';
   }
 
@@ -248,7 +206,8 @@ function renderResumo(data) {
     const select = $('histUf');
     if (!select) return;
     const current = select.value || '';
-    select.innerHTML = '<option value="">Todas as UFs</option>' + (ufs || []).map(uf => '<option value="' + UI.escapeHtml(uf) + '">' + UI.escapeHtml(uf) + '</option>').join('');
+    select.innerHTML = '<option value="">Todas as UFs</option>' +
+      (ufs || []).map(uf => '<option value="' + UI.escapeHtml(uf) + '">' + UI.escapeHtml(uf) + '</option>').join('');
     select.value = current;
   }
 
@@ -265,13 +224,25 @@ function renderResumo(data) {
     if (!codigoObjeto) { UI.toast('Número de rastreio não disponível.', 'error'); return; }
     const rastreioUrl = window.location.origin + '/rastreio/?objeto=' + encodeURIComponent(codigoObjeto);
     const texto = 'Olá ' + (nome || '') + ', o seu pedido já foi enviado!\n\n' +
-      '\uD83D\uDCE6 Esse é o seu número de rastreio:\n' + codigoObjeto + '\n\n' +
+      'Esse é o seu número de rastreio:\n' + codigoObjeto + '\n\n' +
       'Você pode acompanhar através do seguinte link:\n' + rastreioUrl;
     window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(texto), '_blank', 'noopener,noreferrer');
   }
 
+  function avisarSituacao(celular, nome, codigoObjeto, situacao) {
+    const numero = normalizarWhatsapp_(celular);
+    if (!numero) { UI.toast('Celular do destinatário não cadastrado.', 'error'); return; }
+    if (!codigoObjeto) { UI.toast('Número de rastreio não disponível.', 'error'); return; }
+    const rastreioUrl = window.location.origin + '/rastreio/?objeto=' + encodeURIComponent(codigoObjeto);
+    const texto = 'Olá' + (nome ? ' ' + nome : '') + '! Queremos te atualizar sobre a situação do seu envio.\n\n' +
+      'A sua encomenda se encontra ' + String(situacao || '').toUpperCase() + '.\n\n' +
+      'Código de rastreio:\n' + codigoObjeto + '\n\n' +
+      'Confira o rastreamento da sua encomenda para maiores informações:\n' + rastreioUrl;
+    window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(texto), '_blank', 'noopener,noreferrer');
+  }
+
   async function reimprimir(idRegistro) {
-    UI.showLoading('Buscando PDF...');
+    UI.showLoading('Recuperando etiqueta...');
     try {
       const data = await Api.reimprimirEtiqueta(idRegistro);
       const payload = normalizeReimpressaoPayload(data);
@@ -280,9 +251,8 @@ function renderResumo(data) {
       if (!temPdfPrincipal && payload.declaracao && payload.declaracao.pdfBase64) {
         throw new Error('A declaração foi encontrada, mas o PDF principal da etiqueta não voltou do servidor. Verifique o arquivo salvo no Drive.');
       }
-
       if (!temPdfPrincipal) {
-        throw new Error('PDF não encontrado. Verifique se o arquivo da etiqueta ainda existe no Drive e tente novamente.');
+        throw new Error('PDF não encontrado. Tente novamente em alguns segundos.');
       }
 
       Router.setSuccessData(payload);
@@ -307,19 +277,18 @@ function renderResumo(data) {
     UI.showLoading('Cancelando...');
     try {
       await Api.cancelarEtiqueta(idRegistro);
-      UI.hideLoading();
       UI.toast('Etiqueta cancelada', 'success');
       carregar();
     } catch (e) {
-      UI.hideLoading();
       UI.toastError(e);
+    } finally {
+      UI.hideLoading();
     }
   }
 
   function ensureTrackModal_() {
     let modal = document.getElementById('trackModal');
     if (modal) return modal;
-
     modal = document.createElement('div');
     modal.id = 'trackModal';
     modal.className = 'track-modal';
@@ -327,32 +296,19 @@ function renderResumo(data) {
     modal.innerHTML = [
       '<div class="track-modal-card" role="dialog" aria-modal="true" aria-labelledby="trackTitle" tabindex="-1">',
       '  <div class="track-modal-head">',
-      '    <div>',
-      '      <div class="track-modal-title" id="trackTitle">Rastreio</div>',
-      '      <div class="track-modal-code" id="trackCodigo">—</div>',
-      '    </div>',
+      '    <div><div class="track-modal-title" id="trackTitle">Rastreio</div><div class="track-modal-code" id="trackCodigo">-</div></div>',
       '    <button class="icon-btn" type="button" id="trackClose" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button>',
       '  </div>',
-      '  <div class="track-summary">',
-      '    <div class="track-status-badge" id="trackStatus">Consultando...</div>',
-      '    <div class="track-summary-meta" id="trackResumo"></div>',
-      '  </div>',
+      '  <div class="track-summary"><div class="track-status-badge" id="trackStatus">Consultando...</div><div class="track-summary-meta" id="trackResumo"></div></div>',
       '  <div class="track-timeline" id="trackTimeline"></div>',
-      '  <div class="track-modal-actions">',
-      '    <button class="btn btn-ghost btn-block" type="button" id="trackAtualizar"><span class="material-symbols-rounded">refresh</span>Atualizar rastreio</button>',
-      '  </div>',
+      '  <div class="track-modal-actions"><button class="btn btn-ghost btn-block" type="button" id="trackAtualizar"><span class="material-symbols-rounded">refresh</span>Atualizar rastreio</button></div>',
       '</div>'
     ].join('');
     document.body.appendChild(modal);
-
-    modal.addEventListener('click', function (e) {
-      if (e.target === modal) fecharRastreio();
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && modal.classList.contains('show')) fecharRastreio();
-    });
+    modal.addEventListener('click', e => { if (e.target === modal) fecharRastreio(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && modal.classList.contains('show')) fecharRastreio(); });
     modal.querySelector('#trackClose').addEventListener('click', fecharRastreio);
-    modal.querySelector('#trackAtualizar').addEventListener('click', function () {
+    modal.querySelector('#trackAtualizar').addEventListener('click', () => {
       const codigo = modal.getAttribute('data-codigo');
       if (codigo) abrirRastreio(codigo);
     });
@@ -375,7 +331,7 @@ function renderResumo(data) {
       timeline.innerHTML = '<div class="track-empty">Nenhum evento de rastreio disponível.</div>';
       return;
     }
-    timeline.innerHTML = eventos.map(function (ev) {
+    timeline.innerHTML = eventos.map(ev => {
       const unidade = UI.joinNonEmpty([ev.unidadeTipo, UI.joinNonEmpty([ev.cidade, ev.uf], '/')], ' • ');
       const destino = UI.joinNonEmpty([ev.unidadeDestinoTipo, UI.joinNonEmpty([ev.unidadeDestinoCidade, ev.unidadeDestinoUf], '/')], ' • ');
       return '<div class="track-event">' +
@@ -431,25 +387,11 @@ function renderResumo(data) {
     const situacao = $('histSituacao');
     ensureTrackModal_();
 
-
-    if (busca) {
-      busca.addEventListener('input', () => {
-        if (_buscaTimer) clearTimeout(_buscaTimer);
-        _buscaTimer = setTimeout(carregar, 300);
-      });
-    }
-    if (status) {
-      status.addEventListener('change', carregar);
-    }
-    if (uf) {
-      uf.addEventListener('change', carregar);
-    }
-    if (mes) {
-      mes.addEventListener('change', carregar);
-    }
-    if (situacao) {
-      situacao.addEventListener('change', carregar);
-    }
+    if (busca) busca.addEventListener('input', () => { if (_buscaTimer) clearTimeout(_buscaTimer); _buscaTimer = setTimeout(carregar, 300); });
+    if (status) status.addEventListener('change', carregar);
+    if (uf) uf.addEventListener('change', carregar);
+    if (mes) mes.addEventListener('change', carregar);
+    if (situacao) situacao.addEventListener('change', carregar);
 
     carregar();
   }
