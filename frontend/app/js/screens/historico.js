@@ -244,7 +244,7 @@ Screens.historico = (function () {
   async function reimprimir(idRegistro) {
     UI.showLoading('Recuperando etiqueta...');
     try {
-      const data = await Api.reimprimirEtiqueta(idRegistro);
+      const data = await (Api.recuperarEtiqueta ? Api.recuperarEtiqueta(idRegistro) : Api.reimprimirEtiqueta(idRegistro));
       const payload = normalizeReimpressaoPayload(data);
       const temPdfPrincipal = !!payload.pdfBase64 || !!getPdfUrl(payload);
 
