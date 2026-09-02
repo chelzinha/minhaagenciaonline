@@ -114,20 +114,36 @@ function v2Library_(env, context) {
 }
 
 function v2Init_(dateValue, user) {
-  var env = v2Environment_();
-  v2SeedLibrary_(env);
-  var context = v2ResolveContext_(env, user);
-  var date = v2Date_(dateValue || v2Today_());
-  return {
-    ok: true,
-    user: { id: user.id, name: user.name, role: user.role },
-    library: v2Library_(env, context),
-    clients: v2ListClients_(env),
-    entries: v2EntriesByDate_(env, date, String(context.unit.unit_id)),
-    withdrawals: v2WithdrawalsByDate_(env, date, String(context.unit.unit_id)),
-    summary: v2BuildSummary_(env, date, String(context.unit.unit_id)),
-    closure: v2FindClosure_(env, date, String(context.unit.unit_id))
-  };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+
+  try {
+    var env = v2Environment_();
+    v2SeedLibrary_(env);
+
+    var context = v2ResolveContext_(env, user);
+    var date = v2Today_();
+    var unitId = String(context.unit.unit_id);
+
+    return {
+      ok: true,
+      serverDate: date,
+      timezone: CAIXA_V2_CFG.TIMEZONE,
+      user: {
+        id: user.id,
+        name: user.name,
+        role: user.role
+      },
+      library: v2Library_(env, context),
+      clients: v2ListClients_(env),
+      entries: v2EntriesByDate_(env, date, unitId),
+      withdrawals: v2WithdrawalsByDate_(env, date, unitId),
+      summary: v2BuildSummary_(env, date, unitId),
+      closure: v2FindClosure_(env, date, unitId)
+    };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function v2ListClients_(env) {
@@ -137,106 +153,467 @@ function v2ListClients_(env) {
 }
 
 function v2SaveClient_(nameValue, user) {
-  var env = v2Environment_();
-  var name = String(nameValue || '').replace(/\s+/g,' ').trim();
-  if (name.length < 2 || name.length > 120) throw appError_('Nome de cliente inválido.', 'INVALID_CLIENT');
-  var normalized = v2Normalize_(name);
-  var clients = v2ReadObjects_(env.clients, CAIXA_V2_CFG.HEADERS.CLIENTS);
-  var existing = clients.filter(function(x){ return String(x.normalized_name) === normalized && v2Bool_(x.active); })[0];
-  if (existing) return { ok:true, client:{ id:String(existing.client_id), name:String(existing.name) } };
-  var id = Utilities.getUuid();
-  env.clients.appendRow([id,name,normalized,new Date(),user.id,true]);
-  return { ok:true, client:{ id:id, name:name } };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+
+  try {
+    var env = v2Environment_();
+    var name = String(nameValue || '').replace(/\s+/g,' ').trim();
+
+    if (name.length < 2 || name.length > 120) {
+      throw appError_('Nome de cliente inválido.', 'INVALID_CLIENT');
+    }
+
+    var normalized = v2Normalize_(name);
+    var clients = v2ReadObjects_(
+      env.clients,
+      CAIXA_V2_CFG.HEADERS.CLIENTS
+    );
+
+    var existing = clients.filter(function(x){
+      return String(x.normalized_name) === normalized && v2Bool_(x.active);
+    })[0];
+
+    if (existing) {
+      return {
+        ok:true,
+        client:{
+          id:String(existing.client_id),
+          name:String(existing.name)
+        }
+      };
+    }
+
+    var id = Utilities.getUuid();
+    env.clients.appendRow([id,name,normalized,new Date(),user.id,true]);
+
+    return { ok:true, client:{ id:id, name:name } };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function v2FindEntryRecordById_(env, entryId) {
+  var wanted = String(entryId || '').trim();
+  if (!wanted) return null;
+
+  return v2ReadObjects_(
+    env.entries,
+    CAIXA_V2_CFG.HEADERS.ENTRIES
+  ).filter(function(item){
+    return String(item.entry_id || '').trim() === wanted;
+  })[0] || null;
+}
+
+function v2AssertIdempotentEntry_(record, draft) {
+  var entry = v2RowEntry_(record._row);
+
+  var same = (
+    entry.id === draft.entryId &&
+    entry.date === draft.date &&
+    entry.unitId === draft.unitId &&
+    entry.type === draft.type &&
+    entry.mode === draft.mode &&
+    entry.amountCents === draft.amountCents &&
+    entry.paymentId === draft.payment.id &&
+    entry.categoryId === draft.category.id &&
+    String(entry.clientName || '') === String(draft.clientName || '') &&
+    Number(entry.objectCount || 0) === Number(draft.objectCount || 0)
+  );
+
+  if (!same) {
+    throw appError_(
+      'O identificador deste lançamento já foi usado com dados diferentes. Atualize o caixa antes de tentar novamente.',
+      'IDEMPOTENCY_CONFLICT'
+    );
+  }
+
+  return entry;
 }
 
 function v2SaveEntry_(payload, user) {
-  var env = v2Environment_();
-  var context = v2ResolveContext_(env, user);
-  var library = v2Library_(env, context);
-  var draft = v2ValidateDraft_(payload, context, library);
-  v2AssertOpen_(env, draft.date, draft.unitId);
-  var entry = v2BuildEntry_(draft, user, context, library, '', 1);
-  env.entries.appendRow(v2EntryRow_(entry));
-  return { ok:true, entry:entry, summary:v2BuildSummary_(env,draft.date,draft.unitId) };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+
+  try {
+    var env = v2Environment_();
+    var context = v2ResolveContext_(env, user);
+    var library = v2Library_(env, context);
+    var draft = v2ValidateDraft_(payload, context, library);
+
+    var existingRecord = v2FindEntryRecordById_(env, draft.entryId);
+
+    if (existingRecord) {
+      var existingEntry = v2AssertIdempotentEntry_(existingRecord, draft);
+      return {
+        ok: true,
+        idempotent: true,
+        entry: existingEntry,
+        summary: v2BuildSummary_(env, draft.date, draft.unitId)
+      };
+    }
+
+    v2AssertOpen_(env, draft.date, draft.unitId);
+
+    var entry = v2BuildEntry_(draft, user, context, library, '', 1);
+    env.entries.appendRow(v2EntryRow_(entry));
+
+    return {
+      ok:true,
+      entry:entry,
+      summary:v2BuildSummary_(env,draft.date,draft.unitId)
+    };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function v2SaveBatch_(payloads, user) {
-  if (!Array.isArray(payloads) || !payloads.length) throw appError_('Lote vazio.', 'EMPTY_BATCH');
-  if (payloads.length > CAIXA_V2_CFG.MAX_BATCH) throw appError_('O lote aceita no máximo 100 itens.', 'BATCH_TOO_LARGE');
-  var env = v2Environment_();
-  var context = v2ResolveContext_(env, user);
-  var library = v2Library_(env, context);
-  var drafts = payloads.map(function(payload){ return v2ValidateDraft_(payload, context, library); });
-  var date = drafts[0].date;
-  var unitId = drafts[0].unitId;
-  drafts.forEach(function(d){ if (d.date !== date || d.unitId !== unitId) throw appError_('Todos os itens do lote devem ter a mesma data e unidade.', 'MIXED_BATCH'); });
-  v2AssertOpen_(env,date,unitId);
-  var batchId = Utilities.getUuid();
-  var entries = drafts.map(function(draft,index){ return v2BuildEntry_(draft,user,context,library,batchId,index+1); });
-  env.entries.getRange(env.entries.getLastRow()+1,1,entries.length,CAIXA_V2_CFG.HEADERS.ENTRIES.length).setValues(entries.map(v2EntryRow_));
-  return { ok:true, batchId:batchId, entries:entries, summary:v2BuildSummary_(env,date,unitId) };
+  if (!Array.isArray(payloads) || !payloads.length) {
+    throw appError_('Lote vazio.', 'EMPTY_BATCH');
+  }
+
+  if (payloads.length > CAIXA_V2_CFG.MAX_BATCH) {
+    throw appError_('O lote aceita no máximo 100 itens.', 'BATCH_TOO_LARGE');
+  }
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(25000);
+
+  try {
+    var env = v2Environment_();
+    var context = v2ResolveContext_(env, user);
+    var library = v2Library_(env, context);
+
+    var drafts = payloads.map(function(payload){
+      return v2ValidateDraft_(payload, context, library);
+    });
+
+    var date = drafts[0].date;
+    var unitId = drafts[0].unitId;
+
+    drafts.forEach(function(draft){
+      if (draft.date !== date || draft.unitId !== unitId) {
+        throw appError_(
+          'Todos os itens do lote devem ter a mesma data e unidade.',
+          'MIXED_BATCH'
+        );
+      }
+    });
+
+    var existingById = {};
+    v2ReadObjects_(
+      env.entries,
+      CAIXA_V2_CFG.HEADERS.ENTRIES
+    ).forEach(function(item){
+      var id = String(item.entry_id || '').trim();
+      if (id) existingById[id] = item;
+    });
+
+    var batchId = '';
+    var outputEntries = new Array(drafts.length);
+    var missing = [];
+
+    drafts.forEach(function(draft, index){
+      var record = existingById[draft.entryId];
+
+      if (record) {
+        var existing = v2AssertIdempotentEntry_(record, draft);
+        outputEntries[index] = existing;
+        if (!batchId && existing.batchId) batchId = existing.batchId;
+        return;
+      }
+
+      missing.push({ draft:draft, index:index });
+    });
+
+    if (missing.length) {
+      v2AssertOpen_(env, date, unitId);
+      if (!batchId) batchId = Utilities.getUuid();
+
+      var newEntries = missing.map(function(item){
+        var entry = v2BuildEntry_(
+          item.draft,
+          user,
+          context,
+          library,
+          batchId,
+          item.index + 1
+        );
+        outputEntries[item.index] = entry;
+        return entry;
+      });
+
+      env.entries
+        .getRange(
+          env.entries.getLastRow()+1,
+          1,
+          newEntries.length,
+          CAIXA_V2_CFG.HEADERS.ENTRIES.length
+        )
+        .setValues(newEntries.map(v2EntryRow_));
+    }
+
+    return {
+      ok:true,
+      idempotent: missing.length === 0,
+      batchId: batchId || (outputEntries[0] && outputEntries[0].batchId) || '',
+      entries: outputEntries,
+      summary:v2BuildSummary_(env,date,unitId)
+    };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function v2ValidateDraft_(payload, context, library) {
-  if (!payload || typeof payload !== 'object') throw appError_('Dados ausentes.', 'INVALID_PAYLOAD');
+  if (!payload || typeof payload !== 'object') {
+    throw appError_('Dados ausentes.', 'INVALID_PAYLOAD');
+  }
+
   var type = String(payload.type || '').toUpperCase();
-  if (type !== 'RECEITA' && type !== 'DESPESA') throw appError_('Tipo inválido.', 'INVALID_TYPE');
-  if (type === 'RECEITA' && !context.permissions.revenue) throw appError_('Usuário sem permissão para receitas.', 'FORBIDDEN');
-  if (type === 'DESPESA' && !context.permissions.expense) throw appError_('Usuário sem permissão para despesas.', 'FORBIDDEN');
-  var date = v2Date_(payload.date || v2Today_());
+
+  if (type !== 'RECEITA' && type !== 'DESPESA') {
+    throw appError_('Tipo inválido.', 'INVALID_TYPE');
+  }
+
+  if (type === 'RECEITA' && !context.permissions.revenue) {
+    throw appError_('Usuário sem permissão para receitas.', 'FORBIDDEN');
+  }
+
+  if (type === 'DESPESA' && !context.permissions.expense) {
+    throw appError_('Usuário sem permissão para despesas.', 'FORBIDDEN');
+  }
+
+  var entryId = String(payload.entryId || '').trim();
+
+  if (!entryId || entryId.length > 100) {
+    throw appError_(
+      'Identificador seguro do lançamento ausente.',
+      'ENTRY_ID_REQUIRED'
+    );
+  }
+
+  var date = v2Today_();
   var amountCents = Math.round(Number(payload.amountCents || 0));
-  if (!(amountCents > 0)) throw appError_('Valor inválido.', 'INVALID_AMOUNT');
-  var payment = library.payments.filter(function(x){ return x.id === String(payload.paymentId || ''); })[0];
-  if (!payment) throw appError_('Forma de pagamento não configurada.', 'PAYMENT_REQUIRED');
-  if (type === 'RECEITA' && !payment.allowRevenue) throw appError_('Pagamento não permitido para receita.', 'PAYMENT_NOT_ALLOWED');
-  if (type === 'DESPESA' && !payment.allowExpense) throw appError_('Pagamento não permitido para despesa.', 'PAYMENT_NOT_ALLOWED');
+
+  if (!(amountCents > 0)) {
+    throw appError_('Valor inválido.', 'INVALID_AMOUNT');
+  }
+
+  var payment = library.payments.filter(function(x){
+    return x.id === String(payload.paymentId || '');
+  })[0];
+
+  if (!payment) {
+    throw appError_('Forma de pagamento não configurada.', 'PAYMENT_REQUIRED');
+  }
+
+  if (type === 'RECEITA' && !payment.allowRevenue) {
+    throw appError_('Pagamento não permitido para receita.', 'PAYMENT_NOT_ALLOWED');
+  }
+
+  if (type === 'DESPESA' && !payment.allowExpense) {
+    throw appError_('Pagamento não permitido para despesa.', 'PAYMENT_NOT_ALLOWED');
+  }
+
   var categoryId = String(payload.categoryId || '');
+
   var category = type === 'RECEITA'
     ? library.revenueTypes.filter(function(x){ return x.id === categoryId; })[0]
     : library.expenseTypes.filter(function(x){ return x.id === categoryId; })[0];
-  if (!category) throw appError_('Categoria não configurada.', 'CATEGORY_REQUIRED');
-  var mode = String(payload.mode || (type === 'RECEITA' ? 'AVULSO' : 'INDIVIDUAL')).toUpperCase();
-  if (mode === 'LOTE' && !payment.allowBatch) throw appError_('Esta forma de pagamento não permite lançamento em lote.', 'BATCH_PAYMENT_NOT_ALLOWED');
+
+  if (!category) {
+    throw appError_('Categoria não configurada.', 'CATEGORY_REQUIRED');
+  }
+
+  var mode = String(
+    payload.mode || (type === 'RECEITA' ? 'AVULSO' : 'INDIVIDUAL')
+  ).toUpperCase();
+
+  if (mode === 'LOTE' && !payment.allowBatch) {
+    throw appError_(
+      'Esta forma de pagamento não permite lançamento em lote.',
+      'BATCH_PAYMENT_NOT_ALLOWED'
+    );
+  }
+
   if (type === 'RECEITA') {
-    if (mode === 'ATENDIMENTO' && !category.allowAttendance) throw appError_('Esta receita não permite atendimento.', 'MODE_NOT_ALLOWED');
-    if (mode === 'AVULSO' && !category.allowSingle) throw appError_('Esta receita não permite lançamento avulso.', 'MODE_NOT_ALLOWED');
-    if (mode === 'LOTE' && !category.allowBatch) throw appError_('Esta receita não permite lote.', 'MODE_NOT_ALLOWED');
+    if (mode === 'ATENDIMENTO' && !category.allowAttendance) {
+      throw appError_('Esta receita não permite atendimento.', 'MODE_NOT_ALLOWED');
+    }
+    if (mode === 'AVULSO' && !category.allowSingle) {
+      throw appError_('Esta receita não permite lançamento avulso.', 'MODE_NOT_ALLOWED');
+    }
+    if (mode === 'LOTE' && !category.allowBatch) {
+      throw appError_('Esta receita não permite lote.', 'MODE_NOT_ALLOWED');
+    }
   } else if (mode === 'LOTE' && !category.allowBatch) {
     throw appError_('Esta despesa não permite lote.', 'MODE_NOT_ALLOWED');
   }
-  var clientName = String(payload.clientName || '').replace(/\s+/g,' ').trim();
+
+  var isPix = payment.contaAzulMethod === 'PIX_PAGAMENTO_INSTANTANEO';
+  var pixStatus = String(payload.pixStatus || '').toUpperCase().trim();
+  var pixTxid = String(payload.pixTxid || '').trim();
+  var pixProvider = String(payload.pixProvider || '').trim();
+
+  if (isPix) {
+    if (type !== 'RECEITA' || mode !== 'ATENDIMENTO') {
+      throw appError_(
+        'Pix Santander só pode ser usado no atendimento individual de receita.',
+        'PIX_MODE_NOT_ALLOWED'
+      );
+    }
+
+    if (
+      payment.pixActive !== true ||
+      String(payment.pixMode || '').toUpperCase() !== 'LOCAL_STATIC' ||
+      !String(payment.pixKey || '').trim() ||
+      !String(payment.pixReceiverName || '').trim() ||
+      !String(payment.pixCity || '').trim()
+    ) {
+      throw appError_(
+        'A configuração Pix desta unidade está incompleta.',
+        'PIX_CONFIG_REQUIRED'
+      );
+    }
+
+    if (pixStatus !== 'PENDENTE') {
+      throw appError_(
+        'Uma nova cobrança Pix deve nascer como pendente.',
+        'PIX_INITIAL_STATUS_INVALID'
+      );
+    }
+
+    if (!/^[A-Za-z0-9]{1,25}$/.test(pixTxid)) {
+      throw appError_(
+        'TXID Pix inválido.',
+        'INVALID_PIX_TXID'
+      );
+    }
+
+    if (pixProvider !== 'local') {
+      throw appError_(
+        'Provedor Pix inválido.',
+        'INVALID_PIX_PROVIDER'
+      );
+    }
+  } else {
+    pixStatus = '';
+    pixTxid = '';
+    pixProvider = '';
+  }
+
+  var clientName = String(payload.clientName || '')
+    .replace(/\s+/g,' ')
+    .trim();
+
   var clientId = String(payload.clientId || '').trim();
-  if (type === 'RECEITA' && mode === 'ATENDIMENTO' && !clientName) throw appError_('Selecione ou cadastre o cliente do atendimento.', 'CLIENT_REQUIRED');
-  if (type === 'RECEITA' && category.requireClient && !clientName) throw appError_('Cliente obrigatório para esta categoria.', 'CLIENT_REQUIRED');
-  var description = String(payload.description || '').replace(/\s+/g,' ').trim() || String(category.descriptionDefault || '');
-  if (category.requireDescription && !description) throw appError_('Descrição obrigatória.', 'DESCRIPTION_REQUIRED');
-  var accountId = String(payload.accountId || payment.accountId || (category.defaultAccountId || '')).trim();
-  var account = library.accounts.filter(function(x){ return x.id === accountId; })[0];
-  if (!account) throw appError_('Conta financeira não configurada.', 'ACCOUNT_REQUIRED');
+
+  if (type === 'RECEITA' && mode === 'ATENDIMENTO' && !clientName) {
+    throw appError_(
+      'Selecione ou cadastre o cliente do atendimento.',
+      'CLIENT_REQUIRED'
+    );
+  }
+
+  if (type === 'RECEITA' && category.requireClient && !clientName) {
+    throw appError_('Cliente obrigatório para esta categoria.', 'CLIENT_REQUIRED');
+  }
+
+  var description = String(payload.description || '')
+    .replace(/\s+/g,' ')
+    .trim() || String(category.descriptionDefault || '');
+
+  if (category.requireDescription && !description) {
+    throw appError_('Descrição obrigatória.', 'DESCRIPTION_REQUIRED');
+  }
+
+  var accountId = String(
+    payload.accountId ||
+    payment.accountId ||
+    (category.defaultAccountId || '')
+  ).trim();
+
+  var account = library.accounts.filter(function(x){
+    return x.id === accountId;
+  })[0];
+
+  if (!account) {
+    throw appError_('Conta financeira não configurada.', 'ACCOUNT_REQUIRED');
+  }
+
   return {
-    entryId:String(payload.entryId || '').trim(), type:type, mode:mode, date:date, unitId:String(context.unit.unit_id), amountCents:amountCents,
-    clientId:clientId, clientName:clientName, clientSource:clientName ? (clientId ? 'CADASTRADO' : 'INFORMADO') : 'SEM_CLIENTE',
-    objectCount:Math.max(0,Math.min(999,parseInt(payload.objectCount,10)||0)),
-    payment:payment, account:account, category:category, description:description,
-    pixStatus:String(payload.pixStatus || '').toUpperCase(), pixTxid:String(payload.pixTxid || ''),
-    pixProvider:String(payload.pixProvider || '')
+    entryId: entryId,
+    type: type,
+    mode: mode,
+    date: date,
+    unitId: String(context.unit.unit_id),
+    amountCents: amountCents,
+    clientId: clientId,
+    clientName: clientName,
+    clientSource: clientName
+      ? (clientId ? 'CADASTRADO' : 'INFORMADO')
+      : 'SEM_CLIENTE',
+    objectCount: Math.max(
+      0,
+      Math.min(999, parseInt(payload.objectCount,10) || 0)
+    ),
+    payment: payment,
+    account: account,
+    category: category,
+    description: description,
+    pixStatus: pixStatus,
+    pixTxid: pixTxid,
+    pixProvider: pixProvider
   };
 }
 
 function v2BuildEntry_(draft, user, context, library, batchId, batchIndex) {
-  var pixStatus = '';
-  if (draft.payment.contaAzulMethod === 'PIX_PAGAMENTO_INSTANTANEO') pixStatus = draft.pixStatus || (draft.mode === 'ATENDIMENTO' ? 'ATIVA' : 'CONFIRMADO');
+  var pixStatus = draft.payment.contaAzulMethod === 'PIX_PAGAMENTO_INSTANTANEO'
+    ? draft.pixStatus
+    : '';
+
   return {
-    id:draft.entryId || Utilities.getUuid(), batchId:batchId || '', batchIndex:batchIndex || 1, date:draft.date, createdAt:new Date().toISOString(),
-    type:draft.type, mode:draft.mode, unitId:draft.unitId, operatorId:user.id, operatorName:user.name,
-    clientId:draft.clientId, clientName:draft.clientName, clientSource:draft.clientSource,
-    objectCount:draft.type === 'RECEITA' ? (draft.objectCount || 0) : 0, amountCents:draft.amountCents,
-    paymentId:draft.payment.id, paymentName:draft.payment.name, paymentContaAzulMethod:draft.payment.contaAzulMethod,
-    accountId:draft.account.id, accountContaAzulId:draft.account.contaAzulId, accountContaAzulName:draft.account.contaAzulName,
-    categoryId:draft.category.id, categoryContaAzulId:draft.category.categoryContaAzulId, categoryContaAzulName:draft.category.categoryName,
-    costCenterContaAzulId:String(context.unit.cost_center_ca_id || ''), costCenterContaAzulName:String(context.unit.cost_center_name || ''),
-    description:draft.description, pixStatus:pixStatus, pixTxid:draft.pixTxid, pixE2eid:'', pixReceivedAt:'', pixProvider:draft.pixProvider,
-    status:'ATIVO', closureId:'', contaAzulStatus:'NAO_ENVIADO', contaAzulProtocol:'', contaAzulLastError:'', contaAzulAttempts:0, contaAzulSyncedAt:''
+    id:draft.entryId,
+    batchId:batchId || '',
+    batchIndex:batchIndex || 1,
+    date:draft.date,
+    createdAt:new Date().toISOString(),
+    type:draft.type,
+    mode:draft.mode,
+    unitId:draft.unitId,
+    operatorId:user.id,
+    operatorName:user.name,
+    clientId:draft.clientId,
+    clientName:draft.clientName,
+    clientSource:draft.clientSource,
+    objectCount:draft.type === 'RECEITA' ? (draft.objectCount || 0) : 0,
+    amountCents:draft.amountCents,
+    paymentId:draft.payment.id,
+    paymentName:draft.payment.name,
+    paymentContaAzulMethod:draft.payment.contaAzulMethod,
+    accountId:draft.account.id,
+    accountContaAzulId:draft.account.contaAzulId,
+    accountContaAzulName:draft.account.contaAzulName,
+    categoryId:draft.category.id,
+    categoryContaAzulId:draft.category.categoryContaAzulId,
+    categoryContaAzulName:draft.category.categoryName,
+    costCenterContaAzulId:String(context.unit.cost_center_ca_id || ''),
+    costCenterContaAzulName:String(context.unit.cost_center_name || ''),
+    description:draft.description,
+    pixStatus:pixStatus,
+    pixTxid:draft.pixTxid,
+    pixE2eid:'',
+    pixReceivedAt:'',
+    pixProvider:draft.pixProvider,
+    status:'ATIVO',
+    closureId:'',
+    contaAzulStatus:'NAO_ENVIADO',
+    contaAzulProtocol:'',
+    contaAzulLastError:'',
+    contaAzulAttempts:0,
+    contaAzulSyncedAt:''
   };
 }
 

@@ -14,7 +14,7 @@ function agfGateMode_() {
   try {
     mode = String(PropertiesService.getScriptProperties().getProperty(AGF_GATE_CFG.MODE_PROP) || '').toLowerCase().trim();
   } catch (error) {}
-  return ['off', 'monitor', 'enforce'].indexOf(mode) >= 0 ? mode : 'monitor';
+  return ['off', 'monitor', 'enforce'].indexOf(mode) >= 0 ? mode : 'enforce';
 }
 
 function agfGateTimingSafeEqual_(a, b) {

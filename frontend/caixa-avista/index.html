@@ -28,7 +28,7 @@
         </div>
         <div class="top-actions">
           <button class="icon-btn" id="btnRefresh" type="button" title="Atualizar" aria-label="Atualizar"><span class="material-symbols-rounded">refresh</span></button>
-          <button class="icon-btn" id="btnSettings" type="button" title="Configuração local" aria-label="Configuração local"><span class="material-symbols-rounded">settings</span></button>
+          <button class="icon-btn hidden" id="btnSwitchUnit" type="button" title="Trocar unidade" aria-label="Trocar unidade"><span class="material-symbols-rounded">swap_horiz</span></button>
         </div>
       </div>
     </header>
@@ -264,10 +264,22 @@
             Salvar QR Code em PNG
           </button>
 
+          <label class="declaration pix-received-declaration">
+            <input
+              type="checkbox"
+              id="pixReceivedDeclaration"
+            >
+            <span>
+              <strong>Conferi o crédito na conta Santander.</strong>
+              <small>Marque somente depois de verificar o recebimento.</small>
+            </span>
+          </label>
+
           <button
             id="btnConfirmManualPix"
             class="primary-action"
             type="button"
+            disabled
           >
             <span class="material-symbols-rounded">
               check_circle
@@ -295,76 +307,10 @@
     </section>
   </div>
 
-  <div
-    id="settingsModal"
-    class="modal-backdrop hidden"
-  >
-    <section class="modal">
-      <header>
-        <h3>
-          <span class="material-symbols-rounded">
-            settings
-          </span>
-          Configurações
-        </h3>
-
-        <button
-          type="button"
-          data-close="settingsModal"
-        >
-          <span class="material-symbols-rounded">
-            close
-          </span>
-        </button>
-      </header>
-
-      <div class="modal-body">
-        <div class="settings-unit">
-          <small>Unidade atual</small>
-          <strong id="settingsUnitLabel">
-            Unidade
-          </strong>
-        </div>
-
-        <label class="modal-field">
-          <span>URL do Apps Script</span>
-
-          <input
-            id="apiUrlInput"
-            placeholder="URL da implantação /exec"
-          >
-        </label>
-
-        <p class="settings-note">
-          As chaves e os dados Pix são
-          administrados na planilha central,
-          separadamente por unidade e forma
-          de pagamento.
-        </p>
-
-        <button
-          id="btnSaveSettings"
-          class="primary-action"
-          type="button"
-        >
-          <span class="material-symbols-rounded">
-            save
-          </span>
-          Salvar
-        </button>
-
-        <div
-          id="settingsStatus"
-          class="status-box"
-        ></div>
-      </div>
-    </section>
-  </div>
-
   <div id="loadingOverlay" class="loading-overlay hidden"><div><span class="spinner"></span><strong id="loadingText">Carregando...</strong></div></div>
-  <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
-  <script src="/caixa-avista/unit-selector.js?v=20260901173553"></script>
+  <script src="/caixa-avista/vendor/qrcode.min.js?v=20260902102544"></script>
+  <script src="/caixa-avista/unit-selector.js?v=20260902102544"></script>
   <script src="/shared/ui/agf-ui.js"></script>
-  <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/caixa-avista/sw.js?v=20260901173553').catch(()=>{}));</script>
+  <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/caixa-avista/sw.js?v=20260902102544').catch(()=>{}));</script>
 </body>
 </html>

@@ -86,88 +86,51 @@ function v2OpeningBalance_(env,date,unitId) {
   return opening;
 }
 
-function v2SetOpeningBalance_(
-  dateValue,
-  amountValue,
-  user
-) {
-  var env = v2Environment_();
+function v2SetOpeningBalance_(dateValue, amountValue, user) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
 
-  var context = v2ResolveContext_(
-    env,
-    user
-  );
+  try {
+    var env = v2Environment_();
+    var context = v2ResolveContext_(env, user);
+    var date = v2Today_();
+    var unitId = String(context.unit.unit_id || '').trim();
+    var amount = Math.round(Number(amountValue || 0));
 
-  var date = v2SheetDateIso_(
-    v2Date_(
-      dateValue || v2Today_()
-    )
-  );
+    if (amount < 0) {
+      throw appError_('Saldo inicial inválido.', 'INVALID_OPENING');
+    }
 
-  var unitId = String(
-    context.unit.unit_id || ''
-  ).trim();
+    v2AssertOpen_(env, date, unitId);
 
-  var amount = Math.round(
-    Number(amountValue || 0)
-  );
-
-  if (amount < 0) {
-    throw appError_(
-      'Saldo inicial inválido.',
-      'INVALID_OPENING'
+    var rows = v2ReadObjects_(
+      env.dailyBalances,
+      CAIXA_V2_CFG.HEADERS.DAILY_BALANCES
     );
+
+    var found = rows.filter(function(item) {
+      return (
+        String(item.unit_id || '').trim() === unitId &&
+        v2SheetDateIso_(item.date_iso) === date
+      );
+    })[0];
+
+    if (found) {
+      env.dailyBalances.getRange(found._sheetRow, 3).setValue(amount);
+    } else {
+      env.dailyBalances.appendRow([
+        unitId,date,amount,'MANUAL',new Date(),user.id,
+        '','','','','','ABERTO'
+      ]);
+    }
+
+    return {
+      ok:true,
+      summary:v2BuildSummary_(env,date,unitId)
+    };
+  } finally {
+    lock.releaseLock();
   }
-
-  v2AssertOpen_(
-    env,
-    date,
-    unitId
-  );
-
-  var rows = v2ReadObjects_(
-    env.dailyBalances,
-    CAIXA_V2_CFG.HEADERS.DAILY_BALANCES
-  );
-
-  var found = rows.filter(function(item) {
-    return (
-      String(item.unit_id || '').trim() ===
-        unitId &&
-      v2SheetDateIso_(item.date_iso) ===
-        date
-    );
-  })[0];
-
-  if (found) {
-    env.dailyBalances
-      .getRange(found._sheetRow, 3)
-      .setValue(amount);
-  } else {
-    env.dailyBalances.appendRow([
-      unitId,
-      date,
-      amount,
-      'MANUAL',
-      new Date(),
-      user.id,
-      '',
-      '',
-      '',
-      '',
-      '',
-      'ABERTO'
-    ]);
-  }
-
-  return {
-    ok: true,
-    summary: v2BuildSummary_(
-      env,
-      date,
-      unitId
-    )
-  };
 }
 
 function v2RecordWithdrawal_(env, context, user, data) {
@@ -188,51 +151,255 @@ function v2RecordWithdrawal_(env, context, user, data) {
 }
 
 function v2CreateWithdrawal_(payload,user) {
-  if (!payload || !v2Bool_(payload.confirmed)) throw appError_('Confirme a conferência da sangria.','DECLARATION_REQUIRED');
-  var env=v2Environment_(), context=v2ResolveContext_(env,user);
-  if (!context.permissions.withdraw) throw appError_('Usuário sem permissão para sangria.','FORBIDDEN');
-  var date=v2Date_(payload.date||v2Today_()), unitId=String(context.unit.unit_id), amount=Math.round(Number(payload.amountCents||0));
-  if (!(amount>0)) throw appError_('Valor da sangria inválido.','INVALID_AMOUNT');
-  v2AssertOpen_(env,date,unitId);
-  var summary=v2BuildSummary_(env,date,unitId);
-  if (amount>summary.expectedCashCents) throw appError_('A sangria não pode ser maior que o saldo esperado em dinheiro.','WITHDRAWAL_EXCEEDS_CASH');
-  var withdrawal = v2RecordWithdrawal_(env, context, user, {
-    date:date, amountCents:amount, balanceBeforeCents:summary.expectedCashCents,
-    destination:payload.destination, notes:payload.notes, closureId:''
-  });
-  return {ok:true,withdrawal:withdrawal,summary:v2BuildSummary_(env,date,unitId)};
+  if (!payload || !v2Bool_(payload.confirmed)) {
+    throw appError_(
+      'Confirme a conferência da sangria.',
+      'DECLARATION_REQUIRED'
+    );
+  }
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+
+  try {
+    var env = v2Environment_();
+    var context = v2ResolveContext_(env,user);
+
+    if (!context.permissions.withdraw) {
+      throw appError_('Usuário sem permissão para sangria.','FORBIDDEN');
+    }
+
+    var date = v2Today_();
+    var unitId = String(context.unit.unit_id);
+    var amount = Math.round(Number(payload.amountCents || 0));
+    var withdrawalId = String(payload.withdrawalId || '').trim();
+
+    if (!withdrawalId || withdrawalId.length > 100) {
+      throw appError_(
+        'Identificador seguro da sangria ausente.',
+        'WITHDRAWAL_ID_REQUIRED'
+      );
+    }
+
+    if (!(amount > 0)) {
+      throw appError_('Valor da sangria inválido.','INVALID_AMOUNT');
+    }
+
+    var existing = v2ReadObjects_(
+      env.withdrawals,
+      CAIXA_V2_CFG.HEADERS.WITHDRAWALS
+    ).filter(function(item){
+      return String(item.withdrawal_id || '') === withdrawalId;
+    })[0];
+
+    if (existing) {
+      if (
+        String(existing.unit_id || '') !== unitId ||
+        v2SheetDateIso_(existing.date_iso) !== date ||
+        Number(existing.amount_cents || 0) !== amount
+      ) {
+        throw appError_(
+          'O identificador desta sangria já foi usado com dados diferentes.',
+          'IDEMPOTENCY_CONFLICT'
+        );
+      }
+
+      return {
+        ok:true,
+        idempotent:true,
+        withdrawal:{
+          id:String(existing.withdrawal_id),
+          amountCents:Number(existing.amount_cents || 0),
+          balanceBeforeCents:Number(existing.balance_before_cents || 0),
+          balanceAfterCents:Number(existing.balance_after_cents || 0),
+          destination:String(existing.destination || ''),
+          notes:String(existing.notes || ''),
+          pdfStatus:String(existing.pdf_status || ''),
+          pdfUrl:String(existing.pdf_url || '')
+        },
+        summary:v2BuildSummary_(env,date,unitId)
+      };
+    }
+
+    v2AssertOpen_(env,date,unitId);
+
+    var summary = v2BuildSummary_(env,date,unitId);
+
+    if (amount > summary.expectedCashCents) {
+      throw appError_(
+        'A sangria não pode ser maior que o saldo esperado em dinheiro.',
+        'WITHDRAWAL_EXCEEDS_CASH'
+      );
+    }
+
+    var withdrawal = v2RecordWithdrawal_(env, context, user, {
+      id:withdrawalId,
+      date:date,
+      amountCents:amount,
+      balanceBeforeCents:summary.expectedCashCents,
+      destination:payload.destination,
+      notes:payload.notes,
+      closureId:''
+    });
+
+    return {
+      ok:true,
+      withdrawal:withdrawal,
+      summary:v2BuildSummary_(env,date,unitId)
+    };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function v2Close_(payload,user) {
-  if (!payload || !v2Bool_(payload.declarationConfirmed)) throw appError_('Confirme a declaração de conferência.','DECLARATION_REQUIRED');
-  var env=v2Environment_(),context=v2ResolveContext_(env,user);
-  if (!context.permissions.close) throw appError_('Usuário sem permissão para fechar o caixa.','FORBIDDEN');
-  var date=v2Date_(payload.date||v2Today_()),unitId=String(context.unit.unit_id);
-  var existing=v2FindClosure_(env,date,unitId); if(existing) return {ok:true,closure:existing,alreadyClosed:true};
-  var summary=v2BuildSummary_(env,date,unitId);
-  if ((summary.revenueCount+summary.expenseCount)===0) throw appError_('Não há movimentos para fechar.','NO_ENTRIES');
-  if (summary.pixPendingCents>0) throw appError_('Há Pix aguardando confirmação.','PIX_PENDING');
-  var counted=Math.round(Number(payload.countedCashCents||0)); if(counted<0) throw appError_('Contagem inválida.','INVALID_COUNT');
-  var difference=counted-summary.expectedCashCents;
-  var notes=String(payload.notes||'').trim(); if(difference!==0 && !notes) throw appError_('Informe a justificativa da diferença.','DIFFERENCE_NOTE_REQUIRED');
-  var closingWithdrawal=Math.round(Number(payload.closingWithdrawalCents||0));
-  if (closingWithdrawal<0 || closingWithdrawal>counted) throw appError_('Sangria do fechamento inválida.','INVALID_CLOSING_WITHDRAWAL');
-  var closureId=Utilities.getUuid(), now=new Date(), carryover=counted-closingWithdrawal;
-  if (closingWithdrawal>0) {
-    v2RecordWithdrawal_(env, context, user, {
-      date:date, amountCents:closingWithdrawal, balanceBeforeCents:counted,
-      destination:payload.withdrawalDestination||'Financeiro',
-      notes:payload.withdrawalNotes||'Sangria realizada no fechamento', closureId:closureId
-    });
+  if (!payload || !v2Bool_(payload.declarationConfirmed)) {
+    throw appError_(
+      'Confirme a declaração de conferência.',
+      'DECLARATION_REQUIRED'
+    );
   }
-  var paymentTotals=summary.byPayment, paymentCounts=summary.countByPayment;
-  env.closures.appendRow([closureId,date,unitId,String(context.unit.name||unitId),String(context.unit.cost_center_ca_id||''),String(context.unit.cost_center_name||''),now,user.id,user.name,'FECHADO',summary.revenueCents,summary.expenseCents,summary.netCents,JSON.stringify(paymentTotals),JSON.stringify(paymentCounts),summary.openingCashCents,summary.cashRevenueCents,summary.cashExpenseCents,summary.withdrawalsCents,summary.expectedCashCents,counted,difference,closingWithdrawal,carryover,notes,CAIXA_V2_CFG.CASH_DECLARATION_VERSION,CAIXA_V2_CFG.CASH_DECLARATION,true,now,'PENDENTE','','','PENDENTE']);
-  v2MarkEntriesClosed_(env,date,unitId,closureId);
-  v2UpdateDailyBalanceClose_(env,date,unitId,summary,counted,difference,closingWithdrawal,carryover,user);
-  v2EnqueueContaAzul_(env,closureId,v2EntriesByDate_(env,date,unitId));
-  var pdf=v2GenerateClosingPdf_(env,closureId,context);
-  v2UpdateClosurePdf_(env,closureId,pdf);
-  return {ok:true,closure:v2FindClosure_(env,date,unitId),summary:v2BuildSummary_(env,date,unitId)};
+
+  var result;
+  var closureId = '';
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+
+  try {
+    var env = v2Environment_();
+    var context = v2ResolveContext_(env,user);
+
+    if (!context.permissions.close) {
+      throw appError_('Usuário sem permissão para fechar o caixa.','FORBIDDEN');
+    }
+
+    var date = v2Today_();
+    var unitId = String(context.unit.unit_id);
+    var existing = v2FindClosure_(env,date,unitId);
+
+    if (existing) {
+      return {
+        ok:true,
+        closure:existing,
+        alreadyClosed:true,
+        summary:v2BuildSummary_(env,date,unitId)
+      };
+    }
+
+    var summary = v2BuildSummary_(env,date,unitId);
+
+    if ((summary.revenueCount + summary.expenseCount) === 0) {
+      throw appError_('Não há movimentos para fechar.','NO_ENTRIES');
+    }
+
+    if (summary.pixPendingCents > 0) {
+      throw appError_('Há Pix aguardando confirmação.','PIX_PENDING');
+    }
+
+    var counted = Math.round(Number(payload.countedCashCents || 0));
+
+    if (counted < 0) {
+      throw appError_('Contagem inválida.','INVALID_COUNT');
+    }
+
+    var difference = counted - summary.expectedCashCents;
+    var notes = String(payload.notes || '').trim();
+
+    if (difference !== 0 && !notes) {
+      throw appError_(
+        'Informe a justificativa da diferença.',
+        'DIFFERENCE_NOTE_REQUIRED'
+      );
+    }
+
+    var closingWithdrawal = Math.round(
+      Number(payload.closingWithdrawalCents || 0)
+    );
+
+    if (closingWithdrawal < 0 || closingWithdrawal > counted) {
+      throw appError_(
+        'Sangria do fechamento inválida.',
+        'INVALID_CLOSING_WITHDRAWAL'
+      );
+    }
+
+    closureId = Utilities.getUuid();
+    var now = new Date();
+    var carryover = counted - closingWithdrawal;
+
+    if (closingWithdrawal > 0) {
+      v2RecordWithdrawal_(env, context, user, {
+        date:date,
+        amountCents:closingWithdrawal,
+        balanceBeforeCents:counted,
+        destination:payload.withdrawalDestination || 'Financeiro',
+        notes:payload.withdrawalNotes || 'Sangria realizada no fechamento',
+        closureId:closureId
+      });
+    }
+
+    var paymentTotals = summary.byPayment;
+    var paymentCounts = summary.countByPayment;
+
+    env.closures.appendRow([
+      closureId,date,unitId,String(context.unit.name || unitId),
+      String(context.unit.cost_center_ca_id || ''),
+      String(context.unit.cost_center_name || ''),
+      now,user.id,user.name,'FECHADO',
+      summary.revenueCents,summary.expenseCents,summary.netCents,
+      JSON.stringify(paymentTotals),JSON.stringify(paymentCounts),
+      summary.openingCashCents,summary.cashRevenueCents,
+      summary.cashExpenseCents,summary.withdrawalsCents,
+      summary.expectedCashCents,counted,difference,
+      closingWithdrawal,carryover,notes,
+      CAIXA_V2_CFG.CASH_DECLARATION_VERSION,
+      CAIXA_V2_CFG.CASH_DECLARATION,
+      true,now,'PENDENTE','','','PENDENTE'
+    ]);
+
+    v2MarkEntriesClosed_(env,date,unitId,closureId);
+    v2UpdateDailyBalanceClose_(
+      env,date,unitId,summary,counted,difference,
+      closingWithdrawal,carryover,user
+    );
+
+    v2EnqueueContaAzul_(
+      env,
+      closureId,
+      v2EntriesByDate_(env,date,unitId)
+    );
+
+    var pdf = v2GenerateClosingPdf_(env,closureId,context);
+    v2UpdateClosurePdf_(env,closureId,pdf);
+
+    result = {
+      ok:true,
+      closure:v2FindClosure_(env,date,unitId),
+      summary:v2BuildSummary_(env,date,unitId)
+    };
+  } finally {
+    lock.releaseLock();
+  }
+
+  try {
+    result.contaAzulDispatch = processContaAzulQueueV2(20, closureId);
+  } catch (error) {
+    result.contaAzulDispatch = {
+      ok:false,
+      error:String(error && error.message ? error.message : error)
+    };
+  }
+
+  try {
+    var refreshedEnv = v2Environment_();
+    result.closure = v2FindClosure_(
+      refreshedEnv,
+      result.closure.date,
+      result.closure.unitId
+    );
+  } catch (_) {}
+
+  return result;
 }
 
 function v2FindClosure_(env,date,unitId) {
@@ -663,7 +830,6 @@ function v2SyncPix_(payload, user) {
 
     if (
       status === 'CONFIRMADO' &&
-      received > 0 &&
       received !== Number(row[14])
     ) {
       throw appError_(
@@ -682,7 +848,9 @@ function v2SyncPix_(payload, user) {
       row[29] = payload.e2eid;
     }
 
-    if (payload.receivedAt) {
+    if (status === 'CONFIRMADO') {
+      row[30] = new Date();
+    } else if (payload.receivedAt) {
       row[30] = payload.receivedAt;
     }
 

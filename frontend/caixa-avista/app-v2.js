@@ -19,6 +19,13 @@
     closure: null,
     user: null,
     busy: false,
+    serverDate: '',
+    timezone: 'America/Fortaleza',
+    pendingEntryId: '',
+    pendingEntryFingerprint: '',
+    pendingPixTxid: '',
+    pendingWithdrawalId: '',
+    pendingWithdrawalFingerprint: '',
     pixEntry: null,
     pixPayload: ''
   };
@@ -29,13 +36,57 @@
   const normalize = value => String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
   const parseMoney = value => { const t=String(value||'').replace(/R\$/gi,'').replace(/\s/g,''); if(!t)return 0; let n=t; if(t.includes(',')&&t.includes('.'))n=t.replace(/\./g,'').replace(',','.'); else if(t.includes(','))n=t.replace(',','.'); const x=Number(n.replace(/[^\d.-]/g,'')); return Number.isFinite(x)?Math.round(Math.abs(x)*100):0; };
   const uid = () => crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now()+'-'+Math.random().toString(36).slice(2);
-  const apiUrl = () =>
-    String(
-      localStorage.getItem(
-        STORAGE.API
-      ) ||
-      DEFAULT_API_URL
-    ).trim();
+  const apiUrl = () => DEFAULT_API_URL;
+
+  const currentDate = () =>
+    String(state.serverDate || todayIso());
+
+  function entryFingerprint() {
+    return JSON.stringify({
+      type: state.type,
+      mode: state.mode,
+      amountCents: state.amountCents,
+      categoryId: state.selectedCategory,
+      paymentId: state.selectedPayment,
+      clientId: state.selectedClient?.id || '',
+      clientName: state.selectedClient?.name || String($('clientInput')?.value || '').trim(),
+      objectCount: state.objectCount,
+      description: String($('descriptionInput')?.value || '').trim()
+    });
+  }
+
+  function stableEntryId() {
+    const fingerprint = entryFingerprint();
+
+    if (
+      !state.pendingEntryId ||
+      state.pendingEntryFingerprint !== fingerprint
+    ) {
+      state.pendingEntryId = uid();
+      state.pendingEntryFingerprint = fingerprint;
+      state.pendingPixTxid = '';
+    }
+
+    return state.pendingEntryId;
+  }
+
+  function stableWithdrawalId() {
+    const fingerprint = JSON.stringify({
+      amount: String($('withdrawalAmount')?.value || ''),
+      destination: String($('withdrawalDestination')?.value || '').trim(),
+      notes: String($('withdrawalNotes')?.value || '').trim()
+    });
+
+    if (
+      !state.pendingWithdrawalId ||
+      state.pendingWithdrawalFingerprint !== fingerprint
+    ) {
+      state.pendingWithdrawalId = uid();
+      state.pendingWithdrawalFingerprint = fingerprint;
+    }
+
+    return state.pendingWithdrawalId;
+  }
   const token = () => window.AgfAuth?.getToken?.() || '';
 
   const selectedUnitId = () =>
@@ -543,10 +594,69 @@
   }
 
   async function callApi(action,data={}){
-    if(!apiUrl()) return localApi(action,data);
-    const response=await fetch(apiUrl(),{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,st:token(),...data})});
-    if(!response.ok)throw new Error('Falha de comunicação com o caixa.');
-    const result=await response.json();if(!result?.ok)throw new Error(result?.error||'Operação não concluída.');return result;
+    const controller =
+      typeof AbortController === 'function'
+        ? new AbortController()
+        : null;
+
+    const timer = controller
+      ? window.setTimeout(
+          () => controller.abort(),
+          20000
+        )
+      : null;
+
+    try {
+      const response = await fetch(
+        apiUrl(),
+        {
+          method:'POST',
+          headers:{
+            'Content-Type':
+              'text/plain;charset=utf-8'
+          },
+          body:JSON.stringify({
+            action,
+            st:token(),
+            ...data
+          }),
+          signal:controller
+            ? controller.signal
+            : undefined
+        }
+      );
+
+      if(!response.ok){
+        throw new Error(
+          'Falha de comunicação com o caixa.'
+        );
+      }
+
+      const result = await response.json();
+
+      if(!result?.ok){
+        const error = new Error(
+          result?.error ||
+          'Operação não concluída.'
+        );
+        error.code = result?.code || '';
+        throw error;
+      }
+
+      return result;
+    } catch(error) {
+      if (error?.name === 'AbortError') {
+        throw new Error(
+          'O servidor demorou para responder. Tente novamente sem alterar os dados do lançamento.'
+        );
+      }
+
+      throw error;
+    } finally {
+      if (timer) {
+        window.clearTimeout(timer);
+      }
+    }
   }
 
   async function localApi(action,data){
@@ -697,7 +807,15 @@
     setBusy(true,'Atualizando caixa...');
     try{
       const result=await callApi('init',{date:todayIso()});
-      state.user=result.user;state.library=result.library;state.clients=result.clients||[];state.entries=result.entries||[];state.withdrawals=result.withdrawals||[];state.summary=result.summary;state.closure=result.closure||null;
+      state.user=result.user;
+      state.library=result.library;
+      state.clients=result.clients||[];
+      state.entries=result.entries||[];
+      state.withdrawals=result.withdrawals||[];
+      state.summary=result.summary;
+      state.closure=result.closure||null;
+      state.serverDate=result.serverDate||todayIso();
+      state.timezone=result.timezone||'America/Fortaleza';
       chooseDefaults();
       renderAll();
 
@@ -722,7 +840,26 @@
     const pays=payments();if(!pays.some(x=>x.id===state.selectedPayment))state.selectedPayment=(state.type==='DESPESA'&&selectedCategory()?.defaultPaymentId)||pays[0]?.id||'';
   }
   function categories(){return state.type==='RECEITA'?(state.library?.revenueTypes||[]):(state.library?.expenseTypes||[]);}
-  function payments(){return (state.library?.payments||[]).filter(p=>state.type==='RECEITA'?p.allowRevenue:p.allowExpense);}
+  function payments(){
+    return (state.library?.payments||[]).filter(payment => {
+      const allowed =
+        state.type === 'RECEITA'
+          ? payment.allowRevenue
+          : payment.allowExpense;
+
+      if (!allowed) return false;
+
+      if (isPixPayment(payment)) {
+        return (
+          state.type === 'RECEITA' &&
+          state.mode === 'ATENDIMENTO' &&
+          isPaymentPixConfigured(payment)
+        );
+      }
+
+      return true;
+    });
+  }
   function selectedCategory(){return categories().find(x=>x.id===state.selectedCategory);}
   function selectedPayment(){return payments().find(x=>x.id===state.selectedPayment);}
   function selectedAccountId(){return selectedCategory()?.defaultAccountId||selectedPayment()?.accountId||'';}
@@ -786,7 +923,17 @@
 
   function renderAll(){
     document.body.dataset.entryType=state.type;
-    $('unitLabel').textContent=state.library?.unit?.name||'Unidade';$('operatorLabel').textContent=state.user?.name||'Usuário';$('dateLabel').textContent=brDate(todayIso());
+    $('unitLabel').textContent=state.library?.unit?.name||'Unidade';
+    $('operatorLabel').textContent=state.user?.name||'Usuário';
+    $('dateLabel').textContent=brDate(currentDate());
+
+    const switchButton = $('btnSwitchUnit');
+    if (switchButton) {
+      switchButton.classList.toggle(
+        'hidden',
+        !window.CaixaUnitContext?.canSwitchUnit?.()
+      );
+    }
     renderType();renderModes();renderOptions();renderEntryForm();renderSummary();renderMovements();renderClose();
   }
 
@@ -1278,11 +1425,25 @@
           ? 'Pix pendente'
           : 'Aberto';
 
+    const closed = Boolean(state.closure);
+
     $('btnCloseCash').disabled =
       Boolean(
-        state.closure ||
+        closed ||
         hasPixPending
       );
+
+    [
+      'countedCash',
+      'closingWithdrawal',
+      'closingDestination',
+      'closingNotes',
+      'closeDeclaration'
+    ].forEach(id => {
+      const field = $(id);
+      if (field) field.disabled = closed;
+    });
+
     updateCloseMath();
     if(state.closure){const links=[];if(state.closure.pdfUrl)links.push(`<a href="${escapeHtml(state.closure.pdfUrl)}" target="_blank"><span class="material-symbols-rounded">picture_as_pdf</span> PDF do fechamento</a>`);$('closeLinks').classList.toggle('hidden',!links.length);$('closeLinks').innerHTML=links.join('');}
   }
@@ -1305,7 +1466,7 @@
       entryId: extra.entryId || '',
       type: state.type,
       mode: state.mode,
-      date: todayIso(),
+      date: currentDate(),
       categoryId: category?.id || '',
       paymentId: payment?.id || '',
       accountId: selectedAccountId(),
@@ -1328,18 +1489,11 @@
     clearStatus('launchStatus');
 
     if (!(state.amountCents > 0)) {
-      return status(
-        'launchStatus',
-        'Digite o valor.',
-        'warning'
-      );
+      return status('launchStatus','Digite o valor.','warning');
     }
 
-    const category =
-      selectedCategory();
-
-    const payment =
-      selectedPayment();
+    const category = selectedCategory();
+    const payment = selectedPayment();
 
     if (!category || !payment) {
       return status(
@@ -1361,12 +1515,19 @@
       );
     }
 
+    if (
+      isPixPayment(payment) &&
+      !shouldGenerateLocalPix(payment)
+    ) {
+      return status(
+        'launchStatus',
+        'Pix Santander está disponível apenas no modo Atender.',
+        'warning'
+      );
+    }
+
     const generateLocalPix =
       shouldGenerateLocalPix(payment);
-
-    const manualPix =
-      isPixPayment(payment) &&
-      !generateLocalPix;
 
     setBusy(
       true,
@@ -1381,21 +1542,14 @@
         return;
       }
 
+      const entryId = stableEntryId();
+
       const result = await callApi(
         'saveEntry',
         {
           payload: draft(
             state.amountCents,
-            {
-              pixStatus:
-                manualPix
-                  ? 'CONFIRMADO'
-                  : '',
-              pixProvider:
-                manualPix
-                  ? 'manual-single'
-                  : ''
-            }
+            { entryId }
           )
         }
       );
@@ -1404,11 +1558,9 @@
 
       status(
         'launchStatus',
-        manualPix
-          ? 'Pix manual registrado.'
-          : state.type === 'RECEITA'
-            ? 'Receita registrada.'
-            : 'Despesa registrada.',
+        state.type === 'RECEITA'
+          ? 'Receita registrada.'
+          : 'Despesa registrada.',
         'success'
       );
 
@@ -1426,10 +1578,7 @@
   }
 
   async function startPix(payment) {
-    if (
-      !payment ||
-      !isPixPayment(payment)
-    ) {
+    if (!payment || !isPixPayment(payment)) {
       throw new Error(
         'A forma de pagamento selecionada não é Pix.'
       );
@@ -1437,38 +1586,26 @@
 
     if (!shouldGenerateLocalPix(payment)) {
       throw new Error(
-        'A cobrança Pix local só pode ser gerada no modo Atender.'
+        'A cobrança Pix só pode ser gerada no modo Atender.'
       );
     }
 
-    let config;
+    const config = requirePixConfig(payment);
+    const amountCents = state.amountCents;
+    const entryId = stableEntryId();
 
-    try {
-      config = requirePixConfig(payment);
-    } catch (error) {
-      openSettings();
-      throw error;
+    if (!state.pendingPixTxid) {
+      state.pendingPixTxid = generateLocalPixTxid();
     }
 
-    const amountCents =
-      state.amountCents;
-
-    const entryId = uid();
-
-    const pixTxid =
-      generateLocalPixTxid();
-
-    const pixPayload =
-      buildLocalPixPayload(
-        config,
-        amountCents,
-        pixTxid
-      );
-
-    savePendingPixPayload(
-      entryId,
-      pixPayload
+    const pixTxid = state.pendingPixTxid;
+    const pixPayload = buildLocalPixPayload(
+      config,
+      amountCents,
+      pixTxid
     );
+
+    savePendingPixPayload(entryId,pixPayload);
 
     let saved;
 
@@ -1480,38 +1617,32 @@
             amountCents,
             {
               entryId,
-              pixStatus: 'PENDENTE',
+              pixStatus:'PENDENTE',
               pixTxid,
-              pixProvider: 'local'
+              pixProvider:'local'
             }
           )
         }
       );
     } catch (error) {
-      clearPendingPixPayload(entryId);
       throw error;
     }
 
     applySaveResult(saved);
 
-    state.pixEntry =
-      saved.entry;
-
-    state.pixPayload =
-      pixPayload;
+    state.pixEntry = saved.entry;
+    state.pixPayload = pixPayload;
 
     $('btnCopyPix').disabled = false;
     $('btnSharePix').disabled = false;
     $('btnDownloadPix').disabled = false;
+    $('pixReceivedDeclaration').checked = false;
+    $('btnConfirmManualPix').disabled = true;
 
-    $('pixAmount').textContent =
-      money(amountCents);
+    $('pixAmount').textContent = money(amountCents);
+    $('pixCode').value = pixPayload;
 
-    $('pixCode').value =
-      pixPayload;
-
-    const qrRendered =
-      renderQr(pixPayload);
+    const qrRendered = renderQr(pixPayload);
 
     openModal('pixModal');
 
@@ -1520,9 +1651,7 @@
       qrRendered
         ? 'Aguardando pagamento. Confirme somente depois de conferir o crédito.'
         : 'O Pix foi gerado. Use o Copia e Cola porque o QR Code não carregou.',
-      qrRendered
-        ? 'info'
-        : 'warning'
+      qrRendered ? 'info' : 'warning'
     );
   }
 
@@ -1650,6 +1779,9 @@
       $('pixQr').innerHTML =
         '<span class="material-symbols-rounded pix-placeholder">qr_code_2</span>';
     }
+
+    $('pixReceivedDeclaration').checked = false;
+    $('btnConfirmManualPix').disabled = true;
 
     openModal('pixModal');
 
@@ -1875,55 +2007,42 @@
       return;
     }
 
-    setBusy(
-      true,
-      'Confirmando Pix...'
-    );
+    if (!$('pixReceivedDeclaration').checked) {
+      status(
+        'pixStatus',
+        'Marque que você conferiu o crédito na conta Santander.',
+        'warning'
+      );
+      return;
+    }
+
+    setBusy(true,'Confirmando Pix...');
 
     try {
       const result = await callApi(
         'syncPixPayment',
         {
-          payload: {
-            entryId:
-              state.pixEntry.id,
-            txid:
-              state.pixEntry
-                .pixTxid ||
-              '***',
-            status:
-              'CONFIRMADO',
-            amountCents:
-              state.pixEntry
-                .amountCents,
-            provider:
-              'local'
+          payload:{
+            entryId:state.pixEntry.id,
+            txid:state.pixEntry.pixTxid || '***',
+            status:'CONFIRMADO',
+            amountCents:state.pixEntry.amountCents,
+            provider:'local'
           }
         }
       );
 
-      const index =
-        state.entries.findIndex(
-          entry =>
-            entry.id ===
-            state.pixEntry.id
-        );
+      const index = state.entries.findIndex(
+        entry => entry.id === state.pixEntry.id
+      );
 
-      if (
-        index >= 0 &&
-        result.entry
-      ) {
-        state.entries[index] =
-          result.entry;
+      if (index >= 0 && result.entry) {
+        state.entries[index] = result.entry;
       }
 
-      state.summary =
-        result.summary ||
-        state.summary;
+      state.summary = result.summary || state.summary;
 
-      clearPendingPixPayload(
-        state.pixEntry.id
-      );
+      clearPendingPixPayload(state.pixEntry.id);
 
       closeModal('pixModal');
       resetEntry();
@@ -1946,63 +2065,59 @@
     }
   }
 
+  function leavePixPending() {
+    if (!state.pixEntry) {
+      closeModal('pixModal');
+      return;
+    }
+
+    closeModal('pixModal');
+    resetEntry();
+    renderAll();
+
+    status(
+      'launchStatus',
+      'Cobrança Pix mantida como pendente. Abra Mov. para continuar depois.',
+      'warning'
+    );
+  }
+
   async function cancelManualPix() {
     if (!state.pixEntry) {
       closeModal('pixModal');
       return;
     }
 
-    const confirmed =
-      window.confirm(
-        'Cancelar esta cobrança Pix?'
-      );
+    const confirmed = window.confirm(
+      'Cancelar esta cobrança Pix? O cancelamento ficará registrado na auditoria.'
+    );
 
     if (!confirmed) {
       return;
     }
 
-    setBusy(
-      true,
-      'Cancelando cobrança Pix...'
-    );
+    setBusy(true,'Cancelando cobrança Pix...');
 
     try {
-      const entryId =
-        state.pixEntry.id;
+      const entryId = state.pixEntry.id;
 
       const result = await callApi(
-        'syncPixPayment',
+        'deleteEntry',
         {
-          payload: {
+          payload:{
             entryId,
-            txid:
-              state.pixEntry
-                .pixTxid ||
-              '***',
-            status:
-              'CANCELADO',
-            amountCents:
-              state.pixEntry
-                .amountCents,
-            provider:
-              'local'
+            reason:'Cobrança Pix cancelada no atendimento'
           }
         }
       );
 
-      state.entries =
-        state.entries.filter(
-          entry =>
-            entry.id !== entryId
-        );
-
-      state.summary =
-        result.summary ||
-        state.summary;
-
-      clearPendingPixPayload(
-        state.pixEntry.id
+      state.entries = state.entries.filter(
+        entry => entry.id !== entryId
       );
+
+      state.summary = result.summary || state.summary;
+
+      clearPendingPixPayload(entryId);
 
       closeModal('pixModal');
       resetEntry();
@@ -2010,7 +2125,7 @@
 
       status(
         'launchStatus',
-        'Cobrança Pix cancelada.',
+        'Cobrança Pix cancelada e auditada.',
         'success'
       );
     } catch (error) {
@@ -2149,7 +2264,8 @@
     state.mode = 'LOTE';
 
     state.batchItems.push({
-      amountCents
+      amountCents,
+      entryId: uid()
     });
 
     state.batchAmountCents = 0;
@@ -2160,7 +2276,71 @@
     clearStatus('launchStatus');
   }
 
-  async function saveBatch(){if(!state.batchItems.length)return status('launchStatus','Adicione pelo menos um valor.','warning');if(!selectedCategory()||!selectedPayment())return status('launchStatus','Selecione tipo e pagamento.','warning');setBusy(true,'Salvando lote...');try{const payloads=state.batchItems.map(item=>draft(item.amountCents,{pixStatus:isPixPayment(selectedPayment())?'CONFIRMADO':'',pixProvider:isPixPayment(selectedPayment())?'manual-batch':''}));const result=await callApi('saveBatch',{payloads});state.entries.push(...(result.entries||[]));state.summary=result.summary;state.batchItems=[];state.batchAmountCents=0;renderAll();status('launchStatus',`${result.entries?.length||payloads.length} lançamentos salvos.`, 'success');}catch(error){status('launchStatus',error.message,'error');}finally{setBusy(false);}}
+  async function saveBatch(){
+    if(!state.batchItems.length){
+      return status(
+        'launchStatus',
+        'Adicione pelo menos um valor.',
+        'warning'
+      );
+    }
+
+    if(!selectedCategory() || !selectedPayment()){
+      return status(
+        'launchStatus',
+        'Selecione tipo e pagamento.',
+        'warning'
+      );
+    }
+
+    if(isPixPayment(selectedPayment())){
+      return status(
+        'launchStatus',
+        'Pix Santander não pode ser lançado em lote.',
+        'warning'
+      );
+    }
+
+    setBusy(true,'Salvando lote...');
+
+    try{
+      const payloads = state.batchItems.map(
+        item => draft(
+          item.amountCents,
+          { entryId:item.entryId }
+        )
+      );
+
+      const result = await callApi(
+        'saveBatch',
+        { payloads }
+      );
+
+      const returned = result.entries || [];
+
+      returned.forEach(entry => {
+        const exists = state.entries.some(
+          item => item.id === entry.id
+        );
+        if (!exists) state.entries.push(entry);
+      });
+
+      state.summary = result.summary;
+      state.batchItems = [];
+      state.batchAmountCents = 0;
+      renderAll();
+
+      status(
+        'launchStatus',
+        `${returned.length || payloads.length} lançamentos salvos.`,
+        'success'
+      );
+    }catch(error){
+      status('launchStatus',error.message,'error');
+    }finally{
+      setBusy(false);
+    }
+  }
 
   function applySaveResult(result){if(result.entry)state.entries.push(result.entry);state.summary=result.summary||state.summary;renderAll();}
   function resetEntry() {
@@ -2169,6 +2349,9 @@
     state.selectedClient = null;
     state.pixEntry = null;
     state.pixPayload = '';
+    state.pendingEntryId = '';
+    state.pendingEntryFingerprint = '';
+    state.pendingPixTxid = '';
 
     $('clientInput').value = '';
     $('descriptionInput').value = '';
@@ -2176,10 +2359,142 @@
     renderEntryForm();
   }
 
-  async function saveWithdrawal(){const amount=parseMoney($('withdrawalAmount').value);if(!(amount>0))return status('withdrawalStatus','Informe o valor.','warning');if(!$('withdrawalDeclaration').checked)return status('withdrawalStatus','Confirme a contagem da sangria.','warning');setBusy(true,'Registrando sangria e gerando PDF...');try{const result=await callApi('createWithdrawal',{payload:{date:todayIso(),amountCents:amount,destination:$('withdrawalDestination').value.trim()||'Financeiro',notes:$('withdrawalNotes').value.trim(),confirmed:true}});state.withdrawals.push(result.withdrawal);state.summary=result.summary;closeModal('withdrawalModal');renderAll();status('launchStatus',result.withdrawal.pdfUrl?'Sangria registrada e PDF gerado.':'Sangria registrada. PDF pendente.','success');}catch(error){status('withdrawalStatus',error.message,'error');}finally{setBusy(false);}}
+  async function saveWithdrawal(){
+    const amount=parseMoney($('withdrawalAmount').value);
+
+    if(!(amount>0)){
+      return status(
+        'withdrawalStatus',
+        'Informe o valor.',
+        'warning'
+      );
+    }
+
+    if(!$('withdrawalDeclaration').checked){
+      return status(
+        'withdrawalStatus',
+        'Confirme a contagem da sangria.',
+        'warning'
+      );
+    }
+
+    setBusy(true,'Registrando sangria e gerando PDF...');
+
+    try{
+      const withdrawalId = stableWithdrawalId();
+
+      const result = await callApi(
+        'createWithdrawal',
+        {
+          payload:{
+            withdrawalId,
+            date:currentDate(),
+            amountCents:amount,
+            destination:$('withdrawalDestination').value.trim()||'Financeiro',
+            notes:$('withdrawalNotes').value.trim(),
+            confirmed:true
+          }
+        }
+      );
+
+      if (!state.withdrawals.some(item => item.id === result.withdrawal.id)) {
+        state.withdrawals.push(result.withdrawal);
+      }
+
+      state.pendingWithdrawalId = '';
+      state.pendingWithdrawalFingerprint = '';
+      state.summary=result.summary;
+      closeModal('withdrawalModal');
+      renderAll();
+
+      status(
+        'launchStatus',
+        result.withdrawal.pdfUrl
+          ? 'Sangria registrada e PDF gerado.'
+          : 'Sangria registrada. PDF pendente.',
+        'success'
+      );
+    }catch(error){
+      status('withdrawalStatus',error.message,'error');
+    }finally{
+      setBusy(false);
+    }
+  }
   function updateWithdrawalMath(){const amount=parseMoney($('withdrawalAmount').value),available=state.summary?.expectedCashCents||0;$('withdrawalRemaining').textContent=money(available-amount);}
 
-  async function closeCash(){if(state.closure)return;if(!$('closeDeclaration').checked)return status('closeStatus','Confirme a declaração de conferência.','warning');const counted=parseMoney($('countedCash').value),closing=parseMoney($('closingWithdrawal').value);setBusy(true,'Fechando caixa, gerando PDF e preparando Conta Azul...');try{const result=await callApi('closeCash',{payload:{date:todayIso(),countedCashCents:counted,closingWithdrawalCents:closing,withdrawalDestination:$('closingDestination').value.trim()||'Financeiro',notes:$('closingNotes').value.trim(),declarationConfirmed:true}});state.closure=result.closure;state.summary=result.summary||state.summary;renderAll();status('closeStatus',state.closure.pdfUrl?'Caixa fechado. PDF salvo no Drive.':'Caixa fechado. PDF aguardando nova tentativa.','success');}catch(error){status('closeStatus',error.message,'error');}finally{setBusy(false);}}
+  async function closeCash(){
+    if(state.closure) return;
+
+    if(!$('closeDeclaration').checked){
+      return status(
+        'closeStatus',
+        'Confirme a declaração de conferência.',
+        'warning'
+      );
+    }
+
+    const counted=parseMoney($('countedCash').value);
+    const closing=parseMoney($('closingWithdrawal').value);
+    const expected=state.summary?.expectedCashCents||0;
+    const difference=counted-expected;
+    const carryover=Math.max(0,counted-closing);
+
+    const confirmed = window.confirm(
+      [
+        'Confirmar fechamento definitivo?',
+        '',
+        'Unidade: ' + (state.library?.unit?.name || ''),
+        'Esperado na gaveta: ' + money(expected),
+        'Dinheiro contado: ' + money(counted),
+        'Diferença: ' + money(difference),
+        'Sangria no fechamento: ' + money(closing),
+        'Ficará no caixa: ' + money(carryover)
+      ].join('\n')
+    );
+
+    if (!confirmed) return;
+
+    setBusy(
+      true,
+      'Fechando caixa, gerando PDF e enviando ao Conta Azul...'
+    );
+
+    try{
+      const result=await callApi(
+        'closeCash',
+        {
+          payload:{
+            date:currentDate(),
+            countedCashCents:counted,
+            closingWithdrawalCents:closing,
+            withdrawalDestination:$('closingDestination').value.trim()||'Financeiro',
+            notes:$('closingNotes').value.trim(),
+            declarationConfirmed:true
+          }
+        }
+      );
+
+      state.closure=result.closure;
+      state.summary=result.summary||state.summary;
+      renderAll();
+
+      const caStatus = String(
+        state.closure?.contaAzulStatus || ''
+      );
+
+      status(
+        'closeStatus',
+        state.closure.pdfUrl
+          ? 'Caixa fechado. PDF salvo. Conta Azul: ' + (caStatus || 'PENDENTE') + '.'
+          : 'Caixa fechado. PDF aguardando nova tentativa. Conta Azul: ' + (caStatus || 'PENDENTE') + '.',
+        'success'
+      );
+    }catch(error){
+      status('closeStatus',error.message,'error');
+    }finally{
+      setBusy(false);
+    }
+  }
 
   function renderClientSuggestions(){
     const input = $('clientInput');
@@ -2279,67 +2594,6 @@
 
     renderEntryForm();
     clearStatus('launchStatus');
-  }
-
-  function openSettings() {
-    $('apiUrlInput').value =
-      apiUrl();
-
-    $('settingsUnitLabel')
-      .textContent =
-        state.library?.unit?.name ||
-        selectedUnitId();
-
-    clearStatus(
-      'settingsStatus'
-    );
-
-    openModal(
-      'settingsModal'
-    );
-  }
-
-  function saveSettings() {
-    const nextApiUrl =
-      $('apiUrlInput')
-        .value.trim();
-
-    if (
-      nextApiUrl &&
-      !/^https://script.google.com/macros/s//
-        .test(nextApiUrl)
-    ) {
-      status(
-        'settingsStatus',
-        'Informe uma URL válida do Apps Script.',
-        'error'
-      );
-
-      return;
-    }
-
-    localStorage.setItem(
-      STORAGE.API,
-      nextApiUrl ||
-        DEFAULT_API_URL
-    );
-
-    status(
-      'settingsStatus',
-      'Configuração técnica salva.',
-      'success'
-    );
-
-    window.setTimeout(
-      () => {
-        closeModal(
-          'settingsModal'
-        );
-
-        window.location.reload();
-      },
-      400
-    );
   }
 
   function switchView(view){document.querySelectorAll('.main-nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['Launch','Movements','Close'].forEach(v=>$('view'+v).classList.toggle('hidden',v.toLowerCase()!==view));window.scrollTo({top:0,behavior:'smooth'});}
@@ -2608,7 +2862,26 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
     );
 
     $('clientInput').addEventListener('input',renderClientSuggestions);$('clientInput').addEventListener('focus',renderClientSuggestions);$('clientSuggestions').addEventListener('click',e=>{const b=e.target.closest('[data-client-id]');if(b)selectClient(state.clients.find(c=>c.id===b.dataset.clientId));});$('btnAddClient').addEventListener('click',addClient);
-    $('btnOpenWithdrawal').addEventListener('click',()=>{if(state.closure)return status('launchStatus','O caixa de hoje já foi fechado.','warning');$('withdrawalAvailable').textContent=money(state.summary?.expectedCashCents||0);$('withdrawalAmount').value='';$('withdrawalDestination').value='Financeiro';$('withdrawalNotes').value='';$('withdrawalDeclaration').checked=false;updateWithdrawalMath();clearStatus('withdrawalStatus');openModal('withdrawalModal');});
+    $('btnOpenWithdrawal').addEventListener('click',()=>{
+      if(state.closure){
+        return status(
+          'launchStatus',
+          'O caixa de hoje já foi fechado.',
+          'warning'
+        );
+      }
+
+      state.pendingWithdrawalId='';
+      state.pendingWithdrawalFingerprint='';
+      $('withdrawalAvailable').textContent=money(state.summary?.expectedCashCents||0);
+      $('withdrawalAmount').value='';
+      $('withdrawalDestination').value='Financeiro';
+      $('withdrawalNotes').value='';
+      $('withdrawalDeclaration').checked=false;
+      updateWithdrawalMath();
+      clearStatus('withdrawalStatus');
+      openModal('withdrawalModal');
+    });
     $('withdrawalAmount').addEventListener('input',updateWithdrawalMath);$('btnSaveWithdrawal').addEventListener('click',saveWithdrawal);
     $('countedCash').addEventListener('input',updateCloseMath);$('closingWithdrawal').addEventListener('input',updateCloseMath);$('btnCloseCash').addEventListener('click',closeCash);
     $('btnConfirmManualPix')
@@ -2644,14 +2917,33 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
     $('btnCancelPixTop')
       .addEventListener(
         'click',
-        cancelManualPix
+        leavePixPending
       );
-    $('btnRefresh').addEventListener('click',refresh);$('btnMovementRefresh').addEventListener('click',refresh);$('btnSettings').addEventListener('click',openSettings);$('btnSaveSettings').addEventListener('click',saveSettings);
+    $('btnRefresh').addEventListener('click',refresh);
+    $('btnMovementRefresh').addEventListener('click',refresh);
+
+    $('btnSwitchUnit')?.addEventListener(
+      'click',
+      () => window.CaixaUnitContext?.clearSelection?.()
+    );
+
+    $('pixReceivedDeclaration').addEventListener(
+      'change',
+      () => {
+        $('btnConfirmManualPix').disabled =
+          !$('pixReceivedDeclaration').checked;
+      }
+    );
     document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m&&m.id!=='pixModal')closeModal(m.id);}));
     document.addEventListener('click',e=>{if(!e.target.closest('#clientSection'))$('clientSuggestions').classList.add('hidden');});
   }
 
   clearLegacyPixConfig();
+
+  try {
+    localStorage.removeItem(STORAGE.API);
+  } catch (_) {}
+
   bind();
   refresh();
 })();

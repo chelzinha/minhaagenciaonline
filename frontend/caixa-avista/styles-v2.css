@@ -313,3 +313,23 @@ body[data-entry-type="DESPESA"] .batch-amount small {
 .material-symbols-rounded {
   font-size: 20px;
 }
+
+
+/* CAIXA-STABILIZATION-20260902102544 */
+.pix-received-declaration {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  background: #eef8f4;
+  border-color: #bfe4d5;
+}
+
+#btnConfirmManualPix:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.close-card input:disabled,
+.close-card textarea:disabled,
+.close-card button:disabled {
+  cursor: not-allowed;
+}

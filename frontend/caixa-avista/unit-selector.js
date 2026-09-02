@@ -15,14 +15,9 @@
   let fetchWrapped = false;
   let appLoaded = false;
   let currentUsername = '';
+  let availableUnits = [];
 
-  const apiUrl = () =>
-    String(
-      localStorage.getItem(
-        API_STORAGE
-      ) ||
-      DEFAULT_API_URL
-    ).trim();
+  const apiUrl = () => DEFAULT_API_URL;
 
   const authToken = () =>
     String(
@@ -156,6 +151,10 @@
         return currentUsername;
       },
 
+      canSwitchUnit() {
+        return availableUnits.length > 1;
+      },
+
       clearSelection() {
         if (currentUsername) {
           forgetUnit(currentUsername);
@@ -175,7 +174,7 @@
 
     const script = document.createElement('script');
 
-    script.src = '/caixa-avista/app.js?v=20260901173553';
+    script.src = '/caixa-avista/app.js?v=20260902102544';
     script.async = false;
     script.dataset.caixaApplication = 'true';
 
@@ -617,6 +616,10 @@
       const result =
         await requestUnitAccess(unit.id);
 
+      availableUnits = Array.isArray(result.units)
+        ? result.units
+        : availableUnits;
+
       if (
         !result.ok ||
         !result.selectedUnit
@@ -644,14 +647,9 @@
   async function start() {
     exposeUnitContext();
 
-    /*
-     * Sem URL configurada, mantém o modo local
-     * usado na homologação.
-     */
-    if (!apiUrl()) {
-      loadCaixaApplication();
-      return;
-    }
+    try {
+      localStorage.removeItem(API_STORAGE);
+    } catch (_) {}
 
     mountGate();
 
@@ -675,6 +673,9 @@
       }
 
       currentUsername = access.username;
+      availableUnits = Array.isArray(access.units)
+        ? access.units
+        : [];
 
       const storedUnitId =
         rememberedUnit(access.username);

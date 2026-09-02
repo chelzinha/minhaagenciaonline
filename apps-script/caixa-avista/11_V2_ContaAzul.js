@@ -14,37 +14,123 @@ function v2ContaAzulPayload_(entry) {
   var contactId=entry.type==='RECEITA'?String(unit.default_revenue_contact_ca_id||''):String(unit.default_expense_contact_ca_id||'');
   var value=Number(entry.amountCents||0)/100;
   var descricaoContaAzul=v2ContaAzulDescricao_(entry,unit);
-  var body={data_competencia:entry.date,valor:value,observacao:'Caixa à Vista | '+descricaoContaAzul+' | ID: '+entry.id,descricao:descricaoContaAzul,contato:contactId,conta_financeira:entry.accountContaAzulId,rateio:[{id_categoria:entry.categoryContaAzulId,valor:value,rateio_centro_custo:[{id_centro_custo:entry.costCenterContaAzulId,valor:value}]}],condicao_pagamento:{parcelas:[{descricao:descricaoContaAzul,data_vencimento:entry.date,nota:'Baixa manual pelo financeiro. Forma informada: '+entry.paymentName,conta_financeira:entry.accountContaAzulId,detalhe_valor:{multa:0,juros:0,valor_bruto:value,valor_liquido:value,desconto:0,taxa:0},metodo_pagamento:entry.paymentContaAzulMethod}]}};
+  var body={data_competencia:entry.date,valor:value,observacao:'Caixa à Vista | '+descricaoContaAzul+' | ID: '+entry.id,descricao:descricaoContaAzul,contato:contactId,conta_financeira:entry.accountContaAzulId,rateio:[{id_categoria:entry.categoryContaAzulId,valor:value,rateio_centro_custo:[{id_centro_custo:entry.costCenterContaAzulId,valor:value}]}],condicao_pagamento:{parcelas:[{descricao:descricaoContaAzul,data_vencimento:entry.date,nota:'Baixa manual no Conta Azul. Forma registrada no caixa: '+entry.paymentName,conta_financeira:entry.accountContaAzulId,detalhe_valor:{multa:0,juros:0,valor_bruto:value,valor_liquido:value,desconto:0,taxa:0},metodo_pagamento:entry.paymentContaAzulMethod}]}};
   return {ready:Boolean(contactId&&entry.accountContaAzulId&&entry.categoryContaAzulId&&entry.costCenterContaAzulId&&entry.paymentContaAzulMethod),body:body};
 }
 
-function processContaAzulQueueV2(limitValue) {
-  var env=v2Environment_(),limit=Math.max(1,Math.min(100,Number(limitValue||20))),rows=v2ReadObjects_(env.caQueue,CAIXA_V2_CFG.HEADERS.CA_QUEUE),processed=0;
-  for(var i=0;i<rows.length&&processed<limit;i++){
-    var item=rows[i],status=String(item.status),protocol=String(item.protocol||'');
-    if(['PENDENTE','ERRO','AGUARDANDO_PROTOCOLO'].indexOf(status)<0)continue;
-    try{
-      if(status==='AGUARDANDO_PROTOCOLO'&&protocol){
-        var protocolResult=v2CheckContaAzulProtocol_(protocol);
-        v2ApplyProtocolResult_(env,item,i,protocolResult);
-      }else{
-        var body=JSON.parse(String(item.payload_json||'{}'));
-        var endpoint=String(item.entry_type)==='DESPESA'?'/v1/financeiro/eventos-financeiros/contas-a-pagar':'/v1/financeiro/eventos-financeiros/contas-a-receber';
-        var result=v2ContaAzulFetch_(endpoint,{method:'post',contentType:'application/json',payload:JSON.stringify(body),muteHttpExceptions:true});
-        var code=result.getResponseCode(),data=JSON.parse(result.getContentText()||'{}');
-        if(code<200||code>=300)throw new Error('HTTP '+code+': '+(data.message||data.error||result.getContentText()));
-        protocol=String(data.protocolo||data.protocolId||'');
-        if(!protocol)throw new Error('Conta Azul não retornou o protocolo da operação.');
-        v2ApplyProtocolResult_(env,item,i,{protocol:protocol,status:String(data.status||'PENDING').toUpperCase(),message:String(data.mensagem||data.message||'')});
-      }
-    }catch(error){
-      v2SetQueueRow_(env,i+2,'ERRO',Number(item.attempts||0)+1,protocol,String(error.message||error),item.created_at||new Date());
-      v2UpdateEntryContaAzul_(env,String(item.entry_id),'ERRO',protocol,String(error.message||error));
-      v2RefreshClosureContaAzulStatus_(env,String(item.closure_id));
+function processContaAzulQueueV2(limitValue, closureIdValue) {
+  var env = v2Environment_();
+
+  var parsedLimit = Number(limitValue);
+  var limit = isFinite(parsedLimit) && parsedLimit > 0
+    ? Math.max(1, Math.min(100, parsedLimit))
+    : 20;
+
+  var closureFilter = String(closureIdValue || '').trim();
+  var rows = v2ReadObjects_(
+    env.caQueue,
+    CAIXA_V2_CFG.HEADERS.CA_QUEUE
+  );
+
+  var processed = 0;
+
+  for (var i = 0; i < rows.length && processed < limit; i += 1) {
+    var item = rows[i];
+    var status = String(item.status || '');
+    var protocol = String(item.protocol || '');
+    var attempts = Number(item.attempts || 0);
+
+    if (closureFilter && String(item.closure_id || '') !== closureFilter) {
+      continue;
     }
-    processed++;
+
+    if (['PENDENTE','ERRO','AGUARDANDO_PROTOCOLO'].indexOf(status) < 0) {
+      continue;
+    }
+
+    if (attempts >= 12 && status === 'ERRO') {
+      continue;
+    }
+
+    try {
+      if (status === 'AGUARDANDO_PROTOCOLO' && protocol) {
+        var protocolResult = v2CheckContaAzulProtocol_(protocol);
+        v2ApplyProtocolResult_(env,item,i,protocolResult);
+      } else {
+        var body = JSON.parse(String(item.payload_json || '{}'));
+        var endpoint = String(item.entry_type) === 'DESPESA'
+          ? '/v1/financeiro/eventos-financeiros/contas-a-pagar'
+          : '/v1/financeiro/eventos-financeiros/contas-a-receber';
+
+        var result = v2ContaAzulFetch_(endpoint,{
+          method:'post',
+          contentType:'application/json',
+          payload:JSON.stringify(body),
+          muteHttpExceptions:true
+        });
+
+        var code = result.getResponseCode();
+        var content = result.getContentText() || '{}';
+        var data = {};
+
+        try {
+          data = JSON.parse(content);
+        } catch (_) {}
+
+        if (code < 200 || code >= 300) {
+          throw new Error(
+            'HTTP ' + code + ': ' +
+            (data.message || data.error || content)
+          );
+        }
+
+        protocol = String(data.protocolo || data.protocolId || '');
+
+        if (!protocol) {
+          throw new Error(
+            'Conta Azul não retornou o protocolo da operação.'
+          );
+        }
+
+        v2ApplyProtocolResult_(env,item,i,{
+          protocol:protocol,
+          status:String(data.status || 'PENDING').toUpperCase(),
+          message:String(data.mensagem || data.message || '')
+        });
+      }
+    } catch(error) {
+      v2SetQueueRow_(
+        env,
+        i+2,
+        'ERRO',
+        attempts+1,
+        protocol,
+        String(error.message || error),
+        item.created_at || new Date()
+      );
+
+      v2UpdateEntryContaAzul_(
+        env,
+        String(item.entry_id),
+        'ERRO',
+        protocol,
+        String(error.message || error)
+      );
+
+      v2RefreshClosureContaAzulStatus_(
+        env,
+        String(item.closure_id)
+      );
+    }
+
+    processed += 1;
   }
-  return {ok:true,processed:processed};
+
+  return {
+    ok:true,
+    processed:processed,
+    closureId:closureFilter
+  };
 }
 
 function v2CheckContaAzulProtocol_(protocol) {
@@ -102,11 +188,61 @@ function v2ContaAzulToken_() {
 }
 
 function v2RefreshContaAzulToken_() {
-  var props=PropertiesService.getScriptProperties(),clientId=props.getProperty(CAIXA_V2_CFG.PROPS.CA_CLIENT_ID),secret=props.getProperty(CAIXA_V2_CFG.PROPS.CA_CLIENT_SECRET),refresh=props.getProperty(CAIXA_V2_CFG.PROPS.CA_REFRESH_TOKEN);
-  if(!clientId||!secret||!refresh)throw new Error('Credenciais OAuth do Conta Azul não configuradas.');
-  var response=UrlFetchApp.fetch(CAIXA_V2_CFG.CONTA_AZUL_TOKEN_URL,{method:'post',contentType:'application/x-www-form-urlencoded',headers:{Authorization:'Basic '+Utilities.base64Encode(clientId+':'+secret)},payload:{grant_type:'refresh_token',refresh_token:refresh},muteHttpExceptions:true});
-  var data=JSON.parse(response.getContentText()||'{}');if(response.getResponseCode()<200||response.getResponseCode()>=300)throw new Error(data.error_description||data.error||'Falha ao renovar token Conta Azul.');
-  props.setProperty(CAIXA_V2_CFG.PROPS.CA_ACCESS_TOKEN,data.access_token);props.setProperty(CAIXA_V2_CFG.PROPS.CA_REFRESH_TOKEN,data.refresh_token);props.setProperty(CAIXA_V2_CFG.PROPS.CA_EXPIRES_AT,String(Date.now()+Number(data.expires_in||3600)*1000));return data.access_token;
+  var props = PropertiesService.getScriptProperties();
+  var clientId = props.getProperty(CAIXA_V2_CFG.PROPS.CA_CLIENT_ID);
+  var secret = props.getProperty(CAIXA_V2_CFG.PROPS.CA_CLIENT_SECRET);
+  var refresh = props.getProperty(CAIXA_V2_CFG.PROPS.CA_REFRESH_TOKEN);
+
+  if (!clientId || !secret || !refresh) {
+    throw new Error('Credenciais OAuth do Conta Azul não configuradas.');
+  }
+
+  var response = UrlFetchApp.fetch(
+    CAIXA_V2_CFG.CONTA_AZUL_TOKEN_URL,
+    {
+      method:'post',
+      contentType:'application/x-www-form-urlencoded',
+      headers:{
+        Authorization:'Basic ' + Utilities.base64Encode(clientId + ':' + secret)
+      },
+      payload:{
+        grant_type:'refresh_token',
+        refresh_token:refresh
+      },
+      muteHttpExceptions:true
+    }
+  );
+
+  var data = JSON.parse(response.getContentText() || '{}');
+
+  if (response.getResponseCode() < 200 || response.getResponseCode() >= 300) {
+    throw new Error(
+      data.error_description ||
+      data.error ||
+      'Falha ao renovar token Conta Azul.'
+    );
+  }
+
+  if (!data.access_token) {
+    throw new Error('Conta Azul não retornou access_token.');
+  }
+
+  props.setProperty(
+    CAIXA_V2_CFG.PROPS.CA_ACCESS_TOKEN,
+    data.access_token
+  );
+
+  props.setProperty(
+    CAIXA_V2_CFG.PROPS.CA_REFRESH_TOKEN,
+    data.refresh_token || refresh
+  );
+
+  props.setProperty(
+    CAIXA_V2_CFG.PROPS.CA_EXPIRES_AT,
+    String(Date.now() + Number(data.expires_in || 3600) * 1000)
+  );
+
+  return data.access_token;
 }
 
 function contaAzulExchangeCodeV2(code) {

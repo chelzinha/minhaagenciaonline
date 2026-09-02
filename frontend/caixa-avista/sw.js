@@ -1,12 +1,13 @@
-const CACHE = 'caixa-balcao-api-padrao-20260901173553';
+const CACHE = 'caixa-balcao-stable-20260902102544';
 const ASSETS = [
   '/caixa-avista/',
   '/caixa-avista/index.html',
   '/caixa-avista/styles-v2.css',
-  '/caixa-avista/app.js?v=20260901173553',
-  '/caixa-avista/unit-selector.js?v=20260901173553',
-  '/caixa-avista/app-v2.js?v=20260901173553',
-  '/caixa-avista/manifest.webmanifest'
+  '/caixa-avista/app.js?v=20260902102544',
+  '/caixa-avista/unit-selector.js?v=20260902102544',
+  '/caixa-avista/app-v2.js?v=20260902102544',
+  '/caixa-avista/manifest.webmanifest',
+  '/caixa-avista/vendor/qrcode.min.js?v=20260902102544'
 ];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));

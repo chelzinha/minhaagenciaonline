@@ -1,121 +1,85 @@
-# Caixa à Vista V1 - Frontend
+# Caixa Balcão — AGF José Bonifácio
 
-Data da arquitetura: 30/08/2026.
+Arquitetura estabilizada em 01/09/2026.
 
-## Objetivo
+## Rota ativa
 
-Nova interface de caixa para atendimentos de balcão da AGF José Bonifácio. Esta rota é independente do caixa legado e deve ser homologada em `/caixa-avista/` antes de qualquer substituição de `/caixa/`.
+- Frontend: `/caixa-avista/`
+- Hospedagem: Netlify
+- Backend: Google Apps Script em `apps-script/caixa-avista`
+- Autenticação: Portal AGF em `apps-script/autenticacao`
+- Frontend ativo: `unit-selector.js -> app.js -> app-v2.js`
 
-## Fluxo principal
+Os arquivos modulares antigos `app-*.js` que não fazem parte dessa cadeia são legado e não devem receber novas funcionalidades.
 
-1. Escolher Dinheiro, Pix, Débito ou Crédito.
-2. Pesquisar o cliente por qualquer palavra do nome.
-3. Selecionar um cadastro existente ou tocar no ícone `+` para criar o nome digitado.
-4. Ajustar a quantidade de objetos, quando necessário.
-5. Digitar o valor total no teclado próprio, no padrão de maquineta.
-6. Registrar o recebimento.
-7. No Pix, tentar primeiro o provedor Santander e usar o Pix local como contingência automática.
+## Fluxo de acesso
 
-## Busca de clientes
+1. Usuário entra pelo Portal AGF.
+2. O token precisa conter o módulo `caixa`.
+3. O backend exige autenticação em modo `enforce`.
+4. `Biblioteca_Usuarios` define as unidades e permissões financeiras.
+5. Usuário de uma unidade entra automaticamente.
+6. Usuário de duas unidades escolhe e pode trocar a unidade no cabeçalho.
 
-- procura em qualquer parte do nome;
-- aceita palavras em qualquer ordem;
-- ignora maiúsculas, minúsculas, acentos, cedilha e espaços extras;
-- impede duplicidade exata após normalização;
-- carrega os clientes uma vez e pesquisa localmente no navegador.
+## Pagamentos de produção
 
-Exemplos que encontram `LOJA RAQUEL MODA`:
+Ativos:
+- Dinheiro
+- Pix Santander
+- Débito Cielo
+- Crédito Cielo
+- Débito Infinity
+- Crédito Infinity
 
-- `raquel`
-- `moda`
-- `raquel moda`
-- `moda raquel`
+Pix Infinity e Pix BTG ficam inativos.
 
-## Modos de operação
+Pix Santander:
+- somente receita em modo Atender;
+- não aceita lote;
+- não aparece em despesas;
+- BR Code estático com valor e TXID único;
+- lançamento nasce PENDENTE;
+- atendente precisa marcar que conferiu o crédito antes de confirmar;
+- cancelamento é exclusão lógica auditada;
+- cobrança pendente pode ser reaberta em Mov.;
+- chave e recebedor vêm exclusivamente da planilha.
 
-### Homologação local
+## Caixa físico
 
-Quando a URL do Apps Script está vazia, clientes, movimentos e fechamentos ficam no `localStorage` do navegador. Esse modo permite validar o fluxo e o layout sem tocar em produção.
+Dinheiro esperado:
+saldo inicial + receitas em dinheiro - despesas em dinheiro - sangrias.
 
-### Conectado
+Pix e cartões nunca alteram o numerário físico.
 
-Ao informar a URL do novo Web App em Configurações, o frontend usa o backend em `apps-script/caixa-avista`.
+## Fechamento
 
-## Pix com provedor automático
+- bloqueado com Pix pendente;
+- exige declaração;
+- divergência exige justificativa;
+- mostra confirmação final dos valores;
+- usa a data do servidor (America/Fortaleza);
+- grava fechamento, PDF e fila do Conta Azul sob lock;
+- tenta processar a fila imediatamente e mantém trigger de retentativa.
 
-A configuração interna usa:
+## Conta Azul
 
-```json
-{
-  "pixProvider": "auto",
-  "pixApiBase": "/api/santander/pix"
-}
-```
+A integração cria:
+- receitas em Contas a Receber;
+- despesas em Contas a Pagar.
 
-Com `auto`, o frontend:
+Não realiza baixa automática. A baixa é manual no Conta Azul.
 
-1. tenta criar a cobrança dinâmica no Worker Santander;
-2. recebe `txid`, Pix Copia e Cola e status;
-3. salva o lançamento imediatamente com o mesmo identificador;
-4. consulta o status enquanto o QR Code está ativo;
-5. atualiza o lançamento quando o webhook ou a consulta confirmar o pagamento;
-6. usa a geração local se o Worker ainda estiver desativado ou indisponível.
+Por exigência da API do Conta Azul, cada evento usa uma única parcela técnica na condição de pagamento, com a mesma data do lançamento para competência e vencimento. Isso não representa parcelamento comercial.
 
-O fallback local continua usando chave, nome e cidade configurados no Apps Script ou na tela de homologação.
+Mapeamentos de contato, conta financeira, categoria e centro de custo vêm das bibliotecas do Caixa.
 
-## Status Pix
+## Idempotência
 
-- `CRIANDO`
-- `ATIVA`
-- `PENDENTE`
-- `CONFIRMADO`
-- `EXPIRADO`
-- `CANCELADO`
-- `ERRO`
+Receitas, despesas, lotes e sangrias usam identificadores estáveis. Repetir uma requisição após timeout não deve criar duplicidade.
 
-O fechamento operacional fica bloqueado enquanto houver Pix diferente de `CONFIRMADO`.
+## Arquivos de estabilização
 
-## Cloudflare
+- `apps-script/caixa-avista/17_V2_Production_Stabilization.js`
+- `apps-script/autenticacao/09_CAIXA_ACCESS_MIGRATION.js`
 
-O frontend está no Cloudflare Pages.
-
-As rotas `/api/santander/pix/*` são atendidas por uma Pages Function em:
-
-```text
-functions/api/santander/pix/[[path]].js
-```
-
-Ela encaminha as requisições ao Worker dedicado pelo Service Binding:
-
-```text
-SANTANDER_PIX_SERVICE
-```
-
-Apenas essas rotas invocam Pages Functions, conforme `frontend/_routes.json`.
-
-## Arquivos principais
-
-- `index.html`: estrutura da interface;
-- `styles.css`: design mobile-first;
-- `app.js`: carregador dos módulos;
-- `app-pix-provider.js`: Santander, fallback local e consulta automática;
-- `app-sales-pix.js`: fluxo do atendimento Pix;
-- `app-repository.js`: persistência local ou Apps Script;
-- `manifest.webmanifest`: instalação como aplicativo;
-- `sw.js`: cache da rota e dos módulos.
-
-## Dependência visual do QR Code
-
-A V1 usa `qrcodejs` pelo jsDelivr. O Pix Copia e Cola continua disponível caso a biblioteca visual não carregue. Antes da publicação definitiva, a biblioteca pode ser versionada localmente para eliminar a dependência externa.
-
-## Testes já executados
-
-- validação sintática de todos os módulos;
-- normalização de acentos e cedilha;
-- valor Pix embutido no fallback local;
-- CRC16 do BR Code local;
-- importação em lote;
-- resumo de receitas, despesas, saldo e Pix pendente;
-- criação do adaptador Santander sem credenciais no frontend;
-- atualização automática por `txid` e `e2eid`;
-- bloqueio do fechamento com cobrança Pix em aberto.
+Execute as migrações somente após backup e antes da homologação final.

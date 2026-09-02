@@ -69,8 +69,40 @@ function doPost(e) {
 
     var gate = agfGateCheck_(request.st, 'POST ' + action);
     if (!gate.allowed) return jsonOutput_(agfGateDeniedResponse_());
+
+    if (gate.mode !== 'enforce') {
+      return jsonOutput_(fail_(
+        'O Caixa está bloqueado até a autenticação de produção ser ativada.',
+        'AUTH_ENFORCE_REQUIRED'
+      ));
+    }
+
+    var tokenApps = gate.user && Array.isArray(gate.user.apps)
+      ? gate.user.apps.map(function(item){ return String(item || '').toLowerCase(); })
+      : [];
+
+    if (tokenApps.indexOf('caixa') < 0) {
+      return jsonOutput_(fail_(
+        'Seu usuário não possui acesso ao módulo Caixa.',
+        'APP_ACCESS_REQUIRED'
+      ));
+    }
+
     var user = normalizeUser_(gate.user);
     user.requestedUnitId = cleanText_(request.unitId);
+
+    var adminOnly = {
+      processContaAzulQueue: true,
+      syncContaAzulLibrary: true,
+      retryPdfs: true
+    };
+
+    if (adminOnly[action] && user.role !== 'admin') {
+      return jsonOutput_(fail_(
+        'Ação disponível somente para administrador.',
+        'ADMIN_REQUIRED'
+      ));
+    }
 
     switch (action) {
       case 'unitAccess': return jsonOutput_(v2UnitAccessResponse_(user, request.unitId));
