@@ -20,6 +20,7 @@
     for (let index = 0; index < 9; index += 1) {
       sum += Number(digits[index]) * (10 - index);
     }
+
     let check = (sum * 10) % 11;
     if (check === 10) check = 0;
     if (check !== Number(digits[9])) return false;
@@ -28,6 +29,7 @@
     for (let index = 0; index < 10; index += 1) {
       sum += Number(digits[index]) * (11 - index);
     }
+
     check = (sum * 10) % 11;
     if (check === 10) check = 0;
 
@@ -41,7 +43,12 @@
     const calculate = (base, weights) => {
       const sum = base
         .split('')
-        .reduce((total, digit, index) => total + Number(digit) * weights[index], 0);
+        .reduce(
+          (total, digit, index) =>
+            total + Number(digit) * weights[index],
+          0
+        );
+
       const remainder = sum % 11;
       return remainder < 2 ? 0 : 11 - remainder;
     };
@@ -59,47 +66,40 @@
     return digits.slice(-2) === String(first) + String(second);
   }
 
-  function normalizeDocumentPixKey(value) {
+  function isValidNumericDocumentKey(value) {
     const key = String(value == null ? '' : value).trim();
 
-    if (!key || !onlyDigits(key)) return key;
-    if (key.length === 11 && isValidCpf(key)) return key;
-    if (key.length === 14 && isValidCnpj(key)) return key;
+    if (!onlyDigits(key)) return true;
+    if (key.length === 11) return isValidCpf(key);
+    if (key.length === 14) return isValidCnpj(key);
 
-    if (key.length < 11) {
-      const cpf = key.padStart(11, '0');
-      if (isValidCpf(cpf)) return cpf;
-    }
-
-    if (key.length < 14) {
-      const cnpj = key.padStart(14, '0');
-      if (isValidCnpj(cnpj)) return cnpj;
-    }
-
-    return key;
+    return false;
   }
 
-  function normalizeLibraryResponse(payload) {
+  function validateLibraryResponse(payload) {
     const payments = payload?.library?.payments;
     if (!Array.isArray(payments)) return false;
 
     let changed = false;
 
     payments.forEach(payment => {
-      const original = String(payment?.pixKey == null ? '' : payment.pixKey).trim();
-      const normalized = normalizeDocumentPixKey(original);
+      const key = String(
+        payment?.pixKey == null ? '' : payment.pixKey
+      ).trim();
 
-      if (normalized && normalized !== original) {
-        payment.pixKey = normalized;
-        changed = true;
-      }
-    });
+      if (!key || isValidNumericDocumentKey(key)) return;
 
-    if (changed) {
-      console.info(
-        '[CAIXA_PIX_SAFETY] Chave Pix documental normalizada para preservar zeros à esquerda.'
+      payment.pixKey = '';
+      changed = true;
+
+      console.error(
+        '[CAIXA_PIX_SAFETY] Chave Pix numérica inválida na configuração. A cobrança foi bloqueada até a correção da planilha.',
+        {
+          paymentId: String(payment?.id || ''),
+          unitId: String(payload?.library?.unit?.id || '')
+        }
       );
-    }
+    });
 
     return changed;
   }
@@ -117,7 +117,7 @@
       const clone = response.clone();
       const payload = await clone.json();
 
-      if (!normalizeLibraryResponse(payload)) return response;
+      if (!validateLibraryResponse(payload)) return response;
 
       const headers = new Headers(response.headers);
       headers.delete('content-length');
@@ -146,9 +146,15 @@
       if (url.hostname !== 'wa.me') return value;
 
       const message = url.searchParams.get('text');
-      if (!message || !message.includes('Pix Copia e Cola:')) return value;
+      if (!message || !message.includes('Pix Copia e Cola:')) {
+        return value;
+      }
 
-      url.searchParams.set('text', formatPixMessage(message));
+      url.searchParams.set(
+        'text',
+        formatPixMessage(message)
+      );
+
       return url.toString();
     } catch (_) {
       return value;
@@ -165,15 +171,22 @@
 
   try {
     if (navigator.clipboard?.writeText) {
-      const previousWriteText = navigator.clipboard.writeText.bind(navigator.clipboard);
-      navigator.clipboard.writeText = text => previousWriteText(formatPixMessage(text));
+      const previousWriteText =
+        navigator.clipboard.writeText.bind(
+          navigator.clipboard
+        );
+
+      navigator.clipboard.writeText = text =>
+        previousWriteText(
+          formatPixMessage(text)
+        );
     }
   } catch (_) {
     // Alguns navegadores não permitem sobrescrever Clipboard.writeText.
   }
 
   window.CaixaPixSafety = Object.freeze({
-    normalizePixKey: normalizeDocumentPixKey,
+    isValidNumericDocumentKey,
     isValidCpf,
     isValidCnpj,
     formatPixMessage
