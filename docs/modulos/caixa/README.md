@@ -2,95 +2,108 @@
 
 **Module ID:** `caixa`  
 **Tipo:** interno financeiro/operacional  
-**Rotas confirmadas no repositório:** `/caixa` e `/intra/caixa`  
-**Frontends:** `frontend/caixa` e `frontend/intra/caixa`  
+**Rota oficial:** `/caixa`  
+**Frontend oficial:** `frontend/caixa`  
 **Backend provável:** `apps-script/caixa`  
-**PWA em `/caixa`:** manifest + service worker confirmados  
+**PWA:** manifest + service worker confirmados em `/caixa`  
 **Dados sensíveis:** SIM
 
 ## 1. Finalidade
 
 Apoiar rotinas de caixa e controles financeiros/operacionais internos da AGF.
 
-## 2. Estrutura confirmada
+## 2. Decisão arquitetural vigente
 
-### Rota `/caixa`
+Em 05/09/2026 foi definido que o Caixa oficial da Plataforma AGF é exclusivamente:
 
-O frontend contém:
+- rota: `/caixa/`;
+- frontend: `frontend/caixa/`.
+
+A antiga implementação `/intra/caixa/` foi classificada como legado sem uso e removida definitivamente da `main`.
+
+Não existe política de compatibilidade ou redirecionamento para `/intra/caixa/`.
+
+O card Caixa exibido no hub `/intra/` deve apontar diretamente para `/caixa/`.
+
+## 3. Estrutura confirmada do frontend oficial
+
+O frontend oficial contém:
 
 - `frontend/caixa/index.html`;
 - `frontend/caixa/legacy-index.html`;
 - `frontend/caixa/manifest.webmanifest`;
 - `frontend/caixa/sw.js`.
 
-A coexistência de `index.html` e `legacy-index.html` indica histórico/transição de versão e exige cuidado para não reintroduzir comportamento antigo por engano.
+A coexistência de `index.html` e `legacy-index.html` indica histórico/transição interna dentro do próprio módulo `/caixa`. O arquivo `legacy-index.html` não deve ser confundido com a antiga rota `/intra/caixa/`, que já foi eliminada.
 
-### Rota `/intra/caixa`
-
-Existe uma implementação própria em `frontend/intra/caixa/index.html`, apresentada pelo hub `/intra` como “Módulo financeiro”. Ela usa o shell visual interno.
-
-## 3. Atenção arquitetural
-
-Hoje existem **duas implementações de frontend para Caixa**. Esta baseline não assume qual é a canônica.
-
-Antes de qualquer consolidação:
-
-1. comparar funções e chamadas de API;
-2. identificar qual está publicada/operacional;
-3. identificar se uma é legado, preview ou substituta;
-4. preservar fluxo funcional;
-5. só depois decidir redirecionamento/arquivamento.
-
-## 4. Arquitetura provável
+## 4. Arquitetura atual
 
 ```text
 Usuário interno
 ↓
-/caixa ou /intra/caixa
+/caixa/
 ↓
-frontend correspondente
+frontend/caixa
 ↓
-apps-script/caixa (vínculo a confirmar por rota)
+apps-script/caixa (vínculo detalhado ainda a confirmar)
 ↓
 Planilhas/controles financeiros NÃO MAPEADOS nesta baseline
 ```
 
-## 5. Segurança
+## 5. Autenticação e autorização
+
+A configuração central `apps-script/autenticacao/00_CFG.js` registra o app `caixa` com:
+
+- path `/caixa/`;
+- módulo protegido;
+- roles `admin`, `manager` e `user`.
+
+Isso reforça `/caixa/` como rota oficial do módulo.
+
+## 6. Segurança
 
 **Atenção sensível máxima.** Valores, lançamentos, saldos e possíveis identificadores de clientes exigem autorização de backend, rastreabilidade e isolamento por perfil/unidade.
 
-## 6. Concorrência
+## 7. Concorrência
 
-Rotinas de lançamento/baixa/fechamento devem avaliar `LockService`, idempotência e validação de estado antes da escrita.
+Rotinas de lançamento, baixa, sangria e fechamento devem avaliar `LockService`, idempotência e validação de estado antes da escrita.
 
-## 7. UX/UI
+## 8. UX/UI
 
-A implementação que permanecer canônica deve convergir para shell AGF, avatar, logout, topbar e componentes compartilhados sem reescrever regra funcional.
+O módulo oficial deve permanecer integrado à identidade visual AGF e aos componentes compartilhados sem reescrever regras financeiras funcionais.
 
-## 8. Performance
+O acesso ao Caixa a partir de outros hubs ou menus deve sempre usar URL absoluta `/caixa/` para evitar recriação acidental de caminhos relativos dentro de `/intra/`.
+
+## 9. Performance e PWA
 
 - evitar recarregar histórico financeiro completo;
 - usar filtros por período/unidade;
-- respostas agregadas para cards;
+- usar respostas agregadas para cards;
 - cache apenas para leitura segura;
-- nenhuma escrita financeira baseada em cache desatualizado.
+- nenhuma escrita financeira baseada em cache desatualizado;
+- ao alterar rotas pré-cacheadas, incrementar a versão do service worker correspondente.
 
-## 9. Testes mínimos
+Na remoção de `/intra/caixa/`, a referência antiga foi retirada do service worker de `/intra` e a versão do cache foi incrementada para descartar o conteúdo legado em clientes existentes.
 
-- autenticação/permissão nas duas rotas;
-- comparar funções disponíveis;
+## 10. Testes mínimos
+
+- autenticação e permissão em `/caixa/`;
+- acesso direto pelo portal `/agf/`;
+- acesso pelo card Caixa de `/intra/`;
+- confirmar ausência de `/intra/caixa/`;
 - lançamento/consulta/fechamento conforme funções existentes;
 - concorrência e dupla submissão;
 - estado vazio;
 - erro de backend;
 - desktop/mobile;
-- cache/service worker em `/caixa`;
+- cache/service worker do módulo;
 - comparação com `legacy-index.html` somente quando necessária.
 
-## 10. Pendências
+## 11. Pendências
 
-- definir rota/frontend canônico;
-- mapear actions, planilhas, abas e chaves de cada implementação;
-- confirmar autenticação AGF;
-- classificar cada implementação M0-M5;
-- definir política de remoção futura do legado apenas após comprovar ausência de dependências.
+- mapear actions do frontend oficial;
+- mapear planilhas, abas, chaves e schemas do Caixa;
+- confirmar integralmente frontend -> action -> Apps Script -> planilha;
+- validar regras de permissão por unidade quando aplicável;
+- classificar o módulo oficial em M0-M5;
+- avaliar futuramente se `frontend/caixa/legacy-index.html` ainda precisa permanecer, sem relação com a antiga rota `/intra/caixa/`.
