@@ -4,8 +4,8 @@
 
 function ATENDE_lerCsv_(file) {
   let text = file.getBlob().getDataAsString('UTF-8');
-  text = String(text || '').replace(/^\uFEFF/, '').trim();
-  if (!text) throw new Error('O arquivo CSV esta vazio: ' + file.getName());
+  text = String(text || '').replace(/^\uFEFF/, '');
+  if (!text.trim()) throw new Error('O arquivo CSV esta vazio: ' + file.getName());
 
   const matrix = Utilities.parseCsv(text, ';');
   if (!matrix || matrix.length < 2) throw new Error('O CSV nao possui linhas de dados: ' + file.getName());
@@ -18,15 +18,27 @@ function ATENDE_lerCsv_(file) {
   });
   if (missing.length) throw new Error('CSV com estrutura inesperada. Cabecalhos ausentes: ' + missing.join(', '));
 
-  const rows = matrix.slice(1).filter(function(row) {
-    return row.some(function(value) { return ATENDE_cleanCsvValue_(value) !== ''; });
+  // rawRows preserva literalmente o valor de cada celula lida do CSV.
+  // Nao converte "null", nao remove espacos e nao normaliza numeros.
+  // Essa matriz alimenta exclusivamente a camada RAW imutavel do D1.
+  const rawRows = matrix.slice(1).filter(function(row) {
+    return row.some(function(value) { return String(value == null ? '' : value) !== ''; });
   }).map(function(row) {
     const obj = {};
-    headers.forEach(function(header, index) { obj[header] = ATENDE_cleanCsvValue_(row[index]); });
+    headers.forEach(function(header, index) {
+      obj[header] = row[index] === null || row[index] === undefined ? '' : String(row[index]);
+    });
     return obj;
   });
 
-  return { text: text, headers: headers, rows: rows };
+  // rows continua normalizada para compatibilidade com os fluxos legados.
+  const rows = rawRows.map(function(raw) {
+    const obj = {};
+    headers.forEach(function(header) { obj[header] = ATENDE_cleanCsvValue_(raw[header]); });
+    return obj;
+  });
+
+  return { text: text, headers: headers, rows: rows, rawRows: rawRows };
 }
 
 function ATENDE_mapearLinhaCsv_(raw) {
@@ -37,9 +49,6 @@ function ATENDE_mapearLinhaCsv_(raw) {
   const objectCode = normalizeObjectCode_(ATENDE_cleanCsvValue_(raw.CODIGO_OBJETO));
 
   return {
-    // Metadados tecnicos exclusivos da importacao CSV. Eles nao entram nas
-    // 41 colunas canonicas do painel e ficam disponiveis para idempotencia,
-    // diagnostico e futura evolucao do schema sem distorcer campos legados.
     csvAtendimentoId: ATENDE_cleanCsvValue_(raw.ATENDIMENTO),
     csvModalidadePagamento: paymentMode,
     csvMcu: ATENDE_cleanCsvValue_(raw.MCU),
@@ -74,10 +83,6 @@ function ATENDE_mapearLinhaCsv_(raw) {
     origem: ATENDE_cleanCsvValue_(raw.SISTEMA_POSTAGEM) || 'CSV ATENDE',
     statusDesc: estorno === 'S' ? 'Estornado' : (objectCode ? 'Postado' : 'Atendimento'),
     dtPrevista: '',
-
-    // Nao mapear MODALIDADE_PAGAMENTO para "tipo". O campo legado "tipo"
-    // vem do JSON de atendimento (ex.: AFATURAR_AUTOMATIZADO) e possui
-    // semantica/granularidade diferente de "A FATURAR" / "A VISTA" do CSV.
     tipoAtendimento: '',
     formaPagamentoAtendimento: paymentForm
   };
