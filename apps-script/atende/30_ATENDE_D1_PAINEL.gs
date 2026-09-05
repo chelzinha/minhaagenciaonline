@@ -65,8 +65,26 @@ function ATENDE_buscarDadosD1(params) {
 
   const startedAt = Date.now();
   const response = ATENDE_fetchD1_('/atende?' + query.join('&'), { method: 'get' });
+  let compatibilityMode = false;
   const rows = (response.rows || []).map(function(row) {
     const copy = Object.assign({}, row);
+
+    // Durante a migracao o Worker continua servindo a tabela legada ate a
+    // ativacao explicita da fonte RAW. Este adaptador impede qualquer quebra
+    // do novo HTML nesse intervalo.
+    if (!Object.prototype.hasOwnProperty.call(copy, 'OBJETO')) {
+      compatibilityMode = true;
+      copy.OBJETO = copy.SRO || '';
+      copy['COD SERVICO'] = copy.SERVICO || '';
+      copy.SERVICO = '';
+      copy['NOME CONTRATO'] = '';
+      copy['NOME ATENDENTE'] = '';
+      copy.LOCAL = '';
+      copy._RAW_ID = 0;
+      copy._SRO_DUPLICADO = 0;
+      copy._NOME_REMETENTE_ORIGINAL = copy['NOME REMETENTE'] || '';
+    }
+
     if (copy.VALOR !== '' && copy.VALOR != null) {
       const n = Number(copy.VALOR);
       copy.VALOR = isFinite(n)
@@ -88,7 +106,7 @@ function ATENDE_buscarDadosD1(params) {
     sortKey: String(response.sortKey || sortKey),
     sortDir: String(response.sortDir || sortDir),
     meta: {
-      modoLeitura: 'cloudflare_d1_raw',
+      modoLeitura: compatibilityMode ? 'cloudflare_d1_legacy_transition' : 'cloudflare_d1_raw',
       totalRetornado: rows.length,
       totalValue: Number(response.totalValue || 0),
       page: Number(response.page || page),
