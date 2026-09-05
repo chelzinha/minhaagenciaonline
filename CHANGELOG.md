@@ -23,10 +23,16 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 ### Corrigido
 - A11Y: adicionado `@media (prefers-reduced-motion: reduce)`.
 - Status semantico (`--agf-color-danger/warning/success/info` e os `-soft`)
-  passa a adotar a familia semantica do CRM (`#d6483d`, `#e08a2e`, `#23976b`,
-  `#3b6fd8`), nao a familia legada (`--red/--green/--amber`). Motivo: o CRM usa
-  as duas, mas `--amber` tem 0 usos contra 4 de `--warning`. A familia legada
-  segue declarada como primitivo (`--agf-c-red-600` etc.) para a migracao.
+  resolvido cor a cor, por uso real na tela (`var()` mais hex literal em
+  `crm/styles.css`, fora do `:root`), nao familia a familia. O CRM declara duas
+  familias de status e usa as duas; nenhuma vence sozinha:
+  perigo `#b42318` (9 usos, vence `--danger` 3), sucesso `#15803d` (6 usos,
+  vence `--success` 2), alerta `#e08a2e` (4 usos, vence `--amber` 0) e
+  info `#3b6fd8` (6 usos, sem par legado). `#b42318` e `#15803d` ainda aparecem
+  hardcoded em `.chip.rescue` e `.chip.fidel`, que sao as cores das telas de
+  referencia. Os pares perdedores (`#d6483d`, `#23976b`, `#b45309`) seguem
+  declarados como primitivo, marcados "quase sem uso", para a Rodada N do CRM
+  decidir se elimina um dos dois.
 - `--agf-color-text` NAO adota o `#17354b` do CRM. Fica no `#14324a` do proprio
   agf-ui, porque `--agf-text` aponta para ele e ja tem consumidor. Trocar
   repinta texto em producao e e decisao de Rodada N.
