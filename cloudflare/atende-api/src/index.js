@@ -206,9 +206,11 @@ async function listAtende(url, env) {
   }
 
   const whereSql = where.length ? ` WHERE ${where.join(' AND ')}` : '';
-  const countRow = await env.DB.prepare(`SELECT COUNT(*) AS total FROM atende_postagens${whereSql}`)
-    .bind(...args).first();
-  const total = Number(countRow?.total || 0);
+  const summary = await env.DB.prepare(
+    `SELECT COUNT(*) AS total, COALESCE(SUM(valor_atendimento),0) AS total_value FROM atende_postagens${whereSql}`
+  ).bind(...args).first();
+  const total = Number(summary?.total || 0);
+  const totalValue = Number(summary?.total_value || 0);
 
   const selectSql = PANEL_COLUMNS.map(([field, label]) => `${field} AS "${label}"`).join(', ');
   const result = await env.DB.prepare(
@@ -226,6 +228,7 @@ async function listAtende(url, env) {
     page,
     pageSize,
     total,
+    totalValue,
     pages: Math.max(1, Math.ceil(total / pageSize))
   });
 }
