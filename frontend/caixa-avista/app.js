@@ -19,7 +19,7 @@
   };
 
   const pixSafety = document.createElement('script');
-  pixSafety.src = '/caixa-avista/pix-safety.js?v=20260904220000';
+  pixSafety.src = '/caixa-avista/pix-safety.js?v=20260904212500';
   pixSafety.async = false;
   pixSafety.onload = loadApplication;
   pixSafety.onerror = () => {
