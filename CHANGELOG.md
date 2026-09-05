@@ -2,30 +2,52 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-05 - Baseline documental dos modulos da Plataforma AGF
+
+### Documentado
+- Criado `docs/modulos/` como estrutura oficial de documentacao tecnica por modulo e submodulo.
+- Documentados os principais modulos publicos, de clientes, internos, analiticos e tecnicos compartilhados encontrados na `main`.
+- Atualizado `docs/MAPA_MODULOS.md` para refletir rotas e estruturas atualmente encontradas no repositorio.
+- Registrados como aliases, e nao como modulos independentes, `/intra/agenda` -> `/crm/?view=agenda` e `/intra/crm` -> `/crm/?view=clientes`.
+- Definido `/caixa/` como unica rota oficial do Caixa. A antiga implementacao `/intra/caixa/` foi removida definitivamente da `main`, sem redirect ou compatibilidade; o card Caixa do `/intra` aponta para `/caixa/`.
+- Separado conceitualmente o modulo visual `/intra/logistica` do backend `apps-script/logistica`, hoje relacionado a familia de Logistica Reversa.
+- Criadas documentacoes especificas para os submodulos da familia Reverso e para as visoes de Inteligencia.
+- Criadas documentacoes iniciais para servicos compartilhados como autenticacao, etiquetas, NF-e/DANFE, base-metro, base-cliente-etiquetas e logistica.
+- Informacoes sem evidencia suficiente foram marcadas como `NAO CONFIRMADO`, `NAO IDENTIFICADO` ou `NAO MAPEADO`, em vez de serem inferidas como fato.
+
+### Escopo
+- Baseline documental e organizacao de conhecimento tecnico.
+- A remocao funcional de `/intra/caixa/` foi aplicada separadamente na `main` antes da consolidacao desta documentacao.
+- Este PR documental nao altera Apps Script, planilhas, autenticacao, regras de negocio, dados ou deploy.
+
+### Atencao sensivel
+- A documentacao mapeia modulos que podem tratar dados cadastrais, fiscais, financeiros, rastreios, autenticacao e integracoes externas.
+- Nenhum token, senha, secret, valor de PropertiesService, ID privado ou dado real de cliente foi adicionado.
+
 ## 2026-08-29 - Auditoria Fase 0 da Agenda Comercial
 
 ### Documentado
 - Criado `docs/AGENDA_COMERCIAL_FASE0_AUDITORIA.md` como complemento ao handoff principal da Agenda.
-- Registrados os achados da auditoria visual e técnica: semana útil, excesso de espaço na visão diária, bloqueio atual para atividade avulsa, dependências Cliente/Prospect/Tratativa, ausência de campo próprio de título, duração fixa de 30 minutos no frontend e simplificação proposta para data/horário.
-- Consolidada a recomendação técnica de `ENTIDADE_TIPO=AVULSA`, `ENTIDADE_ID` e `TRATATIVA_ID` vazios, com `TITULO` próprio e aplicabilidade parametrizada por tipo de atividade.
-- Registradas regras para workspace avulso, filtros, permissões, performance, idempotência e não criação de CRM paralelo para contatos avulsos.
+- Registrados os achados da auditoria visual e tecnica: semana util, excesso de espaco na visao diaria, bloqueio atual para atividade avulsa, dependencias Cliente/Prospect/Tratativa, ausencia de campo proprio de titulo, duracao fixa de 30 minutos no frontend e simplificacao proposta para data/horario.
+- Consolidada a recomendacao tecnica de `ENTIDADE_TIPO=AVULSA`, `ENTIDADE_ID` e `TRATATIVA_ID` vazios, com `TITULO` proprio e aplicabilidade parametrizada por tipo de atividade.
+- Registradas regras para workspace avulso, filtros, permissoes, performance, idempotencia e nao criacao de CRM paralelo para contatos avulsos.
 
 ### Escopo
-- Apenas documentação e auditoria.
-- Nenhuma alteração funcional em frontend, Apps Script, planilhas, dados ou deploy.
+- Apenas documentacao e auditoria.
+- Nenhuma alteracao funcional em frontend, Apps Script, planilhas, dados ou deploy.
 
 ## 2026-08-29 - Contexto consolidado da Agenda Comercial
 
 ### Documentado
 - Criado `docs/AGENDA_COMERCIAL_CONTEXTO.md` como handoff para uma frente dedicada de melhoria da Agenda do CRM Comercial.
-- Consolidado o estado funcional já existente: modos Diário/Semanal/Mensal, semana útil, filtros, criação e execução de atividades, pendências vencidas, exportação e integrações com Clientes/Prospects.
-- Registradas decisões anteriores de UX e performance que não devem regredir, incluindo renderização imediata, preservação do cursor de data, filtros próprios e leitura/cache de Agenda em janela.
-- Definida como direção de produto a evolução da Agenda para uma “foto do dia do comercial”, com prioridade para execução diária, pendências, próxima ação, clareza visual, mobile e velocidade percebida.
-- Incluído plano de auditoria, fases de implementação, critérios de sucesso, checklist de regressão e prompt para iniciar uma conversa dedicada.
+- Consolidado o estado funcional ja existente: modos Diario/Semanal/Mensal, semana util, filtros, criacao e execucao de atividades, pendencias vencidas, exportacao e integracoes com Clientes/Prospects.
+- Registradas decisoes anteriores de UX e performance que nao devem regredir, incluindo renderizacao imediata, preservacao do cursor de data, filtros proprios e leitura/cache de Agenda em janela.
+- Definida como direcao de produto a evolucao da Agenda para uma "foto do dia do comercial", com prioridade para execucao diaria, pendencias, proxima acao, clareza visual, mobile e velocidade percebida.
+- Incluido plano de auditoria, fases de implementacao, criterios de sucesso, checklist de regressao e prompt para iniciar uma conversa dedicada.
 
 ### Escopo
-- Apenas documentação e planejamento técnico.
-- Nenhuma alteração funcional em frontend, Apps Script, planilhas, dados, autenticação ou regras comerciais.
+- Apenas documentacao e planejamento tecnico.
+- Nenhuma alteracao funcional em frontend, Apps Script, planilhas, dados, autenticacao ou regras comerciais.
 
 ## 2026-08-18 - Acesso ao emissor DC-e
 
@@ -102,9 +124,9 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 
 * Adicionada estrutura local `.codex/` para apoio ao uso do Codex no projeto.
 * Criado arquivo `.codex/config.toml` com regras locais seguras, sem credenciais.
-* Criado prompt padrão em `.codex/prompts/trabalho-local-seguro.md`.
+* Criado prompt padrao em `.codex/prompts/trabalho-local-seguro.md`.
 * Criado documento `docs/ROTINA_CODEX.md` com o fluxo recomendado de uso do Codex.
-* Nenhuma alteração funcional aplicada.
+* Nenhuma alteracao funcional aplicada.
 
 ## 2026-06-16
 
@@ -175,35 +197,35 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Adicionada relacao entre actions, planilhas, dados e pontos de seguranca.
 - Nenhuma alteracao funcional aplicada.
 
-## 2026-07-06 — CRM Home, Agenda e padronização visual
+## 2026-07-06 - CRM Home, Agenda e padronizacao visual
 
 ### Adicionado
-- Exposição de `homeLocais` na configuração do CRM.
-- Filtros próprios de Local e Responsável na Visão Geral/Home.
-- Padronização visual do CRM em CSS:
+- Exposicao de `homeLocais` na configuracao do CRM.
+- Filtros proprios de Local e Responsavel na Visao Geral/Home.
+- Padronizacao visual do CRM em CSS:
   - `CRM UI Standardization - 2026-07`
   - `CRM UI Refinement 01 - 2026-07`
   - `CRM UI Refinement 02 - 2026-07`
 
 ### Alterado
-- A Visão Geral/Home deixa de herdar filtros das abas Prospects, Clientes e Agenda.
-- A Agenda passa a renderizar imediatamente com dados disponíveis ao trocar período/modo.
-- A troca entre Diário, Semanal e Mensal preserva `state.agendaCursor`.
-- Padronização visual de headers, tabs, control bars, filtros, chips, botões, cards, Agenda, Home e mobile.
-- Inclusão de paleta visual para chips de atividades:
+- A Visao Geral/Home deixa de herdar filtros das abas Prospects, Clientes e Agenda.
+- A Agenda passa a renderizar imediatamente com dados disponiveis ao trocar periodo/modo.
+- A troca entre Diario, Semanal e Mensal preserva `state.agendaCursor`.
+- Padronizacao visual de headers, tabs, control bars, filtros, chips, botoes, cards, Agenda, Home e mobile.
+- Inclusao de paleta visual para chips de atividades:
   - Visita Presencial: `#EA9A06`
-  - Ligação: `#1F63DE`
+  - Ligacao: `#1F63DE`
   - WhatsApp: `#079C54`
   - Email: `#B48414`
-  - Reunião Online: `#027973`
+  - Reuniao Online: `#027973`
   - Proposta: `#E0631D`
   - Retorno: `#0677B4`
   - Treinamento: `#804DF5`
 
 ### Pendente
-- Os filtros multiple select ainda precisam de revisão futura.
-- Decisão técnica desta versão: não continuar refinando agora para evitar regressão visual.
-- A revisão dos filtros multiple select deve ser tratada em branch própria futura.
+- Os filtros multiple select ainda precisam de revisao futura.
+- Decisao tecnica desta versao: nao continuar refinando agora para evitar regressao visual.
+- A revisao dos filtros multiple select deve ser tratada em branch propria futura.
 
 ## 2026-07-07 - CRM Home layout
 
