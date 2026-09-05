@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "agf-atende-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-05",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "agf-atende",
+      "database_id": "868ad2d8-2083-449a-bd09-97b2bf27120f",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
