@@ -1,5 +1,5 @@
 /**
- * CAIXA À VISTA V2 - Router
+ * CAIXA À VISTA V3 - Router
  */
 
 var CFG = {
@@ -63,19 +63,19 @@ function doGet(e) {
     if (action === 'ping') {
       return jsonOutput_({
         ok:true,
-        service:'caixa-avista-v2',
+        service:'caixa-avista-v3',
         date:v2Today_()
       });
     }
 
     return jsonOutput_({
       ok:true,
-      service:'caixa-avista-v2',
+      service:'caixa-avista-v3',
       message:'Use POST para operações do caixa.'
     });
   } catch (error) {
     console.error(
-      '[CAIXA_AVISTA_V2][doGet] ' +
+      '[CAIXA_AVISTA_V3][doGet] ' +
       (error && error.stack ? error.stack : error)
     );
 
@@ -95,7 +95,7 @@ function doPost(e) {
 
     if (action === 'internalPixWebhook') {
       verifyInternalRequest_(request);
-      return jsonOutput_(v2SyncPix_(request.payload || {}));
+      return jsonOutput_(v3SyncPix_(request.payload || {}));
     }
 
     var gate = agfGateCheck_(request.st, 'POST ' + action);
@@ -137,24 +137,24 @@ function doPost(e) {
 
     switch (action) {
       case 'unitAccess': return jsonOutput_(v2UnitAccessResponse_(user, request.unitId));
-      case 'init': return jsonOutput_(v2Init_(request.date, user));
+      case 'init': return jsonOutput_(v3Init_(request.date, user));
       case 'saveClient': return jsonOutput_(v2SaveClient_(request.name, user));
-      case 'saveEntry': return jsonOutput_(v2SaveEntry_(request.payload, user));
-      case 'saveBatch': return jsonOutput_(v2SaveBatch_(request.payloads, user));
+      case 'saveEntry': return jsonOutput_(v3SaveEntry_(request.payload, user));
+      case 'saveBatch': return jsonOutput_(v3SaveBatch_(request.payloads, user));
       case 'deleteEntry': return jsonOutput_(v2DeleteEntry_(request.payload || {}, user));
-      case 'syncPixPayment': return jsonOutput_(v2SyncPix_(request.payload || {}, user));
-      case 'summary': return jsonOutput_(v2Init_(request.date, user));
+      case 'syncPixPayment': return jsonOutput_(v3SyncPix_(request.payload || {}, user));
+      case 'summary': return jsonOutput_(v3Init_(request.date, user));
       case 'setOpeningBalance': return jsonOutput_(v2SetOpeningBalance_(request.date, request.amountCents, user));
       case 'createWithdrawal': return jsonOutput_(v2CreateWithdrawal_(request.payload, user));
-      case 'closeCash': return jsonOutput_(v2Close_(request.payload, user));
+      case 'closeCash': return jsonOutput_(v3CloseCash_(request.payload, user));
       case 'processContaAzulQueue': return jsonOutput_(processContaAzulQueueV2(request.limit));
       case 'syncContaAzulLibrary': return jsonOutput_(syncContaAzulLibraryV2());
       case 'retryPdfs': return jsonOutput_(retryPendingPdfsV2());
-      case 'ping': return jsonOutput_({ ok:true, service:'caixa-avista-v2', date:v2Today_(), authMode:gate.mode });
+      case 'ping': return jsonOutput_({ ok:true, service:'caixa-avista-v3', date:v2Today_(), authMode:gate.mode });
       default: return jsonOutput_(fail_('Ação inválida ou ausente.', 'INVALID_ACTION'));
     }
   } catch (error) {
-    console.error('[CAIXA_AVISTA_V2][doPost] ' + (error && error.stack ? error.stack : error));
+    console.error('[CAIXA_AVISTA_V3][doPost] ' + (error && error.stack ? error.stack : error));
     return jsonOutput_(fail_(error.message || String(error), error.code || 'INTERNAL_ERROR'));
   }
 }
