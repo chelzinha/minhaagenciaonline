@@ -17,65 +17,78 @@ Regra de verdade documental:
 - `NÃO IDENTIFICADO`: a informação não foi encontrada na revisão atual.
 - `ATENÇÃO SENSÍVEL`: envolve dados pessoais, fiscais, credenciais, autenticação ou integrações críticas.
 
-## Módulos documentados nesta baseline
+## Índice principal
 
-| Module ID | Nome | Tipo | Rota principal | Backend principal | Situação documental |
-|---|---|---|---|---|---|
-| plataforma-raiz | Site público AGF | público | `/` | não obrigatório | baseline criada |
-| app | Minhas Postagens | cliente externo | `/app` | `apps-script/etiquetas` + NF externo | baseline criada |
-| nuvem | Minhas Postagens Nuvemshop | cliente externo / integração | `/nuvem` | `apps-script/nuvemshop` | baseline criada |
-| superfrete | Minhas Postagens - Portal do Cliente | cliente externo | `/superfrete` | NÃO CONFIRMADO | baseline criada |
-| superfrete-admin | SuperFrete Admin | interno | `/superfrete-admin` | múltiplos | baseline criada |
-| balcao | Balcão / Etiquetas | interno | `/balcao` | etiquetas + CEP + caixa provável | baseline criada |
-| crm | CRM AGF | interno | `/crm` | `apps-script/base-metro` | baseline criada |
-| atende | Atende | interno | `/atende` | `apps-script/atende` | baseline criada |
-| sla | SLA | interno | `/sla` | `apps-script/sla` | baseline criada |
-| caixa | Caixa | interno | `/caixa` | `apps-script/caixa` | baseline criada |
-| intra | Portal interno | interno | `/intra` | autenticação + módulos internos | baseline criada |
-| inteligencia | Inteligência | interno | `/intra/inteligencia` | múltiplas fontes | baseline criada |
-| reverso | Logística Reversa | externo + interno | `/reverso*` | `apps-script/logistica` | baseline criada |
-| agf | Acesso AGF | interno / papel em transição | `/agf` | autenticação + atende provável | baseline criada |
-| autenticacao | Autenticação AGF | técnico compartilhado | compartilhado | `apps-script/autenticacao` | baseline criada |
-| etiquetas | Serviço de etiquetas | técnico compartilhado | via frontends | `apps-script/etiquetas` | baseline criada |
-| nf | NF-e / DANFE PDF | técnico / fiscal | integração com `/app` | `apps-script/nf` | baseline criada |
-| cep | Consulta de CEP | público + serviço | `/cep` | `apps-script/cep` | baseline criada |
-| dce | Emissor DC-e | fiscal externo | `/dce` | projeto isolado | baseline criada |
+### Público e clientes
 
-## Submódulos documentados individualmente
+- `plataforma-raiz/README.md` - site público `/`.
+- `app/README.md` - Minhas Postagens `/app`.
+- `nuvem/README.md` - Minhas Postagens Nuvemshop `/nuvem`.
+- `superfrete/README.md` - portal do cliente `/superfrete`.
+- `cep/README.md` - consulta de CEP `/cep` e serviço compartilhado.
+- `dce/README.md` - emissor DC-e integrado por `/dce`.
+- `cartoes-digitais/README.md` - cartões públicos por slug.
+- `reverso/USUARIO.md` - experiência externa `/reverso`.
 
-### Reverso
+### Interno operacional e gerencial
 
-- `docs/modulos/reverso/USUARIO.md`
-- `docs/modulos/reverso/ADMIN.md`
-- `docs/modulos/reverso/COLETA.md`
-- `docs/modulos/reverso/EXPEDICAO.md`
+- `intra/README.md` - hub `/intra`.
+- `dashboard/README.md` - `/intra/dashboard`.
+- `inteligencia/README.md` - família `/intra/inteligencia`.
+- `crm/README.md` - `/crm`.
+- `resumos/README.md` - `/intra/resumo`.
+- `logistica-interna/README.md` - `/intra/logistica`.
+- `caixa/README.md` - Caixa, com rotas `/caixa` e `/intra/caixa` a consolidar.
+- `manuais/README.md` - `/intra/manuais`.
+- `atende/README.md` - `/atende`.
+- `sla/README.md` - SLA.
+- `balcao/README.md` - `/balcao`.
+- `superfrete-admin/README.md` - `/superfrete-admin`.
+- `agf/README.md` - `/agf`.
+
+### Logística Reversa
+
+- `reverso/README.md` - arquitetura da família.
+- `reverso/USUARIO.md` - `/reverso`.
+- `reverso/ADMIN.md` - `/reverso-admin`.
+- `reverso/COLETA.md` - `/reverso-coleta`.
+- `reverso/EXPEDICAO.md` - `/reverso-expedicao`.
 
 ### Inteligência
 
-- `docs/modulos/inteligencia/CARTEIRA.md`
-- `docs/modulos/inteligencia/GERENCIAL.md`
-- `docs/modulos/inteligencia/COMERCIAL.md`
-- `docs/modulos/inteligencia/FINANCEIRO.md`
-- `docs/modulos/inteligencia/ATENDIMENTO.md`
-- `docs/modulos/inteligencia/OPERACIONAL.md`
+- `inteligencia/CARTEIRA.md`.
+- `inteligencia/GERENCIAL.md`.
+- `inteligencia/COMERCIAL.md`.
+- `inteligencia/FINANCEIRO.md`.
+- `inteligencia/ATENDIMENTO.md`.
+- `inteligencia/OPERACIONAL.md`.
 
-## Backends de apoio ainda tratados dentro de módulos consumidores
+### Serviços técnicos compartilhados
 
-- `apps-script/base-metro`: documentado principalmente em CRM/Inteligência.
-- `apps-script/base-cliente-etiquetas`: documentado como serviço de apoio a etiquetas; merece README próprio após mapeamento de consumidores.
-- `apps-script/logistica`: documentado na família Reverso.
-- `apps-script/caixa`: documentado no módulo Caixa; vínculo com Balcão ainda precisa ser confirmado.
+- `autenticacao/README.md` - autenticação e autorização compartilhadas.
+- `etiquetas/README.md` - backend de etiquetas/postagem.
+- `nf/README.md` - extrator NF-e/DANFE.
+- `base-metro/README.md` - base/regras do CRM e áreas relacionadas.
+- `base-cliente-etiquetas/README.md` - serviço de apoio clientes/etiquetas.
+- `logistica/README.md` - backend da família Reverso.
+
+## Rotas de compatibilidade, não módulos independentes
+
+- `/intra/agenda` redireciona para `/crm/?view=agenda`.
+- `/intra/crm` redireciona para `/crm/?view=clientes`.
 
 ## Pendências globais
 
-1. Confirmar quais rotas estão efetivamente publicadas em produção hoje.
-2. Confirmar URLs `/exec` de produção e `/dev` de homologação sem registrar segredos.
-3. Mapear planilhas e abas por módulo.
+1. Confirmar produção/homologação de cada rota.
+2. Mapear URL `/exec` e `/dev` dos Apps Scripts sem expor segredos.
+3. Mapear planilhas, abas, cabeçalhos e chaves.
 4. Mapear owners técnicos e operacionais.
-5. Classificar todos os módulos em M0-M5 após auditoria visual/técnica.
-6. Confirmar vínculos frontend -> action -> Apps Script -> planilha.
-7. Documentar `base-cliente-etiquetas` como serviço independente se permanecer compartilhado.
-8. Atualizar cada README após validação do estado real de produção.
+5. Classificar todos os módulos em M0-M5.
+6. Confirmar frontend -> action -> Apps Script -> planilha.
+7. Definir rotas canônicas onde há duplicidade, principalmente Caixa e SLA.
+8. Resolver papel de `/agf` em relação ao `/intra`.
+9. Inventariar slugs dos Cartões Digitais.
+10. Atualizar cada README quando o estado de produção for validado.
 
 ## Regra de manutenção
 
