@@ -1,47 +1,44 @@
 // ============================================================
-// ATENDE - INDICE TECNICO PARA ATENDIMENTOS SEM CODIGO DE OBJETO
-// Mantem Objeto vazio no painel e usa o ATENDIMENTO real do CSV como chave.
+// ATENDE - CHAVE TECNICA PARA ATENDIMENTOS SEM CODIGO DE OBJETO
+// O ID real do atendimento fica como nota da celula Objeto, mantendo o valor
+// visual vazio e fazendo a chave acompanhar a linha em ordenacoes/movimentos.
 // ============================================================
 
-var ATENDE_CSV_NO_OBJECT_SHEET = 'IDX_CSV_ATENDIMENTOS';
-var ATENDE_CSV_NO_OBJECT_HEADERS = ['AtendimentoId', 'PostagensRow', 'Data', 'AtualizadoEm'];
+var ATENDE_CSV_NOTE_PREFIX = 'ATENDE_CSV_ID:';
 
-function ATENDE_getNoObjectKeyIndex_() {
-  const ss = getSpreadsheet();
-  const sheet = ATENDE_getOrCreateNoObjectKeySheet_(ss);
-  const map = new Map();
-  if (sheet.getLastRow() < 2) return { sheet: sheet, map: map };
+function ATENDE_readCsvRowKeys_(sheet, objectColumn) {
+  const byObject = new Map();
+  const byAttendance = new Map();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { byObject: byObject, byAttendance: byAttendance };
 
-  sheet.getRange(2, 1, sheet.getLastRow() - 1, ATENDE_CSV_NO_OBJECT_HEADERS.length)
-    .getValues()
-    .forEach(function(row, index) {
-      const id = ATENDE_cleanCsvValue_(row[0]);
-      const postagensRow = Number(row[1]);
-      if (!id || !postagensRow) return;
-      map.set(id, { postagensRow: postagensRow, indexRow: index + 2 });
-    });
-  return { sheet: sheet, map: map };
-}
+  const range = sheet.getRange(2, objectColumn, lastRow - 1, 1);
+  const values = range.getDisplayValues();
+  const notes = range.getNotes();
 
-function ATENDE_getOrCreateNoObjectKeySheet_(ss) {
-  let sheet = ss.getSheetByName(ATENDE_CSV_NO_OBJECT_SHEET);
-  if (!sheet) {
-    sheet = ss.insertSheet(ATENDE_CSV_NO_OBJECT_SHEET);
-    sheet.getRange(1, 1, 1, ATENDE_CSV_NO_OBJECT_HEADERS.length)
-      .setValues([ATENDE_CSV_NO_OBJECT_HEADERS]);
-    sheet.setFrozenRows(1);
-    try { sheet.hideSheet(); } catch (_) {}
-  }
-  return sheet;
-}
+  values.forEach(function(row, index) {
+    const sheetRow = index + 2;
+    const objectCode = normalizeObjectCode_(ATENDE_cleanCsvValue_(row[0]));
+    if (objectCode && !byObject.has(objectCode)) byObject.set(objectCode, sheetRow);
 
-function ATENDE_appendNoObjectKeys_(entries) {
-  if (!entries || !entries.length) return;
-  const ss = getSpreadsheet();
-  const sheet = ATENDE_getOrCreateNoObjectKeySheet_(ss);
-  const rows = entries.map(function(entry) {
-    return [entry.atendimentoId, entry.postagensRow, entry.data || '', new Date()];
+    const attendanceId = ATENDE_getAttendanceIdFromNote_(notes[index][0]);
+    if (attendanceId && !byAttendance.has(attendanceId)) byAttendance.set(attendanceId, sheetRow);
   });
-  sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
-  SpreadsheetApp.flush();
+
+  return { byObject: byObject, byAttendance: byAttendance };
+}
+
+function ATENDE_getAttendanceIdFromNote_(note) {
+  const text = String(note || '').trim();
+  if (text.indexOf(ATENDE_CSV_NOTE_PREFIX) !== 0) return '';
+  return text.slice(ATENDE_CSV_NOTE_PREFIX.length).trim();
+}
+
+function ATENDE_setCsvNotesForNewRows_(sheet, startRow, records, objectColumn) {
+  if (!records || !records.length) return;
+  const notes = records.map(function(record) {
+    if (record.codObjeto || !record.csvAtendimentoId) return [''];
+    return [ATENDE_CSV_NOTE_PREFIX + record.csvAtendimentoId];
+  });
+  sheet.getRange(startRow, objectColumn, records.length, 1).setNotes(notes);
 }
