@@ -12,9 +12,15 @@ function ATENDE_importarArquivoCsv_(file, metaSignature) {
       fileName: file.getName(), status: 'duplicate_file_content',
       totalRows: parsed.rows.length, added: 0, updated: 0,
       skipped: parsed.rows.length, withoutObject: 0, invalidMissingKey: 0,
+      csvBaseAdded: 0, csvBaseUpdated: 0, csvBaseSkipped: 0,
       hash: contentHash
     };
   }
+
+  // A base ATENDE_CSV preserva o relatorio original 1:1. Ela e a fonte
+  // do painel novo. O fluxo legado em Postagens continua abaixo para nao
+  // quebrar recursos antigos que ainda dependam dele.
+  const csvBaseResult = ATENDE_upsertCsvBase_(parsed);
 
   const sheet = getSheet();
   normalizeSheetStructure_(sheet);
@@ -123,6 +129,9 @@ function ATENDE_importarArquivoCsv_(file, metaSignature) {
     added: newRecords.length, updated: updatedExisting, skipped: skipped,
     withoutObject: withoutObject, invalidMissingKey: invalidMissingKey,
     unchangedExisting: unchangedExisting, duplicatePayload: duplicatePayload,
+    csvBaseAdded: csvBaseResult.added,
+    csvBaseUpdated: csvBaseResult.updated,
+    csvBaseSkipped: csvBaseResult.skipped,
     hash: contentHash
   };
 }
