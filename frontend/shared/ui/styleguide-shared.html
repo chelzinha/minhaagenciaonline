@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Styleguide compartilhado — Rodada 0.5 · Plataforma AGF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
+<!-- Camada compartilhada (o que a Rodada 0.5 entrega) -->
+<link rel="stylesheet" href="/shared/ui/agf-ui.css">
+<!-- CRM carregado SO para comparacao visual. Esta pagina nao altera o CRM. -->
+<link rel="stylesheet" href="/crm/styles.css">
+<style>
+  body{margin:0;padding:0 0 60px;background:var(--agf-color-bg);color:var(--agf-color-text);font-family:Inter,Arial,sans-serif}
+  .sg-top{background:linear-gradient(160deg,#2C4A78 0%,#1B3358 55%,#0F3047 100%);color:#fff;padding:18px}
+  .sg-top h1{font-family:Manrope,sans-serif;font-size:19px;margin:0}
+  .sg-top p{margin:5px 0 0;font-size:12px;color:rgba(201,214,232,.9);line-height:1.5}
+  .sg-wrap{max-width:900px;margin:0 auto;padding:0 14px}
+  .sg-block{margin-top:22px}
+  .sg-h{display:flex;align-items:center;gap:7px;margin:0 0 9px;color:var(--agf-color-action);
+        font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+  .sg-h::after{content:"";flex:1;height:1px;background:var(--agf-color-border)}
+  .sg-cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:640px){.sg-cmp{grid-template-columns:1fr}}
+  .sg-pane{background:var(--agf-color-surface);border:1px solid var(--agf-color-border);
+           border-radius:var(--agf-r-md);box-shadow:var(--agf-sh-2);padding:14px;min-width:0}
+  .sg-pane>h3{margin:0 0 10px;font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
+  .sg-pane.is-shared>h3{color:var(--agf-color-action)}
+  .sg-pane.is-crm>h3{color:var(--agf-color-text-soft)}
+  .sg-row{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+  .sg-stack{display:grid;gap:9px}
+  .sg-note{margin:8px 2px 0;font-size:11px;line-height:1.5;color:var(--agf-color-text-soft)}
+  .sg-tag{display:inline-block;padding:2px 7px;border-radius:999px;background:var(--agf-color-warning-soft);
+          color:var(--agf-color-warning);font-size:10px;font-weight:800}
+</style>
+</head>
+<body>
+
+<div class="sg-top">
+  <h1>Styleguide compartilhado — Rodada 0.5</h1>
+  <p>Esquerda: <strong>componente compartilhado</strong> (<code>.agf-*</code>, em <code>/shared/ui/agf-ui.css</code>).
+     Direita: <strong>equivalente do CRM</strong> renderizado dentro de <code>.crm-shell</code>, que e a camada
+     que pinta a tela hoje. Se os dois lados divergirem, a divergencia esta registrada na nota abaixo do par.</p>
+</div>
+
+<div class="sg-wrap">
+
+  <!-- 1 a 3. BOTOES -->
+  <div class="sg-block">
+    <div class="sg-h">1 a 3 — Botao primario, secundario e perigoso</div>
+    <div class="sg-cmp">
+      <div class="sg-pane is-shared"><h3>Compartilhado · .agf-btn</h3>
+        <div class="sg-row">
+          <button class="agf-btn agf-btn--primary" type="button"><span class="material-symbols-rounded">save</span>Salvar</button>
+          <button class="agf-btn agf-btn--secondary" type="button"><span class="material-symbols-rounded">close</span>Cancelar</button>
+          <button class="agf-btn agf-btn--danger" type="button"><span class="material-symbols-rounded">delete</span>Excluir</button>
+        </div>
+        <div class="sg-row" style="margin-top:9px">
+          <button class="agf-btn agf-btn--primary" type="button" disabled>Desabilitado</button>
+          <button class="agf-btn agf-btn--secondary" type="button" disabled>Desabilitado</button>
+        </div>
+      </div>
+      <div class="sg-pane is-crm crm-shell"><h3>CRM · .primary-btn</h3>
+        <div class="sg-row">
+          <button class="primary-btn" type="button"><span class="material-symbols-rounded">save</span>Salvar</button>
+          <button class="secondary-btn" type="button"><span class="material-symbols-rounded">close</span>Cancelar</button>
+          <button class="danger-btn" type="button"><span class="material-symbols-rounded">delete</span>Excluir</button>
+        </div>
+        <div class="sg-row" style="margin-top:9px">
+          <button class="primary-btn" type="button" disabled>Desabilitado</button>
+          <button class="secondary-btn" type="button" disabled>Desabilitado</button>
+        </div>
+      </div>
+    </div>
+    <p class="sg-note">Sem divergencia de aparencia. Altura 40px, raio pill, padding lateral 14px, peso 850, corpo 12px.
+       O compartilhado ganha <code>:focus-visible</code> com <code>--agf-focus-ring</code>, equivalente ao
+       <code>--crm-focus</code> que o CRM ja tem. Navegue por Tab para conferir nos dois lados.</p>
+  </div>
+
+  <!-- 4. BOTAO DE ICONE -->
+  <div class="sg-block">
+    <div class="sg-h">4 — Botao de icone</div>
+    <div class="sg-cmp">
+      <div class="sg-pane is-shared"><h3>Compartilhado · .agf-btn-icon</h3>
+        <div class="sg-row">
+          <button class="agf-btn-icon" type="button" title="Atualizar" aria-label="Atualizar"><span class="material-symbols-rounded">refresh</span></button>
+          <button class="agf-btn-icon" type="button" title="Editar" aria-label="Editar"><span class="material-symbols-rounded">edit</span></button>
+          <button class="agf-btn-icon" type="button" title="Fechar" aria-label="Fechar" disabled><span class="material-symbols-rounded">close</span></button>
+        </div>
+      </div>
+      <div class="sg-pane is-crm crm-shell"><h3>CRM · .icon-btn</h3>
+        <div class="sg-row">
+          <button class="icon-btn" type="button" title="Atualizar" aria-label="Atualizar"><span class="material-symbols-rounded">refresh</span></button>
+          <button class="icon-btn" type="button" title="Editar" aria-label="Editar"><span class="material-symbols-rounded">edit</span></button>
+          <button class="close-btn" type="button" title="Fechar" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button>
+        </div>
+      </div>
+    </div>
+    <p class="sg-note"><span class="sg-tag">divergencia D1</span>
+       Compartilhado <strong>44 x 44px</strong> (<code>--agf-size-touch</code>), CRM <strong>40 x 40px</strong>.
+       Deliberado: alvo minimo de toque. O <code>.agf-icon-button</code> legado deste mesmo arquivo tem 36px e
+       nao foi alterado, para nao mexer nas topbars em producao.</p>
+  </div>
+
+  <!-- 5. CHIP -->
+  <div class="sg-block">
+    <div class="sg-h">5 — Chip</div>
+    <div class="sg-cmp">
+      <div class="sg-pane is-shared"><h3>Compartilhado · .agf-chip</h3>
+        <div class="sg-row">
+          <span class="agf-chip agf-chip--neutral">Novo lead</span>
+          <span class="agf-chip agf-chip--danger">RESGATAR</span>
+          <span class="agf-chip agf-chip--info">CONVERTER</span>
+          <span class="agf-chip agf-chip--success">FIDELIZAR</span>
+          <span class="agf-chip agf-chip--violet">CANCELAR</span>
+          <span class="agf-chip agf-chip--warning">PRIORIDADE</span>
+          <span class="agf-chip agf-chip--accent"><span class="material-symbols-rounded">filter_alt</span>221</span>
+        </div>
+      </div>
+      <div class="sg-pane is-crm crm-shell"><h3>CRM · .chip</h3>
+        <div class="sg-row">
+          <span class="chip keep">Novo lead</span>
+          <span class="chip rescue">RESGATAR</span>
+          <span class="chip convert">CONVERTER</span>
+          <span class="chip fidel">FIDELIZAR</span>
+          <span class="chip cancel">CANCELAR</span>
+          <span class="chip high">PRIORIDADE</span>
+          <span class="chip board-count"><span class="material-symbols-rounded">filter_alt</span>221</span>
+        </div>
+      </div>
+    </div>
+    <p class="sg-note"><span class="sg-tag">divergencia D2</span>
+       Cores identicas. Geometria com 1px de diferenca: padding <code>4px 10px</code> e gap <code>6px</code> no
+       compartilhado, contra <code>4px 9px</code> e gap <code>5px</code> no CRM, porque 9px e 5px nao estao na
+       grade de 4px. Corpo 10px nos dois — o <code>.crm-shell</code> ja subiu o chip de 8,5px para 10px,
+       entao o compartilhado nao herda o problema de legibilidade da camada base.</p>
+  </div>
+
+  <!-- 6 e 7. INPUT E SELECT -->
+  <div class="sg-block">
+    <div class="sg-h">6 e 7 — Input e select</div>
+    <div class="sg-cmp">
+      <div class="sg-pane is-shared"><h3>Compartilhado · .agf-input / .agf-select</h3>
+        <div class="sg-stack">
+          <label><span class="agf-field-label">Nome / Razao Social</span>
+            <input class="agf-input" type="text" value="Farmacia Central Ltda."></label>
+          <label><span class="agf-field-label">Etapa</span>
+            <select class="agf-select"><option>Prospeccao</option><option>Proposta</option><option>Fechamento</option></select></label>
+          <label><span class="agf-field-label">Bloqueado</span>
+            <input class="agf-input" type="text" value="Somente leitura" disabled></label>
+        </div>
+      </div>
+      <div class="sg-pane is-crm crm-shell"><h3>CRM · .filter-row input / select</h3>
+        <div class="sg-stack filter-row" style="display:grid">
+          <label><span style="display:block;margin-bottom:5px;color:#47677E;font-size:10px;font-weight:850">Nome / Razao Social</span>
+            <input type="text" value="Farmacia Central Ltda." style="width:100%"></label>
+          <label><span style="display:block;margin-bottom:5px;color:#47677E;font-size:10px;font-weight:850">Etapa</span>
+            <select style="width:100%"><option>Prospeccao</option><option>Proposta</option><option>Fechamento</option></select></label>
+        </div>
+      </div>
+    </div>
+    <p class="sg-note"><span class="sg-tag">divergencia D3</span>
+       Raio <code>10px</code> no compartilhado contra <code>999px</code> (pill) no CRM. O CRM tem duas formas de
+       campo: pill nos filtros e retangular <code>10px</code> nos formularios de modal. O compartilhado adota a
+       retangular para input e select, e a pill fica so no campo de busca (item 8), que e onde a pill faz sentido.
+       Foco visivel e <code>:disabled</code> existem nos dois.</p>
+  </div>
+
+  <!-- 8. FILTROS -->
+  <div class="sg-block">
+    <div class="sg-h">8 — Filtros: linha e campo de busca</div>
+    <div class="sg-cmp">
+      <div class="sg-pane is-shared"><h3>Compartilhado · .agf-filter-row / .agf-field-search</h3>
+        <div class="agf-filter-row">
+          <label class="agf-field-search"><span class="material-symbols-rounded">search</span>
+            <input placeholder="Pesquisar por nome…"></label>
+          <span class="agf-chip agf-chip--accent"><span class="material-symbols-rounded">filter_alt</span>221</span>
+        </div>
+      </div>
+      <div class="sg-pane is-crm crm-shell"><h3>CRM · .filter-row / .search-field</h3>
+        <div class="filter-row">
+          <label class="search-field compact"><span class="material-symbols-rounded">search</span>
+            <input placeholder="Pesquisar por nome…"></label>
+          <span class="chip board-count"><span class="material-symbols-rounded">filter_alt</span>221</span>
+        </div>
+      </div>
+    </div>
+    <p class="sg-note">Sem divergencia. Campo flexivel, chip travado a direita, nunca quebra linha.
+       O compartilhado adiciona anel de foco ao <code>:focus-within</code>.</p>
+  </div>
+
+  <!-- ESCOPO -->
+  <div class="sg-block">
+    <div class="sg-h">Fora do escopo da Rodada 0.5</div>
+    <div class="sg-pane">
+      <p class="sg-note" style="margin-top:0">Os outros 13 componentes minimos (card, painel, tabela, toast, modal,
+      loading, empty state, mensagem de erro, tabs, avatar, topbar, breadcrumb, nav inferior) continuam existindo
+      so dentro de cada modulo. Serao extraidos nas rodadas seguintes, sempre com uma tela consumindo.</p>
+      <p class="sg-note"><code>crm/styles.css</code> nao foi alterado nesta rodada. O CRM passa a consumir o
+      compartilhado na rodada dele.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

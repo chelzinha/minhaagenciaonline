@@ -1,5 +1,5 @@
 /* AGF José Bonifácio — SLA — cache enxuto da casca visual. */
-const CACHE='agf-sla-v3-sharedui-nf';
+const CACHE='agf-sla-v3-sharedui-nf-ds05';
 const STATIC=['/sla/','/sla/index.html','/sla/manifest.webmanifest','/shared/ui/agf-ui.css','/shared/ui/agf-ui.js','/shared/auth/agf-auth-client.js','/assets/pwa/sla/icon-192.png'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>Promise.all(STATIC.map(url=>cache.add(url).catch(()=>{})))));});
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE&&key.startsWith('agf-sla-')).map(key=>caches.delete(key)))),self.clients.claim()])));

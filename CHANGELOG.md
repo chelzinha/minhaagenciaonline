@@ -2,6 +2,66 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-05 - shared/ui - Rodada 0.5: 8 componentes compartilhados
+
+### Adicionado
+- 8 componentes em `frontend/shared/ui/agf-ui.css`, todos no namespace `.agf-*`:
+  `.agf-btn` (`--primary`, `--secondary`, `--danger`), `.agf-btn-icon`,
+  `.agf-chip` (7 variantes), `.agf-input`, `.agf-select`, `.agf-field-label`,
+  `.agf-filter-row` e `.agf-field-search`. 18 classes, zero cor literal:
+  todos os 49 valores vem de token `--agf-*`.
+- Nenhuma classe generica declarada. `.primary-btn`, `.chip`, `.icon-btn`,
+  `.input` e `.select` ja existem com aparencias diferentes em `crm/styles.css`
+  e `intra/styles/app-shell.css`, e este arquivo e carregado nos dois; declarar
+  qualquer uma criaria dependencia de ordem de `<link>` em 20 modulos.
+- `frontend/shared/ui/styleguide-shared.html`: pagina de prova com os 8
+  componentes lado a lado com os equivalentes do CRM, renderizados dentro de
+  `.crm-shell` para comparacao honesta.
+- Complemento de tokens da Rodada 0: 14 primitivos, 5 semanticos, 2 sombras e
+  3 de tipografia/dimensao que faltavam para montar os componentes sem inventar
+  valor. Todos medidos em `crm/styles.css`.
+
+### Corrigido
+- ATENCAO - regressao no proprio design system: as sombras `--agf-sh-2` e
+  `--agf-sh-3` voltam a ser `--crm-shadow-card` e `--crm-shadow-lift`. O commit
+  8c1f6fb as trocou pelo `--shadow` da camada base do CRM por contagem de usos,
+  sem notar que `.crm-shell` sobrescreve TODO card (`.surface-card`,
+  `.stat-card`, `.kpi-card`, `.deal-card` e mais 5) com `--crm-shadow-card`.
+  Na tela, quem aparece e a sombra do `.crm-shell`.
+- A11Y: `:focus-visible` e `:disabled` em todos os componentes interativos.
+
+### Cache
+- Sufixo `-ds05` no nome de cache dos 10 service workers que precacheiam
+  `/shared/ui/agf-ui.css`: raiz, `/agf`, `/atende`, `/balcao`, `/caixa`, `/cep`,
+  `/crm`, `/sla`, `/superfrete`, `/superfrete-admin`. Todos limpam caches
+  antigos no `activate`, entao os componentes chegam ao usuario no primeiro
+  carregamento apos o deploy. Sem isso, a Rodada 1 depuraria um bug que nao
+  existe no CSS.
+
+### Divergencias deliberadas com o CRM
+- D1: botao de icone 44px (alvo de toque) contra 40px do CRM.
+- D2: chip com padding `4px 10px` e gap `6px`, contra `4px 9px` e `5px`, porque
+  9px e 5px estao fora da grade de 4px.
+- D3: input e select com raio `10px`; a pill fica so no campo de busca.
+
+### Achados
+- `crm/styleguide.html` nao envolve o conteudo em `.crm-shell`, entao renderiza
+  a aparencia antiga (raio 11px, altura 38px) e nao corresponde ao app. A
+  aparencia dos componentes foi extraida do `.crm-shell`, nao do styleguide.
+- O CRM ja tem foco visivel (`--crm-focus`), equivalente ao `--agf-focus-ring`.
+- O `.crm-shell` ja subiu o chip de 8,5px para 10px. O compartilhado nasce em
+  10px e nao herda o problema de legibilidade da camada base.
+- O CRM usa dois vermelhos com papeis diferentes: `#d6483d` no botao perigoso e
+  `#b42318` em chip e texto de status. Registrados como
+  `--agf-color-danger-ink` e `--agf-color-danger`.
+
+### Escopo
+- `crm/styles.css` NAO foi alterado. O CRM passa a consumir o compartilhado na
+  rodada dele.
+- Os outros 13 componentes minimos continuam so dentro de cada modulo.
+- Merge previsto junto com a Rodada 1 (`intra/`), para nao deixar CSS sem
+  consumidor na `main`.
+
 ## 2026-09-05 - shared/ui - Rodada 0 do design system
 
 ### Padronizado

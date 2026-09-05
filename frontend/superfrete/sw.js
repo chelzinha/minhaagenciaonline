@@ -1,5 +1,5 @@
 /* AGF José Bonifácio — SuperFrete — cache enxuto da casca visual. */
-const CACHE='agf-superfrete-v5-sharedui-nf';
+const CACHE='agf-superfrete-v5-sharedui-nf-ds05';
 const STATIC=['/superfrete/','/superfrete/index.html','/superfrete/manifest.webmanifest','/shared/ui/agf-ui.css','/shared/ui/agf-ui.js','/shared/auth/agf-auth-client.js','/assets/pwa/superfrete/icon-192.png'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>Promise.all(STATIC.map(url=>cache.add(url).catch(()=>{})))));});
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE&&key.startsWith('agf-superfrete-')).map(key=>caches.delete(key)))),self.clients.claim()])));

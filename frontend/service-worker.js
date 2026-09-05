@@ -1,5 +1,5 @@
 /* Landing page pública — cache enxuto. Dados dinâmicos e rotas internas nunca são pré-cacheados. */
-const CACHE='agf-landing-v23-sharedui-nf-reverso-v167';
+const CACHE='agf-landing-v23-sharedui-nf-reverso-v167-ds05';
 const STATIC=['/','/index.html','/styles.css','/manifest.webmanifest','/shared/ui/agf-ui.css','/shared/ui/agf-ui.js','/assets/correios-logo-2.png','/assets/logo-agf-jose-bonifacio.png','/assets/whatsapp.svg','/assets/icon-app.svg','/assets/pwa/root/icon-192.png'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>Promise.all(STATIC.map(url=>cache.add(url).catch(()=>{})))));});
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE&&key.startsWith('agf-landing-')).map(key=>caches.delete(key)))),self.clients.claim()])));

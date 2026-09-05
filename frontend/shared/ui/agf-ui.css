@@ -965,13 +965,15 @@ html.agf-route-reverso-admin [class*="rastreio"], html.agf-route-reverso-coleta 
   --agf-r-circle: 50%;
 
   /* --------------------------------------------------------
-   * SOMBRA - 3 niveis, extraidos do CRM (modulo de referencia).
-   * sh-2 e o crm --shadow literal (19 usos). sh-3 e o crm
-   * --shadow-hover literal. sh-1 e a primeira camada do sh-2.
+   * SOMBRA - 3 niveis, extraidos da camada .crm-shell, que e a que
+   * pinta a tela hoje. Todo card do CRM (.surface-card, .stat-card,
+   * .kpi-card, .deal-card e companhia) recebe --crm-shadow-card por
+   * override em .crm-shell; o --shadow da camada base fica embaixo e
+   * nao aparece. sh-2 = --crm-shadow-card, sh-3 = --crm-shadow-lift.
    * -------------------------------------------------------- */
-  --agf-sh-1: 0 1px 2px rgba(22, 33, 58, .04);
-  --agf-sh-2: 0 1px 2px rgba(22, 33, 58, .04), 0 6px 16px -8px rgba(22, 33, 58, .10);
-  --agf-sh-3: 0 16px 34px rgba(0, 65, 107, .14);
+  --agf-sh-1: 0 1px 2px rgba(15, 32, 56, .04);
+  --agf-sh-2: 0 1px 2px rgba(15, 32, 56, .04), 0 10px 28px -18px rgba(15, 32, 56, .32);
+  --agf-sh-3: 0 14px 34px -22px rgba(15, 32, 56, .38);
   --agf-sh-brand: 0 10px 30px rgba(0, 65, 107, .08);
 
   /* --------------------------------------------------------
@@ -1050,4 +1052,286 @@ html.agf-route-reverso-admin [class*="rastreio"], html.agf-route-reverso-coleta 
     transition-duration: .01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ============================================================
+ * AGF DESIGN TOKENS - COMPLEMENTO DA RODADA 0
+ * ------------------------------------------------------------
+ * Tokens que faltaram para a Rodada 0.5 conseguir montar os 8
+ * componentes sem inventar valor. Todos medidos em
+ * frontend/crm/styles.css, camada .crm-shell, que e a que pinta
+ * a tela hoje. Nenhum valor novo foi criado aqui.
+ * ============================================================ */
+:root {
+
+  /* Primitivos que faltavam */
+  --agf-c-teal-800:   #003a3b;   /* alvo do mix de hover do botao primario */
+  --agf-c-red-25:     #fff7f6;   /* crm .crm-shell .danger-btn background   */
+  --agf-c-red-200:    #f2c3be;   /* crm .crm-shell .danger-btn border       */
+  --agf-c-blue-700:   #1d4ed8;   /* crm .chip.convert texto  */
+  --agf-c-blue-50:    #dbeafe;   /* crm .chip.convert fundo  */
+  --agf-c-violet-600: #6d28d9;   /* crm .chip.cancel texto   */
+  --agf-c-orange-800: #92400e;   /* crm .chip.high texto     */
+  --agf-c-orange-100: #fff0c2;   /* crm .chip.high fundo     */
+  --agf-c-gray-125:   #eef2f7;   /* crm .chip.keep fundo     */
+  --agf-c-gray-150:   #f2f6fa;   /* crm .crm-shell .chip fundo neutro */
+  --agf-c-gray-350:   #b4c6d3;   /* alvo do mix da borda de controle  */
+  --agf-c-gray-450:   #6a7d91;   /* crm icone dentro de campo         */
+  --agf-c-gray-550:   #445d72;   /* crm .crm-shell .chip texto neutro */
+  --agf-c-gray-650:   #475467;   /* crm .chip.keep texto              */
+
+  /* Semantica que faltava */
+  --agf-color-border-mid:   color-mix(in srgb, var(--agf-color-border) 76%, var(--agf-c-gray-350));
+  --agf-color-hover:        color-mix(in srgb, var(--agf-color-action-soft) 54%, var(--agf-c-white));
+  --agf-color-danger-bg:    var(--agf-c-red-25);
+  --agf-color-danger-line:  var(--agf-c-red-200);
+  --agf-color-danger-ink:   var(--agf-c-red-500);   /* #d6483d - o CRM usa
+       um vermelho para o BOTAO perigoso (--danger) e outro para chip e
+       texto de status (--red #b42318). Sao dois papeis, nao um erro. */
+
+  /* Sombras que faltavam */
+  --agf-sh-hairline: 0 1px 0 rgba(15, 32, 56, .03);
+  --agf-sh-action:   0 10px 22px -16px rgba(14, 149, 148, .9);
+
+  /* Tipografia, peso e altura de controle que faltavam */
+  --agf-t-2xs:            10px;  /* chip - crm .crm-shell .chip */
+  --agf-fw-heavy:         850;   /* peso real dos botoes e chips do CRM */
+  --agf-size-control-lg:  42px;  /* crm --crm-control-h em ate 620px    */
+}
+
+/* ============================================================
+ * AGF COMPONENTS - RODADA 0.5
+ * ------------------------------------------------------------
+ * 8 componentes compartilhados, extraidos da camada .crm-shell
+ * de frontend/crm/styles.css.
+ *
+ * REGRA DE SEGURANCA: toda classe vive no namespace .agf-*.
+ * Nenhuma classe generica (.primary-btn, .chip, .card, .icon-btn,
+ * .input, .select) e declarada, porque esses nomes ja existem com
+ * aparencias diferentes em crm/styles.css e intra/styles/app-shell.css,
+ * e este arquivo e carregado nos dois. Uma classe generica aqui criaria
+ * dependencia silenciosa de ordem de <link> em 20 modulos.
+ *
+ * Todo valor vem de token --agf-*. Nenhum valor literal novo.
+ * ============================================================ */
+
+/* ---------- 1 a 3. BOTOES DE TEXTO ---------- */
+.agf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--agf-e-1-5);
+  min-height: var(--agf-size-control);
+  padding-inline: var(--agf-e-3-5);
+  border: 1px solid transparent;
+  border-radius: var(--agf-r-pill);
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: var(--agf-t-sm);
+  font-weight: var(--agf-fw-heavy);
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+.agf-btn > .material-symbols-rounded { font-size: 18px; }
+.agf-btn:focus-visible { outline: 0; box-shadow: var(--agf-focus-ring); }
+.agf-btn:disabled,
+.agf-btn[aria-disabled="true"] {
+  opacity: .55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.agf-btn--primary {
+  background: var(--agf-color-action);
+  border-color: transparent;
+  color: var(--agf-c-white);
+  box-shadow: var(--agf-sh-action);
+}
+.agf-btn--primary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: color-mix(in srgb, var(--agf-color-action) 88%, var(--agf-c-teal-800));
+}
+
+.agf-btn--secondary {
+  background: var(--agf-color-surface);
+  border-color: var(--agf-color-border-mid);
+  color: var(--agf-c-navy-700);
+  box-shadow: var(--agf-sh-hairline);
+}
+.agf-btn--secondary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--agf-color-hover);
+  border-color: color-mix(in srgb, var(--agf-color-action) 32%, var(--agf-color-border));
+}
+
+.agf-btn--danger {
+  background: var(--agf-color-danger-bg);
+  border-color: var(--agf-color-danger-line);
+  color: var(--agf-color-danger-ink);
+}
+.agf-btn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--agf-c-red-50);
+}
+
+/* ---------- 4. BOTAO DE ICONE ---------- */
+/* 44px por --agf-size-touch. O CRM usa 40px e o .agf-icon-button
+ * legado deste arquivo usa 36px. Divergencia deliberada: alvo de
+ * toque minimo de acessibilidade. Nao mexe no CRM. */
+.agf-btn-icon {
+  display: grid;
+  place-items: center;
+  width: var(--agf-size-touch);
+  height: var(--agf-size-touch);
+  padding: 0;
+  border: 1px solid var(--agf-color-border-mid);
+  border-radius: var(--agf-r-pill);
+  background: var(--agf-color-surface);
+  color: var(--agf-c-navy-700);
+  box-shadow: var(--agf-sh-hairline);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+.agf-btn-icon > .material-symbols-rounded { font-size: 20px; }
+.agf-btn-icon:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--agf-color-hover);
+  color: var(--agf-color-action);
+}
+.agf-btn-icon:focus-visible { outline: 0; box-shadow: var(--agf-focus-ring); }
+.agf-btn-icon:disabled,
+.agf-btn-icon[aria-disabled="true"] {
+  opacity: .55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ---------- 5. CHIP ---------- */
+.agf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--agf-e-1-5);
+  min-height: 24px;
+  max-width: 100%;
+  padding: var(--agf-e-1) var(--agf-e-2-5);
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: var(--agf-r-pill);
+  background: var(--agf-c-gray-150);
+  color: var(--agf-c-gray-550);
+  font-size: var(--agf-t-2xs);
+  font-weight: var(--agf-fw-heavy);
+  line-height: 1;
+}
+.agf-chip > .material-symbols-rounded { font-size: 14px; }
+.agf-chip--success { background: var(--agf-color-success-soft); color: var(--agf-color-success); }
+.agf-chip--danger  { background: var(--agf-color-danger-soft);  color: var(--agf-color-danger); }
+.agf-chip--warning { background: var(--agf-c-orange-100);       color: var(--agf-c-orange-800); }
+.agf-chip--info    { background: var(--agf-c-blue-50);          color: var(--agf-c-blue-700); }
+.agf-chip--neutral { background: var(--agf-c-gray-125);         color: var(--agf-c-gray-650); }
+.agf-chip--accent  { background: var(--agf-color-action-soft);  color: var(--agf-color-action); }
+.agf-chip--violet  { background: var(--agf-c-purple-100);       color: var(--agf-c-violet-600); }
+
+/* ---------- 6 e 7. INPUT E SELECT ---------- */
+.agf-input,
+.agf-select {
+  width: 100%;
+  min-height: var(--agf-size-control);
+  padding: 0 var(--agf-e-3);
+  border: 1px solid var(--agf-color-border-mid);
+  border-radius: var(--agf-r-sm);
+  background: var(--agf-color-surface);
+  color: var(--agf-color-text);
+  font-family: inherit;
+  font-size: var(--agf-t-sm);
+  font-weight: 750;
+  outline: 0;
+  box-shadow: var(--agf-sh-hairline);
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.agf-input::placeholder { color: var(--agf-color-text-soft); font-weight: 500; }
+.agf-input:hover:not(:disabled),
+.agf-select:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--agf-color-action) 36%, var(--agf-color-border));
+}
+.agf-input:focus-visible,
+.agf-select:focus-visible {
+  border-color: color-mix(in srgb, var(--agf-color-action) 45%, var(--agf-color-border));
+  box-shadow: var(--agf-focus-ring);
+}
+.agf-input:disabled,
+.agf-select:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  background: var(--agf-color-surface-soft);
+}
+.agf-select {
+  padding-right: var(--agf-e-6);
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--agf-c-gray-450) 50%),
+                    linear-gradient(135deg, var(--agf-c-gray-450) 50%, transparent 50%);
+  background-position: right 18px center, right 13px center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+.agf-field-label {
+  display: block;
+  margin-bottom: var(--agf-e-1);
+  color: var(--agf-color-text-soft);
+  font-size: var(--agf-t-2xs);
+  font-weight: var(--agf-fw-heavy);
+}
+
+/* ---------- 8. FILTROS: LINHA E CAMPO DE BUSCA ---------- */
+.agf-filter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--agf-e-2);
+  flex-wrap: wrap;
+}
+.agf-field-search {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--agf-e-1-5);
+  flex: 1 1 200px;
+  min-width: 0;
+  min-height: var(--agf-size-control);
+  padding-inline: var(--agf-e-3);
+  border: 1px solid var(--agf-color-border-mid);
+  border-radius: var(--agf-r-pill);
+  background: var(--agf-color-surface);
+  box-shadow: var(--agf-sh-hairline);
+  cursor: text;
+  transition: background .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.agf-field-search > .material-symbols-rounded {
+  flex: 0 0 auto;
+  color: var(--agf-c-gray-450);
+  font-size: 17px;
+}
+.agf-field-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--agf-color-text);
+  font-family: inherit;
+  font-size: var(--agf-t-sm);
+  font-weight: 700;
+  outline: 0;
+}
+.agf-field-search input::placeholder { color: var(--agf-color-text-soft); font-weight: 500; }
+.agf-field-search:hover,
+.agf-field-search:focus-within {
+  background: var(--agf-color-hover);
+  border-color: color-mix(in srgb, var(--agf-color-action) 36%, var(--agf-color-border));
+}
+.agf-field-search:focus-within { box-shadow: var(--agf-focus-ring); }
+
+/* ---------- Ajuste mobile: controles mais altos ---------- */
+@media (max-width: 640px) {
+  .agf-btn,
+  .agf-input,
+  .agf-select,
+  .agf-field-search { min-height: var(--agf-size-control-lg); }
+  .agf-field-search { flex-basis: 100%; }
 }

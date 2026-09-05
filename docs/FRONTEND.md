@@ -391,3 +391,49 @@ Arquivo: `frontend/shared/ui/agf-ui.css`, bloco no final do arquivo.
 `/superfrete`, `/superfrete-admin`, raiz). Adicionar `?v=` apenas no `<link>`
 quebra o match do precache. Se for versionar, versionar `<link>` e a lista
 `STATIC` de cada service worker na mesma entrega, e bumpar o nome do cache.
+
+## Design system - componentes compartilhados (Rodada 0.5)
+
+Arquivo: `frontend/shared/ui/agf-ui.css`, bloco `AGF COMPONENTS - RODADA 0.5`.
+Pagina de prova: `/shared/ui/styleguide-shared.html`.
+
+### Regra de uso
+1. Toda classe compartilhada vive no namespace `.agf-*`. Nunca declarar classe
+   generica (`.primary-btn`, `.chip`, `.card`, `.icon-btn`, `.input`, `.select`,
+   `.badge`, `.toolbar`) em `shared/`. Esses nomes ja existem com aparencias
+   diferentes em `crm/styles.css` e `intra/styles/app-shell.css`, e este arquivo
+   e carregado nos dois. Uma classe generica aqui criaria dependencia silenciosa
+   de ordem de `<link>` em 20 modulos. Mesmo raciocinio que fez `--agf-*` dar certo.
+2. Todo valor vem de token `--agf-*`. Zero cor literal no bloco de componentes.
+3. Componente interativo entrega `:focus-visible` com `--agf-focus-ring` e
+   estado `:disabled` / `[aria-disabled="true"]`.
+
+### Componentes e tokens consumidos
+| Componente | Tokens |
+| --- | --- |
+| `.agf-btn`, `--primary`, `--secondary`, `--danger` | `--agf-size-control`, `--agf-e-3-5`, `--agf-e-1-5`, `--agf-r-pill`, `--agf-t-sm`, `--agf-fw-heavy`, `--agf-color-action`, `--agf-c-teal-800`, `--agf-c-white`, `--agf-c-navy-700`, `--agf-color-surface`, `--agf-color-border`, `--agf-color-border-mid`, `--agf-color-hover`, `--agf-color-danger-bg/-line/-ink`, `--agf-c-red-50`, `--agf-sh-action`, `--agf-sh-hairline`, `--agf-focus-ring` |
+| `.agf-btn-icon` | `--agf-size-touch`, `--agf-r-pill`, `--agf-color-surface`, `--agf-color-border-mid`, `--agf-color-hover`, `--agf-color-action`, `--agf-c-navy-700`, `--agf-sh-hairline`, `--agf-focus-ring` |
+| `.agf-chip` e as 7 variantes | `--agf-t-2xs`, `--agf-fw-heavy`, `--agf-r-pill`, `--agf-e-1`, `--agf-e-1-5`, `--agf-e-2-5`, `--agf-c-gray-150/-550/-125/-650`, `--agf-color-success(-soft)`, `--agf-color-danger(-soft)`, `--agf-color-action(-soft)`, `--agf-c-blue-50/-700`, `--agf-c-orange-100/-800`, `--agf-c-purple-100`, `--agf-c-violet-600` |
+| `.agf-input`, `.agf-select`, `.agf-field-label` | `--agf-size-control`, `--agf-size-control-lg`, `--agf-e-3`, `--agf-e-6`, `--agf-e-1`, `--agf-r-sm`, `--agf-t-sm`, `--agf-t-2xs`, `--agf-fw-heavy`, `--agf-color-surface(-soft)`, `--agf-color-border(-mid)`, `--agf-color-text(-soft)`, `--agf-color-action`, `--agf-c-gray-450`, `--agf-sh-hairline`, `--agf-focus-ring` |
+| `.agf-filter-row`, `.agf-field-search` | `--agf-e-2`, `--agf-e-3`, `--agf-e-1-5`, `--agf-size-control(-lg)`, `--agf-r-pill`, `--agf-t-sm`, `--agf-color-surface`, `--agf-color-border(-mid)`, `--agf-color-hover`, `--agf-color-text(-soft)`, `--agf-color-action`, `--agf-c-gray-450`, `--agf-sh-hairline`, `--agf-focus-ring` |
+
+### Divergencias registradas com o CRM
+| # | Componente | Compartilhado | CRM | Motivo |
+| --- | --- | --- | --- | --- |
+| D1 | botao de icone | 44 x 44px | 40 x 40px | alvo minimo de toque (`--agf-size-touch`) |
+| D2 | chip | padding `4px 10px`, gap `6px` | `4px 9px`, gap `5px` | 9px e 5px estao fora da grade de 4px |
+| D3 | input e select | raio `10px` | raio pill nos filtros | o CRM tem duas formas de campo; a pill fica so no campo de busca |
+
+### Fonte da verdade da aparencia
+A aparencia foi extraida da camada `.crm-shell` de `crm/styles.css`, nao da
+camada base. Motivo: `crm/index.html` envolve tudo em `.crm-shell`, entao e essa
+camada que pinta a tela. `crm/styleguide.html` NAO tem esse wrapper, portanto
+renderiza a aparencia antiga (raio 11px, altura 38px, `--shadow` da base) e nao
+corresponde ao app. Debito registrado para a rodada do CRM.
+
+### Cache do asset (resolvido)
+O nome de cache dos 10 service workers que precacheiam `/shared/ui/agf-ui.css`
+recebeu o sufixo `-ds05`. Todos limpam caches antigos no `activate`, entao a
+nova versao do CSS chega ao usuario no primeiro carregamento apos o deploy.
+Sempre que `shared/ui/agf-ui.css` mudar de forma que os modulos precisem ver,
+bumpar o nome de cache dos 10 SWs na mesma entrega.

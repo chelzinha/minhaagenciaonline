@@ -1,4 +1,4 @@
-const CACHE='agf-portal-v10-password-toggle-fix';
+const CACHE='agf-portal-v10-password-toggle-fix-ds05';
 const STATIC=['/agf/','/agf/index.html','/agf/agf.css?v=ver-senha-v3','/agf/agf.js?v=ver-senha-v3','/shared/ui/agf-ui.css?v=ver-senha-v3','/shared/ui/agf-ui.js?v=ver-senha-v3','/shared/auth/agf-auth-client.js','/assets/pwa/agf/icon-192.png'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>Promise.all(STATIC.map(url=>cache.add(url).catch(()=>{})))));});
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE&&key.startsWith('agf-portal-')).map(key=>caches.delete(key)))),self.clients.claim()])));
