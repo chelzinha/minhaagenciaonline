@@ -1,0 +1,17 @@
+BEGIN:VCARD
+VERSION:3.0
+N:;Emanuelly;;;
+FN:Emanuelly
+ORG:Agência Franqueada José Bonifácio
+TITLE:Comercial
+TEL;TYPE=WORK,VOICE:+5585920023386
+TEL;TYPE=CELL:+5585987113775
+EMAIL;TYPE=INTERNET,WORK:agfjosebonifacio@gmail.com
+ADR;TYPE=WORK;LABEL="Correios AGF José Bonifácio":;;Av. Aguanambi\, 674;Fortaleza;CE;60055-974;Brasil
+ADR;TYPE=WORK;LABEL="Correios Shopping Metrô":;;Rua 24 de Maio\, 444;Fortaleza;CE;60020-000;Brasil
+URL;TYPE=WORK:https://www.minhaagenciaonline.com.br/emanuelly
+URL:https://www.minhaagenciaonline.com.br
+PHOTO;VALUE=URI:https://www.minhaagenciaonline.com.br/emanuelly/foto-emanuelly.jpg
+NOTE:Coleta gratuita na sua loja. Atendimento pelas unidades AGF José Bonifácio e Correios Shopping Metrô.
+REV:20260905T125300Z
+END:VCARD
