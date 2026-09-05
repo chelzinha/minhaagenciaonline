@@ -1,5 +1,14 @@
 # Changelog - Caixa à Vista
 
+## 2026-09-04 - Correção do link público Pix no WhatsApp
+
+### Corrigido
+
+- remoção do ícone de link da mensagem do WhatsApp, evitando caractere inválido em clientes que não renderizam o emoji;
+- link público alterado para a rota estática segura `/pix/?txid=...`, sem depender de rewrite de rota dinâmica no Cloudflare Pages;
+- compatibilidade mantida com o TXID já gravado na cobrança e com a página pública existente;
+- cache do Caixa Balcão renovado para distribuir a correção.
+
 ## 2026-09-04 - Data e hora no histórico de movimentações
 
 ### Adicionado
