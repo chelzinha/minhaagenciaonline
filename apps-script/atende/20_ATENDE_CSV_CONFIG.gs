@@ -38,6 +38,12 @@ function ATENDE_getCsvFolderId_() {
   return String(folderId).trim();
 }
 
+function ATENDE_logResultadoExecucao_(titulo, resultado) {
+  console.log(titulo);
+  console.log(JSON.stringify(resultado, null, 2));
+  return resultado;
+}
+
 function ATENDE_importarCsvDriveAgora() {
   const lock = LockService.getScriptLock();
   const inicio = Date.now();
@@ -46,7 +52,7 @@ function ATENDE_importarCsvDriveAgora() {
     lock.waitLock(ATENDE_CSV_DIARIO_CFG.LOCK_TIMEOUT_MS);
     const arquivos = ATENDE_listarCsvPendentes_();
     if (!arquivos.length) {
-      return {
+      return ATENDE_logResultadoExecucao_('ATENDE - IMPORTACAO CSV', {
         ok: true,
         message: 'Nenhum CSV novo encontrado.',
         filesProcessed: 0,
@@ -56,7 +62,7 @@ function ATENDE_importarCsvDriveAgora() {
         withoutObject: 0,
         invalidMissingKey: 0,
         elapsedMs: Date.now() - inicio
-      };
+      });
     }
 
     let totalAdded = 0;
@@ -78,7 +84,7 @@ function ATENDE_importarCsvDriveAgora() {
 
     if (totalAdded > 0 || totalUpdated > 0) ATENDE_invalidarCacheEIndice_();
 
-    return {
+    return ATENDE_logResultadoExecucao_('ATENDE - IMPORTACAO CSV', {
       ok: true,
       filesProcessed: resultados.length,
       added: totalAdded,
@@ -88,14 +94,14 @@ function ATENDE_importarCsvDriveAgora() {
       invalidMissingKey: totalInvalidMissingKey,
       files: resultados,
       elapsedMs: Date.now() - inicio
-    };
+    });
   } catch (err) {
     ATENDE_registrarErroCsv_(err);
-    return {
+    return ATENDE_logResultadoExecucao_('ATENDE - ERRO NA IMPORTACAO CSV', {
       ok: false,
       error: err && err.message ? err.message : String(err),
       elapsedMs: Date.now() - inicio
-    };
+    });
   } finally {
     try { lock.releaseLock(); } catch (_) {}
   }
@@ -105,9 +111,10 @@ function ATENDE_validarCsvDriveSemGravar() {
   const pasta = DriveApp.getFolderById(ATENDE_getCsvFolderId_());
   const arquivos = ATENDE_coletarArquivosCsv_(pasta);
   if (!arquivos.length) {
-    const semArquivo = { ok: false, error: 'Nenhum arquivo CSV foi encontrado na pasta configurada.' };
-    console.log(JSON.stringify(semArquivo, null, 2));
-    return semArquivo;
+    return ATENDE_logResultadoExecucao_('ATENDE - VALIDACAO CSV SEM GRAVAR', {
+      ok: false,
+      error: 'Nenhum arquivo CSV foi encontrado na pasta configurada.'
+    });
   }
 
   arquivos.sort(function(a, b) {
@@ -167,9 +174,7 @@ function ATENDE_validarCsvDriveSemGravar() {
     })
   };
 
-  console.log('ATENDE - VALIDACAO CSV SEM GRAVAR');
-  console.log(JSON.stringify(resultado, null, 2));
-  return resultado;
+  return ATENDE_logResultadoExecucao_('ATENDE - VALIDACAO CSV SEM GRAVAR', resultado);
 }
 
 function ATENDE_instalarGatilhoCsvDrive() {
@@ -186,13 +191,13 @@ function ATENDE_instalarGatilhoCsvDrive() {
   });
 
   const trigger = ScriptApp.newTrigger(handler).timeBased().everyHours(1).create();
-  return {
+  return ATENDE_logResultadoExecucao_('ATENDE - GATILHO CSV INSTALADO', {
     ok: true,
     handler: handler,
     removedDuplicates: removidos,
     triggerUniqueId: trigger.getUniqueId(),
     cadence: 'a cada 1 hora'
-  };
+  });
 }
 
 function ATENDE_removerGatilhoCsvDrive() {
@@ -204,7 +209,10 @@ function ATENDE_removerGatilhoCsvDrive() {
       removidos++;
     }
   });
-  return { ok: true, removed: removidos };
+  return ATENDE_logResultadoExecucao_('ATENDE - GATILHO CSV REMOVIDO', {
+    ok: true,
+    removed: removidos
+  });
 }
 
 function ATENDE_statusCsvDrive() {
@@ -221,10 +229,10 @@ function ATENDE_statusCsvDrive() {
       };
     });
 
-  return {
+  return ATENDE_logResultadoExecucao_('ATENDE - STATUS CSV DRIVE', {
     ok: true,
     folderConfigured: configured,
     processedMetaCount: processed.length,
     triggers: triggers
-  };
+  });
 }
