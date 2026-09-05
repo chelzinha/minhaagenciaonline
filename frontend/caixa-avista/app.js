@@ -1,5 +1,7 @@
 'use strict';
 (() => {
+  const VERSION = '20260905001500';
+
   const showLoadError = message => {
     const node = document.getElementById('launchStatus');
     if (node) {
@@ -18,14 +20,25 @@
     document.head.appendChild(script);
   };
 
+  const loadV3Controller = () => {
+    const script = document.createElement('script');
+    script.src = `/caixa-avista/v3-controller.js?v=${VERSION}`;
+    script.async = false;
+    script.onload = loadApplication;
+    script.onerror = () => {
+      showLoadError('Não foi possível carregar os controles da V3. Atualize a página e tente novamente.');
+    };
+    document.head.appendChild(script);
+  };
+
   const loadMovementHistory = () => {
     const script = document.createElement('script');
     script.src = '/caixa-avista/movement-history.js?v=20260904230000';
     script.async = false;
-    script.onload = loadApplication;
+    script.onload = loadV3Controller;
     script.onerror = () => {
       console.warn('[CAIXA_MOVEMENT_HISTORY] Não foi possível carregar a data e hora das movimentações.');
-      loadApplication();
+      loadV3Controller();
     };
     document.head.appendChild(script);
   };
