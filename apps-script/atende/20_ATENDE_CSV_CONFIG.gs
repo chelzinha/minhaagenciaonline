@@ -105,7 +105,9 @@ function ATENDE_validarCsvDriveSemGravar() {
   const pasta = DriveApp.getFolderById(ATENDE_getCsvFolderId_());
   const arquivos = ATENDE_coletarArquivosCsv_(pasta);
   if (!arquivos.length) {
-    return { ok: false, error: 'Nenhum arquivo CSV foi encontrado na pasta configurada.' };
+    const semArquivo = { ok: false, error: 'Nenhum arquivo CSV foi encontrado na pasta configurada.' };
+    console.log(JSON.stringify(semArquivo, null, 2));
+    return semArquivo;
   }
 
   arquivos.sort(function(a, b) {
@@ -132,7 +134,7 @@ function ATENDE_validarCsvDriveSemGravar() {
     records.push(record);
   });
 
-  return {
+  const resultado = {
     ok: true,
     fileName: file.getName(),
     modifiedAt: file.getLastUpdated(),
@@ -164,6 +166,10 @@ function ATENDE_validarCsvDriveSemGravar() {
       };
     })
   };
+
+  console.log('ATENDE - VALIDACAO CSV SEM GRAVAR');
+  console.log(JSON.stringify(resultado, null, 2));
+  return resultado;
 }
 
 function ATENDE_instalarGatilhoCsvDrive() {
