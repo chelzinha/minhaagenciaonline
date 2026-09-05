@@ -5,6 +5,8 @@
 const ATENDE_D1_CFG = Object.freeze({
   API_URL_PROP: 'ATENDE_D1_API_URL',
   API_TOKEN_PROP: 'ATENDE_D1_API_TOKEN',
+  PROCESSED_META_PROP: 'ATENDE_D1_PROCESSED_META_V1',
+  MAX_PROCESSED_META: 120,
   CHUNK_ROWS: 500,
   MAX_FILES_PER_RUN: 2,
   TIMEOUT_LOCK_MS: 25000
@@ -17,6 +19,41 @@ function ATENDE_getD1Config_() {
   if (!apiUrl) throw new Error('Configure a Script Property "' + ATENDE_D1_CFG.API_URL_PROP + '".');
   if (!token) throw new Error('Configure a Script Property "' + ATENDE_D1_CFG.API_TOKEN_PROP + '".');
   return { apiUrl: apiUrl, token: token };
+}
+
+function ATENDE_getProcessedD1Meta_() {
+  try {
+    const raw = PropertiesService.getScriptProperties().getProperty(ATENDE_D1_CFG.PROCESSED_META_PROP);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function ATENDE_markProcessedD1Meta_(signature) {
+  if (!signature) return;
+  const props = PropertiesService.getScriptProperties();
+  const list = ATENDE_getProcessedD1Meta_().filter(function(item) { return item !== signature; });
+  list.push(signature);
+  while (list.length > ATENDE_D1_CFG.MAX_PROCESSED_META) list.shift();
+  props.setProperty(ATENDE_D1_CFG.PROCESSED_META_PROP, JSON.stringify(list));
+}
+
+function ATENDE_listarCsvPendentesD1_() {
+  const folder = DriveApp.getFolderById(ATENDE_getCsvFolderId_());
+  const arquivos = ATENDE_coletarArquivosCsv_(folder);
+  const processed = new Set(ATENDE_getProcessedD1Meta_());
+
+  return arquivos
+    .sort(function(a, b) {
+      return b.file.getLastUpdated().getTime() - a.file.getLastUpdated().getTime();
+    })
+    .slice(0, ATENDE_CSV_DIARIO_CFG.MAX_FOLDER_FILES_TO_SCAN)
+    .filter(function(item) { return !processed.has(item.metaSignature); })
+    .sort(function(a, b) {
+      return a.file.getLastUpdated().getTime() - b.file.getLastUpdated().getTime();
+    });
 }
 
 function ATENDE_fetchD1_(path, options) {
@@ -60,7 +97,8 @@ function ATENDE_statusD1() {
       ok: true,
       apiUrlConfigured: !!cfg.apiUrl,
       tokenConfigured: !!cfg.token,
-      apiUrl: cfg.apiUrl
+      apiUrl: cfg.apiUrl,
+      processedMetaCount: ATENDE_getProcessedD1Meta_().length
     };
     console.log(JSON.stringify(result, null, 2));
     return result;
@@ -81,7 +119,7 @@ function ATENDE_importarArquivoCsvD1_(file, metaSignature) {
   });
 
   if (check.completed) {
-    ATENDE_marcarMetaProcessada_(metaSignature);
+    ATENDE_markProcessedD1Meta_(metaSignature);
     return {
       fileName: file.getName(),
       status: 'already_in_d1',
@@ -130,7 +168,7 @@ function ATENDE_importarArquivoCsvD1_(file, metaSignature) {
     throw new Error('Importacao D1 incompleta: ' + sent + ' de ' + totalRows + ' linhas enviadas.');
   }
 
-  ATENDE_marcarMetaProcessada_(metaSignature);
+  ATENDE_markProcessedD1Meta_(metaSignature);
   return {
     fileName: file.getName(),
     status: 'imported_d1',
@@ -149,12 +187,12 @@ function ATENDE_importarCsvDriveD1Agora() {
   try {
     lock.waitLock(ATENDE_D1_CFG.TIMEOUT_LOCK_MS);
     ATENDE_getD1Config_();
-    const arquivos = ATENDE_listarCsvPendentes_();
+    const arquivos = ATENDE_listarCsvPendentesD1_();
 
     if (!arquivos.length) {
       return ATENDE_logResultadoExecucao_('ATENDE - IMPORTACAO DRIVE -> D1', {
         ok: true,
-        message: 'Nenhum CSV novo encontrado.',
+        message: 'Nenhum CSV novo encontrado para o D1.',
         filesProcessed: 0,
         sent: 0,
         changed: 0,
