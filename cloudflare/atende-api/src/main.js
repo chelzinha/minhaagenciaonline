@@ -16,16 +16,24 @@ export default {
 
 async function rawReady(env) {
   try {
-    const [legacy, raw] = await env.DB.batch([
+    const [configResult, legacyResult, rawResult] = await env.DB.batch([
+      env.DB.prepare(`SELECT valor FROM atende_runtime_config WHERE chave = 'panel_source'`),
       env.DB.prepare(`SELECT COUNT(*) AS total FROM atende_postagens`),
       env.DB.prepare(`
         SELECT COUNT(*) AS total
         FROM atende_postagens_raw r
-        JOIN atende_raw_importacoes ri ON ri.import_key=r.import_key AND ri.concluido_em IS NOT NULL
+        JOIN atende_raw_importacoes ri
+          ON ri.import_key = r.import_key
+         AND ri.concluido_em IS NOT NULL
       `)
     ]);
-    const legacyTotal = Number(legacy?.results?.[0]?.total || 0);
-    const rawTotal = Number(raw?.results?.[0]?.total || 0);
+
+    const source = String(configResult?.results?.[0]?.valor || 'legacy').toLowerCase();
+    if (source !== 'raw') return false;
+
+    const legacyTotal = Number(legacyResult?.results?.[0]?.total || 0);
+    const rawTotal = Number(rawResult?.results?.[0]?.total || 0);
+
     return rawTotal > 0 && (legacyTotal === 0 || rawTotal >= legacyTotal);
   } catch (_) {
     return false;
