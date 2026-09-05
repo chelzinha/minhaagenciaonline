@@ -1,7 +1,7 @@
 BEGIN:VCARD
 VERSION:3.0
-N:;Emanuelly;;;
-FN:Emanuelly
+N:Barros;Emanuelly;;;
+FN:Emanuelly Barros
 ORG:Agência Franqueada José Bonifácio
 TITLE:Comercial
 TEL;TYPE=WORK,VOICE:+5585920023386
@@ -13,5 +13,5 @@ URL;TYPE=WORK:https://www.minhaagenciaonline.com.br/emanuelly
 URL:https://www.minhaagenciaonline.com.br
 PHOTO;VALUE=URI:https://www.minhaagenciaonline.com.br/emanuelly/foto-emanuelly.jpg
 NOTE:Coleta gratuita na sua loja. Atendimento pelas unidades AGF José Bonifácio e Correios Shopping Metrô.
-REV:20260905T125300Z
+REV:20260905T130800Z
 END:VCARD
