@@ -8,11 +8,17 @@ function ATENDE_listarCsvPendentes_() {
   const props = PropertiesService.getScriptProperties();
   const processed = new Set(ATENDE_getProcessedMeta_(props));
 
-  return arquivos.filter(function(item) {
-    return !processed.has(item.metaSignature);
-  }).sort(function(a, b) {
-    return a.file.getLastUpdated().getTime() - b.file.getLastUpdated().getTime();
-  });
+  // A pasta pode acumular anos de relatorios. Trabalhamos somente sobre a
+  // janela operacional recente para que arquivos antigos nunca atrasem o novo.
+  return arquivos
+    .sort(function(a, b) {
+      return b.file.getLastUpdated().getTime() - a.file.getLastUpdated().getTime();
+    })
+    .slice(0, ATENDE_CSV_DIARIO_CFG.MAX_FOLDER_FILES_TO_SCAN)
+    .filter(function(item) { return !processed.has(item.metaSignature); })
+    .sort(function(a, b) {
+      return a.file.getLastUpdated().getTime() - b.file.getLastUpdated().getTime();
+    });
 }
 
 function ATENDE_coletarArquivosCsv_(folder) {
@@ -58,9 +64,7 @@ function ATENDE_hashJaImportado_(hash) {
   const sheet = ss.getSheetByName(ATENDE_CSV_DIARIO_CFG.LOG_SHEET);
   if (!sheet || sheet.getLastRow() < 2) return false;
 
-  const startRow = Math.max(2, sheet.getLastRow() - 199);
-  const numRows = sheet.getLastRow() - startRow + 1;
-  return sheet.getRange(startRow, 10, numRows, 1).getDisplayValues().some(function(row) {
-    return String(row[0] || '').trim() === hash;
-  });
+  return sheet.getRange(2, 10, sheet.getLastRow() - 1, 1)
+    .getDisplayValues()
+    .some(function(row) { return String(row[0] || '').trim() === hash; });
 }
