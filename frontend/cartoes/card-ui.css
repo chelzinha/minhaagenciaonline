@@ -1,0 +1,44 @@
+/* Padrão visual compartilhado dos cartões digitais */
+.brand-header{
+  min-height:96px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px 20px;
+  gap:0;
+}
+.brand-header .brand{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.brand-header p,
+.brand-name{
+  display:none!important;
+}
+
+/* Respiro interno dos ícones para evitar cortes em strokes e bordas */
+.action svg,
+.info-row svg,
+.location-icon svg,
+.install-icon svg{
+  box-sizing:border-box;
+  overflow:visible;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.action svg{
+  padding:2px;
+}
+.info-row svg{
+  padding:1.5px;
+}
+.location-icon svg,
+.install-icon svg{
+  padding:2px;
+}
+
+@media(max-width:500px){
+  .brand-header{min-height:86px;padding:12px 16px}
+}
