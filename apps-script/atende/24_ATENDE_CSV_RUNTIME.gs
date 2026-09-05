@@ -16,7 +16,8 @@ function ATENDE_logImportacaoCsv_(info) {
 
   const resumo = [
     'arquivo=' + info.file.getName(),
-    'sem objeto=' + Number(info.invalidWithoutObject || 0),
+    'sem objeto=' + Number(info.withoutObject || 0),
+    'sem chave=' + Number(info.invalidMissingKey || 0),
     'existentes sem mudanca=' + Number(info.unchangedExisting || 0),
     'duplicados no arquivo=' + Number(info.duplicatePayload || 0)
   ].join(' | ');
