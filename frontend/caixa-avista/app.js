@@ -30,13 +30,25 @@
     document.head.appendChild(script);
   };
 
-  const pixSafety = document.createElement('script');
-  pixSafety.src = '/caixa-avista/pix-safety.js?v=20260904212500';
-  pixSafety.async = false;
-  pixSafety.onload = loadMovementHistory;
-  pixSafety.onerror = () => {
-    showLoadError('Não foi possível carregar a validação do Pix. Atualize a página e tente novamente.');
+  const loadPixSafety = () => {
+    const pixSafety = document.createElement('script');
+    pixSafety.src = '/caixa-avista/pix-safety.js?v=20260904212500';
+    pixSafety.async = false;
+    pixSafety.onload = loadMovementHistory;
+    pixSafety.onerror = () => {
+      showLoadError('Não foi possível carregar a validação do Pix. Atualize a página e tente novamente.');
+    };
+    document.head.appendChild(pixSafety);
   };
 
-  document.head.appendChild(pixSafety);
+  const pixMessageLinkFix = document.createElement('script');
+  pixMessageLinkFix.src = '/caixa-avista/pix-message-link-fix.js?v=20260904232000';
+  pixMessageLinkFix.async = false;
+  pixMessageLinkFix.onload = loadPixSafety;
+  pixMessageLinkFix.onerror = () => {
+    console.warn('[CAIXA_PIX_LINK] Não foi possível carregar a correção do link Pix.');
+    loadPixSafety();
+  };
+
+  document.head.appendChild(pixMessageLinkFix);
 })();
