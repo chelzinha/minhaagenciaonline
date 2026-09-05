@@ -7,8 +7,10 @@
   const API_OVERRIDE_KEY = 'caixa_avista_v3_api_url';
   const DEFAULT_UNIT_KEY = 'caixa_avista_v3_default_unit';
   const USER_UNIT_PREFIX = 'caixa_avista_v3_default_unit:';
+  const USER_UNITS_PREFIX = 'caixa_avista_v3_units:';
+  const FORCE_SELECTION_KEY = 'caixa_avista_v3_force_unit_selection';
   const LEGACY_UNIT_PREFIX = 'caixa_avista_v2_selected_unit:';
-  const APP_VERSION = '20260905001500';
+  const APP_VERSION = '20260905011500';
 
   const originalFetch = window.fetch.bind(window);
 
@@ -43,16 +45,64 @@
     return USER_UNIT_PREFIX + normalizeUser(username);
   }
 
+  function userUnitsKey(username) {
+    return USER_UNITS_PREFIX + normalizeUser(username);
+  }
+
   function legacyUnitKey(username) {
     return LEGACY_UNIT_PREFIX + normalizeUser(username);
   }
 
-  function readDefaultUnit() {
+  function localUsername() {
     try {
-      return String(localStorage.getItem(DEFAULT_UNIT_KEY) || '').trim();
+      const session = window.AgfAuth?.getLocalSession?.();
+      const payload = session?.payload || {};
+      const cached = session?.user || window.AgfAuth?.getCachedUser?.() || {};
+      return normalizeUser(
+        payload.sub ||
+        cached.username ||
+        cached.id ||
+        cached.user ||
+        ''
+      );
     } catch (_) {
       return '';
     }
+  }
+
+  function readDefaultUnit(username) {
+    try {
+      const userKey = username ? userUnitKey(username) : '';
+      const userValue = userKey ? localStorage.getItem(userKey) : '';
+      if (userValue) return String(userValue).trim();
+
+      /*
+       * O fallback global só é usado quando ainda não conhecemos o usuário.
+       * Isso evita reaproveitar a unidade de outro usuário no mesmo navegador.
+       */
+      if (!username) {
+        return String(localStorage.getItem(DEFAULT_UNIT_KEY) || '').trim();
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  function readCachedUnits(username) {
+    if (!username) return [];
+    try {
+      const raw = localStorage.getItem(userUnitsKey(username));
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function rememberUnits(username, units) {
+    if (!username || !Array.isArray(units)) return;
+    try {
+      localStorage.setItem(userUnitsKey(username), JSON.stringify(units));
+    } catch (_) {}
   }
 
   function rememberUnit(username, unitId) {
@@ -71,13 +121,31 @@
 
   function forgetUnit(username) {
     try {
-      localStorage.removeItem(DEFAULT_UNIT_KEY);
+      if (!username || normalizeUser(username) === currentUsername) {
+        localStorage.removeItem(DEFAULT_UNIT_KEY);
+      }
       if (username) localStorage.removeItem(userUnitKey(username));
     } catch (_) {}
 
     try {
       if (username) sessionStorage.removeItem(legacyUnitKey(username));
     } catch (_) {}
+  }
+
+  function forceSelectionOnNextLoad() {
+    try {
+      sessionStorage.setItem(FORCE_SELECTION_KEY, '1');
+    } catch (_) {}
+  }
+
+  function consumeForceSelection() {
+    try {
+      const forced = sessionStorage.getItem(FORCE_SELECTION_KEY) === '1';
+      sessionStorage.removeItem(FORCE_SELECTION_KEY);
+      return forced;
+    } catch (_) {
+      return false;
+    }
   }
 
   async function waitForToken(timeoutMs = 10000) {
@@ -108,6 +176,12 @@
     }
 
     return response.json();
+  }
+
+  function refreshSwitchButton() {
+    const switchButton = document.getElementById('btnSwitchUnit');
+    if (!switchButton) return;
+    switchButton.classList.toggle('hidden', availableUnits.length <= 1);
   }
 
   function installUnitFetchContext() {
@@ -170,6 +244,7 @@
       },
       clearSelection() {
         forgetUnit(currentUsername);
+        forceSelectionOnNextLoad();
         window.location.reload();
       }
     };
@@ -334,7 +409,7 @@
   }
 
   async function activateUnit(username, unit) {
-    currentUsername = String(username || '').trim();
+    currentUsername = normalizeUser(username || currentUsername);
     selectedUnitId = String(unit.id || '').trim();
     rememberUnit(currentUsername, selectedUnitId);
     exposeUnitContext();
@@ -351,18 +426,50 @@
 
     try {
       const result = await requestUnitAccess(unit.id);
+      currentUsername = normalizeUser(result.username || currentUsername);
       availableUnits = Array.isArray(result.units) ? result.units : availableUnits;
+      rememberUnits(currentUsername, availableUnits);
 
       if (!result.ok || !result.selectedUnit) {
         throw new Error(result.message || 'A unidade não foi autorizada.');
       }
 
-      await activateUnit(result.username, result.selectedUnit);
+      await activateUnit(currentUsername, result.selectedUnit);
     } catch (error) {
       document.querySelectorAll('.caixa-unit-button').forEach(button => {
         button.disabled = false;
       });
       showGateError(error.message || 'Não foi possível abrir a unidade.');
+    }
+  }
+
+  async function validateRememberedUnit(unitId) {
+    try {
+      const result = await requestUnitAccess(unitId);
+      const resolvedUsername = normalizeUser(result.username || currentUsername);
+      const units = Array.isArray(result.units) ? result.units : [];
+
+      if (!result.ok || !result.selectedUnit) {
+        forgetUnit(resolvedUsername || currentUsername);
+        rememberUnits(resolvedUsername || currentUsername, units);
+        forceSelectionOnNextLoad();
+        window.location.reload();
+        return;
+      }
+
+      currentUsername = resolvedUsername || currentUsername;
+      selectedUnitId = String(result.selectedUnit.id || unitId).trim();
+      availableUnits = units;
+      rememberUnit(currentUsername, selectedUnitId);
+      rememberUnits(currentUsername, availableUnits);
+      exposeUnitContext();
+      refreshSwitchButton();
+    } catch (error) {
+      /*
+       * Falha de rede não derruba uma sessão que já abriu. O próprio backend
+       * valida a unidade em init e em cada gravação do Caixa.
+       */
+      console.warn('[CAIXA_V3_UNIT_BACKGROUND_VALIDATION]', error);
     }
   }
 
@@ -375,29 +482,33 @@
         throw new Error('Sua sessão não ficou disponível a tempo. Atualize a página.');
       }
 
-      /*
-       * A unidade padrão já vai na primeira consulta. Se o computador estiver
-       * sendo usado por outro usuário e ele não tiver acesso à unidade lembrada,
-       * limpamos a preferência e mostramos somente as unidades autorizadas.
-       */
-      const remembered = readDefaultUnit();
-      const result = await requestUnitAccess(remembered);
+      currentUsername = localUsername();
+      const forceSelection = consumeForceSelection();
+      const remembered = forceSelection ? '' : readDefaultUnit(currentUsername);
 
-      currentUsername = String(result.username || '').trim();
+      /*
+       * V3 rápida: se já existe unidade padrão deste usuário, o frontend abre
+       * imediatamente. A validação de acesso roda em paralelo e o backend ainda
+       * valida a unidade no init e em todas as operações, portanto não há atalho
+       * de segurança. Eliminamos apenas a espera visual por uma chamada redundante.
+       */
+      if (remembered) {
+        selectedUnitId = remembered;
+        availableUnits = readCachedUnits(currentUsername);
+        exposeUnitContext();
+        installUnitFetchContext();
+        removeGate();
+        loadCaixaApplication();
+        validateRememberedUnit(remembered);
+        return;
+      }
+
+      const result = await requestUnitAccess('');
+      currentUsername = normalizeUser(result.username || currentUsername);
       availableUnits = Array.isArray(result.units) ? result.units : [];
+      rememberUnits(currentUsername, availableUnits);
 
       if (!result.ok) {
-        if (result.code === 'UNIT_NOT_ALLOWED' && availableUnits.length) {
-          forgetUnit(currentUsername);
-
-          if (availableUnits.length === 1) {
-            await chooseUnit(availableUnits[0]);
-          } else {
-            renderUnitButtons(availableUnits);
-          }
-          return;
-        }
-
         throw new Error(result.message || 'Não foi possível validar o acesso ao Caixa.');
       }
 
