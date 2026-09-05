@@ -29,6 +29,8 @@ A documentação detalhada fica em `docs/modulos/`.
 
 O `frontend/intra/index.html` confirma como cards principais atuais: Dashboard, Inteligência, CRM, Resumos, Logística, Caixa e Manuais.
 
+O card Caixa do `/intra` é apenas um atalho para a rota oficial `/caixa/`. A antiga rota `/intra/caixa/` foi removida definitivamente em 05/09/2026 e não deve ser recriada nem redirecionada.
+
 | Module ID | Rota | Frontend | Backend/fontes | Auth | Documentação |
 |---|---|---|---|---|---|
 | intra | `/intra` | `frontend/intra` | múltiplos | SIM | `docs/modulos/intra/README.md` |
@@ -37,7 +39,7 @@ O `frontend/intra/index.html` confirma como cards principais atuais: Dashboard, 
 | crm | `/crm` | `frontend/crm` | `apps-script/base-metro` | CONFIRMAR integralmente | `docs/modulos/crm/README.md` |
 | resumos | `/intra/resumo` | `frontend/intra/resumo` | NÃO MAPEADOS | CONFIRMAR | `docs/modulos/resumos/README.md` |
 | logistica-interna | `/intra/logistica` | `frontend/intra/logistica` | NÃO MAPEADOS | CONFIRMAR | `docs/modulos/logistica-interna/README.md` |
-| caixa | `/caixa` e `/intra/caixa` | `frontend/caixa` + `frontend/intra/caixa` | `apps-script/caixa` provável | NÃO CONFIRMADO | `docs/modulos/caixa/README.md` |
+| caixa | `/caixa` | `frontend/caixa` | `apps-script/caixa` provável | SIM no catálogo central; validar backend integralmente | `docs/modulos/caixa/README.md` |
 | manuais | `/intra/manuais` | `frontend/intra/manuais` | fonte `Manuais` documentada | CONFIRMAR | `docs/modulos/manuais/README.md` |
 | atende | `/atende` | `frontend/atende` | `apps-script/atende` | SIM | `docs/modulos/atende/README.md` |
 | sla | `/sla` e `/intra/sla` | `frontend/sla` + rota interna | `apps-script/sla` | SIM | `docs/modulos/sla/README.md` |
@@ -56,6 +58,12 @@ O `frontend/intra/index.html` confirma como cards principais atuais: Dashboard, 
 | `/intra/crm` | redireciona para `/crm/?view=clientes` |
 
 Essas rotas não são tratadas como módulos independentes enquanto permanecerem simples redirecionamentos.
+
+### Rota eliminada
+
+| Rota | Estado |
+|---|---|
+| `/intra/caixa` | REMOVIDA DEFINITIVAMENTE em 05/09/2026; sem redirect e sem compatibilidade |
 
 ## 5. Família Inteligência
 
@@ -79,7 +87,7 @@ Essas rotas não são tratadas como módulos independentes enquanto permanecerem
 | logistica | `apps-script/logistica` | família Reverso | SIM | `docs/modulos/logistica/README.md` |
 | base-metro | `apps-script/base-metro` | CRM e módulos internos relacionados | SIM | `docs/modulos/base-metro/README.md` |
 | base-cliente-etiquetas | `apps-script/base-cliente-etiquetas` | consumidores a mapear | SIM | `docs/modulos/base-cliente-etiquetas/README.md` |
-| caixa-backend | `apps-script/caixa` | Caixa; vínculo com Balcão a confirmar | SIM | `docs/modulos/caixa/README.md` |
+| caixa-backend | `apps-script/caixa` | `/caixa`; vínculo com Balcão a confirmar | SIM | `docs/modulos/caixa/README.md` |
 | nuvemshop-backend | `apps-script/nuvemshop` | `/nuvem` | SIM | `docs/modulos/nuvem/README.md` |
 | atende-backend | `apps-script/atende` | `/atende` | SIM | `docs/modulos/atende/README.md` |
 | sla-backend | `apps-script/sla` | `/sla` | SIM | `docs/modulos/sla/README.md` |
@@ -116,7 +124,7 @@ Quando o vínculo não estiver provado pelo código ou ambiente, usar `NÃO CONF
 4. Confirmar URLs `/exec` e `/dev` sem expor segredos.
 5. Classificar cada módulo M0-M5.
 6. Resolver papel oficial de `/agf` versus `/intra`.
-7. Definir rota canônica do Caixa (`/caixa` x `/intra/caixa`) e do SLA quando houver duplicidade.
-8. Confirmar autenticação de Caixa, Balcão, SuperFrete Admin, Reverso Coleta, Dashboard, Resumos, Logística e Manuais.
+7. Definir rota canônica do SLA quando houver duplicidade.
+8. Confirmar autenticação integral de Caixa, Balcão, SuperFrete Admin, Reverso Coleta, Dashboard, Resumos, Logística e Manuais.
 9. Inventariar todos os slugs de Cartões Digitais.
 10. Atualizar este mapa sempre que um módulo novo entrar ou uma rota for desativada.
