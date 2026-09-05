@@ -55,7 +55,8 @@ Todos os cartões devem exibir um QR Code visível logo abaixo dos 6 botões de 
 
 Padrão da seção:
 - título: `Meu QR Code`;
-- texto: `Escaneie para abrir este cartão digital e salvar o contato.`;
+- sem texto ou legenda abaixo do QR;
+- QR centralizado e maior, com largura visual padrão de até 280 px no desktop e 260 px no mobile;
 - arquivo da imagem dentro da pasta do cartão: `qr-card.png`;
 - o QR deve apontar para a URL canônica do próprio cartão, por exemplo `https://www.minhaagenciaonline.com.br/emanuelly`;
 - não usar o vCard diretamente como conteúdo do QR principal.
