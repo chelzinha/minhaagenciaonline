@@ -22,6 +22,14 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 
 ### Corrigido
 - A11Y: adicionado `@media (prefers-reduced-motion: reduce)`.
+- Status semantico (`--agf-color-danger/warning/success/info` e os `-soft`)
+  passa a adotar a familia semantica do CRM (`#d6483d`, `#e08a2e`, `#23976b`,
+  `#3b6fd8`), nao a familia legada (`--red/--green/--amber`). Motivo: o CRM usa
+  as duas, mas `--amber` tem 0 usos contra 4 de `--warning`. A familia legada
+  segue declarada como primitivo (`--agf-c-red-600` etc.) para a migracao.
+- `--agf-color-text` NAO adota o `#17354b` do CRM. Fica no `#14324a` do proprio
+  agf-ui, porque `--agf-text` aponta para ele e ja tem consumidor. Trocar
+  repinta texto em producao e e decisao de Rodada N.
 - Sombras `--agf-sh-1/2/3` realinhadas aos valores reais do CRM. Estavam
   documentadas como "vindas do CRM" mas usavam `rgba(15,32,56,...)`, que nao
   existe em lugar nenhum da plataforma. Agora `--agf-sh-2` e o `--shadow` do

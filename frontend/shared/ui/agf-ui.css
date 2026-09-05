@@ -877,15 +877,26 @@ html.agf-route-reverso-admin [class*="rastreio"], html.agf-route-reverso-coleta 
   --agf-c-gray-800: #17354b;   /* texto principal crm */
   --agf-c-gray-900: #14324a;   /* texto principal agf-ui */
 
-  /* Status */
-  --agf-c-green-600:  #15803d;
-  --agf-c-green-100:  #dcfce7;
-  --agf-c-amber-600:  #b45309;
-  --agf-c-amber-100:  #fef3c7;
-  --agf-c-red-600:    #b42318;
-  --agf-c-red-100:    #fee2e2;
-  --agf-c-purple-600: #6d3cb1;
-  --agf-c-purple-100: #f3e8ff;
+  /* Status - familia semantica do CRM (canonica a partir da Rodada 0) */
+  --agf-c-green-500:  #23976b;   /* crm --success      */
+  --agf-c-green-50:   #e4f5ec;   /* crm --success-soft */
+  --agf-c-amber-500:  #e08a2e;   /* crm --warning      */
+  --agf-c-amber-50:   #fceedd;   /* crm --warning-soft */
+  --agf-c-red-500:    #d6483d;   /* crm --danger       */
+  --agf-c-red-50:     #fbe7e5;   /* crm --danger-soft  */
+  --agf-c-indigo-500: #3b6fd8;   /* crm --info         */
+  --agf-c-indigo-50:  #e9f0fd;   /* crm --info-soft    */
+
+  /* Status - familia legada do CRM. Ainda em uso em crm/styles.css
+   * (--red x6, --green x3). Mantida para migracao, nao usar em codigo novo. */
+  --agf-c-green-600:  #15803d;   /* crm --green  */
+  --agf-c-green-100:  #dcfce7;   /* crm --green-soft  */
+  --agf-c-amber-600:  #b45309;   /* crm --amber  (0 usos) */
+  --agf-c-amber-100:  #fef3c7;   /* crm --amber-soft  */
+  --agf-c-red-600:    #b42318;   /* crm --red    */
+  --agf-c-red-100:    #fee2e2;   /* crm --red-soft    */
+  --agf-c-purple-600: #6d3cb1;   /* crm --purple */
+  --agf-c-purple-100: #f3e8ff;   /* crm --purple-soft */
 
   /* --------------------------------------------------------
    * CAMADA 2 - SEMANTICA (o que os componentes devem usar)
@@ -904,17 +915,21 @@ html.agf-route-reverso-admin [class*="rastreio"], html.agf-route-reverso-coleta 
   --agf-color-border:         var(--agf-c-gray-250);
   --agf-color-border-strong:  var(--agf-c-gray-300);
 
+  /* ATENCAO: --agf-color-text NAO e o texto do CRM (#17354b). E o
+   * #14324a do proprio agf-ui, porque --agf-text aponta para ele e ja
+   * tem consumidor dentro deste arquivo. Adotar o valor do CRM repinta
+   * texto em producao e e decisao de uma Rodada N, nao da Rodada 0. */
   --agf-color-text:           var(--agf-c-gray-900);
   --agf-color-text-soft:      var(--agf-c-gray-500);
 
-  --agf-color-success:        var(--agf-c-green-600);
-  --agf-color-success-soft:   var(--agf-c-green-100);
-  --agf-color-warning:        var(--agf-c-amber-600);
-  --agf-color-warning-soft:   var(--agf-c-amber-100);
-  --agf-color-danger:         var(--agf-c-red-600);
-  --agf-color-danger-soft:    var(--agf-c-red-100);
-  --agf-color-info:           var(--agf-c-navy-600);
-  --agf-color-info-soft:      var(--agf-c-navy-50);
+  --agf-color-success:        var(--agf-c-green-500);
+  --agf-color-success-soft:   var(--agf-c-green-50);
+  --agf-color-warning:        var(--agf-c-amber-500);
+  --agf-color-warning-soft:   var(--agf-c-amber-50);
+  --agf-color-danger:         var(--agf-c-red-500);
+  --agf-color-danger-soft:    var(--agf-c-red-50);
+  --agf-color-info:           var(--agf-c-indigo-500);
+  --agf-color-info-soft:      var(--agf-c-indigo-50);
 
   /* --------------------------------------------------------
    * ESPACAMENTO - grade de 4px + degraus legados de 2px
