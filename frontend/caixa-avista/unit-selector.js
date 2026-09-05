@@ -4,6 +4,7 @@
   const DEFAULT_API_URL =
     'https://script.google.com/macros/s/AKfycbxH-9PPg_R5i5YGYuZOgizOK-_i9XssRvvoA21XFnxt0nZr9SF87jFysf4s3bhNVSIe/exec';
 
+  const API_OVERRIDE_KEY = 'caixa_avista_v3_api_url';
   const DEFAULT_UNIT_KEY = 'caixa_avista_v3_default_unit';
   const USER_UNIT_PREFIX = 'caixa_avista_v3_default_unit:';
   const LEGACY_UNIT_PREFIX = 'caixa_avista_v2_selected_unit:';
@@ -17,7 +18,21 @@
   let fetchWrapped = false;
   let appLoaded = false;
 
-  const apiUrl = () => DEFAULT_API_URL;
+  function validApiUrl(value) {
+    const url = String(value || '').trim();
+    return /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url)
+      ? url
+      : '';
+  }
+
+  function apiUrl() {
+    try {
+      return validApiUrl(localStorage.getItem(API_OVERRIDE_KEY)) || DEFAULT_API_URL;
+    } catch (_) {
+      return DEFAULT_API_URL;
+    }
+  }
+
   const authToken = () => String(window.AgfAuth?.getToken?.() || '').trim();
 
   function normalizeUser(value) {
@@ -106,9 +121,14 @@
         init.method || input?.method || 'GET'
       ).toUpperCase();
 
+      const currentApiUrl = apiUrl();
+      const isCaixaApi =
+        target === currentApiUrl ||
+        target === DEFAULT_API_URL;
+
       if (
         selectedUnitId &&
-        target === apiUrl() &&
+        isCaixaApi &&
         method === 'POST' &&
         typeof init.body === 'string'
       ) {
@@ -116,12 +136,16 @@
           const payload = JSON.parse(init.body);
           if (payload && typeof payload === 'object') {
             payload.unitId = selectedUnitId;
-            return originalFetch(input, {
+            return originalFetch(currentApiUrl, {
               ...init,
               body: JSON.stringify(payload)
             });
           }
         } catch (_) {}
+      }
+
+      if (isCaixaApi && target !== currentApiUrl) {
+        return originalFetch(currentApiUrl, init);
       }
 
       return originalFetch(input, init);
@@ -137,6 +161,9 @@
       },
       getUsername() {
         return currentUsername;
+      },
+      getApiUrl() {
+        return apiUrl();
       },
       canSwitchUnit() {
         return availableUnits.length > 1;
@@ -285,6 +312,10 @@
     const options = gateElement('caixaUnitOptions');
     options.innerHTML = '';
 
+    const status = gateElement('caixaUnitStatus');
+    if (status) status.className = 'caixa-unit-status';
+    gateElement('caixaUnitRetry')?.classList.remove('show');
+
     units.forEach(unit => {
       const button = document.createElement('button');
       button.type = 'button';
@@ -339,23 +370,36 @@
     exposeUnitContext();
 
     try {
-      const token = await waitForToken();
-      if (!token) throw new Error('Sua sessão não ficou disponível a tempo. Atualize a página.');
+      const auth = await waitForToken();
+      if (!auth) {
+        throw new Error('Sua sessão não ficou disponível a tempo. Atualize a página.');
+      }
 
       /*
-       * A V3 envia a unidade padrão já na primeira consulta. O backend valida
-       * se o usuário atual realmente possui acesso. Assim evitamos a antiga
-       * segunda viagem ao Apps Script em toda abertura do Caixa.
+       * A unidade padrão já vai na primeira consulta. Se o computador estiver
+       * sendo usado por outro usuário e ele não tiver acesso à unidade lembrada,
+       * limpamos a preferência e mostramos somente as unidades autorizadas.
        */
       const remembered = readDefaultUnit();
       const result = await requestUnitAccess(remembered);
 
-      if (!result.ok) {
-        throw new Error(result.message || 'Não foi possível validar o acesso ao Caixa.');
-      }
-
       currentUsername = String(result.username || '').trim();
       availableUnits = Array.isArray(result.units) ? result.units : [];
+
+      if (!result.ok) {
+        if (result.code === 'UNIT_NOT_ALLOWED' && availableUnits.length) {
+          forgetUnit(currentUsername);
+
+          if (availableUnits.length === 1) {
+            await chooseUnit(availableUnits[0]);
+          } else {
+            renderUnitButtons(availableUnits);
+          }
+          return;
+        }
+
+        throw new Error(result.message || 'Não foi possível validar o acesso ao Caixa.');
+      }
 
       if (result.selectedUnit) {
         await activateUnit(currentUsername, result.selectedUnit);
