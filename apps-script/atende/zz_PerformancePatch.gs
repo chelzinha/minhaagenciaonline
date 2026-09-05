@@ -16,6 +16,9 @@ var ATENDE_INDEX_HEADERS = [
 
 function buscarDados(params) {
   try {
+    if (typeof ATENDE_buscarDadosPainelCsv_ === 'function') {
+      return ATENDE_buscarDadosPainelCsv_(params || {});
+    }
     return buscarDadosPorData_(params || {});
   } catch (err) {
     registrarErro_('buscarDados-performance', err, {});
