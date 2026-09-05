@@ -5,7 +5,7 @@
 // ============================================================
 
 const ATENDE_CSV_DIARIO_CFG = Object.freeze({
-  FOLDER_ID: '1CRDJFUg5DQQIluDZOwlmHBRyrT3WbSvw',
+  FOLDER_ID_PROP: 'ATENDE_CSV_FOLDER_ID',
   HANDLER: 'ATENDE_importarCsvDriveAgora',
   LOG_SHEET: 'LOG_IMPORTACOES',
   PROCESSED_META_PROP: 'ATENDE_CSV_PROCESSED_META_V1',
@@ -26,17 +26,23 @@ const ATENDE_CSV_DIARIO_CFG = Object.freeze({
   ]
 });
 
-/**
- * Executa a sincronizacao dos CSVs novos da pasta configurada.
- * Pode ser executada manualmente e tambem e usada pelo gatilho horario.
- */
+function ATENDE_getCsvFolderId_() {
+  const folderId = PropertiesService.getScriptProperties()
+    .getProperty(ATENDE_CSV_DIARIO_CFG.FOLDER_ID_PROP);
+  if (!folderId || !String(folderId).trim()) {
+    throw new Error(
+      'Configure a Script Property "' + ATENDE_CSV_DIARIO_CFG.FOLDER_ID_PROP + '" com o ID da pasta _Atende Diario.'
+    );
+  }
+  return String(folderId).trim();
+}
+
 function ATENDE_importarCsvDriveAgora() {
   const lock = LockService.getScriptLock();
   const inicio = Date.now();
 
   try {
     lock.waitLock(ATENDE_CSV_DIARIO_CFG.LOCK_TIMEOUT_MS);
-
     const arquivos = ATENDE_listarCsvPendentes_();
     if (!arquivos.length) {
       return {
@@ -63,9 +69,7 @@ function ATENDE_importarCsvDriveAgora() {
       totalInvalidWithoutObject += Number(resultado.invalidWithoutObject || 0);
     });
 
-    if (totalAdded > 0) {
-      ATENDE_invalidarCacheEIndice_();
-    }
+    if (totalAdded > 0) ATENDE_invalidarCacheEIndice_();
 
     return {
       ok: true,
@@ -88,12 +92,8 @@ function ATENDE_importarCsvDriveAgora() {
   }
 }
 
-/**
- * Valida o CSV mais recente sem escrever na planilha.
- * Use esta funcao antes do primeiro processamento em producao.
- */
 function ATENDE_validarCsvDriveSemGravar() {
-  const pasta = DriveApp.getFolderById(ATENDE_CSV_DIARIO_CFG.FOLDER_ID);
+  const pasta = DriveApp.getFolderById(ATENDE_getCsvFolderId_());
   const arquivos = ATENDE_coletarArquivosCsv_(pasta);
   if (!arquivos.length) {
     return { ok: false, error: 'Nenhum arquivo CSV foi encontrado na pasta configurada.' };
@@ -119,7 +119,6 @@ function ATENDE_validarCsvDriveSemGravar() {
 
   return {
     ok: true,
-    fileId: file.getId(),
     fileName: file.getName(),
     modifiedAt: file.getLastUpdated(),
     totalRows: parsed.rows.length,
@@ -150,11 +149,8 @@ function ATENDE_validarCsvDriveSemGravar() {
   };
 }
 
-/**
- * Instala um unico gatilho horario. O horario exato de upload do CSV pode variar,
- * por isso o gatilho verifica a pasta a cada hora e so processa arquivos novos.
- */
 function ATENDE_instalarGatilhoCsvDrive() {
+  ATENDE_getCsvFolderId_();
   const handler = ATENDE_CSV_DIARIO_CFG.HANDLER;
   const existentes = ScriptApp.getProjectTriggers();
   let removidos = 0;
@@ -166,12 +162,7 @@ function ATENDE_instalarGatilhoCsvDrive() {
     }
   });
 
-  const trigger = ScriptApp
-    .newTrigger(handler)
-    .timeBased()
-    .everyHours(1)
-    .create();
-
+  const trigger = ScriptApp.newTrigger(handler).timeBased().everyHours(1).create();
   return {
     ok: true,
     handler: handler,
@@ -196,10 +187,9 @@ function ATENDE_removerGatilhoCsvDrive() {
 function ATENDE_statusCsvDrive() {
   const props = PropertiesService.getScriptProperties();
   const processed = ATENDE_getProcessedMeta_(props);
+  const configured = !!String(props.getProperty(ATENDE_CSV_DIARIO_CFG.FOLDER_ID_PROP) || '').trim();
   const triggers = ScriptApp.getProjectTriggers()
-    .filter(function(trigger) {
-      return trigger.getHandlerFunction() === ATENDE_CSV_DIARIO_CFG.HANDLER;
-    })
+    .filter(function(trigger) { return trigger.getHandlerFunction() === ATENDE_CSV_DIARIO_CFG.HANDLER; })
     .map(function(trigger) {
       return {
         handler: trigger.getHandlerFunction(),
@@ -210,11 +200,8 @@ function ATENDE_statusCsvDrive() {
 
   return {
     ok: true,
-    folderId: ATENDE_CSV_DIARIO_CFG.FOLDER_ID,
+    folderConfigured: configured,
     processedMetaCount: processed.length,
-    lastProcessedMeta: processed.length ? processed[processed.length - 1] : '',
     triggers: triggers
   };
 }
-
-// ============================================================
