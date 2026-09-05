@@ -1,40 +1,35 @@
-# Atende - Testes da importação CSV diária
+# Atende - Testes da importacao CSV diaria
 
 **Data da baseline:** 05/09/2026  
-**Escopo:** importação automática do relatório CSV do Atende para a aba `Postagens`
+**Escopo:** importacao automatica do relatorio CSV do Atende para a aba `Postagens`
 
 ## 1. Baseline do arquivo analisado
 
-O arquivo presente na pasta `_Atende Diário` no momento da implementação apresentou:
+O arquivo presente na pasta `_Atende Diario` apresentou:
 
 - 980 linhas de dados;
 - 26 colunas;
-- 965 linhas com código de objeto;
-- 15 linhas sem código de objeto;
-- 0 códigos de objeto duplicados dentro do próprio CSV;
-- 623 registros com `SISTEMA_POSTAGEM=SARA`;
-- 357 registros com `SISTEMA_POSTAGEM=CORREIOS ATENDE`;
-- todos os 980 registros possuem `ATENDIMENTO` e são importáveis;
-- todos os cabeçalhos mínimos obrigatórios estão presentes.
+- 965 linhas com codigo de objeto;
+- 15 linhas sem codigo de objeto;
+- 0 chaves tecnicas duplicadas;
+- 623 registros `SARA`;
+- 357 registros `CORREIOS ATENDE`;
+- 980 registros com `ATENDIMENTO` valido;
+- valor total de R$ 69.855,97;
+- valor de R$ 34.540,20 nos 15 atendimentos sem rastreio.
 
-A baseline foi usada somente para validar a estrutura. Nenhum dado pessoal do CSV é reproduzido neste documento.
+A baseline e estrutural. Nenhum dado pessoal do CSV deve ser reproduzido em documentacao ou log.
 
-## 2. Teste obrigatório antes da primeira gravação
+## 2. Validacao obrigatoria antes da primeira gravacao
 
-1. Fazer `clasp push` da branch de implementação.
-2. Configurar a Script Property `ATENDE_CSV_FOLDER_ID`.
+1. Fazer `clasp push` da branch `feat/atende-csv-diario`.
+2. Configurar `ATENDE_CSV_FOLDER_ID` em Script Properties.
 3. Executar `ATENDE_validarCsvDriveSemGravar()`.
-4. Confirmar:
-   - `ok=true`;
-   - `totalRows=980`;
-   - `importableRows=980`;
-   - `validObjects=965`;
-   - `withoutObject=15`;
-   - `invalidMissingKey=0`;
-   - prévia com Data, serviço, valor, peso, origem e pagamento coerentes.
-5. Confirmar que nenhuma linha foi adicionada à aba `Postagens` após esse teste.
+4. Confirmar `ok=true`, `totalRows=980`, `importableRows=980`, `validObjects=965`, `withoutObject=15` e `invalidMissingKey=0`.
+5. Conferir a previa de Data, Atendente, Objeto, servico, valor, peso, origem e forma de pagamento.
+6. Confirmar que a aba `Postagens` nao recebeu nenhuma linha nova durante a validacao.
 
-## 3. Primeira importação manual
+## 3. Primeira importacao manual
 
 Executar:
 
@@ -44,59 +39,75 @@ ATENDE_importarCsvDriveAgora()
 
 Validar:
 
-- execução termina com `ok=true`;
-- `filesProcessed` é maior que zero;
-- `added + updated + skipped` é compatível com o lote processado;
-- as 15 linhas sem código de objeto também entram quando ainda não existem;
-- nessas linhas, `Objeto` permanece vazio;
-- a célula vazia de `Objeto` recebe uma nota técnica iniciada por `ATENDE_CSV_ID:`;
-- `LOG_IMPORTACOES` recebe uma linha do tipo `csv_drive`;
-- `Criados`, `Atualizados` e `Ignorados` ficam separados no log;
-- a coluna `Hash` recebe o hash técnico da importação;
-- a aba `IDX_POSTAGENS_DATAS` é atualizada após inserções/alterações;
-- `ATENDE_CACHE_VERSION` é alterada quando houver inserções/alterações.
+- `ok=true`;
+- `filesProcessed` maior que zero;
+- `added + updated + skipped` coerente com os registros processados;
+- as 15 linhas sem codigo de objeto sao preservadas quando ainda nao existem;
+- nessas linhas, `Objeto` permanece visualmente vazio;
+- a celula vazia de `Objeto` recebe nota iniciada por `ATENDE_CSV_ID:`;
+- o total do novo dia inclui os atendimentos sem rastreio;
+- `LOG_IMPORTACOES` recebe uma linha `csv_drive`;
+- `Criados`, `Atualizados` e `Ignorados` ficam separados;
+- a coluna `Hash` recebe o SHA-256 tecnico do conteudo;
+- `IDX_POSTAGENS_DATAS` e reconstruido apos alteracoes;
+- `ATENDE_CACHE_VERSION` muda quando houver insercao ou atualizacao.
 
-## 4. Teste de atualização de registro existente
+## 4. Validacao semantica dos campos
 
-Usar uma cópia do CSV com uma alteração controlada em um objeto já existente, sem alterar o código do objeto.
+Confirmar em amostra controlada:
 
-Resultado esperado:
+- `PESO` do CSV e convertido de gramas para `Peso (kg)`;
+- `FORMA_PAGAMENTO` alimenta `Forma Pagamento` e `formaPagamento`;
+- `SISTEMA_POSTAGEM` alimenta `Tipo Postagem` somente em linha nova;
+- `MODALIDADE_PAGAMENTO` nao e copiado para a coluna legada `tipo`;
+- `tipo` permanece com o valor anterior quando a linha ja existia por JSON;
+- `MCU`, `NUMERO_PLP`, `PESO_TARIFADO` e `MODALIDADE_PAGAMENTO` nao criam colunas novas nesta versao.
 
-- não cria nova linha;
-- incrementa `updated`;
-- campos conhecidos pelo CSV são atualizados;
-- endereço/documentos que o CSV não possui não são apagados;
-- um `Status` já avançado, como Entregue ou Em Trânsito, não volta para Postado;
-- `Estornado` pode substituir o status anterior quando sinalizado pelo CSV.
+Motivo do teste de `tipo`: `A FATURAR` / `A VISTA` do CSV nao possuem a mesma semantica de valores do JSON como `AFATURAR_AUTOMATIZADO`.
 
-## 5. Teste de atendimento sem rastreio
+## 5. Atualizacao de registro existente
 
-Usar uma cópia do CSV alterando um dos 15 atendimentos sem objeto, preservando o mesmo campo `ATENDIMENTO`.
-
-Resultado esperado:
-
-- a rotina encontra a linha pela nota técnica;
-- a linha é atualizada, não duplicada;
-- `Objeto` continua visualmente vazio.
-
-## 6. Teste de idempotência
-
-Executar `ATENDE_importarCsvDriveAgora()` novamente sem alterar o arquivo.
+Usar uma copia controlada do CSV alterando um campo de um objeto ja existente e mantendo o mesmo codigo de objeto.
 
 Resultado esperado:
 
-- nenhum registro novo é criado;
-- o mesmo arquivo não é reprocessado como novo;
-- a aba `Postagens` não recebe duplicatas.
+- nenhuma nova linha para o objeto;
+- `updated` incrementado;
+- campos conhecidos pelo CSV atualizados;
+- documento/endereco mais rico ja existente nao apagado;
+- status avancado como `Entregue` ou `Em Transito` nao volta para `Postado`;
+- `Estornado` pode substituir o status quando `ESTORNO=S`;
+- `Tipo Postagem` existente e preservado.
 
-Depois, copiar o mesmo CSV para a pasta com outro nome e executar novamente.
+## 6. Atendimento sem rastreio
+
+Alterar de forma controlada um dos 15 atendimentos sem objeto, preservando `ATENDIMENTO`.
 
 Resultado esperado:
 
-- o hash do conteúdo detecta repetição;
-- nenhum atendimento é criado novamente.
+- a linha e localizada pela nota tecnica;
+- a linha e atualizada, nao duplicada;
+- `Objeto` continua vazio;
+- o valor continua entrando no resumo do painel.
 
-## 7. Teste do gatilho
+## 7. Idempotencia
+
+Executar novamente `ATENDE_importarCsvDriveAgora()` sem alterar o arquivo.
+
+Resultado esperado:
+
+- nenhuma duplicata;
+- o arquivo ja processado e ignorado;
+- a aba `Postagens` nao muda.
+
+Depois salvar copia identica com outro nome.
+
+Resultado esperado:
+
+- o SHA-256 detecta o mesmo conteudo;
+- nenhuma linha nova e criada.
+
+## 8. Gatilho
 
 Executar uma vez:
 
@@ -104,7 +115,7 @@ Executar uma vez:
 ATENDE_instalarGatilhoCsvDrive()
 ```
 
-Depois executar:
+Depois:
 
 ```text
 ATENDE_statusCsvDrive()
@@ -114,54 +125,64 @@ Validar:
 
 - `folderConfigured=true`;
 - existe somente um gatilho para `ATENDE_importarCsvDriveAgora`;
-- instalar novamente não cria gatilhos duplicados.
+- executar a instalacao novamente nao acumula gatilhos duplicados.
 
-## 8. Teste do painel
+## 9. Painel `/atende`
 
-Abrir `/atende` após a primeira importação e validar:
+Apos a primeira importacao, validar:
 
-- painel abre sem erro;
-- dados anteriores continuam disponíveis;
-- registros do novo dia aparecem;
-- atendimentos sem objeto aparecem com a coluna `Objeto` vazia;
-- o total inclui os valores desses atendimentos;
-- busca por código de objeto funciona;
-- filtros de Atendente, descrição, Categoria, Forma Pagamento e Remetente continuam funcionando;
-- paginação funciona;
-- larguras ajustáveis continuam funcionando;
-- não há regressão visual no desktop;
-- não há regressão no mobile.
+- abertura sem erro;
+- historico anterior preservado;
+- registros do novo dia disponiveis;
+- linhas sem objeto aparecem com `Objeto` vazio;
+- total monetario inclui essas linhas;
+- busca por objeto funciona;
+- filtros de Atendente, descricao, Categoria, Forma Pagamento e Remetente continuam funcionando;
+- paginacao e resize continuam funcionando;
+- sem regressao no desktop e mobile.
 
-## 9. Teste de erros
+## 10. Erros e seguranca
 
-Validar separadamente:
+Testar separadamente:
 
-- pasta sem CSV;
 - Script Property ausente;
+- pasta configurada sem CSV;
 - CSV vazio;
-- CSV sem um cabeçalho obrigatório;
-- data inválida;
+- CSV sem cabecalho obrigatorio;
+- data invalida;
 - registro sem `CODIGO_OBJETO` e sem `ATENDIMENTO`;
-- dois disparos próximos do gatilho.
+- dois disparos proximos do gatilho.
 
-Resultados esperados:
+Resultado esperado:
 
-- falha controlada e mensagem clara;
-- nenhum código de objeto artificial é criado;
-- `LockService` impede concorrência simultânea;
-- erro pode ser identificado na aba `ERROS` sem armazenar o conteúdo bruto do CSV.
+- falha controlada;
+- nenhuma chave artificial criada;
+- `LockService` evita concorrencia;
+- `ERROS` recebe somente mensagem controlada, sem CSV bruto.
 
-## 10. Rollback de teste
+## 11. Protecao contra rotina legada
 
-Se houver problema antes de habilitar o gatilho:
+Depois de ativar a importacao, **nao executar** a funcao manual antiga:
 
-1. não instalar o gatilho;
+```text
+removerLinhasInvalidasSemObjeto()
+```
+
+Ela considera qualquer linha sem `Objeto` invalida e, portanto, apagaria atendimentos legitimos do CSV que usam `ATENDIMENTO` como chave tecnica.
+
+A existencia desse utilitario nao afeta o fluxo normal porque ele nao e chamado automaticamente.
+
+## 12. Rollback
+
+Se houver problema antes do gatilho:
+
+1. nao instalar o gatilho;
 2. reverter a branch;
-3. fazer `clasp push` da versão anterior.
+3. fazer `clasp push` da versao anterior.
 
-Se o gatilho já estiver ativo:
+Se o gatilho ja estiver ativo:
 
 1. executar `ATENDE_removerGatilhoCsvDrive()`;
 2. identificar o lote em `LOG_IMPORTACOES`;
-3. criar backup antes de qualquer remoção de linhas;
-4. reverter o código e fazer novo `clasp push`.
+3. criar backup antes de remover dados;
+4. reverter o codigo e fazer novo `clasp push`.
