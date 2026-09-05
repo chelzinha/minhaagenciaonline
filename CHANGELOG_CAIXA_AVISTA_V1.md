@@ -1,5 +1,21 @@
 # Changelog - Caixa à Vista
 
+## 2026-09-04 - Correção de chave Pix com zero à esquerda e mensagem do WhatsApp
+
+### Corrigido
+
+- preservação de zeros à esquerda em chaves Pix documentais vindas da planilha;
+- recuperação segura de CPF/CNPJ quando o Google Sheets converte a chave em número e remove zeros iniciais;
+- validação de dígitos verificadores antes de qualquer recuperação automática;
+- formatação da mensagem do WhatsApp com uma linha em branco entre `Pix Copia e Cola:` e o código;
+- cache do Caixa Balcão atualizado para incluir a camada de validação Pix.
+
+### Segurança e compatibilidade
+
+- nenhuma chave Pix foi fixada no código;
+- a correção permanece compatível com chaves não documentais, como e-mail, telefone e EVP;
+- chaves numéricas só recebem zeros à esquerda quando o CPF/CNPJ reconstruído passa na validação oficial dos dígitos verificadores.
+
 ## 2026-08-30 - Integração Santander preparada no Cloudflare
 
 ### Adicionado
