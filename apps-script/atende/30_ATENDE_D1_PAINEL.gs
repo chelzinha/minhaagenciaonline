@@ -28,6 +28,15 @@ function ATENDE_buscarDadosD1(params) {
   let dataInicio = String(params.dataInicio || params.startDate || params.inicio || '').trim();
   let dataFim = String(params.dataFim || params.endDate || params.fim || '').trim();
   const data = String(params.data || params.date || '').trim();
+  const servico = String(params.servico || '').trim();
+  const contrato = String(params.contrato || '').trim();
+  const sistema = String(params.sistema || '').trim();
+  const estorno = String(params.estorno || '').trim();
+  const atendente = String(params.atendente || '').trim();
+  const modalidadePagamento = String(params.modalidadePagamento || '').trim();
+  const formaPagamento = String(params.formaPagamento || '').trim();
+  const sortKey = String(params.sortKey || 'DATA').trim() || 'DATA';
+  const sortDir = String(params.sortDir || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
 
   if (data && !dataInicio && !dataFim) {
     dataInicio = data;
@@ -36,12 +45,21 @@ function ATENDE_buscarDadosD1(params) {
 
   const query = [
     'page=' + encodeURIComponent(page),
-    'pageSize=' + encodeURIComponent(pageSize)
+    'pageSize=' + encodeURIComponent(pageSize),
+    'sortKey=' + encodeURIComponent(sortKey),
+    'sortDir=' + encodeURIComponent(sortDir)
   ];
 
   if (dataInicio) query.push('dataInicio=' + encodeURIComponent(dataInicio));
   if (dataFim) query.push('dataFim=' + encodeURIComponent(dataFim));
   if (q) query.push('q=' + encodeURIComponent(q));
+  if (servico) query.push('servico=' + encodeURIComponent(servico));
+  if (contrato) query.push('contrato=' + encodeURIComponent(contrato));
+  if (sistema) query.push('sistema=' + encodeURIComponent(sistema));
+  if (estorno) query.push('estorno=' + encodeURIComponent(estorno));
+  if (atendente) query.push('atendente=' + encodeURIComponent(atendente));
+  if (modalidadePagamento) query.push('modalidadePagamento=' + encodeURIComponent(modalidadePagamento));
+  if (formaPagamento) query.push('formaPagamento=' + encodeURIComponent(formaPagamento));
 
   const startedAt = Date.now();
   const response = ATENDE_fetchD1_('/atende?' + query.join('&'), { method: 'get' });
@@ -56,7 +74,7 @@ function ATENDE_buscarDadosD1(params) {
     return copy;
   });
 
-  const result = {
+  return {
     ok: true,
     rows: rows,
     columns: ATENDE_D1_PANEL_COLUMNS.map(function(column) {
@@ -67,6 +85,8 @@ function ATENDE_buscarDadosD1(params) {
     total: Number(response.total || 0),
     totalValue: Number(response.totalValue || 0),
     pages: Number(response.pages || 1),
+    sortKey: String(response.sortKey || sortKey),
+    sortDir: String(response.sortDir || sortDir),
     meta: {
       modoLeitura: 'cloudflare_d1',
       totalPlanilha: Number(response.total || 0),
@@ -78,11 +98,32 @@ function ATENDE_buscarDadosD1(params) {
       dataInicio: dataInicio,
       dataFim: dataFim,
       q: q,
+      servico: servico,
+      contrato: contrato,
+      sistema: sistema,
+      estorno: estorno,
+      atendente: atendente,
+      modalidadePagamento: modalidadePagamento,
+      formaPagamento: formaPagamento,
+      sortKey: String(response.sortKey || sortKey),
+      sortDir: String(response.sortDir || sortDir),
       tempoMs: Date.now() - startedAt
     }
   };
+}
 
-  return result;
+function ATENDE_buscarFiltrosD1() {
+  const response = ATENDE_fetchD1_('/filters', { method: 'get' });
+  return {
+    ok: true,
+    servicos: response.servicos || [],
+    contratos: response.contratos || [],
+    sistemas: response.sistemas || [],
+    estornos: response.estornos || [],
+    atendentes: response.atendentes || [],
+    modalidadesPagamento: response.modalidadesPagamento || [],
+    formasPagamento: response.formasPagamento || []
+  };
 }
 
 function ATENDE_testarLeituraPainelD1() {
@@ -95,6 +136,8 @@ function ATENDE_testarLeituraPainelD1() {
     pageSize: result.pageSize,
     pages: result.pages,
     rowsReturned: result.rows.length,
+    sortKey: result.sortKey,
+    sortDir: result.sortDir,
     columns: result.columns.map(function(column) { return column.label; }),
     firstRow: result.rows.length ? result.rows[0] : null,
     meta: result.meta
