@@ -19,12 +19,6 @@ const ATENDE_D1_PANEL_COLUMNS = Object.freeze([
   { key: 'FORMA PAGAMENTO', label: 'FORMA PAGAMENTO', width: 145, group: 'atendimento' }
 ]);
 
-function ATENDE_formatarValorPainelD1_(value) {
-  const number = Number(value || 0);
-  if (!Number.isFinite(number)) return '0,00';
-  return Utilities.formatString('%.2f', number).replace('.', ',');
-}
-
 function ATENDE_buscarDadosD1(params) {
   params = params || {};
 
@@ -52,9 +46,14 @@ function ATENDE_buscarDadosD1(params) {
   const startedAt = Date.now();
   const response = ATENDE_fetchD1_('/atende?' + query.join('&'), { method: 'get' });
   const rows = (response.rows || []).map(function(row) {
-    const formatted = Object.assign({}, row);
-    formatted.VALOR = ATENDE_formatarValorPainelD1_(row.VALOR);
-    return formatted;
+    const copy = Object.assign({}, row);
+    if (copy.VALOR !== '' && copy.VALOR != null) {
+      const n = Number(copy.VALOR);
+      copy.VALOR = isFinite(n)
+        ? n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : String(copy.VALOR);
+    }
+    return copy;
   });
 
   const result = {
@@ -66,11 +65,13 @@ function ATENDE_buscarDadosD1(params) {
     page: Number(response.page || page),
     pageSize: Number(response.pageSize || pageSize),
     total: Number(response.total || 0),
+    totalValue: Number(response.totalValue || 0),
     pages: Number(response.pages || 1),
     meta: {
       modoLeitura: 'cloudflare_d1',
       totalPlanilha: Number(response.total || 0),
       totalRetornado: rows.length,
+      totalValue: Number(response.totalValue || 0),
       page: Number(response.page || page),
       pageSize: Number(response.pageSize || pageSize),
       pages: Number(response.pages || 1),
@@ -89,6 +90,7 @@ function ATENDE_testarLeituraPainelD1() {
   const summary = {
     ok: result.ok,
     total: result.total,
+    totalValue: result.totalValue,
     page: result.page,
     pageSize: result.pageSize,
     pages: result.pages,
