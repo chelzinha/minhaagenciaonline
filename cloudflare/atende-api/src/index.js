@@ -23,6 +23,23 @@ const PANEL_COLUMNS = [
   ['forma_pagamento','FORMA PAGAMENTO']
 ];
 
+const SORT_FIELDS = Object.freeze({
+  'DATA': 'data_postagem',
+  'CEP DESTINATARIO': 'cep_destinatario',
+  'CEP REMETENTE': 'cep_remetente',
+  'SRO': 'codigo_objeto',
+  'SERVICO': 'codigo_servico',
+  'NOME REMETENTE': 'nome_remetente',
+  'CARTAO POSTAGEM': 'cartao_postagem',
+  'CONTRATO': 'numero_contrato',
+  'SISTEMA': 'sistema_postagem',
+  'VALOR': 'valor_atendimento',
+  'ESTORNO': 'estorno',
+  'ATENDENTE': 'cpf_matricula_atendente',
+  'MODALIDADE PAGAMENTO': 'modalidade_pagamento',
+  'FORMA PAGAMENTO': 'forma_pagamento'
+});
+
 const UPSERT_SQL = `
 INSERT INTO atende_postagens (
   source_key, atendimento, altura, cep_destinatario, cep_remetente, mcu, codigo_objeto,
@@ -83,6 +100,10 @@ export default {
 
     if (request.method === 'GET' && url.pathname === '/atende') {
       return listAtende(url, env);
+    }
+
+    if (request.method === 'GET' && url.pathname === '/filters') {
+      return listFilters(env);
     }
 
     if (request.method === 'GET' && url.pathname === '/imports/check') {
@@ -184,6 +205,16 @@ async function listAtende(url, env) {
   const dataInicio = clean(url.searchParams.get('dataInicio'));
   const dataFim = clean(url.searchParams.get('dataFim'));
   const q = clean(url.searchParams.get('q'));
+  const servico = clean(url.searchParams.get('servico'));
+  const contrato = clean(url.searchParams.get('contrato'));
+  const sistema = clean(url.searchParams.get('sistema'));
+  const estorno = clean(url.searchParams.get('estorno'));
+  const atendente = clean(url.searchParams.get('atendente'));
+  const modalidadePagamento = clean(url.searchParams.get('modalidadePagamento'));
+  const formaPagamento = clean(url.searchParams.get('formaPagamento'));
+  const sortKey = clean(url.searchParams.get('sortKey')) || 'DATA';
+  const sortField = SORT_FIELDS[sortKey] || SORT_FIELDS.DATA;
+  const sortDir = String(url.searchParams.get('sortDir') || 'desc').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
   const where = [];
   const args = [];
@@ -199,11 +230,20 @@ async function listAtende(url, env) {
   if (q) {
     where.push(`(
       codigo_objeto LIKE ? OR atendimento LIKE ? OR nome_remetente LIKE ? OR
-      cep_destinatario LIKE ? OR cep_remetente LIKE ? OR numero_contrato LIKE ? OR cartao_postagem LIKE ?
+      cep_destinatario LIKE ? OR cep_remetente LIKE ? OR numero_contrato LIKE ? OR
+      cartao_postagem LIKE ? OR sistema_postagem LIKE ? OR cpf_matricula_atendente LIKE ?
     )`);
     const like = `%${q}%`;
-    args.push(like, like, like, like, like, like, like);
+    args.push(like, like, like, like, like, like, like, like, like);
   }
+
+  addExactFilter(where, args, 'codigo_servico', servico);
+  addExactFilter(where, args, 'numero_contrato', contrato);
+  addExactFilter(where, args, 'sistema_postagem', sistema);
+  addExactFilter(where, args, 'estorno', estorno);
+  addExactFilter(where, args, 'cpf_matricula_atendente', atendente);
+  addExactFilter(where, args, 'modalidade_pagamento', modalidadePagamento);
+  addExactFilter(where, args, 'forma_pagamento', formaPagamento);
 
   const whereSql = where.length ? ` WHERE ${where.join(' AND ')}` : '';
   const summary = await env.DB.prepare(
@@ -214,7 +254,7 @@ async function listAtende(url, env) {
 
   const selectSql = PANEL_COLUMNS.map(([field, label]) => `${field} AS "${label}"`).join(', ');
   const result = await env.DB.prepare(
-    `SELECT ${selectSql} FROM atende_postagens${whereSql} ORDER BY data_postagem DESC, source_key ASC LIMIT ? OFFSET ?`
+    `SELECT ${selectSql} FROM atende_postagens${whereSql} ORDER BY ${sortField} ${sortDir}, source_key ASC LIMIT ? OFFSET ?`
   ).bind(...args, pageSize, offset).all();
 
   const rows = (result.results || []).map((row) => {
@@ -229,8 +269,38 @@ async function listAtende(url, env) {
     pageSize,
     total,
     totalValue,
-    pages: Math.max(1, Math.ceil(total / pageSize))
+    pages: Math.max(1, Math.ceil(total / pageSize)),
+    sortKey: SORT_FIELDS[sortKey] ? sortKey : 'DATA',
+    sortDir: sortDir.toLowerCase()
   });
+}
+
+function addExactFilter(where, args, field, value) {
+  if (!value) return;
+  where.push(`${field} = ? COLLATE NOCASE`);
+  args.push(value);
+}
+
+async function listFilters(env) {
+  const fields = [
+    ['servicos', 'codigo_servico'],
+    ['contratos', 'numero_contrato'],
+    ['sistemas', 'sistema_postagem'],
+    ['estornos', 'estorno'],
+    ['atendentes', 'cpf_matricula_atendente'],
+    ['modalidadesPagamento', 'modalidade_pagamento'],
+    ['formasPagamento', 'forma_pagamento']
+  ];
+
+  const statements = fields.map(([, field]) => env.DB.prepare(
+    `SELECT DISTINCT ${field} AS value FROM atende_postagens WHERE ${field} IS NOT NULL AND TRIM(${field}) <> '' ORDER BY ${field} COLLATE NOCASE ASC LIMIT 1000`
+  ));
+  const results = await env.DB.batch(statements);
+  const body = { ok: true };
+  fields.forEach(([key], index) => {
+    body[key] = (results[index]?.results || []).map((row) => clean(row.value)).filter(Boolean);
+  });
+  return json(body);
 }
 
 function normalizeRow(raw, fileName) {
