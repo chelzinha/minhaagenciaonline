@@ -195,3 +195,103 @@ Riscos se payload ou resposta mudar:
 
 Regra de documentacao:
 - Qualquer mudanca futura em action, payload, resposta, aba ou cabecalho deve atualizar este documento e o mapa de actions em docs/APPS_SCRIPT.md.
+
+## CRM — Agenda Comercial Fase 1 — schema AVULSA
+
+Data: 2026-08-29
+
+Abas afetadas:
+
+### `AGENDA_EXECUCAO`
+
+Nova coluna aditiva ao final:
+
+- `TITULO`
+
+Regra:
+
+- obrigatória para registros com `ENTIDADE_TIPO=AVULSA`;
+- opcional para atividades vinculadas;
+- nunca reutilizar `CLIENTE` como título;
+- registros antigos permanecem sem migração obrigatória.
+
+Representação canônica de atividade sem vínculo:
+
+- `ENTIDADE_TIPO = AVULSA`;
+- `ENTIDADE_ID = ''`;
+- `TRATATIVA_ID = ''`;
+- `ORIGEM_TIPO = AVULSA`;
+- `ORIGEM_ID = ''`;
+- `CLIENTE_ID = ''`;
+- `CLIENTE = ''`;
+- `PROSPECT_ID = ''`;
+- `CLIENTE_MASTER_ID = ''`.
+
+Campos operacionais continuam normais:
+
+- data e horário;
+- duração;
+- tipo de atividade;
+- responsável;
+- local;
+- status;
+- resultado;
+- observação;
+- timestamps e `REQUEST_ID`.
+
+### `CRM_TIPOS_ATIVIDADE`
+
+Nova coluna aditiva ao final:
+
+- `APLICA_AVULSA`
+
+Regra:
+
+- `SIM` habilita o tipo para criação AVULSA;
+- vazio/`NAO` não habilita novas AVULSAS;
+- nenhum tipo é marcado automaticamente pelo setup;
+- o frontend não possui lista hardcoded de tipos permitidos;
+- desabilitar `APLICA_AVULSA` não impede concluir AVULSAS já existentes.
+
+## Migração
+
+Função administrativa específica:
+
+- `setupCrmAgendaAvulsaFase1()`.
+
+Propriedades:
+
+- aditiva;
+- idempotente;
+- usa `DocumentLock`;
+- não altera linhas antigas;
+- não cria Cliente, Prospect ou Tratativa;
+- não executa seeds amplos;
+- invalida somente revisões necessárias de dados/configuração.
+
+Auditoria somente leitura:
+
+- `auditCrmAgendaAvulsaFase1Schema()`.
+
+## Compatibilidade e rollback
+
+- não remover as novas colunas em rollback;
+- para interromper novas AVULSAS, usar `APLICA_AVULSA=NAO`/vazio;
+- manter backend capaz de ler e concluir registros AVULSA já existentes;
+- não reinterpretar registros antigos como AVULSA;
+- sábado/domingo continuam tecnicamente aceitos no backend nesta fase.
+
+### Atenção sensível
+
+`TITULO`, `LOCAL` e `OBSERVACAO` podem conter informação comercial ou pessoal inserida pelo usuário.
+
+Regras:
+
+- não colocar valores reais desses campos em documentação, logs ou exemplos versionados;
+- não registrar payload completo da atividade;
+- não houve criação de nova integração externa nem mudança de autenticação nesta Fase 1.
+
+Documentação detalhada:
+
+- `docs/AGENDA_COMERCIAL_FASE1_DESENHO_TECNICO.md`;
+- `docs/AGENDA_COMERCIAL_FASE1_IMPLEMENTACAO.md`.

@@ -340,3 +340,131 @@ Arquivo alterado:
 - `frontend/crm/app.js`
 
 Este ajuste nao altera Apps Script, dados, regras de carregamento inicial ou layout da Home.
+
+## CRM — Agenda Comercial Fase 1 — AVULSA
+
+Data: 2026-08-29
+
+### Arquivos da Fase 1
+
+- `frontend/crm/config.js`;
+- `frontend/crm/agenda-avulsa-fase1.js`;
+- `frontend/crm/agenda-dias-uteis-fase1.js`;
+- `frontend/crm/agenda-filtros-vencidas-fase1.js`.
+
+O `frontend/crm/app.js`, o HTML existente e a base visual continuam sendo a fonte do fluxo vinculado. A Fase 1 não faz redesign amplo da Agenda.
+
+### Nova atividade
+
+O modal existente ganha uma escolha de vínculo:
+
+- `Cliente ou prospect`;
+- `Sem vínculo`.
+
+No modo AVULSA:
+
+- `Título` é obrigatório;
+- `Local` é opcional;
+- a busca de Cliente/Prospect é ocultada;
+- mídia de entidade é ocultada;
+- não existe mini-cadastro de contato;
+- os tipos disponíveis vêm de `CRM_TIPOS_ATIVIDADE` com `ATIVA` e `APLICA_AVULSA=SIM`;
+- o frontend não mantém uma lista hardcoded de tipos permitidos.
+
+No modo vinculado, o submit continua seguindo o fluxo existente do core.
+
+### Duração
+
+- o default usa `DURACAO_PADRAO_MIN` do tipo selecionado;
+- enquanto o usuário não editar a duração manualmente, trocar o tipo atualiza o default;
+- após edição manual, a troca de tipo não sobrescreve silenciosamente o valor escolhido.
+
+### Workspace
+
+Atividade vinculada mantém o workspace rico existente.
+
+Atividade AVULSA usa o mesmo modal-base, mas com workspace enxuto:
+
+- resumo da atividade;
+- resultado quando aplicável;
+- observação de execução;
+- concluir;
+- cancelar;
+- excluir quando permitido.
+
+Para AVULSA ficam fora:
+
+- materiais recomendados de entidade;
+- checklist Correios;
+- notas de entidade;
+- follow-up comercial;
+- carregamento de snapshot/funil pelo frontend.
+
+### Performance
+
+- o módulo observa respostas que o CRM já realiza para reaproveitar configuração e itens de Agenda;
+- não carrega cadastros detalhados ao apenas abrir o modal;
+- Cliente/Prospect detalhado continua sob demanda somente quando o usuário digita na busca de entidade vinculada;
+- mutações AVULSA não usam `location.reload()`;
+- mutações AVULSA não chamam `bgRefreshAgendaJourney()`;
+- criação, conclusão, cancelamento e exclusão são reconciliadas localmente na Agenda;
+- não existe `MutationObserver` global sobre `document.body`;
+- observers restantes são pontuais nos dois modais;
+- o módulo de vencidas só inspeciona respostas do endpoint configurado do CRM.
+
+### Fim de semana
+
+Experiência operacional da Fase 1:
+
+- Diária anterior/próximo pula sábado e domingo;
+- em fim de semana, `Hoje` na visão Diária posiciona no próximo dia útil;
+- Semanal mostra segunda a sexta e o rótulo termina na sexta;
+- Mensal continua sem exibir fins de semana;
+- seleção manual de sábado/domingo não é bloqueada;
+- o backend continua aceitando datas de fim de semana nesta fase.
+
+### Filtros e permissões
+
+AVULSA respeita os filtros próprios da Agenda:
+
+- local;
+- responsável;
+- tipo;
+- status.
+
+A seção de pendências vencidas passa a aplicar os mesmos quatro filtros.
+
+A conclusão no workspace AVULSA respeita `admin` ou `crm.canCompleteActivities` da sessão. Escopo de responsável e permissões do backend permanecem a autoridade final.
+
+### Compatibilidade
+
+- Cliente e Prospect permanecem no fluxo legado existente;
+- `ENTIDADE_TIPO=AVULSA` não deve cair no contexto de Cliente;
+- o modo Diária ainda não foi definido como abertura padrão nesta entrega;
+- nenhum redesign grande entra na Fase 1;
+- o risco legado `openActivityModal()` x `agendaWin.items` continua no checklist de regressão das atividades vinculadas e não é tratado como requisito funcional da AVULSA.
+
+### Checklist visual de homologação
+
+Validar antes de merge/deploy:
+
+- desktop;
+- 390px;
+- 430px;
+- modal Nova atividade vinculado;
+- modal Nova atividade AVULSA;
+- workspace vinculado;
+- workspace AVULSA;
+- Diária;
+- Semanal;
+- Mensal;
+- filtros e pendências vencidas;
+- duração default e edição manual;
+- ausência de scroll horizontal ou botões cortados.
+
+Documentação detalhada:
+
+- `docs/AGENDA_COMERCIAL_FASE1_DESENHO_TECNICO.md`;
+- `docs/AGENDA_COMERCIAL_FASE1_IMPLEMENTACAO.md`;
+- `docs/AGENDA_COMERCIAL_FASE1_PENDENCIAS_HOMOLOGACAO.md`;
+- `docs/PERFORMANCE.md`.

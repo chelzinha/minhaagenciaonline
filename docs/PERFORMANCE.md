@@ -132,3 +132,40 @@ Esta mudança melhora a sensação de resposta da interface, mas não representa
 
 ### Pendência futura
 A otimização estrutural de dados ainda deve ser tratada em evolução própria, considerando cache, dados resumidos, pré-processamento ou migração futura para banco de dados.
+
+## CRM — Agenda Comercial Fase 1 — AVULSA
+
+Data: 2026-08-29
+
+Escopo de performance da primeira entrega:
+
+- a arquitetura de cache `CRM PERF V5` permanece preservada;
+- `AVULSA` usa a mesma `AGENDA_EXECUCAO` e a mesma janela/cache da Agenda;
+- a projeção adiciona apenas o campo leve `titulo`;
+- selecionar `Sem vínculo` não carrega Cliente/Prospect detalhado;
+- `openAgendaModal()` não chama `loadLegacyData()` ao abrir;
+- cadastros detalhados continuam sendo carregados somente quando o usuário digita na busca de entidade vinculada;
+- salvar, concluir, cancelar ou excluir AVULSA não chama `bgRefreshAgendaJourney()`;
+- operações AVULSA não usam `location.reload()`;
+- a interface reconcilia localmente a atividade alterada;
+- o módulo AVULSA não usa `MutationObserver` global sobre `document.body`;
+- a sincronização reage a respostas da API e ações específicas da Agenda;
+- o módulo de filtros de vencidas só inspeciona respostas do endpoint configurado do CRM.
+
+Objetivo:
+
+- impedir que uma atividade sem vínculo provoque carga de Clientes, Prospects, Tratativas ou funis que ela não afeta;
+- manter a Agenda leve sem substituir a arquitetura V5 já em produção.
+
+Cuidados de homologação:
+
+- medir a abertura da Agenda e do modal antes/depois da Fase 1;
+- confirmar que AVULSA não dispara `get_cadastro_v5` sem uso da busca de entidade;
+- confirmar que uma mutação AVULSA não dispara recarga de `get_crm_jornada_data` por iniciativa do módulo;
+- confirmar que navegação, filtros e mudança de modo não geram loops de renderização;
+- validar desktop e mobile com DevTools/Network quando o ambiente integrado estiver disponível.
+
+Documentos detalhados:
+
+- `docs/AGENDA_COMERCIAL_FASE1_ETAPA1F_PERFORMANCE.md`;
+- `docs/AGENDA_COMERCIAL_FASE1_ETAPA1G_SINCRONIZACAO_DOM.md`.

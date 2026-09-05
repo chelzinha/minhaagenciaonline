@@ -63,9 +63,12 @@ var CRM3_APPEND_HEADERS = {
   CRM_TRATATIVAS: [
     'ULTIMA_ATIVIDADE_ID','PROXIMA_ATIVIDADE_ID','MOTIVO_ABERTURA','CRIADO_POR','FECHADA_POR'
   ],
+  CRM_TIPOS_ATIVIDADE: [
+    'APLICA_AVULSA'
+  ],
   AGENDA_EXECUCAO: [
     'REQUEST_ID','ENTIDADE_TIPO','ENTIDADE_ID','HORA_FIM_PROGRAMADA','LINK_MIDIA_RECOMENDADA','LINK_MIDIA_USADA',
-    'OBSERVACAO','CRIADO_POR','ATUALIZADO_POR','CONCLUIDA_EM','MOTIVO_CANCELAMENTO','PROXIMO_FOLLOWUP_EM'
+    'OBSERVACAO','CRIADO_POR','ATUALIZADO_POR','CONCLUIDA_EM','MOTIVO_CANCELAMENTO','PROXIMO_FOLLOWUP_EM','TITULO'
   ]
 };
 
@@ -183,10 +186,6 @@ function smokeTestCrmJornadaFase3() {
 
 /* ========================= CONFIG API ========================= */
 
-// AGF perf (Fase A2): boot do CRM em UMA chamada.
-// Antes o front disparava 6 requests (5 em paralelo) que erravam o cache
-// simultaneamente e reliam as mesmas planilhas. Aqui tudo roda numa unica
-// execucao e as leituras compartilham o cache interno.
 function crm3_apiGetBoot_(params) {
   params = params || {};
   var resp = crm3_text_(params.responsavelId || '');
@@ -194,8 +193,6 @@ function crm3_apiGetBoot_(params) {
   var end = crm3_text_(params.end || op_addDays_(start, 6));
   var agStart = crm3_text_(params.agendaStart || start);
   var agEnd = crm3_text_(params.agendaEnd || end);
-  // Vencidas: janela de 180 dias (antes buscava desde 2000-01-01, lendo a
-  // AGENDA inteira). Atividade vencida ha mais de 6 meses sai da lista.
   var hoje = op_toYmd_(new Date());
   var overdueStart = op_addDays_(hoje, -180);
   var overdueEnd = op_addDays_(hoje, -1);
@@ -292,18 +289,11 @@ function crm3_apiGetBootV4_(params) {
 
 function crm3_apiGetConfig_() {
   crm3_assertSetupReady_();
-  // PERF V5: config completa cacheada sob a revisao de config. POSTs do CRM
-  // nao invalidam; edicoes manuais nas abas aparecem em ate 600s ou na hora
-  // via clear_crm_cache_v5. Warm: 1 leitura de cache no lugar de ~10 abas.
   var _cfgKey = (typeof crm5x_configRev_ === 'function') ? ('crm5x|cfgfull|' + crm5x_configRev_()) : '';
   if (_cfgKey) {
     var _cfgHit = crm5x_cacheGet_(_cfgKey);
     if (_cfgHit) return _cfgHit;
   }
-  // LISTAS OFICIAIS (17_CRM_LISTAS_E_LIMPEZA): antes, POTENCIAL/PRIORIDADE/
-  // ORIGEM_LEAD/STATUS_PROSPECT nao tinham lista canonica, entao o front
-  // caia numa lista fixa escrita no proprio JavaScript e os dropdowns
-  // mostravam dois vocabularios ao mesmo tempo ("Media" junto de "Medio").
   var _listas = {};
   try { if (typeof crm6_listasParaConfig_ === 'function') _listas = crm6_listasParaConfig_(); } catch (eL) { _listas = {}; }
   var _cfgOut = {
@@ -321,9 +311,6 @@ function crm3_apiGetConfig_() {
     midias:op_readMidias_(),
     responsaveis:crm3_readObjects_(CRM3_CFG.SHEETS.RESPONSAVEIS).filter(function(x){ return crm3_isYes_(x.USER_ACTIVE) && crm3_isYes_(x.CRM_LINKED); }),
     transicoes:crm3_readJourneyTransitions_(),
-    // Fase 8.3 (fix): enriquecimentos OPCIONAIS da config. Antes, uma falha aqui
-    // derrubava todo o crm3_apiGetConfig_ e, com ele, o bootstrap inteiro do CRM.
-    // Agora cada item é blindado: se estourar, registra no log e devolve [].
     segmentos:crm3_safeConfigList_(function(){ return (typeof crm82_getActiveSegments_ === 'function' ? crm82_getActiveSegments_() : []); }, 'segmentos'),
     locais:crm3_safeConfigList_(function(){ return (typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('CRM') : []); }, 'locais'),
     prospectLocais:crm3_safeConfigList_(function(){ return (typeof crm83_getActiveLocals_ === 'function' ? crm83_getActiveLocals_('PROSPECTS') : []); }, 'prospectLocais'),
@@ -358,8 +345,6 @@ function crm3_homeLocalKey_(x) {
   return (typeof crm3_normResp_ === 'function') ? crm3_normResp_(key) : crm3_text_(key).toLowerCase();
 }
 
-// Fase 8.3 (fix): executa um enriquecimento opcional da config sem deixar
-// que ele derrube o bootstrap do CRM. Sempre retorna um array.
 function crm3_safeConfigList_(fn, label) {
   try {
     var out = fn();
@@ -372,16 +357,12 @@ function crm3_safeConfigList_(fn, label) {
 
 /* ========================= TRATATIVAS ========================= */
 
-// === AGF fix: casar responsavel por ID, USERNAME ou DISPLAY_NAME (aba CRM_RESPONSAVEIS) ===
-// Normaliza texto: minusculo e sem acento, para comparar responsaveis com seguranca.
 function crm3_normResp_(v) {
   v = crm3_text_(v);
   if (!v) return '';
   try { v = v.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) {}
   return v.toLowerCase();
 }
-// Monta um indice {token normalizado -> RESPONSAVEL_ID normalizado} a partir de CRM_RESPONSAVEIS,
-// aceitando RESPONSAVEL_ID, USERNAME e DISPLAY_NAME como chaves para a mesma pessoa.
 function crm3_buildResponsibleIndex_() {
   var rows = crm3_readObjects_(CRM3_CFG.SHEETS.RESPONSAVEIS) || [];
   var idx = {};
@@ -395,16 +376,12 @@ function crm3_buildResponsibleIndex_() {
   });
   return idx;
 }
-// Resolve qualquer valor de responsavel para o RESPONSAVEL_ID canonico da pessoa.
-// Se nao achar no indice, cai no proprio valor normalizado (comportamento seguro).
 function crm3_respPersonId_(value, idx) {
   var key = crm3_normResp_(value);
   if (!key) return '';
   idx = idx || crm3_buildResponsibleIndex_();
   return idx[key] || key;
 }
-// Resolve qualquer valor (id, username ou display) para o RESPONSAVEL_ID REAL da pessoa
-// (mantendo a caixa original do cadastro). Se nao achar, devolve o valor recebido.
 function crm3_respRealId_(value) {
   var key = crm3_normResp_(value);
   if (!key) return '';
@@ -430,9 +407,6 @@ function crm3_apiGetJornada_(params) {
   var tratativas = crm3_readObjects_(CRM3_CFG.SHEETS.TRATATIVAS);
   var stages = crm3_readObjects_(CRM3_CFG.SHEETS.ETAPAS).filter(function(x){ return crm3_isYes_(x.ATIVA); });
   var stageById = crm3_indexBy_(stages, 'ETAPA_ID');
-  // PERF V5: o kanban usa ~12 campos por entidade. Em vez da projecao FULL
-  // de CLIENTES_MASTER (50+ colunas, byId duplicado no cache), usa a
-  // projecao lite cacheada. crm3_projectTreatment_ recebe os mesmos campos.
   var entityMaps = (typeof crm5x_buildEntityMapsLite_ === 'function') ? crm5x_buildEntityMapsLite_() : crm3_buildEntityMaps_();
   var nextActivityByTreatment = crm3_findNextActivitiesByTreatment_();
 
@@ -462,6 +436,7 @@ function crm3_apiCreateTratativa_(payload) {
   crm3_assertSetupReady_();
   payload = payload || {};
   var entityType = crm3_normalizeEntityType_(payload.tipoEntidade || payload.origemTipo);
+  if (entityType === 'AVULSA') throw new Error('Atividade AVULSA não pode criar Tratativa.');
   var entityId = crm3_text_(payload.entidadeId || payload.origemId || payload.clienteId || payload.prospectId);
   if (!entityId) throw new Error('entidadeId obrigatório.');
   var funnelId = crm3_text_(payload.funilId || (entityType === 'PROSPECT' ? CRM3_CFG.FUNIL_PROSPECTS : CRM3_CFG.FUNIL_CLIENTES));
@@ -480,8 +455,6 @@ function crm3_apiCreateTratativa_(payload) {
   var clientAction = entityType === 'CLIENTE' ? crm3_text_(entity.acaoEngine || entity.acao || '') : '';
   var clientSubAction = entityType === 'CLIENTE' ? crm3_text_(entity.subAcao || '') : '';
   var priority = entityType === 'CLIENTE' ? crm3_text_(entity.prioridadeFila || '') : crm3_text_(entity.prioridade || '');
-  // Herda o responsavel do proprio prospect/cliente quando nenhum for informado,
-  // e normaliza para o RESPONSAVEL_ID real. Evita tratativas nascerem sem dono.
   var responsibleId = crm3_text_(payload.responsavelId);
   if (!responsibleId) responsibleId = crm3_respRealId_(entity.responsavel || entity.responsavelId || entity.RESPONSAVEL || '');
 
@@ -528,10 +501,6 @@ function crm3_apiMoveTratativa_(payload) {
   var patch = { ETAPA_ID:destination, ETAPA_ATUALIZADA_EM:now, STATUS_TRATATIVA:status, UPDATED_BY:crm3_text_(payload.updatedBy || payload.responsavelId || 'CRM_PORTAL'), ATUALIZADO_EM:now };
   if (status === 'CONCLUIDA' || status === 'ENCERRADA') { patch.ENCERRADA_EM = now; patch.FECHADA_POR = patch.UPDATED_BY; patch.MOTIVO_ENCERRAMENTO = crm3_text_(payload.motivo || stage.NOME_EXIBICAO); }
   crm3_patchRowObject_(record, patch);
-  // FIM DA DIVERGENCIA FUNIL x CADASTRO: a etapa vivia so na tratativa, e a
-  // ficha do prospect (coluna ETAPA_FUNIL) ficava congelada no valor do
-  // cadastro. Agora o mover grava a etapa nos DOIS lugares, na mesma
-  // operacao, usando sempre o codigo canonico (P_NOVO), nunca o rotulo.
   if (crm3_upper_(crm3_text_(record.obj.TIPO_ENTIDADE)) === 'PROSPECT') {
     try { crm3_updateEntityTreatmentSnapshot_('PROSPECT', crm3_text_(record.obj.ENTIDADE_ID), { ETAPA_FUNIL: destination }); }
     catch (eSync) { Logger.log('[CRM3] Falha ao sincronizar ETAPA_FUNIL na ficha: ' + eSync); }
@@ -542,14 +511,6 @@ function crm3_apiMoveTratativa_(payload) {
   return { ok:true, tratativaId:treatmentId, etapaAnterior:current, etapaId:destination, statusTratativa:status };
 }
 
-/* ============ MOVER TRATATIVAS EM LOTE (reaproveita move/create) ============
- * Recebe { etapaId (destino), prospectIds:[] e/ou tratativaIds:[], modo:'TESTE'|'APLICAR' }.
- * Reusa crm3_apiMoveTratativa_ (validação de etapa/status/data/histórico) e,
- * quando o prospect não tem tratativa aberta, cria na etapa de destino com
- * crm3_apiCreateTratativa_ (decisão de negócio aprovada). Tolerante a erro item a item.
- * modo TESTE = dry-run: só relatório, não grava nada.
- * Permissão: mesmo padrão do move_tratativa (controlada na UI). Sem auth nova no backend.
- * Roda dentro de op_withDocumentLock_ (trava herdada do op_doPost). */
 function crm3_apiMoveTratativasLote_(payload) {
   crm3_assertSetupReady_();
   payload = payload || {};
@@ -558,7 +519,7 @@ function crm3_apiMoveTratativasLote_(payload) {
   var modo = crm3_upper_(payload.modo || 'APLICAR');
   var dryRun = (modo === 'TESTE' || modo === 'DRY_RUN' || modo === 'DRYRUN' || modo === 'SIMULAR');
   var funnelId = crm3_text_(payload.funilId || CRM3_CFG.FUNIL_PROSPECTS);
-  var destStage = crm3_validateStageForFunnel_(destino, funnelId); // valida a etapa 1x (mesma regra do move individual)
+  var destStage = crm3_validateStageForFunnel_(destino, funnelId);
   var responsavelId = crm3_text_(payload.responsavelId);
   var updatedBy = responsavelId || 'CRM_PORTAL';
 
@@ -569,7 +530,6 @@ function crm3_apiMoveTratativasLote_(payload) {
   var itens = [], movidos = 0, criados = 0, pulados = 0, erros = 0;
   function push(id, acao, de, para, msg) { itens.push({ id: id, acao: acao, de: de, para: para, msg: msg || '' }); }
 
-  // 1) Alvos por tratativaId direto
   tratIds.forEach(function (tid) {
     try {
       var rec = crm3_findRowObject_(CRM3_CFG.SHEETS.TRATATIVAS, 'TRATATIVA_ID', tid);
@@ -582,7 +542,6 @@ function crm3_apiMoveTratativasLote_(payload) {
     } catch (e) { erros++; push(tid, 'ERRO', '', destino, e.message || String(e)); }
   });
 
-  // 2) Alvos por prospectId: move a tratativa aberta ou cria na etapa de destino
   prospectIds.forEach(function (pid) {
     try {
       var aberta = crm3_findOpenTratativa_('PROSPECT', pid, funnelId);
@@ -599,7 +558,7 @@ function crm3_apiMoveTratativasLote_(payload) {
         if (dryRun) { criados++; push(pid, 'CRIAR', '', destino, '(teste) criaria tratativa na etapa.'); return; }
         var c = crm3_apiCreateTratativa_({ tipoEntidade: 'PROSPECT', entidadeId: pid, funilId: funnelId, etapaId: destino, responsavelId: responsavelId, origem: 'CRM_PORTAL_LOTE' });
         if (c && c.created) { criados++; push(pid, 'CRIADO', '', destino, crm3_text_(c.tratativaId)); }
-        else if (c && c.tratativaId) { // corrida: já existia; garante a etapa movendo
+        else if (c && c.tratativaId) {
           var r2 = crm3_apiMoveTratativa_({ tratativaId: crm3_text_(c.tratativaId), etapaId: destino, responsavelId: responsavelId, updatedBy: updatedBy });
           movidos++; push(pid, 'MOVIDO', r2.etapaAnterior, r2.etapaId, crm3_text_(c.tratativaId));
         } else { erros++; push(pid, 'ERRO', '', destino, 'Não foi possível criar/mover.'); }
@@ -620,13 +579,9 @@ function crm3_apiMoveTratativasLote_(payload) {
   };
 }
 
-/* Dry-run para rodar no editor do Apps Script ANTES de mover em massa.
- * Ajuste DESTINO (ETAPA_ID) e, se quiser, a lista de prospectIds.
- * Sem prospectIds, usa os 10 primeiros prospects com tratativa aberta (dados reais).
- * Não grava nada; loga e retorna o relatório. */
 function crm3_testarMoverLoteProspects() {
-  var DESTINO = 'P_OPORTUNIDADE';           // <-- troque pelo ETAPA_ID de destino
-  var prospectIds = [];                      // <-- opcional: liste prospectIds
+  var DESTINO = 'P_OPORTUNIDADE';
+  var prospectIds = [];
   if (!prospectIds.length) {
     var abertas = crm3_readObjects_(CRM3_CFG.SHEETS.TRATATIVAS).filter(function (t) {
       return crm3_text_(t.TIPO_ENTIDADE) === 'PROSPECT' && crm3_isOpenTratativaStatus_(t.STATUS_TRATATIVA);
@@ -648,8 +603,6 @@ function crm3_apiGetAgenda_(params) {
   var responsavelId = crm3_text_(params.responsavelId || '');
   var status = crm3_upper_(params.status || '');
   var typeId = crm3_text_(params.tipoAtividadeId || '');
-  // AGF fix: responsavel casado pelo ID canonico (aceita ID, USERNAME ou
-  // DISPLAY_NAME gravados na planilha), evitando itens sumirem do filtro.
   var respIdx = responsavelId ? crm3_buildResponsibleIndex_() : null;
   var respWanted = responsavelId ? crm3_respPersonId_(responsavelId, respIdx) : '';
   var items = crm3_readAgendaV3_(start, end).filter(function(x){
@@ -675,6 +628,7 @@ function crm3_apiSaveAtividade_(payload) {
   }
 
   var entityType = crm3_normalizeEntityType_(payload.tipoEntidade || payload.origemTipo);
+  if (entityType === 'AVULSA') return crmAgendaAvulsaF1_save_(payload);
   var entityId = crm3_text_(payload.entidadeId || payload.origemId || payload.clienteId || payload.prospectId);
   if (!entityId) throw new Error('entidadeId obrigatório.');
   var entity = crm3_getEntity_(entityType, entityId);
@@ -752,7 +706,8 @@ function crm3_apiSaveAtividade_(payload) {
     LINK_MIDIA_RECOMENDADA:crm3_text_(media.link),
     OBSERVACAO:crm3_text_(payload.observacao || payload.obsPlanejada),
     CRIADO_POR:crm3_text_(payload.createdBy || responsible.id || 'CRM_PORTAL'),
-    ATUALIZADO_POR:crm3_text_(payload.updatedBy || responsible.id || 'CRM_PORTAL')
+    ATUALIZADO_POR:crm3_text_(payload.updatedBy || responsible.id || 'CRM_PORTAL'),
+    TITULO:crm3_text_(payload.titulo)
   };
   crm3_appendObject_(CRM3_CFG.SHEETS.AGENDA, obj);
   crm3_patchTreatment_(treatmentId, { PROXIMA_ATIVIDADE_ID:agendaId, PROXIMO_FOLLOWUP_EM:date, RESPONSAVEL_ID:crm3_text_(responsible.id) || crm3_text_(treatment.obj.RESPONSAVEL_ID), UPDATED_BY:crm3_text_(payload.updatedBy || responsible.id || 'CRM_PORTAL'), ATUALIZADO_EM:now });
@@ -777,6 +732,7 @@ function crm3_apiCompleteAtividade_(payload) {
   if (!agendaId) throw new Error('agendaId obrigatório.');
   var record = crm3_findRowObject_(CRM3_CFG.SHEETS.AGENDA, 'AGENDA_ID', agendaId);
   if (!record) throw new Error('Atividade não encontrada.');
+  if (crmAgendaAvulsaF1_isRecord_(record.obj)) return crmAgendaAvulsaF1_complete_(payload, record);
   var oldStatus = crm3_upper_(record.obj.STATUS_ATIVIDADE || record.obj.STATUS_AGENDA);
   if (oldStatus === 'CONCLUIDO') return { ok:true, agendaId:agendaId, tratativaId:crm3_text_(record.obj.TRATATIVA_ID), idempotent:true, message:'Atividade já concluída.' };
 
@@ -815,6 +771,7 @@ function crm3_apiCancelAtividade_(payload) {
   if (!agendaId) throw new Error('agendaId obrigatório.');
   var record = crm3_findRowObject_(CRM3_CFG.SHEETS.AGENDA, 'AGENDA_ID', agendaId);
   if (!record) throw new Error('Atividade não encontrada.');
+  if (crmAgendaAvulsaF1_isRecord_(record.obj)) return crmAgendaAvulsaF1_cancel_(payload, record);
   var oldStatus = crm3_upper_(record.obj.STATUS_ATIVIDADE || record.obj.STATUS_AGENDA);
   if (oldStatus === 'CONCLUIDO') throw new Error('Atividade concluída não pode ser cancelada.');
   var now = op_nowIso_();
@@ -831,6 +788,7 @@ function crm3_apiDeleteAtividade_(payload) {
   if (!agendaId) throw new Error('agendaId obrigatório.');
   var record = crm3_findRowObject_(CRM3_CFG.SHEETS.AGENDA, 'AGENDA_ID', agendaId);
   if (!record) throw new Error('Atividade não encontrada.');
+  if (crmAgendaAvulsaF1_isRecord_(record.obj)) return crmAgendaAvulsaF1_delete_(payload, record);
   var status = crm3_upper_(record.obj.STATUS_ATIVIDADE || record.obj.STATUS_AGENDA);
   if (status === 'CONCLUIDO') throw new Error('Atividade concluída não pode ser excluída. Use o histórico para preservar a auditoria.');
   crm3_appendEvent_({ entidadeTipo:record.obj.ENTIDADE_TIPO || record.obj.ORIGEM_TIPO, entidadeId:record.obj.ENTIDADE_ID || record.obj.ORIGEM_ID, tratativaId:record.obj.TRATATIVA_ID, tipoEvento:'ATIVIDADE_EXCLUIDA', valorAnterior:agendaId, valorNovo:'', responsavelId:payload.responsavelId || record.obj.RESPONSAVEL_ID, origem:'CRM_PORTAL', metadata:{ status:status, motivo:payload.motivo || '' } });
@@ -847,10 +805,10 @@ function crm3_apiGetDashboard_(params) {
   var start = crm3_text_(params.start || params.dataInicio || op_getWeekStart_(op_toYmd_(new Date())));
   var end = crm3_text_(params.end || params.dataFim || op_addDays_(start, 6));
   var responsavelId = crm3_text_(params.responsavelId || '');
-  // AGF fix: mesmo casamento canonico de responsavel usado na agenda.
   var dashRespIdx = responsavelId ? crm3_buildResponsibleIndex_() : null;
   var dashRespWanted = responsavelId ? crm3_respPersonId_(responsavelId, dashRespIdx) : '';
   var activities = crm3_readAgendaV3_(start, end).filter(function(x){
+    if (crm3_upper_(x.entidadeTipo) === 'AVULSA') return false;
     return !dashRespWanted || crm3_respPersonId_(x.responsavelId, dashRespIdx) === dashRespWanted;
   });
   var treatments = crm3_readObjects_(CRM3_CFG.SHEETS.TRATATIVAS).filter(function(x){
@@ -1067,17 +1025,11 @@ function crm3_findJourneyTransition_(funnelId, currentStage, resultId) {
 
 /* ========================= READERS E HELPERS ========================= */
 
-// PERF V5: nao varre mais a planilha por intervalo. A aba AGENDA_EXECUCAO e
-// lida UMA vez (janela +-400 dias) e cacheada pelo 16_CRM_PERF_V5; cada
-// intervalo (semana, vencidas -180d, proximas +365d) vira filtro em memoria.
-// Antes, um boot frio fazia 3 varreduras completas desta aba.
 function crm3_readAgendaV3_(start, end) {
   if (typeof crm5x_agendaSlice_ === 'function') return crm5x_agendaSlice_(start, end);
   return crm3_readAgendaV3_scan_(start, end);
 }
 
-// Scan legado (mesma projecao de sempre). Usado pelo V5 para construir o
-// cache da janela e como fallback para consultas fora da janela.
 function crm3_readAgendaV3_scan_(start, end) {
   var sh = op_getSpreadsheet_().getSheetByName(CRM3_CFG.SHEETS.AGENDA);
   if (!sh || sh.getLastRow() < 2) return [];
@@ -1092,6 +1044,7 @@ function crm3_readAgendaV3_scan_(start, end) {
     return {
       agendaId:crm3_text_(crm3_cell_(r,hm,'AGENDA_ID')), tratativaId:crm3_text_(crm3_cell_(r,hm,'TRATATIVA_ID')),
       entidadeTipo:crm3_text_(crm3_cell_(r,hm,['ENTIDADE_TIPO','ORIGEM_TIPO'])), entidadeId:crm3_text_(crm3_cell_(r,hm,['ENTIDADE_ID','ORIGEM_ID'])),
+      titulo:crm3_text_(crm3_cell_(r,hm,'TITULO')),
       clienteId:crm3_text_(crm3_cell_(r,hm,'CLIENTE_ID')), prospectId:crm3_text_(crm3_cell_(r,hm,'PROSPECT_ID')), cliente:crm3_text_(crm3_cell_(r,hm,'CLIENTE')), local:crm3_text_(crm3_cell_(r,hm,'LOCAL')),
       dataProgramada:date, horaProgramada:op_timeValueToText_(crm3_cell_(r,hm,['HORA_PROGRAMADA','HORA_INICIO'])), horaFimProgramada:op_timeValueToText_(crm3_cell_(r,hm,['HORA_FIM_PROGRAMADA','HORA_FIM'])), blocoId:crm3_text_(crm3_cell_(r,hm,'BLOCO_ID')),
       tipoAtividadeId:typeId, tipoAtividadeNome:crm3_text_(type.NOME_EXIBICAO || crm3_cell_(r,hm,'TIPO_ATIVIDADE')), icone:crm3_text_(type.ICONE), cor:crm3_text_(type.COR || crm3_cell_(r,hm,'TIPO_COR')),
@@ -1108,7 +1061,11 @@ function crm3_buildEntityMaps_() {
   var prospects = op_readProspects_().byId;
   return { clients:clients, prospects:prospects };
 }
-function crm3_getEntity_(type, id) { var maps = crm3_buildEntityMaps_(); return type === 'PROSPECT' ? (maps.prospects[id] || null) : (maps.clients[id] || null); }
+function crm3_getEntity_(type, id) {
+  if (crm3_upper_(type) === 'AVULSA') return null;
+  var maps = crm3_buildEntityMaps_();
+  return type === 'PROSPECT' ? (maps.prospects[id] || null) : (maps.clients[id] || null);
+}
 function crm3_projectTreatment_(t, entity, stage, next) {
   return {
     tratativaId:crm3_text_(t.TRATATIVA_ID), tipoEntidade:crm3_text_(t.TIPO_ENTIDADE), entidadeId:crm3_text_(t.ENTIDADE_ID), funilId:crm3_text_(t.FUNIL_ID), etapaId:crm3_text_(t.ETAPA_ID), etapaNome:crm3_text_(stage.NOME_EXIBICAO), etapaCor:crm3_text_(stage.COR), statusTratativa:crm3_text_(t.STATUS_TRATATIVA),
@@ -1135,6 +1092,7 @@ function crm3_newTreatmentObject_(x) { return { TRATATIVA_ID:x.id,TIPO_ENTIDADE:
 function crm3_mapLegacyProspectStage_(s) { var k = crm3_upper_(s); return { 'NOVO':'P_NOVO','CONTATO':'P_CONTATO','VISITA':'P_OPORTUNIDADE','OPORTUNIDADE':'P_OPORTUNIDADE','PROPOSTA':'P_NEGOCIACAO','CONTRATO':'P_CONVERTIDO','CONVERTIDO':'P_CONVERTIDO','PERDIDO':'P_PERDIDO' }[k] || 'P_NOVO'; }
 
 function crm3_updateEntityTreatmentSnapshot_(type, id, patch) {
+  if (crm3_upper_(type) === 'AVULSA' || !crm3_text_(id)) return false;
   var sheetName = crm3_upper_(type) === 'PROSPECT' ? CRM3_CFG.SHEETS.PROSPECTS : CRM3_CFG.SHEETS.CADASTRO;
   var keyHeader = crm3_upper_(type) === 'PROSPECT' ? 'PROSPECT_ID' : 'CLIENTE_ID';
   var rec = crm3_findRowObject_(sheetName, keyHeader, id);
@@ -1149,6 +1107,7 @@ function crm3_appendInteraction_(x) {
   });
 }
 function crm3_syncLegacyLifecycle_(type, id, resultId, typeId, ctx) {
+  if (crm3_upper_(type) === 'AVULSA' || !crm3_text_(id)) return;
   var legacy = { RES_PROPOSTA_ENVIADA:'PROPOSTA_APRESENTADA',RES_INTERESSE:'CLIENTE_INTERESSADO',RES_CONTRATO_FECHADO:'CONTRATO_FECHADO',RES_SEM_INTERESSE:'SEM_INTERESSE',RES_REAGENDADO:'REAGENDADO',RES_NAO_ENCONTRADO:'NAO_ENCONTRADO' }[resultId];
   if (!legacy) return;
   try {
@@ -1165,9 +1124,6 @@ function crm3_eventObject_(x) { x = x || {}; return { EVENTO_ID:'EVT_' + Utiliti
 
 /* ========================= HELPERS PLANILHA ========================= */
 
-// PERF V5: memoiza por execucao. O boot chama este assert 6+ vezes e cada
-// PropertiesService.getProperty custa dezenas de ms. Usa o getProperties
-// unico do V5 quando disponivel.
 var CRM3_SETUP_OK_MEMO = false;
 function crm3_assertSetupReady_() {
   if (CRM3_SETUP_OK_MEMO) return;
@@ -1178,19 +1134,12 @@ function crm3_assertSetupReady_() {
   CRM3_SETUP_OK_MEMO = true;
 }
 
-// PERF V5: abas de CONFIGURACAO (editadas manualmente, nunca por POSTs do
-// CRM) ganham revisao propria: gravar atividade/tratativa NAO derruba mais
-// o cache delas. Invalidacao: TTL curto (600s) ou clear_crm_cache_v5.
 var CRM3_CONFIG_SHEETS = {
   'CRM_FUNIS': 1, 'CRM_FUNIL_ETAPAS': 1, 'CRM_TIPOS_ATIVIDADE': 1,
   'CRM_RESULTADOS_ATIVIDADE': 1, 'CRM_RESPONSAVEIS': 1, 'MIDIAS_CRM': 1,
   'CRM_SEGMENTOS': 1, 'CRM_LOCAIS': 1, 'AGENDA_BLOCOS': 1
 };
 function crm3_readObjects_(sheetName) {
-  // AGF perf: cacheia a leitura por aba usando o cache-rev existente.
-  // Acelera o boot (get_crm_jornada_data e chamado ate 4x). As 9 funcoes de
-  // escrita ja chamam crm3_bumpCacheRev_(), invalidando o cache na hora.
-  // Abas de config: chave propria (crm5x|cfg|rev) que sobrevive a POSTs.
   if (CRM3_CONFIG_SHEETS[sheetName] && typeof crm5x_cacheGet_ === 'function') {
     var _ck = 'crm5x|cfg|' + crm5x_configRev_() + '|' + sheetName;
     var _hit = crm5x_cacheGet_(_ck);
@@ -1215,7 +1164,7 @@ function crm3_text_(v) { return v == null ? '' : String(v).trim(); }
 function crm3_upper_(v) { return op_upperNoAccents_(crm3_text_(v)).replace(/\s+/g,'_'); }
 function crm3_isYes_(v) { var s=crm3_upper_(v); return s==='SIM'||s==='TRUE'||s==='1'||s==='YES'||s==='ATIVO'; }
 function crm3_isOpenTratativaStatus_(v) { return CRM3_CFG.OPEN_TREATMENT_STATUSES.indexOf(crm3_upper_(v))>=0; }
-function crm3_normalizeEntityType_(v) { var s=crm3_upper_(v||'CLIENTE'); if(s==='PROSPECT'||s==='PROSPECTS') return 'PROSPECT'; return 'CLIENTE'; }
+function crm3_normalizeEntityType_(v) { var s=crm3_upper_(v||'CLIENTE'); if(s==='AVULSA') return 'AVULSA'; if(s==='PROSPECT'||s==='PROSPECTS') return 'PROSPECT'; return 'CLIENTE'; }
 function crm3_sortOrder_(a,b) { return (Number(a.ORDEM)||999)-(Number(b.ORDEM)||999); }
 function crm3_unique_(arr) { var seen={},out=[]; (arr||[]).forEach(function(v){ var x=crm3_text_(v); if(x&&!seen[x]){seen[x]=1;out.push(x);} }); return out.sort(); }
 function crm3_countBy_(arr,field) { var out={}; (arr||[]).forEach(function(x){ var k=crm3_text_(x[field]); if(k) out[k]=(out[k]||0)+1; }); return out; }
@@ -1228,7 +1177,7 @@ function crm3_statusFromStage_(s) { var type=crm3_upper_(s&&s.TIPO_ETAPA); if(ty
 function crm3_validateResultForActivity_(resultId,typeId) { var r=crm3_findConfigById_(CRM3_CFG.SHEETS.RESULTADOS,'RESULTADO_ID',resultId); if(!r||!crm3_isYes_(r.ATIVA)) throw new Error('Resultado inválido ou inativo.'); var applies=crm3_text_(r.TIPO_ATIVIDADE_ID); if(applies&&applies!=='TODOS'&&applies!==typeId) throw new Error('Resultado não permitido para este tipo de atividade.'); return r; }
 function crm3_resultLabel_(id) { if(!id)return ''; var r=crm3_findConfigById_(CRM3_CFG.SHEETS.RESULTADOS,'RESULTADO_ID',id); return r?crm3_text_(r.NOME_EXIBICAO):id; }
 function crm3_resolveMediaByCode_(code) { code=crm3_text_(code); if(!code)return {codigo:'',link:'',nome:''}; var list=op_readMidias_(); for(var i=0;i<list.length;i++) if(crm3_text_(list[i].codigo)===code)return {codigo:code,link:crm3_text_(list[i].link),nome:crm3_text_(list[i].nome)}; return {codigo:code,link:'',nome:code}; }
-function crm3_resolveMedia_(code,entity) { var chosen=crm3_text_(code||entity.midia||entity.conteudoSugerido||''); return crm3_resolveMediaByCode_(chosen); }
+function crm3_resolveMedia_(code,entity) { entity=entity||{}; var chosen=crm3_text_(code||entity.midia||entity.conteudoSugerido||''); return crm3_resolveMediaByCode_(chosen); }
 function crm3_resolveResponsible_(id,name) { id=crm3_text_(id); name=crm3_text_(name); var rows=crm3_readObjects_(CRM3_CFG.SHEETS.RESPONSAVEIS); for(var i=0;i<rows.length;i++){ if(id&&crm3_text_(rows[i].RESPONSAVEL_ID)===id)return{id:id,nome:crm3_text_(rows[i].DISPLAY_NAME||name)}; if(!id&&name&&crm3_text_(rows[i].DISPLAY_NAME)===name)return{id:crm3_text_(rows[i].RESPONSAVEL_ID),nome:name}; } return{id:id,nome:name}; }
 function crm3_addMinutesToTime_(time,min) { var m=String(time||'').match(/^(\d{1,2}):(\d{2})/); if(!m)return ''; var total=(Number(m[1])*60+Number(m[2])+Number(min||0))%(24*60); return Utilities.formatString('%02d:%02d',Math.floor(total/60),total%60); }
 
@@ -1237,9 +1186,6 @@ function crm3_appendObjects_(sheetName,objects) { if(!objects||!objects.length)r
 function crm3_findRowObject_(sheetName,keyHeader,keyValue) { var sh=op_getSpreadsheet_().getSheetByName(sheetName); if(!sh||sh.getLastRow()<2)return null; var values=sh.getDataRange().getValues(); var hm=crm3_headerMap_(values[0]); var key=op_headerKey_(keyHeader); if(hm[key]===undefined)return null; for(var i=1;i<values.length;i++){ if(crm3_text_(values[i][hm[key]])===crm3_text_(keyValue)){ var obj={}; Object.keys(hm).forEach(function(h){ obj[h]=values[i][hm[h]]; }); return{sheet:sh,rowNumber:i+1,headers:values[0],hm:hm,row:values[i],obj:obj}; } } return null; }
 function crm3_patchRowObject_(record,patch) { var row=record.row.slice(); Object.keys(patch||{}).forEach(function(k){ var hk=op_headerKey_(k); if(record.hm[hk]!==undefined)row[record.hm[hk]]=patch[k]; }); record.sheet.getRange(record.rowNumber,1,1,row.length).setValues([row]); return row; }
 
-// PERF V5: rev memoizada por execucao (antes, 1 chamada a PropertiesService
-// por operacao de cache; um boot fazia dezenas delas). O bump reseta o memo
-// local e os memos do V5, entao a propria execucao que escreveu ja le fresco.
 var CRM3_REV_MEMO = null;
 function crm3_bumpCacheRev_() { try { var p=PropertiesService.getScriptProperties(); var n=Number(p.getProperty(CRM3_CFG.PROPS.CACHE_REV)||0)+1; p.setProperty(CRM3_CFG.PROPS.CACHE_REV,String(n)); CRM3_REV_MEMO=String(n); if (typeof crm5x_bumpDataRev_==='function') crm5x_bumpDataRev_(); } catch(e){} }
 function crm3_cacheKey_(suffix) { if(CRM3_REV_MEMO===null){ CRM3_REV_MEMO=(typeof crm5x_getProp_==='function'?crm5x_getProp_(CRM3_CFG.PROPS.CACHE_REV):PropertiesService.getScriptProperties().getProperty(CRM3_CFG.PROPS.CACHE_REV))||'0'; } return 'crm3|'+CRM3_REV_MEMO+'|'+suffix; }
