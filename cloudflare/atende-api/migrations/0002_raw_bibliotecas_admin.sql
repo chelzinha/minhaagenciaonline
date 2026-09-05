@@ -28,7 +28,6 @@ CREATE TABLE IF NOT EXISTS atende_postagens_raw (
   arquivo_nome TEXT NOT NULL,
   numero_linha INTEGER NOT NULL,
 
-  -- 26 colunas originais do CSV - sempre TEXT e imutaveis
   atendimento TEXT,
   altura TEXT,
   cep_destinatario TEXT,
@@ -56,7 +55,6 @@ CREATE TABLE IF NOT EXISTS atende_postagens_raw (
   modalidade_pagamento TEXT,
   forma_pagamento TEXT,
 
-  -- colunas tecnicas derivadas; nunca substituem o dado original
   data_postagem_iso TEXT,
   valor_atendimento_num REAL,
   codigo_objeto_norm TEXT,
@@ -75,6 +73,11 @@ CREATE INDEX IF NOT EXISTS idx_atende_raw_remetente ON atende_postagens_raw(nome
 CREATE INDEX IF NOT EXISTS idx_atende_raw_contrato ON atende_postagens_raw(numero_contrato_norm);
 CREATE INDEX IF NOT EXISTS idx_atende_raw_atendente ON atende_postagens_raw(atendente_norm);
 CREATE INDEX IF NOT EXISTS idx_atende_raw_import_key ON atende_postagens_raw(import_key);
+
+CREATE TABLE IF NOT EXISTS atende_sro_counts (
+  codigo_objeto_norm TEXT PRIMARY KEY,
+  ocorrencias INTEGER NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS atende_clientes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
