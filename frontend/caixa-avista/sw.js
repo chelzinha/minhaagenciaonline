@@ -1,4 +1,4 @@
-const CACHE = 'caixa-balcao-stable-20260904230000';
+const CACHE = 'caixa-balcao-stable-20260904232000';
 const ASSETS = [
   '/caixa-avista/',
   '/caixa-avista/index.html',
@@ -6,6 +6,7 @@ const ASSETS = [
   '/caixa-avista/app.js?v=20260902102544',
   '/caixa-avista/unit-selector.js?v=20260902102544',
   '/caixa-avista/app-v2.js?v=20260904230000',
+  '/caixa-avista/pix-message-link-fix.js?v=20260904232000',
   '/caixa-avista/pix-safety.js?v=20260904212500',
   '/caixa-avista/movement-history.js?v=20260904230000',
   '/caixa-avista/manifest.webmanifest',
