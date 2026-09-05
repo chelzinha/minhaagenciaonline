@@ -3,6 +3,9 @@
   "name": "agf-atende-api",
   "main": "src/main.js",
   "compatibility_date": "2026-09-05",
+  "limits": {
+    "cpu_ms": 300000
+  },
   "d1_databases": [
     {
       "binding": "DB",
