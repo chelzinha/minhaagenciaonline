@@ -136,7 +136,7 @@ function doPost(e) {
     }
 
     switch (action) {
-      case 'unitAccess': return jsonOutput_(v2UnitAccessResponse_(user, request.unitId));
+      case 'unitAccess': return jsonOutput_(v3FastUnitAccessResponse_(user, request.unitId));
       case 'init': return jsonOutput_(v3FastInit_(request.date, user));
       case 'saveClient': return jsonOutput_(v3SaveClientFast_(request.name, user));
       case 'saveEntry': return jsonOutput_(v3SaveEntryDefaultClient_(request.payload, user));
