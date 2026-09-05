@@ -12,7 +12,7 @@
  *   3. SW novo é detectado, baixa em background, ativa no próximo refresh
  * ============================================================ */
 
-const VERSION = 'v22-sharedui-nf';
+const VERSION = 'v23-remove-intra-caixa';
 const STATIC_CACHE  = 'agf-static-'  + VERSION;
 const RUNTIME_CACHE = 'agf-runtime-' + VERSION;
 
@@ -24,7 +24,6 @@ const PRECACHE_URLS = [
   '/intra/dashboard/',
   '/intra/manuais/',
   '/intra/logistica/',
-  '/intra/caixa/',
   '/intra/resumo/',
   '/intra/styles/app-shell.css',
   '/intra/manifest.webmanifest',
