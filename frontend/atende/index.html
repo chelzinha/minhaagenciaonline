@@ -17,6 +17,7 @@
 <body>
   <div class="agf-frame-layout agf-embed-only">
     <iframe
+      id="atendeFrame"
       src="https://script.google.com/macros/s/AKfycbwCBAG4gBVHMHh7cHgnIG215RL8m8CbymvsAaHcs4bXhp0RCyPeP_cr6IA5iZtsch_m1g/exec"
       data-agf-frame-src="https://script.google.com/macros/s/AKfycbwCBAG4gBVHMHh7cHgnIG215RL8m8CbymvsAaHcs4bXhp0RCyPeP_cr6IA5iZtsch_m1g/exec"
       title="Atendimento"
@@ -24,6 +25,33 @@
       referrerpolicy="strict-origin-when-cross-origin"></iframe>
   </div>
   <script src="/shared/ui/agf-ui.js"></script>
-  <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/atende/sw.js').catch(()=>{}));}</script>
+  <script>
+    (function(){
+      const frame=document.getElementById('atendeFrame');
+      function sendAuth(){
+        try{
+          const session=window.AgfAuth&&window.AgfAuth.getLocalSession?window.AgfAuth.getLocalSession():null;
+          if(!session||!session.token||!frame||!frame.contentWindow)return;
+          const cached=session.user||{};
+          const payload=session.payload||{};
+          frame.contentWindow.postMessage({
+            type:'agf:auth-context',
+            token:session.token,
+            user:{
+              username:String(cached.username||cached.email||cached.name||payload.sub||''),
+              role:String(cached.role||payload.role||'')
+            }
+          },'*');
+        }catch(e){}
+      }
+      frame.addEventListener('load',function(){setTimeout(sendAuth,250);setTimeout(sendAuth,1200)});
+      window.addEventListener('message',function(e){
+        const d=e.data||{};
+        if(d.type==='agf:auth-request')sendAuth();
+      });
+      setTimeout(sendAuth,900);
+    })();
+    if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/atende/sw.js').catch(()=>{}));}
+  </script>
 </body>
 </html>
