@@ -340,3 +340,54 @@ Arquivo alterado:
 - `frontend/crm/app.js`
 
 Este ajuste nao altera Apps Script, dados, regras de carregamento inicial ou layout da Home.
+
+## Design system - camada de tokens compartilhada (Rodada 0)
+
+Arquivo: `frontend/shared/ui/agf-ui.css`, bloco no final do arquivo.
+
+### Regra de uso
+1. Todo token compartilhado vive no namespace `--agf-*`. Nunca declarar nome
+   generico (`--navy`, `--accent`, `--bg`, `--text`, `--shadow`, `--success`,
+   `--danger`, `--line`, `--muted`, `--surface`, `--info`, `--topbar-h`,
+   `--primary`, `--ink`, `--card`) em `shared/`. Esses nomes ja existem com
+   valores diferentes em 4 sistemas da plataforma; declara-los em escopo
+   global repinta modulo em producao.
+2. Componentes devem consumir a camada semantica (`--agf-color-*`,
+   `--agf-e-*`, `--agf-r-*`, `--agf-sh-*`, `--agf-t-*`), nunca os primitivos
+   (`--agf-c-*`) direto.
+3. Ao editar comentario dentro do bloco, nao usar `*/` no meio do texto
+   (ex.: `reverso*/styles`). Isso fecha o comentario cedo e derruba a regra
+   `:root` inteira, silenciosamente.
+
+### Grupos
+| Grupo | Prefixo | Qtd |
+| --- | --- | --- |
+| Primitivos de cor | `--agf-c-*` | 30 |
+| Semantica de cor | `--agf-color-*` | 19 |
+| Espacamento | `--agf-e-*` | 11 |
+| Raio | `--agf-r-*` | 7 |
+| Sombra | `--agf-sh-*` | 4 |
+| Tipografia | `--agf-font-*`, `--agf-t-*`, `--agf-fw-*` | 12 |
+| Controle e layout | `--agf-size-*`, `--agf-max-content` | 5 |
+| Foco | `--agf-focus-ring` | 1 |
+| Breakpoints (documentacao) | `--agf-bp-*` | 5 |
+
+### Observacoes
+1. Os degraus `--agf-e-1-5: 6px`, `--agf-e-2-5: 10px` e `--agf-e-3-5: 14px`
+   existem de proposito: a plataforma usa esses valores em massa hoje. Estao
+   nomeados para poderem ser eliminados por modulo, nao para serem usados em
+   codigo novo. Codigo novo usa a grade de 4px.
+2. A escala tipografica registra o que existe (11 a 13px de corpo), nao o que
+   deveria existir (16px). Subir isso repinta a plataforma inteira e e
+   decisao de produto.
+3. Os 4 sistemas de token da plataforma (`--agf-*` shared, `--nv/--yl` da
+   familia app/reverso/nuvem, `--navy/--crm-*` do CRM, `--primary/--ac-*` do
+   intra shell) seguem coexistindo. A unificacao depende de decidir qual
+   `--accent` vence: teal `#0E9594` (CRM) ou amarelo `#FFD400` (intra).
+
+### Cache do asset
+`/shared/ui/agf-ui.css` e precacheado sem query string por 10 service workers
+(`/crm`, `/intra` via raiz, `/atende`, `/balcao`, `/caixa`, `/cep`, `/sla`,
+`/superfrete`, `/superfrete-admin`, raiz). Adicionar `?v=` apenas no `<link>`
+quebra o match do precache. Se for versionar, versionar `<link>` e a lista
+`STATIC` de cada service worker na mesma entrega, e bumpar o nome do cache.

@@ -809,3 +809,224 @@ html.agf-route-reverso-admin [class*="rastreio"], html.agf-route-reverso-coleta 
   :where(.summary-grid, .unit-metrics, .control-metric, .collector-stats) {
   overflow-wrap: anywhere;
 }
+
+/* ============================================================
+ * AGF DESIGN TOKENS - Rodada 0 (fonte da verdade visual)
+ * ------------------------------------------------------------
+ * Este bloco NAO repinta nada. Ele apenas nomeia os valores que
+ * a plataforma ja usa hoje, extraidos de:
+ *   - frontend/crm/styles.css        (modulo de referencia visual)
+ *   - frontend/intra/styles/app-shell.css
+ *   - frontend/{app,nuvem,reverso,reverso-admin,reverso-coleta,
+ *     reverso-expedicao}/styles/tokens.css
+ *   - o proprio bloco :root original deste arquivo (topo)
+ *
+ * REGRA DE SEGURANCA: todo token aqui vive no namespace --agf-*.
+ * Nenhum nome generico (--navy, --accent, --bg, --text, --shadow,
+ * --success, --danger, --line, --muted, --surface, --info,
+ * --topbar-h) e declarado, porque esses nomes ja existem com
+ * VALORES DIFERENTES em 4 sistemas distintos da plataforma.
+ * Declarar qualquer um deles aqui repintaria modulos em producao.
+ *
+ * Os tokens legados do topo deste arquivo sao reapontados no fim
+ * do bloco, com valor computado IDENTICO ao original.
+ * ============================================================ */
+
+:root {
+
+  /* --------------------------------------------------------
+   * CAMADA 1 - PRIMITIVOS (sem semantica, nao usar direto)
+   * -------------------------------------------------------- */
+
+  /* Azul institucional Correios */
+  --agf-c-navy-900: #0f3047;   /* crm --navy gradiente stop 3 */
+  --agf-c-navy-800: #00355a;   /* familia app --nv-700 */
+  --agf-c-navy-700: #1b3358;   /* crm --navy / --brand */
+  --agf-c-navy-600: #00416b;   /* Pantone 540C - navy oficial */
+  --agf-c-navy-500: #044d7c;   /* familia app --nv-600 */
+  --agf-c-navy-400: #2c4a78;   /* crm --navy-2 / --brand-2 */
+  --agf-c-navy-300: #6a8aa3;   /* familia app --nv-300 */
+  --agf-c-navy-100: #d4dee8;   /* familia app --nv-100 */
+  --agf-c-navy-50:  #eef3f8;   /* familia app --nv-50 */
+
+  /* Azul secundario / link */
+  --agf-c-blue-500: #0077b6;
+  --agf-c-blue-600: #005a8f;   /* app-shell --primary-mid */
+  --agf-c-blue-100: #e6eef4;   /* app-shell --primary-soft */
+
+  /* Teal - cor de acao do CRM (referencia visual) */
+  --agf-c-teal-600: #0e9594;   /* crm --blue / --accent */
+  --agf-c-teal-700: #0f766e;   /* crm --teal */
+  --agf-c-teal-100: #e4f5f4;   /* crm --accent-soft */
+
+  /* Amarelo institucional */
+  --agf-c-gold-500: #ffd400;   /* Pantone 7549C */
+  --agf-c-gold-600: #d4b000;   /* app-shell --accent-dark */
+  --agf-c-gold-100: #fff7d6;   /* app-shell --accent-soft */
+
+  /* Neutros */
+  --agf-c-white:    #ffffff;
+  --agf-c-gray-50:  #f4f7fb;   /* fundo agf-ui (este arquivo) */
+  --agf-c-gray-75:  #f4f5f8;   /* fundo crm */
+  --agf-c-gray-100: #f8fafc;   /* superficie suave */
+  --agf-c-gray-200: #e7e9ef;   /* linha crm */
+  --agf-c-gray-250: #dce6ef;   /* borda agf-ui */
+  --agf-c-gray-300: #cbd5e1;   /* linha forte */
+  --agf-c-gray-500: #60788d;   /* texto secundario agf-ui */
+  --agf-c-gray-600: #586a78;   /* texto secundario crm */
+  --agf-c-gray-800: #17354b;   /* texto principal crm */
+  --agf-c-gray-900: #14324a;   /* texto principal agf-ui */
+
+  /* Status */
+  --agf-c-green-600:  #15803d;
+  --agf-c-green-100:  #dcfce7;
+  --agf-c-amber-600:  #b45309;
+  --agf-c-amber-100:  #fef3c7;
+  --agf-c-red-600:    #b42318;
+  --agf-c-red-100:    #fee2e2;
+  --agf-c-purple-600: #6d3cb1;
+  --agf-c-purple-100: #f3e8ff;
+
+  /* --------------------------------------------------------
+   * CAMADA 2 - SEMANTICA (o que os componentes devem usar)
+   * -------------------------------------------------------- */
+
+  --agf-color-brand:          var(--agf-c-navy-600);
+  --agf-color-brand-strong:   var(--agf-c-navy-800);
+  --agf-color-brand-soft:     var(--agf-c-navy-50);
+  --agf-color-action:         var(--agf-c-teal-600);
+  --agf-color-action-soft:    var(--agf-c-teal-100);
+  --agf-color-highlight:      var(--agf-c-gold-500);
+
+  --agf-color-bg:             var(--agf-c-gray-50);
+  --agf-color-surface:        var(--agf-c-white);
+  --agf-color-surface-soft:   var(--agf-c-gray-100);
+  --agf-color-border:         var(--agf-c-gray-250);
+  --agf-color-border-strong:  var(--agf-c-gray-300);
+
+  --agf-color-text:           var(--agf-c-gray-900);
+  --agf-color-text-soft:      var(--agf-c-gray-500);
+
+  --agf-color-success:        var(--agf-c-green-600);
+  --agf-color-success-soft:   var(--agf-c-green-100);
+  --agf-color-warning:        var(--agf-c-amber-600);
+  --agf-color-warning-soft:   var(--agf-c-amber-100);
+  --agf-color-danger:         var(--agf-c-red-600);
+  --agf-color-danger-soft:    var(--agf-c-red-100);
+  --agf-color-info:           var(--agf-c-navy-600);
+  --agf-color-info-soft:      var(--agf-c-navy-50);
+
+  /* --------------------------------------------------------
+   * ESPACAMENTO - grade de 4px + degraus legados de 2px
+   * Os degraus .5 existem porque a plataforma ja usa 6/10/14px
+   * em massa (6px x136, 10px x216, 14px x156 ocorrencias).
+   * Estao nomeados para poderem ser eliminados depois, nao agora.
+   * -------------------------------------------------------- */
+  --agf-e-1:   4px;
+  --agf-e-1-5: 6px;
+  --agf-e-2:   8px;
+  --agf-e-2-5: 10px;
+  --agf-e-3:   12px;
+  --agf-e-3-5: 14px;
+  --agf-e-4:   16px;
+  --agf-e-5:   24px;
+  --agf-e-6:   32px;
+  --agf-e-7:   48px;
+  --agf-e-8:   64px;
+
+  /* --------------------------------------------------------
+   * RAIO - 5 degraus cobrem 100% dos raios em uso
+   * -------------------------------------------------------- */
+  --agf-r-xs:   8px;
+  --agf-r-sm:   10px;
+  --agf-r-md:   14px;
+  --agf-r-lg:   18px;
+  --agf-r-xl:   24px;
+  --agf-r-pill: 999px;
+  --agf-r-circle: 50%;
+
+  /* --------------------------------------------------------
+   * SOMBRA - 3 niveis. Valores vindos do CRM (referencia).
+   * -------------------------------------------------------- */
+  --agf-sh-1: 0 1px 2px rgba(15, 32, 56, .04);
+  --agf-sh-2: 0 1px 2px rgba(15, 32, 56, .04), 0 10px 28px -18px rgba(15, 32, 56, .32);
+  --agf-sh-3: 0 14px 34px -22px rgba(15, 32, 56, .38);
+  --agf-sh-brand: 0 10px 30px rgba(0, 65, 107, .08);
+
+  /* --------------------------------------------------------
+   * TIPOGRAFIA
+   * Escala real em uso hoje. O corpo da plataforma e 12-13px,
+   * nao 16px. Registrado como esta; subir para 16px e decisao
+   * de produto, nao de consolidacao.
+   * -------------------------------------------------------- */
+  --agf-font-ui:   Inter, "Source Sans 3", Arial, Helvetica, sans-serif;
+  --agf-font-head: Manrope, Inter, Arial, sans-serif;
+
+  --agf-t-xs:  11px;   /* legenda      - line-height 1.4 */
+  --agf-t-sm:  12px;   /* corpo denso  - line-height 1.45 */
+  --agf-t-md:  13px;   /* corpo        - line-height 1.5 */
+  --agf-t-lg:  16px;   /* subtitulo    - line-height 1.4 */
+  --agf-t-xl:  19px;   /* titulo secao - line-height 1.3 */
+  --agf-t-2xl: 27px;   /* titulo pagina- line-height 1.15 */
+
+  --agf-fw-regular: 500;
+  --agf-fw-medium:  700;
+  --agf-fw-bold:    800;
+  --agf-fw-black:   900;
+
+  /* --------------------------------------------------------
+   * DIMENSOES DE CONTROLE E LAYOUT
+   * -------------------------------------------------------- */
+  --agf-size-control: 40px;   /* altura de input/select/botao   */
+  --agf-size-touch:   44px;   /* alvo minimo de toque           */
+  --agf-size-topbar:  56px;
+  --agf-size-bottomnav: 70px;
+  --agf-max-content:  1540px;
+
+  /* --------------------------------------------------------
+   * FOCO
+   * -------------------------------------------------------- */
+  --agf-focus-ring: 0 0 0 3px rgba(14, 149, 148, .20);
+
+  /* --------------------------------------------------------
+   * BREAKPOINTS (documentacao - CSS nao aceita var em @media)
+   * Conjunto oficial: 480 / 640 / 768 / 1024 / 1280.
+   * Os 22 breakpoints atuais devem convergir para estes cinco
+   * conforme cada modulo for migrado nas Rodadas N.
+   * -------------------------------------------------------- */
+  --agf-bp-sm:  480px;
+  --agf-bp-md:  640px;
+  --agf-bp-lg:  768px;
+  --agf-bp-xl:  1024px;
+  --agf-bp-2xl: 1280px;
+
+  /* ========================================================
+   * RETROCOMPATIBILIDADE
+   * Os tokens do bloco :root original (topo deste arquivo)
+   * passam a apontar para a camada nova. Valor computado
+   * identico ao anterior - conferido token a token.
+   * ======================================================== */
+  --agf-brand-blue:    var(--agf-c-navy-600);   /* era #00416b */
+  --agf-brand-blue-2:  var(--agf-c-blue-500);   /* era #0077b6 */
+  --agf-surface:       var(--agf-c-white);      /* era #ffffff */
+  --agf-bg:            var(--agf-c-gray-50);    /* era #f4f7fb */
+  --agf-border:        var(--agf-c-gray-250);   /* era #dce6ef */
+  --agf-text:          var(--agf-c-gray-900);   /* era #14324a */
+  --agf-muted:         var(--agf-c-gray-500);   /* era #60788d */
+  --agf-radius:        var(--agf-r-md);         /* era 14px    */
+  --agf-topbar-height: var(--agf-size-topbar);  /* era 56px    */
+  --agf-shadow:        var(--agf-sh-brand);     /* era 0 10px 30px rgba(0,65,107,.08) */
+}
+
+/* ------------------------------------------------------------
+ * ACESSIBILIDADE - reducao de movimento.
+ * Nao altera layout, so respeita a preferencia do sistema.
+ * ------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

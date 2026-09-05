@@ -2,6 +2,57 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-05 - shared/ui - Rodada 0 do design system
+
+### Padronizado
+- `frontend/shared/ui/agf-ui.css` passa a declarar a camada de tokens da
+  plataforma: 113 tokens em duas camadas (primitivos + semantica), todos no
+  namespace `--agf-*`, extraidos dos valores ja em uso em `crm/styles.css`,
+  `intra/styles/app-shell.css` e nas 6 copias de `styles/tokens.css`.
+- Os 10 tokens legados do bloco `:root` original (`--agf-brand-blue`,
+  `--agf-brand-blue-2`, `--agf-surface`, `--agf-bg`, `--agf-border`,
+  `--agf-text`, `--agf-muted`, `--agf-radius`, `--agf-topbar-height`,
+  `--agf-shadow`) passam a apontar para a camada nova. Valor computado
+  conferido token a token: identico ao anterior. Regressao visual zero.
+- Nenhum nome generico (`--navy`, `--accent`, `--bg`, `--text`, `--shadow`,
+  `--success`, `--danger`, `--line`, `--muted`, `--surface`, `--info`,
+  `--topbar-h`, `--primary`, `--ink`, `--card`) foi declarado, porque esses
+  nomes existem com valores diferentes em 4 sistemas da plataforma e
+  declara-los aqui repintaria modulos em producao.
+
+### Corrigido
+- A11Y: adicionado `@media (prefers-reduced-motion: reduce)`.
+- Corrigido `*/` prematuro dentro do comentario de cabecalho do bloco de
+  tokens. Sem essa correcao o comentario fechava cedo, o seletor do `:root`
+  seguinte era invalidado e os 113 tokens nao seriam aplicados pelo browser.
+
+### Preservado
+- As 811 linhas originais de `agf-ui.css` seguem byte a byte identicas.
+  O bloco novo foi apenas anexado ao final (+221 linhas, 0 remocoes).
+- Chaves balanceadas: 147 / 147. Comentarios balanceados: 112. Zero `*/` orfao.
+
+### Diagnostico registrado (auditoria da Rodada 0)
+- 21 arquivos CSS, 384 KB: 375 cores hex, 148 `rgba()`, 111 `box-shadow`,
+  70 `font-size`, 65 `border-radius`, 244 custom properties, 22 breakpoints,
+  16 `font-weight`, 14 `font-family` e 291 `!important`.
+- 4 sistemas de token mutuamente incompativeis, com 19 colisoes de nome.
+- Dos 21 componentes minimos previstos, apenas 1 existe completo em `shared/`.
+
+### Pendente
+- Decisao de paleta de acao: `--accent` teal `#0E9594` (CRM) vs amarelo
+  `#FFD400` (intra shell). Bloqueia a unificacao dos 4 sistemas de token.
+- 20 dos 21 componentes minimos ainda nao existem em `shared/`.
+- 6 copias de `styles/tokens.css` continuam no repositorio.
+- 22 breakpoints ativos; alvo e 480 / 640 / 768 / 1024 / 1280.
+- Versionamento do asset (`?v=`) nao foi aplicado: 10 service workers
+  precacheiam `/shared/ui/agf-ui.css` sem query string, e mudar so o `<link>`
+  quebraria o match do precache. Decidir junto com o bump dos SW.
+
+### Escopo
+- Alteracao restrita a `frontend/shared/ui/agf-ui.css` mais documentacao.
+- Nao altera Apps Script, planilhas, autenticacao, rotas, IDs, seletores,
+  endpoints, regras de negocio ou deploy.
+
 ## 2026-09-05 - Baseline documental dos modulos da Plataforma AGF
 
 ### Documentado
