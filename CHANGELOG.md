@@ -9,15 +9,16 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Documentados os principais modulos publicos, de clientes, internos, analiticos e tecnicos compartilhados encontrados na `main`.
 - Atualizado `docs/MAPA_MODULOS.md` para refletir rotas e estruturas atualmente encontradas no repositorio.
 - Registrados como aliases, e nao como modulos independentes, `/intra/agenda` -> `/crm/?view=agenda` e `/intra/crm` -> `/crm/?view=clientes`.
-- Registrada a coexistencia de duas implementacoes de frontend do Caixa: `/caixa` e `/intra/caixa`, sem assumir qual e a rota canonica antes de validacao.
+- Definido `/caixa/` como unica rota oficial do Caixa. A antiga implementacao `/intra/caixa/` foi removida definitivamente da `main`, sem redirect ou compatibilidade; o card Caixa do `/intra` aponta para `/caixa/`.
 - Separado conceitualmente o modulo visual `/intra/logistica` do backend `apps-script/logistica`, hoje relacionado a familia de Logistica Reversa.
 - Criadas documentacoes especificas para os submodulos da familia Reverso e para as visoes de Inteligencia.
 - Criadas documentacoes iniciais para servicos compartilhados como autenticacao, etiquetas, NF-e/DANFE, base-metro, base-cliente-etiquetas e logistica.
 - Informacoes sem evidencia suficiente foram marcadas como `NAO CONFIRMADO`, `NAO IDENTIFICADO` ou `NAO MAPEADO`, em vez de serem inferidas como fato.
 
 ### Escopo
-- Apenas documentacao e organizacao de conhecimento tecnico.
-- Nenhuma alteracao funcional em frontend, Apps Script, planilhas, autenticacao, regras de negocio, dados ou deploy.
+- Baseline documental e organizacao de conhecimento tecnico.
+- A remocao funcional de `/intra/caixa/` foi aplicada separadamente na `main` antes da consolidacao desta documentacao.
+- Este PR documental nao altera Apps Script, planilhas, autenticacao, regras de negocio, dados ou deploy.
 
 ### Atencao sensivel
 - A documentacao mapeia modulos que podem tratar dados cadastrais, fiscais, financeiros, rastreios, autenticacao e integracoes externas.
