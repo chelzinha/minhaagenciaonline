@@ -41,14 +41,25 @@ O QUE CONTINUA FUNCIONANDO
 - regra de nao duplicar objetos
 
 REGRA DO CSV
-- Registro com CODIGO_OBJETO usa o objeto como chave.
-- Registro sem CODIGO_OBJETO tambem e importado.
-- Nesses casos, Objeto permanece vazio no painel.
-- O campo ATENDIMENTO real do CSV e guardado como nota tecnica na celula Objeto.
-- Nenhum codigo de objeto artificial e criado.
-- Se um objeto ja existir, o CSV pode enriquecer/atualizar campos conhecidos.
-- Status de rastreio avancado nao e rebaixado para Postado.
-- Estorno pode atualizar o status para Estornado.
+- Com CODIGO_OBJETO, a chave e o codigo do objeto.
+- Sem CODIGO_OBJETO, o registro tambem e importado.
+- Nesse caso, Objeto permanece vazio no painel.
+- ATENDIMENTO e a chave tecnica e fica em nota da celula Objeto com prefixo ATENDE_CSV_ID:.
+- Nenhum codigo artificial e criado.
+- Se um objeto ja existir, o CSV atualiza apenas campos que conhece.
+- Status avancado nao e rebaixado para Postado.
+- ESTORNO=S pode atualizar o status para Estornado.
+- PESO do CSV vem em gramas e e convertido para kg.
+- MODALIDADE_PAGAMENTO nao e gravado no campo legado tipo, pois os dois campos possuem semanticas diferentes.
+
+BASELINE DO ARQUIVO DE 05/09/2026
+- 980 registros
+- 965 com CODIGO_OBJETO
+- 15 sem CODIGO_OBJETO, todos com ATENDIMENTO
+- 623 SARA
+- 357 CORREIOS ATENDE
+- valor total: R$ 69.855,97
+- valor dos 15 sem rastreio: R$ 34.540,20
 
 PERFORMANCE
 - O CSV nunca e processado durante o carregamento do painel.
@@ -64,10 +75,10 @@ Project Settings
 -> ATENDE_CSV_FOLDER_ID = ID da pasta _Atende Diario
 
 PRIMEIRO TESTE
-1. Faca o clasp push da versao v19.
+1. Faca clasp push da versao v19.
 2. Configure ATENDE_CSV_FOLDER_ID.
 3. Execute ATENDE_validarCsvDriveSemGravar().
-4. Para o arquivo baseline de 05/09/2026, o esperado e:
+4. Para o arquivo baseline, o esperado e:
    - totalRows = 980
    - importableRows = 980
    - validObjects = 965
@@ -76,18 +87,22 @@ PRIMEIRO TESTE
 5. Confirme que a validacao nao adicionou linhas.
 6. Execute ATENDE_importarCsvDriveAgora().
 7. Confira Postagens e LOG_IMPORTACOES.
-8. Abra /atende e valide os dados do novo dia.
+8. Abra /atende e valide o novo dia e o valor total.
 9. Somente depois execute ATENDE_instalarGatilhoCsvDrive().
 
 GATILHO
 ATENDE_instalarGatilhoCsvDrive() instala um unico gatilho a cada 1 hora.
-Executar a funcao novamente remove gatilhos duplicados desse handler antes de criar o novo.
+Executar novamente remove gatilhos duplicados desse handler antes de criar o novo.
 
 STATUS
-ATENDE_statusCsvDrive() informa se a pasta esta configurada e os gatilhos existentes.
+ATENDE_statusCsvDrive()
 
 REMOVER GATILHO
 ATENDE_removerGatilhoCsvDrive()
+
+ATENCAO - FUNCAO LEGADA
+Nao execute removerLinhasInvalidasSemObjeto() depois de ativar o CSV.
+Essa funcao antiga considera toda linha sem Objeto invalida e apagaria atendimentos legitimos sem rastreio que usam ATENDE_CSV_ID: como chave tecnica.
 
 REVERSAO
 1. Remova o gatilho.
