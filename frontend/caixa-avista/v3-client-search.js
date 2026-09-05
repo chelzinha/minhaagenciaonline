@@ -12,51 +12,111 @@
       .replace(/\s+/g, ' ')
       .trim();
 
-  function isDefaultClientActive(input) {
-    if (!input) return false;
+  const input = () => document.getElementById('clientInput');
+  const chip = () => document.getElementById('clientChip');
 
-    const chip = document.getElementById('clientChip');
-    const inputIsDefault = normalize(input.value) === DEFAULT_CLIENT;
-    const chipIsDefault = chip && normalize(chip.textContent) === DEFAULT_CLIENT;
-
-    return Boolean(inputIsDefault || chipIsDefault);
+  function defaultClientIsSelected() {
+    const node = chip();
+    return Boolean(
+      node &&
+      !node.classList.contains('hidden') &&
+      normalize(node.textContent) === DEFAULT_CLIENT
+    );
   }
 
-  function prepareOtherClientSearch(input) {
-    if (!input || !isDefaultClientActive(input)) return;
+  function clearDefaultNameFromSearch() {
+    const field = input();
+    if (!field || !defaultClientIsSelected()) return;
 
     /*
-     * O Cliente de Balcão continua sendo o cliente lógico selecionado até que
-     * outro cliente seja efetivamente escolhido. Limpamos somente o campo de
-     * pesquisa para que o operador possa começar a digitar imediatamente.
+     * O Cliente de Balcão fica selecionado no estado do Caixa, mas não ocupa
+     * o campo de pesquisa. Assim ele funciona como padrão operacional e a
+     * busca permanece livre para outro cliente.
      */
-    input.value = '';
-    input.placeholder = 'Buscar outro cliente';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
+    if (normalize(field.value) === DEFAULT_CLIENT) {
+      field.value = '';
+    }
+
+    field.placeholder = 'Buscar outro cliente';
   }
 
-  document.addEventListener('pointerdown', event => {
-    const input = event.target.closest?.('#clientInput');
-    if (input) prepareOtherClientSearch(input);
+  function restoreSearchPlaceholder() {
+    const field = input();
+    if (!field) return;
+    field.placeholder = defaultClientIsSelected()
+      ? 'Buscar outro cliente'
+      : 'Cliente';
+  }
+
+  function hideDefaultClientFromSuggestions() {
+    document
+      .querySelectorAll('#clientSuggestions [data-client-id]')
+      .forEach(button => {
+        if (normalize(button.textContent) === DEFAULT_CLIENT) {
+          button.remove();
+        }
+      });
+  }
+
+  function patchClientUi() {
+    clearDefaultNameFromSearch();
+    restoreSearchPlaceholder();
+    hideDefaultClientFromSuggestions();
+  }
+
+  /*
+   * O app base escuta focus para recalcular sugestões. Enquanto o cliente
+   * padrão está ativo, impedimos apenas esse handler de focus para que clicar
+   * na busca não desfaça o padrão. Ao começar a digitar, o evento input do app
+   * base assume normalmente e libera a escolha de outro cliente.
+   */
+  document.addEventListener('focus', event => {
+    if (event.target?.id !== 'clientInput') return;
+    if (!defaultClientIsSelected()) return;
+
+    clearDefaultNameFromSearch();
+    event.stopImmediatePropagation();
   }, true);
 
-  document.addEventListener('focusin', event => {
+  document.addEventListener('pointerdown', event => {
     if (event.target?.id === 'clientInput') {
-      prepareOtherClientSearch(event.target);
+      clearDefaultNameFromSearch();
     }
   }, true);
 
+  /*
+   * Antes de registrar um atendimento com a busca vazia, recolocamos o nome
+   * do cliente padrão apenas para a validação interna do app. Logo depois o
+   * campo volta a ficar visualmente vazio. Isso preserva a regra de negócio
+   * sem obrigar o atendente a apagar texto.
+   */
   document.addEventListener('click', event => {
-    const option = event.target.closest?.('#clientSuggestions [data-client-id]');
-    if (!option) return;
+    const saveButton = event.target.closest?.('#btnSaveSingle');
+    if (saveButton && defaultClientIsSelected()) {
+      const field = input();
+      if (field && !String(field.value || '').trim()) {
+        field.value = 'Cliente de Balcão';
+        setTimeout(patchClientUi, 0);
+      }
+    }
 
-    const input = document.getElementById('clientInput');
-    if (input) input.placeholder = 'Cliente';
+    const option = event.target.closest?.('#clientSuggestions [data-client-id]');
+    if (option) {
+      setTimeout(patchClientUi, 0);
+    }
   }, true);
+
+  const observer = new MutationObserver(patchClientUi);
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class']
+  });
 
   window.CaixaV3ClientSearch = {
-    prepare() {
-      prepareOtherClientSearch(document.getElementById('clientInput'));
-    }
+    patch: patchClientUi
   };
+
+  patchClientUi();
 })();
