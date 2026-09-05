@@ -3,7 +3,7 @@
 // ============================================================
 
 function ATENDE_listarCsvPendentes_() {
-  const pasta = DriveApp.getFolderById(ATENDE_CSV_DIARIO_CFG.FOLDER_ID);
+  const pasta = DriveApp.getFolderById(ATENDE_getCsvFolderId_());
   const arquivos = ATENDE_coletarArquivosCsv_(pasta);
   const props = PropertiesService.getScriptProperties();
   const processed = new Set(ATENDE_getProcessedMeta_(props));
