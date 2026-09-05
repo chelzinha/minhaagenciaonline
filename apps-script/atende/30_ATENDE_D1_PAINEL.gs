@@ -19,6 +19,12 @@ const ATENDE_D1_PANEL_COLUMNS = Object.freeze([
   { key: 'FORMA PAGAMENTO', label: 'FORMA PAGAMENTO', width: 145, group: 'atendimento' }
 ]);
 
+function ATENDE_formatarValorPainelD1_(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return '0,00';
+  return Utilities.formatString('%.2f', number).replace('.', ',');
+}
+
 function ATENDE_buscarDadosD1(params) {
   params = params || {};
 
@@ -45,10 +51,15 @@ function ATENDE_buscarDadosD1(params) {
 
   const startedAt = Date.now();
   const response = ATENDE_fetchD1_('/atende?' + query.join('&'), { method: 'get' });
+  const rows = (response.rows || []).map(function(row) {
+    const formatted = Object.assign({}, row);
+    formatted.VALOR = ATENDE_formatarValorPainelD1_(row.VALOR);
+    return formatted;
+  });
 
   const result = {
     ok: true,
-    rows: response.rows || [],
+    rows: rows,
     columns: ATENDE_D1_PANEL_COLUMNS.map(function(column) {
       return Object.assign({}, column);
     }),
@@ -59,7 +70,7 @@ function ATENDE_buscarDadosD1(params) {
     meta: {
       modoLeitura: 'cloudflare_d1',
       totalPlanilha: Number(response.total || 0),
-      totalRetornado: (response.rows || []).length,
+      totalRetornado: rows.length,
       page: Number(response.page || page),
       pageSize: Number(response.pageSize || pageSize),
       pages: Number(response.pages || 1),
