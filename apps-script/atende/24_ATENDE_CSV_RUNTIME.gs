@@ -17,14 +17,15 @@ function ATENDE_logImportacaoCsv_(info) {
   const resumo = [
     'arquivo=' + info.file.getName(),
     'sem objeto=' + Number(info.invalidWithoutObject || 0),
-    'duplicados existentes=' + Number(info.duplicateExisting || 0),
+    'existentes sem mudanca=' + Number(info.unchangedExisting || 0),
     'duplicados no arquivo=' + Number(info.duplicatePayload || 0)
   ].join(' | ');
 
   sheet.appendRow([
     new Date(), 'csv_drive', 'ok', resumo,
     Number(info.totalRows || 0), Number(info.totalObjects || 0),
-    Number(info.added || 0), 0, Number(info.skipped || 0), info.hash || ''
+    Number(info.added || 0), Number(info.updated || 0),
+    Number(info.skipped || 0), info.hash || ''
   ]);
 }
 
