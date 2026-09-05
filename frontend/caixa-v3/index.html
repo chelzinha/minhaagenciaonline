@@ -21,14 +21,51 @@
     <div id="error" class="error"></div>
   </main>
   <script>
-    (() => {
+    (async () => {
       const API_KEY = 'caixa_avista_v3_api_url';
+      const BUILD_KEY = 'caixa_avista_v3_homologacao_build';
+      const BUILD = '20260905103000';
       const V3_API = 'https://script.google.com/macros/s/AKfycbxRaTJeaXhGTC0Lbyqf_Osnr_HsOyUnlOWjwtGMvkvPY1d98H0RthjJPCkLJRkP1x8o/exec';
 
       try {
         localStorage.setItem(API_KEY, V3_API);
         sessionStorage.setItem('caixa_avista_v3_homologacao', '1');
-        location.replace('/caixa-avista/?v3=homologacao');
+
+        const previousBuild = localStorage.getItem(BUILD_KEY) || '';
+
+        /*
+         * Limpeza automática somente quando a versão da homologação muda.
+         * Preservamos Local Storage, sessão, usuário e unidade padrão.
+         */
+        if (previousBuild !== BUILD) {
+          if ('caches' in window) {
+            try {
+              const keys = await caches.keys();
+              await Promise.all(
+                keys
+                  .filter(key => key.startsWith('caixa-balcao-'))
+                  .map(key => caches.delete(key))
+              );
+            } catch (_) {}
+          }
+
+          if ('serviceWorker' in navigator) {
+            try {
+              const registrations = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(
+                registrations
+                  .filter(registration =>
+                    String(registration.scope || '').includes('/caixa-avista/')
+                  )
+                  .map(registration => registration.unregister())
+              );
+            } catch (_) {}
+          }
+
+          localStorage.setItem(BUILD_KEY, BUILD);
+        }
+
+        location.replace('/caixa-avista/?v3=homologacao&build=' + BUILD);
       } catch (error) {
         const node = document.getElementById('error');
         node.style.display = 'block';
