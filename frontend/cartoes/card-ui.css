@@ -18,6 +18,13 @@
   display:none!important;
 }
 
+/* Botões de ação mais compactos, mantendo a tipografia */
+.action{
+  min-height:54px!important;
+  padding-top:9px!important;
+  padding-bottom:9px!important;
+}
+
 /* Respiro interno dos ícones para evitar cortes em strokes e bordas */
 .action svg,
 .info-row svg,
@@ -39,6 +46,38 @@
   padding:2px;
 }
 
+/* WhatsApp: balão e telefone separados visualmente */
+.whatsapp-icon{
+  fill:none!important;
+  stroke:none!important;
+  overflow:visible;
+}
+.whatsapp-icon .wa-bubble{
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.whatsapp-icon .wa-phone{
+  fill:currentColor;
+  stroke:none;
+}
+.action-green .whatsapp-icon{
+  fill:none!important;
+  stroke:none!important;
+}
+
+/* No tamanho usual de celular, manter a chamada de instalação em uma linha */
+@media(min-width:380px){
+  .install-card p{white-space:nowrap}
+}
+
 @media(max-width:500px){
   .brand-header{min-height:86px;padding:12px 16px}
+  .action{min-height:52px!important;padding-top:8px!important;padding-bottom:8px!important}
+}
+
+@media(max-width:360px){
+  .action{min-height:50px!important}
 }
