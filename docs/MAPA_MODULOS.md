@@ -23,28 +23,44 @@ A documentação detalhada fica em `docs/modulos/`.
 | cep | `/cep` | frontend correspondente | `apps-script/cep` | NÃO CONFIRMADO | `docs/modulos/cep/README.md` |
 | dce | `/dce` | redirect/projeto isolado | projeto fiscal isolado | NÃO CONFIRMADO | `docs/modulos/dce/README.md` |
 | reverso | `/reverso` | `frontend/reverso` | `apps-script/logistica` | NÃO CONFIRMADO | `docs/modulos/reverso/USUARIO.md` |
+| cartoes-digitais | slugs públicos, ex. `/rachel` | páginas individuais | endpoint dinâmico planejado/não confirmado | PARCIAL | `docs/modulos/cartoes-digitais/README.md` |
 
-## 3. Módulos internos
+## 3. Portal interno e módulos de negócio
 
-| Module ID | Rota | Frontend | Backend | Auth compartilhada | Documentação |
+O `frontend/intra/index.html` confirma como cards principais atuais: Dashboard, Inteligência, CRM, Resumos, Logística, Caixa e Manuais.
+
+| Module ID | Rota | Frontend | Backend/fontes | Auth | Documentação |
 |---|---|---|---|---|---|
 | intra | `/intra` | `frontend/intra` | múltiplos | SIM | `docs/modulos/intra/README.md` |
-| agf | `/agf` | `frontend/agf` | auth/atende provável | PARCIAL/CONFIRMAR | `docs/modulos/agf/README.md` |
+| dashboard | `/intra/dashboard` | `frontend/intra/dashboard` | NÃO MAPEADOS | CONFIRMAR | `docs/modulos/dashboard/README.md` |
+| inteligencia | `/intra/inteligencia` | `frontend/intra/inteligencia` | múltiplas | SIM | `docs/modulos/inteligencia/README.md` |
 | crm | `/crm` | `frontend/crm` | `apps-script/base-metro` | CONFIRMAR integralmente | `docs/modulos/crm/README.md` |
+| resumos | `/intra/resumo` | `frontend/intra/resumo` | NÃO MAPEADOS | CONFIRMAR | `docs/modulos/resumos/README.md` |
+| logistica-interna | `/intra/logistica` | `frontend/intra/logistica` | NÃO MAPEADOS | CONFIRMAR | `docs/modulos/logistica-interna/README.md` |
+| caixa | `/caixa` e `/intra/caixa` | `frontend/caixa` + `frontend/intra/caixa` | `apps-script/caixa` provável | NÃO CONFIRMADO | `docs/modulos/caixa/README.md` |
+| manuais | `/intra/manuais` | `frontend/intra/manuais` | fonte `Manuais` documentada | CONFIRMAR | `docs/modulos/manuais/README.md` |
 | atende | `/atende` | `frontend/atende` | `apps-script/atende` | SIM | `docs/modulos/atende/README.md` |
-| sla | `/sla` | `frontend/sla` | `apps-script/sla` | SIM | `docs/modulos/sla/README.md` |
-| caixa | `/caixa` | `frontend/caixa` | `apps-script/caixa` | NÃO CONFIRMADO | `docs/modulos/caixa/README.md` |
+| sla | `/sla` e `/intra/sla` | `frontend/sla` + rota interna | `apps-script/sla` | SIM | `docs/modulos/sla/README.md` |
 | balcao | `/balcao` | `frontend/balcao` | etiquetas/cep/caixa provável | NÃO CONFIRMADO | `docs/modulos/balcao/README.md` |
 | superfrete-admin | `/superfrete-admin` | `frontend/superfrete-admin` | múltiplos | NÃO CONFIRMADO | `docs/modulos/superfrete-admin/README.md` |
 | reverso-admin | `/reverso-admin` | `frontend/reverso-admin` | `apps-script/logistica` | SIM | `docs/modulos/reverso/ADMIN.md` |
 | reverso-coleta | `/reverso-coleta` | `frontend/reverso-coleta` | `apps-script/logistica` | CONFIRMAR | `docs/modulos/reverso/COLETA.md` |
 | reverso-expedicao | `/reverso-expedicao` | `frontend/reverso-expedicao` | `apps-script/logistica` | SIM | `docs/modulos/reverso/EXPEDICAO.md` |
+| agf | `/agf` | `frontend/agf` | auth/atende provável | PARCIAL/CONFIRMAR | `docs/modulos/agf/README.md` |
 
-## 4. Família Inteligência
+## 4. Rotas de compatibilidade / aliases confirmados
+
+| Rota | Comportamento atual |
+|---|---|
+| `/intra/agenda` | redireciona para `/crm/?view=agenda` |
+| `/intra/crm` | redireciona para `/crm/?view=clientes` |
+
+Essas rotas não são tratadas como módulos independentes enquanto permanecerem simples redirecionamentos.
+
+## 5. Família Inteligência
 
 | Module ID | Rota | Frontend | Auth | Fontes | Documentação |
 |---|---|---|---|---|---|
-| inteligencia | `/intra/inteligencia` | `frontend/intra/inteligencia` | SIM | múltiplas | `docs/modulos/inteligencia/README.md` |
 | inteligencia-carteira | `/intra/inteligencia/carteira` | pasta correspondente | SIM | NÃO MAPEADAS | `docs/modulos/inteligencia/CARTEIRA.md` |
 | inteligencia-gerencial | `/intra/inteligencia/gerencial` | pasta correspondente | SIM | NÃO MAPEADAS | `docs/modulos/inteligencia/GERENCIAL.md` |
 | inteligencia-comercial | `/intra/inteligencia/comercial` | pasta correspondente | SIM | NÃO MAPEADAS | `docs/modulos/inteligencia/COMERCIAL.md` |
@@ -52,7 +68,7 @@ A documentação detalhada fica em `docs/modulos/`.
 | inteligencia-atendimento | `/intra/inteligencia/atendimento` | pasta correspondente | SIM | NÃO MAPEADAS | `docs/modulos/inteligencia/ATENDIMENTO.md` |
 | inteligencia-operacional | `/intra/inteligencia/operacional` | pasta correspondente | SIM | NÃO MAPEADAS | `docs/modulos/inteligencia/OPERACIONAL.md` |
 
-## 5. Serviços técnicos compartilhados
+## 6. Serviços técnicos compartilhados
 
 | Module ID | Código | Consumidores | Sensível | Documentação |
 |---|---|---|---|---|
@@ -60,12 +76,15 @@ A documentação detalhada fica em `docs/modulos/`.
 | etiquetas | `apps-script/etiquetas` | `/app`, Balcão, SuperFrete e integrações | SIM | `docs/modulos/etiquetas/README.md` |
 | nf | `apps-script/nf` | `/app` | SIM | `docs/modulos/nf/README.md` |
 | cep | `apps-script/cep` | `/cep`, etiquetas/balcão | depende do contexto | `docs/modulos/cep/README.md` |
-| logistica | `apps-script/logistica` | família Reverso | SIM | documentado em `docs/modulos/reverso/` |
-| base-metro | `apps-script/base-metro` | CRM/Inteligência | SIM | documentado inicialmente em CRM; detalhamento pendente |
-| base-cliente-etiquetas | `apps-script/base-cliente-etiquetas` | etiquetas/clientes | SIM | detalhamento pendente |
-| caixa | `apps-script/caixa` | `/caixa`, vínculo com Balcão a confirmar | SIM | `docs/modulos/caixa/README.md` |
+| logistica | `apps-script/logistica` | família Reverso | SIM | `docs/modulos/logistica/README.md` |
+| base-metro | `apps-script/base-metro` | CRM e módulos internos relacionados | SIM | `docs/modulos/base-metro/README.md` |
+| base-cliente-etiquetas | `apps-script/base-cliente-etiquetas` | consumidores a mapear | SIM | `docs/modulos/base-cliente-etiquetas/README.md` |
+| caixa-backend | `apps-script/caixa` | Caixa; vínculo com Balcão a confirmar | SIM | `docs/modulos/caixa/README.md` |
+| nuvemshop-backend | `apps-script/nuvemshop` | `/nuvem` | SIM | `docs/modulos/nuvem/README.md` |
+| atende-backend | `apps-script/atende` | `/atende` | SIM | `docs/modulos/atende/README.md` |
+| sla-backend | `apps-script/sla` | `/sla` | SIM | `docs/modulos/sla/README.md` |
 
-## 6. Integrações externas conhecidas
+## 7. Integrações externas conhecidas
 
 | Integração | Módulos | Atenção |
 |---|---|---|
@@ -73,9 +92,9 @@ A documentação detalhada fica em `docs/modulos/`.
 | Nuvemshop | nuvem + backend Nuvemshop | OAuth, webhooks, pedidos, clientes |
 | NF-e/DANFE | app + nf | dados fiscais e documentos |
 | SuperFrete | superfrete / superfrete-admin | dados financeiros, etiquetas e carteira |
-| WhatsApp | raiz, histórico/retorno em alguns módulos | dados de contato e links de atendimento |
+| WhatsApp | raiz, cartões e retornos em alguns módulos | dados de contato e links de atendimento |
 
-## 7. Regras de verdade documental
+## 8. Regras de verdade documental
 
 Não registrar neste mapa:
 
@@ -89,7 +108,7 @@ Não registrar neste mapa:
 
 Quando o vínculo não estiver provado pelo código ou ambiente, usar `NÃO CONFIRMADO` ou `NÃO MAPEADO`.
 
-## 8. Pendências prioritárias
+## 9. Pendências prioritárias
 
 1. Confirmar produção/homologação por rota.
 2. Mapear frontend -> action -> Apps Script -> planilha.
@@ -97,5 +116,7 @@ Quando o vínculo não estiver provado pelo código ou ambiente, usar `NÃO CONF
 4. Confirmar URLs `/exec` e `/dev` sem expor segredos.
 5. Classificar cada módulo M0-M5.
 6. Resolver papel oficial de `/agf` versus `/intra`.
-7. Documentar `base-metro` e `base-cliente-etiquetas` como serviços próprios se permanecerem compartilhados.
-8. Confirmar autenticação de Caixa, Balcão, SuperFrete Admin e Reverso Coleta.
+7. Definir rota canônica do Caixa (`/caixa` x `/intra/caixa`) e do SLA quando houver duplicidade.
+8. Confirmar autenticação de Caixa, Balcão, SuperFrete Admin, Reverso Coleta, Dashboard, Resumos, Logística e Manuais.
+9. Inventariar todos os slugs de Cartões Digitais.
+10. Atualizar este mapa sempre que um módulo novo entrar ou uma rota for desativada.
