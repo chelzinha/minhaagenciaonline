@@ -1,5 +1,14 @@
 # Changelog - Caixa à Vista
 
+## 2026-09-04 - Data e hora no histórico de movimentações
+
+### Adicionado
+
+- data e horário em cada movimentação exibida na aba `Mov.`;
+- formato `DD/MM/AAAA · HH:mm`, usando o fuso `America/Fortaleza`;
+- horário também nas sangrias exibidas no histórico;
+- alteração somente de apresentação no frontend, sem modificar os registros persistidos na planilha.
+
 ## 2026-09-04 - Correção de chave Pix com zero à esquerda e mensagem do WhatsApp
 
 ### Corrigido
