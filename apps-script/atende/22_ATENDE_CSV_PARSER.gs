@@ -37,8 +37,15 @@ function ATENDE_mapearLinhaCsv_(raw) {
   const objectCode = normalizeObjectCode_(ATENDE_cleanCsvValue_(raw.CODIGO_OBJETO));
 
   return {
-    // Chave tecnica exclusiva do CSV. Nao entra nas 41 colunas do painel.
+    // Metadados tecnicos exclusivos da importacao CSV. Eles nao entram nas
+    // 41 colunas canonicas do painel e ficam disponiveis para idempotencia,
+    // diagnostico e futura evolucao do schema sem distorcer campos legados.
     csvAtendimentoId: ATENDE_cleanCsvValue_(raw.ATENDIMENTO),
+    csvModalidadePagamento: paymentMode,
+    csvMcu: ATENDE_cleanCsvValue_(raw.MCU),
+    csvNumeroPlp: ATENDE_cleanCsvValue_(raw.NUMERO_PLP),
+    csvPesoTarifadoGramas: ATENDE_toNumber_(raw.PESO_TARIFADO),
+
     dtAtendimento: ATENDE_parseCsvDate_(raw.DATA_POSTAGEM),
     idAtendente: ATENDE_cleanCsvValue_(raw.CPF_MATRICULA_ATENDENTE),
     codObjeto: objectCode,
@@ -67,7 +74,11 @@ function ATENDE_mapearLinhaCsv_(raw) {
     origem: ATENDE_cleanCsvValue_(raw.SISTEMA_POSTAGEM) || 'CSV ATENDE',
     statusDesc: estorno === 'S' ? 'Estornado' : (objectCode ? 'Postado' : 'Atendimento'),
     dtPrevista: '',
-    tipoAtendimento: paymentMode,
+
+    // Nao mapear MODALIDADE_PAGAMENTO para "tipo". O campo legado "tipo"
+    // vem do JSON de atendimento (ex.: AFATURAR_AUTOMATIZADO) e possui
+    // semantica/granularidade diferente de "A FATURAR" / "A VISTA" do CSV.
+    tipoAtendimento: '',
     formaPagamentoAtendimento: paymentForm
   };
 }
