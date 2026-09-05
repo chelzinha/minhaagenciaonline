@@ -5,202 +5,209 @@
 **Rota:** `/atende`  
 **Frontend:** `frontend/atende`  
 **Backend:** `apps-script/atende`  
-**Autenticação:** AGF_ACCESS no frontend  
-**Dados sensíveis:** SIM  
+**Autenticacao:** AGF_ACCESS no frontend  
+**Dados sensiveis:** SIM  
 **Fonte operacional principal:** aba `Postagens`  
-**Fonte automática adicional:** CSV diário salvo na pasta `_Atende Diário`
+**Fonte automatica adicional:** CSV diario salvo na pasta `_Atende Diario`
 
 ## 1. Finalidade
 
-Consolidar atendimentos e postagens da AGF em um painel operacional único, com busca, filtros, paginação e resumo de valores.
+Consolidar atendimentos e postagens da AGF em um painel operacional unico, com busca, filtros, paginacao e resumo de valores.
 
-A partir de 05/09/2026, o módulo passa a possuir uma rotina de importação automática do relatório CSV do Atende. O frontend não lê o CSV diretamente. O arquivo é processado em segundo plano e alimenta a mesma aba `Postagens` já consumida pelo painel.
+A partir de 05/09/2026, o modulo passa a possuir uma rotina de importacao automatica do relatorio CSV do Atende. O frontend nao le o CSV diretamente. O arquivo e processado pelo Apps Script e alimenta a mesma aba `Postagens` ja consumida pelo painel.
 
-## 2. Fluxo de dados
-
-```text
-Rachel salva o CSV na pasta _Atende Diário
-↓
-Gatilho horário do Apps Script
-↓
-Validação de arquivo, cabeçalhos e duplicidade
-↓
-Mapeamento para o schema canônico do Atende
-↓
-Upsert por Objeto ou ID real de Atendimento
-↓
-Gravação/atualização em lote na aba Postagens
-↓
-Atualização da versão de cache + índice de datas
-↓
-/atende continua lendo a mesma base existente
-```
-
-A arquitetura evita parsing de CSV durante a abertura da tela e preserva o comportamento atual do frontend.
-
-## 3. Configuração
-
-O ID da pasta do Drive não fica versionado no GitHub.
-
-Configurar no projeto Apps Script:
+## 2. Arquitetura
 
 ```text
-Project Settings
-→ Script Properties
-→ ATENDE_CSV_FOLDER_ID = <ID da pasta _Atende Diário>
+CSV salvo no Drive
+-> gatilho horario do Apps Script
+-> validacao de estrutura e idempotencia
+-> mapeamento para o schema canonico
+-> upsert por Objeto ou ATENDIMENTO
+-> aba Postagens
+-> invalidacao de cache + indice de datas
+-> /atende continua consumindo a mesma base
 ```
 
-Depois executar uma única vez:
+Essa arquitetura evita parsing do CSV durante a abertura da tela e preserva o frontend atual.
+
+## 3. Configuracao da pasta
+
+O ID da pasta nao fica versionado no GitHub. Configurar uma unica vez em:
 
 ```text
-ATENDE_validarCsvDriveSemGravar
-ATENDE_instalarGatilhoCsvDrive
+Apps Script
+-> Project Settings
+-> Script Properties
+-> ATENDE_CSV_FOLDER_ID = <ID da pasta _Atende Diario>
 ```
 
-O gatilho roda a cada 1 hora. Como o horário do upload diário pode variar, cada execução verifica se existe CSV novo e encerra rapidamente quando não houver nada pendente.
+Depois executar, nesta ordem:
 
-## 4. Funções da automação
+```text
+ATENDE_validarCsvDriveSemGravar()
+ATENDE_importarCsvDriveAgora()
+ATENDE_instalarGatilhoCsvDrive()
+```
 
-| Função | Finalidade |
+O gatilho e horario porque o Apps Script nao possui gatilho nativo para "novo arquivo em uma pasta do Drive". A cada execucao, a rotina encerra rapidamente quando nao existe CSV pendente.
+
+## 4. Funcoes principais
+
+| Funcao | Finalidade |
 |---|---|
-| `ATENDE_validarCsvDriveSemGravar()` | Valida o CSV mais recente e retorna prévia sem escrever dados. |
-| `ATENDE_importarCsvDriveAgora()` | Processa manualmente os CSVs novos. Também é o handler do gatilho. |
-| `ATENDE_instalarGatilhoCsvDrive()` | Remove gatilhos duplicados desse handler e instala um gatilho horário. |
-| `ATENDE_removerGatilhoCsvDrive()` | Remove o gatilho da importação automática. |
-| `ATENDE_statusCsvDrive()` | Informa se a pasta está configurada e quantos gatilhos existem. |
+| `ATENDE_validarCsvDriveSemGravar()` | Valida o CSV mais recente e retorna uma previa sem escrever dados. |
+| `ATENDE_importarCsvDriveAgora()` | Processa manualmente os CSVs novos e tambem atua como handler do gatilho. |
+| `ATENDE_instalarGatilhoCsvDrive()` | Remove gatilhos duplicados desse handler e instala um gatilho a cada 1 hora. |
+| `ATENDE_removerGatilhoCsvDrive()` | Remove o gatilho da importacao automatica. |
+| `ATENDE_statusCsvDrive()` | Informa configuracao da pasta e gatilhos existentes. |
 
-## 5. Mapeamento do CSV
+## 5. Baseline do CSV analisado
 
-| CSV Atende | Coluna do painel | Regra |
+Arquivo analisado em 05/09/2026:
+
+- 980 registros;
+- 26 colunas;
+- 965 registros com `CODIGO_OBJETO`;
+- 15 registros sem `CODIGO_OBJETO`, todos com `ATENDIMENTO` valido;
+- 623 registros `SARA`;
+- 357 registros `CORREIOS ATENDE`;
+- valor total do arquivo: R$ 69.855,97;
+- valor dos 15 atendimentos sem rastreio: R$ 34.540,20.
+
+Os atendimentos sem objeto nao podem ser descartados, pois representam operacoes reais e parcela relevante do valor diario.
+
+## 6. Mapeamento para as 41 colunas atuais
+
+| CSV Atende | Painel `Postagens` | Regra |
 |---|---|---|
-| `DATA_POSTAGEM` | `Data` | Converte para Date real no fuso do projeto. |
-| `CPF_MATRICULA_ATENDENTE` | `Atendente` | Mantém como texto. |
+| `DATA_POSTAGEM` | `Data` | Converte para Date real. |
+| `CPF_MATRICULA_ATENDENTE` | `Atendente` | Mantem como texto. |
 | `CODIGO_OBJETO` | `Objeto` | Normalizado e usado como chave quando existe. |
-| `CODIGO_SERVICO` | `codigo` | Código do serviço. |
-| `NOME_SERVICO` | `descricao` | Descrição do serviço. |
-| `NOME_SERVICO` | `Categoria` | Categoria derivada sem alterar o serviço original. |
+| `CODIGO_SERVICO` | `codigo` | Codigo do servico. |
+| `NOME_SERVICO` | `descricao` | Descricao original do servico. |
+| `NOME_SERVICO` | `Categoria` | Categoria derivada. |
 | `NUMERO_CONTRATO` | `Contrato` | Texto. |
-| `CARTAO_POSTAGEM` | `Cartão Postagem` | Texto. |
-| `NOME_REMETENTE` | `Remetente` | Nome informado no relatório. |
-| `VALOR_ATENDIMENTO` | `Valor` | Número. |
-| `FORMA_PAGAMENTO` | `Forma Pagamento` e `formaPagamento` | Mantém a origem do CSV. |
-| `PESO` | `Peso (kg)` | O CSV informa gramas; divide por 1000. |
-| `LARGURA` | `Larg. (cm)` | Número. |
-| `COMPRIMENTO` | `Comp. (cm)` | Número. |
-| `ALTURA` | `Alt. (cm)` | Número. |
-| `DIAMETRO` | `Diâm. (cm)` | Número. |
-| `VALOR_DECLARADO` | `VD` | Número. |
-| `CEP_REMETENTE` | `Rem. CEP` | Somente dígitos. |
-| `NOME_DESTINATARIO` | `Dest. Nome` | Nome informado no relatório. |
-| `CEP_DESTINATARIO` | `Dest. CEP` | Somente dígitos. |
-| `SISTEMA_POSTAGEM` | `Tipo Postagem` | Para novos registros CSV, identifica SARA ou CORREIOS ATENDE. |
-| `ESTORNO` | `Status` | `S` vira `Estornado`; objeto rastreável novo entra como `Postado`; atendimento sem rastreio entra como `Atendimento`. |
-| `MODALIDADE_PAGAMENTO` | `tipo` | Modalidade do atendimento. |
+| `CARTAO_POSTAGEM` | `Cartao Postagem` | Texto. |
+| `NOME_REMETENTE` | `Remetente` | Nome informado no relatorio. |
+| `VALOR_ATENDIMENTO` | `Valor` | Numero. |
+| `FORMA_PAGAMENTO` | `Forma Pagamento` e `formaPagamento` | Mantem a forma informada pelo CSV. |
+| `PESO` | `Peso (kg)` | O CSV usa gramas; divide por 1000. |
+| `LARGURA` | `Larg. (cm)` | Numero. |
+| `COMPRIMENTO` | `Comp. (cm)` | Numero. |
+| `ALTURA` | `Alt. (cm)` | Numero. |
+| `DIAMETRO` | `Diam. (cm)` | Numero. |
+| `VALOR_DECLARADO` | `VD` | Numero. |
+| `CEP_REMETENTE` | `Rem. CEP` | Somente digitos. |
+| `NOME_DESTINATARIO` | `Dest. Nome` | Nome informado no relatorio. |
+| `CEP_DESTINATARIO` | `Dest. CEP` | Somente digitos. |
+| `SISTEMA_POSTAGEM` | `Tipo Postagem` | Identifica SARA ou CORREIOS ATENDE para linhas novas. |
+| `ESTORNO` | `Status` | `S` vira `Estornado`; objeto novo vira `Postado`; atendimento sem objeto vira `Atendimento`. |
 
-Campos que não existem no CSV, como documento completo e endereço detalhado, permanecem vazios. A importação não inventa dados.
+### Campos do CSV sem coluna dedicada no painel atual
 
-## 6. Atendimentos sem código de objeto
+Os campos abaixo sao preservados como metadados tecnicos da importacao, mas nao ganharam nova coluna visual nesta entrega:
 
-O relatório também pode conter cartas simples, venda de embalagens e outros atendimentos que não possuem `CODIGO_OBJETO`.
+- `ATENDIMENTO`: usado como chave tecnica para linhas sem objeto;
+- `MODALIDADE_PAGAMENTO`;
+- `MCU`;
+- `NUMERO_PLP`;
+- `PESO_TARIFADO`.
 
-Esses registros **não são descartados** e **não recebem código de objeto artificial**.
+Importante: `MODALIDADE_PAGAMENTO` nao e gravado na coluna legada `tipo`. O CSV traz valores como `A FATURAR` e `A VISTA`, enquanto a coluna `tipo` do fluxo JSON possui outra semantica, com valores mais especificos como `AFATURAR_AUTOMATIZADO`. Misturar os dois campos causaria perda de significado.
+
+Campos detalhados que nao existem no CSV, como documentos e enderecos completos, nao sao inventados e nao apagam informacoes mais ricas que ja existam na linha.
+
+## 7. Atendimentos sem codigo de objeto
 
 Regra:
 
 ```text
 Com CODIGO_OBJETO
-→ chave = código do objeto
+-> chave = codigo do objeto
 
 Sem CODIGO_OBJETO
-→ Objeto permanece vazio
-→ chave técnica = ATENDIMENTO real do CSV
+-> Objeto permanece vazio
+-> chave = ATENDIMENTO real do CSV
 ```
 
-Para não adicionar uma nova coluna ao schema atual, o `ATENDIMENTO` é guardado como nota técnica na célula vazia da coluna `Objeto`. A nota não é exibida no painel, acompanha a linha e permite reconhecer o mesmo atendimento em uma importação posterior.
+Para preservar as 41 colunas atuais, o `ATENDIMENTO` dessas linhas e guardado como nota tecnica na celula vazia da coluna `Objeto`, usando o prefixo `ATENDE_CSV_ID:`. A nota nao aparece no painel e acompanha a linha em ordenacoes/movimentos da planilha.
 
-## 7. Atualização de registros existentes
+Nenhum codigo de objeto artificial e criado.
 
-Se o CSV trouxer um objeto que já existe por importação anterior ou pelo fluxo manual de JSON, a rotina não cria uma segunda linha.
+### Atencao ao utilitario legado
 
-Ela atualiza somente os campos que o CSV realmente conhece, como:
+A funcao manual antiga `removerLinhasInvalidasSemObjeto()` foi criada quando toda linha sem `Objeto` era considerada invalida. Depois desta automacao, existem linhas legitimas sem objeto.
 
-- data;
-- atendente;
-- serviço;
-- contrato/cartão;
-- remetente;
-- valor;
-- pagamento;
-- peso e dimensões;
-- valor declarado;
-- CEPs e destinatário.
+**Nao executar `removerLinhasInvalidasSemObjeto()` apos ativar a importacao CSV enquanto essa rotina nao for adaptada para reconhecer `ATENDE_CSV_ID:`.**
 
-O CSV não rebaixa um rastreio que já avançou para outro status. `Status` só é substituído quando está vazio ou quando o relatório sinaliza `Estornado`.
+## 8. Atualizacao de registros existentes
 
-Também é preservado o `Tipo Postagem` antigo de um objeto já existente, evitando trocar `Coletado`, `A Coletar` ou `Rastreamento` por informação de origem do sistema.
+Se o CSV trouxer um objeto que ja existe, a rotina nao cria uma segunda linha. Ela atualiza apenas campos conhecidos pelo CSV.
 
-## 8. Idempotência
+O CSV nao rebaixa um rastreio que ja avancou para outro status. `Status` so e substituido quando esta vazio ou quando o CSV sinaliza `Estornado`.
 
-A automação possui três níveis de proteção:
+O `Tipo Postagem` antigo de linhas previamente enriquecidas por JSON tambem e preservado.
 
-1. assinatura técnica do arquivo, com ID, data de modificação e tamanho, guardada em Script Properties;
-2. hash SHA-256 do conteúdo, conferido no histórico de importações;
-3. chave por registro: `Objeto` quando existe ou `ATENDIMENTO` quando não existe rastreio.
+## 9. Idempotencia
 
-Reenviar o mesmo arquivo, renomear uma cópia ou rodar o gatilho novamente não deve duplicar atendimentos.
+A automacao possui tres camadas:
 
-## 9. Performance
+1. assinatura do arquivo por ID, data de modificacao e tamanho em Script Properties;
+2. SHA-256 do conteudo conferido em `LOG_IMPORTACOES`;
+3. chave por registro: `Objeto` quando existe ou `ATENDIMENTO` quando nao existe rastreio.
 
-- o frontend não lê nem processa CSV;
-- a classificação inicial lê somente a coluna `Objeto` e suas notas técnicas;
-- a matriz completa da aba só é lida quando algum registro existente precisa ser atualizado;
-- novos registros são gravados com `setValues` em lote;
-- registros existentes são escritos em blocos contíguos;
-- `LockService` evita duas importações concorrentes;
-- o índice de datas é reconstruído uma vez após o lote, nunca linha a linha;
-- `ATENDE_CACHE_VERSION` invalida respostas antigas após inserções ou atualizações;
-- até 5 arquivos pendentes podem ser recuperados por execução.
+Reexecutar o gatilho, reenviar o mesmo arquivo ou salvar uma copia identica com outro nome nao deve duplicar registros.
 
-O patch de performance existente continua responsável pela leitura rápida do painel por índice de datas e cache.
+## 10. Performance
 
-## 10. Segurança
+- nenhum CSV e lido no boot do frontend;
+- a classificacao inicial le apenas a coluna `Objeto` e suas notas;
+- a matriz completa de `Postagens` so e lida se houver linhas existentes a atualizar;
+- novas linhas sao gravadas com `setValues` em lote;
+- atualizacoes sao escritas em blocos contiguos;
+- `LockService` evita importacoes concorrentes;
+- o indice de datas e reconstruido uma vez apos o lote;
+- `ATENDE_CACHE_VERSION` invalida respostas antigas somente quando houve alteracao;
+- ate 5 CSVs pendentes podem ser processados por execucao.
 
-**Atenção sensível.** O CSV contém dados operacionais de postagem, rastreios, nomes, CEPs, contratos e informações de atendimento.
+O patch `zz_PerformancePatch.gs` continua responsavel pela leitura otimizada do painel.
 
-Regras aplicadas:
+## 11. Seguranca
 
-- ID da pasta em Script Properties, não no repositório;
-- nenhum CSV bruto é enviado ao frontend;
-- nenhum conteúdo completo do CSV é gravado em log;
-- erros registram somente mensagem sanitizada;
-- o hash de conteúdo é usado apenas para idempotência;
+**Atencao sensivel.** O CSV contem rastreios, nomes, CEPs, contratos e dados operacionais.
+
+- o ID da pasta fica em Script Properties;
+- o CSV bruto nao e enviado ao frontend;
+- o conteudo integral nao e gravado em logs;
+- erros registram somente mensagem controlada;
 - nenhum token ou credencial foi adicionado.
 
-## 11. Deploy
+## 12. Deploy
 
-A alteração é de Apps Script e documentação. Não exige alteração do wrapper Cloudflare de `/atende`.
+Esta entrega altera Apps Script e documentacao. Nao altera `frontend/atende` nem exige novo deploy do wrapper Cloudflare.
 
-Fluxo de publicação:
+Fluxo:
 
 ```text
 git checkout feat/atende-csv-diario
 clasp push
 configurar ATENDE_CSV_FOLDER_ID
-executar ATENDE_validarCsvDriveSemGravar
-executar ATENDE_importarCsvDriveAgora
-validar a planilha e /atende
-executar ATENDE_instalarGatilhoCsvDrive
+executar ATENDE_validarCsvDriveSemGravar()
+executar ATENDE_importarCsvDriveAgora()
+validar Postagens, LOG_IMPORTACOES e /atende
+executar ATENDE_instalarGatilhoCsvDrive()
 ```
 
-Preservar a URL `/exec` já usada pelo wrapper do módulo.
+Preservar a implantacao `/exec` ja usada pelo wrapper.
 
-## 12. Rollback
+## 13. Rollback
 
 1. Executar `ATENDE_removerGatilhoCsvDrive()`.
-2. Reverter os arquivos `20_` a `27_` desta implementação no Git.
-3. Fazer `clasp push` da versão anterior.
-4. Se a primeira importação precisar ser desfeita, identificar o lote em `LOG_IMPORTACOES`, criar backup e remover somente as linhas correspondentes.
+2. Reverter os arquivos `20_` a `27_` no Git.
+3. Fazer `clasp push` da versao anterior.
+4. Se for necessario desfazer um lote, identificar a execucao em `LOG_IMPORTACOES`, criar backup e remover apenas as linhas correspondentes.
 
-## 13. Status modular
+## 14. Status
 
-O módulo permanece funcional sem depender do CSV durante a abertura. A automação é uma camada adicional de alimentação de dados, com baixo acoplamento ao frontend e rollback independente.
+A implementacao esta isolada na branch `feat/atende-csv-diario`. A ativacao em producao depende de `clasp push`, configuracao da Script Property, teste de validacao sem gravacao, primeira importacao manual e somente depois instalacao do gatilho.
