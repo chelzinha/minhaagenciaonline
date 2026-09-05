@@ -38,7 +38,7 @@ Regra de verdade documental:
 - `crm/README.md` - `/crm`.
 - `resumos/README.md` - `/intra/resumo`.
 - `logistica-interna/README.md` - `/intra/logistica`.
-- `caixa/README.md` - Caixa, com rotas `/caixa` e `/intra/caixa` a consolidar.
+- `caixa/README.md` - Caixa oficial em `/caixa`; a antiga rota `/intra/caixa` foi removida definitivamente.
 - `manuais/README.md` - `/intra/manuais`.
 - `atende/README.md` - `/atende`.
 - `sla/README.md` - SLA.
@@ -77,6 +77,8 @@ Regra de verdade documental:
 - `/intra/agenda` redireciona para `/crm/?view=agenda`.
 - `/intra/crm` redireciona para `/crm/?view=clientes`.
 
+`/intra/caixa` não é rota de compatibilidade: foi eliminada e não deve ser recriada nem redirecionada.
+
 ## Pendências globais
 
 1. Confirmar produção/homologação de cada rota.
@@ -85,7 +87,7 @@ Regra de verdade documental:
 4. Mapear owners técnicos e operacionais.
 5. Classificar todos os módulos em M0-M5.
 6. Confirmar frontend -> action -> Apps Script -> planilha.
-7. Definir rotas canônicas onde há duplicidade, principalmente Caixa e SLA.
+7. Definir rota canônica do SLA quando houver duplicidade.
 8. Resolver papel de `/agf` em relação ao `/intra`.
 9. Inventariar slugs dos Cartões Digitais.
 10. Atualizar cada README quando o estado de produção for validado.
