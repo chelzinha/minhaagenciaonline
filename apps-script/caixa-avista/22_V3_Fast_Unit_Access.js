@@ -1,10 +1,39 @@
 /**
  * CAIXA À VISTA V3 - consulta rápida de unidade.
  *
- * Evita v2Environment_() no unitAccess. A seleção continua sendo validada
- * nominalmente em Biblioteca_Usuarios e Biblioteca_Unidades, mas sem abrir,
- * conferir e congelar todas as demais abas do sistema.
+ * A seleção continua sendo validada nominalmente em Biblioteca_Usuarios e
+ * Biblioteca_Unidades, mas o endpoint abre somente essas duas abas. Isso evita
+ * preparar toda a base do Caixa em uma validação de unidade.
  */
+
+function v3FastUnitEnvironment_() {
+  var id = PropertiesService
+    .getScriptProperties()
+    .getProperty(CAIXA_V2_CFG.DB_PROP);
+
+  if (!id) {
+    throw appError_(
+      'Execute setupCaixaAvistaV2() antes de publicar.',
+      'SETUP_REQUIRED'
+    );
+  }
+
+  var ss = SpreadsheetApp.openById(id);
+  var units = ss.getSheetByName(CAIXA_V2_CFG.SHEETS.UNITS);
+  var users = ss.getSheetByName(CAIXA_V2_CFG.SHEETS.USERS);
+
+  if (!units || !users) {
+    throw appError_(
+      'As abas de unidades e usuários não foram encontradas.',
+      'UNIT_SCHEMA_REQUIRED'
+    );
+  }
+
+  return {
+    units: units,
+    users: users
+  };
+}
 
 function v3FastAccessibleUnits_(unitRows, userRows, user) {
   var username = v2UnitAccessUsername_(user);
@@ -70,7 +99,7 @@ function v3FastAccessibleUnits_(unitRows, userRows, user) {
 
 function v3FastUnitAccessResponse_(user, requestedUnitId) {
   var startedAt = Date.now();
-  var env = v3FastEnvironment_();
+  var env = v3FastUnitEnvironment_();
 
   var unitRows = v2ReadObjects_(
     env.units,
