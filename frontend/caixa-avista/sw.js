@@ -1,12 +1,12 @@
-const CACHE = 'caixa-balcao-v3-20260905011500';
+const CACHE = 'caixa-balcao-v3-20260905030000';
 const ASSETS = [
   '/caixa-avista/',
   '/caixa-avista/index.html',
   '/caixa-avista/styles-v2.css',
   '/caixa-avista/app.js?v=20260905011500',
   '/caixa-avista/unit-selector.js?v=20260902102544',
-  '/caixa-avista/v3-controller.js?v=20260905011500',
-  '/caixa-avista/v3-client-search.js?v=20260905011500',
+  '/caixa-avista/v3-controller.js?v=20260905030000',
+  '/caixa-avista/v3-client-search.js?v=20260905030000',
   '/caixa-avista/app-v2.js?v=20260904230000',
   '/caixa-avista/pix-message-link-fix.js?v=20260904232000',
   '/caixa-avista/pix-safety.js?v=20260904212500',
