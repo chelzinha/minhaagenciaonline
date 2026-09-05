@@ -53,8 +53,39 @@ var CFG = {
 
 function doGet(e) {
   var params = e && e.parameter ? e.parameter : {};
-  if (String(params.action || '') === 'ping') return jsonOutput_({ ok:true, service:'caixa-avista-v2', date:v2Today_() });
-  return jsonOutput_({ ok:true, service:'caixa-avista-v2', message:'Use POST para operações do caixa.' });
+  var action = String(params.action || '').trim();
+
+  try {
+    if (action === 'publicPix') {
+      return jsonOutput_(v2PublicPix_(params.txid));
+    }
+
+    if (action === 'ping') {
+      return jsonOutput_({
+        ok:true,
+        service:'caixa-avista-v2',
+        date:v2Today_()
+      });
+    }
+
+    return jsonOutput_({
+      ok:true,
+      service:'caixa-avista-v2',
+      message:'Use POST para operações do caixa.'
+    });
+  } catch (error) {
+    console.error(
+      '[CAIXA_AVISTA_V2][doGet] ' +
+      (error && error.stack ? error.stack : error)
+    );
+
+    return jsonOutput_(
+      fail_(
+        error.message || String(error),
+        error.code || 'INTERNAL_ERROR'
+      )
+    );
+  }
 }
 
 function doPost(e) {

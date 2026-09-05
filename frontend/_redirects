@@ -1,12 +1,1 @@
-# Painel do cliente Andre - servido do site Netlify "agf-painel-andre".
-# 302 porque o dominio roda no Cloudflare Pages, que nao suporta proxy externo (200).
-/painelandre            https://agf-painel-andre.netlify.app          302
-/painelandre/*          https://agf-painel-andre.netlify.app/:splat   302
-
-/dce                    https://agf-dce-facil.netlify.app          302
-/dce/*                  https://agf-dce-facil.netlify.app/:splat   302
-/reverso/*              /reverso/index.html                        200
-/reverso-admin/*        /reverso-admin/index.html                  200
-/reverso-coleta/*       /reverso-coleta/index.html                 200
-/reverso-expedicao/*    /reverso-expedicao/index.html              200
-/reverso-interno/*      /agf/                                      302
+/pix/* /pix/index.html 200

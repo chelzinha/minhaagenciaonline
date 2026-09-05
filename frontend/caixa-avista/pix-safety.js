@@ -133,10 +133,100 @@
     }
   };
 
+  function parseEmvFields(value) {
+    const text = String(value || '');
+    const fields = {};
+    let offset = 0;
+
+    while (offset + 4 <= text.length) {
+      const id = text.slice(offset, offset + 2);
+      const lengthText = text.slice(offset + 2, offset + 4);
+      const length = Number(lengthText);
+
+      if (!/^\d{2}$/.test(id) || !/^\d{2}$/.test(lengthText)) {
+        break;
+      }
+
+      const start = offset + 4;
+      const end = start + length;
+
+      if (end > text.length) {
+        break;
+      }
+
+      fields[id] = text.slice(start, end);
+      offset = end;
+    }
+
+    return fields;
+  }
+
+  function extractPixTxid(code) {
+    const topLevel = parseEmvFields(code);
+    const additional = parseEmvFields(topLevel['62'] || '');
+    const txid = String(additional['05'] || '')
+      .trim()
+      .toUpperCase();
+
+    return /^[A-Z0-9]{1,25}$/.test(txid)
+      ? txid
+      : '';
+  }
+
+  function publicPixUrl(txid) {
+    const host = String(window.location.hostname || '').toLowerCase();
+    const useCurrentOrigin =
+      host.endsWith('.pages.dev') ||
+      host === 'localhost' ||
+      host === '127.0.0.1';
+
+    const origin = useCurrentOrigin
+      ? window.location.origin
+      : 'https://www.minhaagenciaonline.com.br';
+
+    return (
+      origin.replace(/\/$/, '') +
+      '/pix/' +
+      encodeURIComponent(txid)
+    );
+  }
+
   function formatPixMessage(message) {
-    return String(message || '').replace(
+    let output = String(message || '').replace(
       /Pix Copia e Cola:\r?\n(?!\r?\n)/,
       'Pix Copia e Cola:\n\n'
+    );
+
+    if (
+      output.includes('🔗 Link direto para o seu Pix:')
+    ) {
+      return output;
+    }
+
+    const codeSection = output.split('Pix Copia e Cola:')[1] || '';
+    const code = String(codeSection).trim();
+    const txid = extractPixTxid(code);
+
+    if (!txid) {
+      return output;
+    }
+
+    const marker = '\n\nPix Copia e Cola:';
+
+    if (!output.includes(marker)) {
+      return output;
+    }
+
+    return output.replace(
+      marker,
+      [
+        '',
+        '',
+        '🔗 Link direto para o seu Pix:',
+        publicPixUrl(txid),
+        '',
+        'Pix Copia e Cola:'
+      ].join('\n')
     );
   }
 
@@ -189,6 +279,7 @@
     isValidNumericDocumentKey,
     isValidCpf,
     isValidCnpj,
+    extractPixTxid,
     formatPixMessage
   });
 })();
