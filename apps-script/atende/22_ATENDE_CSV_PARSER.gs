@@ -34,11 +34,14 @@ function ATENDE_mapearLinhaCsv_(raw) {
   const paymentForm = ATENDE_cleanCsvValue_(raw.FORMA_PAGAMENTO);
   const paymentMode = ATENDE_cleanCsvValue_(raw.MODALIDADE_PAGAMENTO);
   const estorno = ATENDE_cleanCsvValue_(raw.ESTORNO).toUpperCase();
+  const objectCode = normalizeObjectCode_(ATENDE_cleanCsvValue_(raw.CODIGO_OBJETO));
 
   return {
+    // Chave tecnica exclusiva do CSV. Nao entra nas 41 colunas do painel.
+    csvAtendimentoId: ATENDE_cleanCsvValue_(raw.ATENDIMENTO),
     dtAtendimento: ATENDE_parseCsvDate_(raw.DATA_POSTAGEM),
     idAtendente: ATENDE_cleanCsvValue_(raw.CPF_MATRICULA_ATENDENTE),
-    codObjeto: normalizeObjectCode_(ATENDE_cleanCsvValue_(raw.CODIGO_OBJETO)),
+    codObjeto: objectCode,
     codigoAtendimento: ATENDE_cleanCsvValue_(raw.CODIGO_SERVICO),
     descricaoAtendimento: serviceName,
     categoria: ATENDE_categoriaServico_(serviceName),
@@ -62,7 +65,7 @@ function ATENDE_mapearLinhaCsv_(raw) {
     dest_cep: ATENDE_digits_(raw.CEP_DESTINATARIO),
     dest_logradouro: '', dest_numero: '', dest_complemento: '', dest_bairro: '', dest_cidade: '', dest_uf: '',
     origem: ATENDE_cleanCsvValue_(raw.SISTEMA_POSTAGEM) || 'CSV ATENDE',
-    statusDesc: estorno === 'S' ? 'Estornado' : 'Postado',
+    statusDesc: estorno === 'S' ? 'Estornado' : (objectCode ? 'Postado' : 'Atendimento'),
     dtPrevista: '',
     tipoAtendimento: paymentMode,
     formaPagamentoAtendimento: paymentForm
