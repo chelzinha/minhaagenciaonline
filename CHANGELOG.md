@@ -22,6 +22,10 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 
 ### Corrigido
 - A11Y: adicionado `@media (prefers-reduced-motion: reduce)`.
+- Sombras `--agf-sh-1/2/3` realinhadas aos valores reais do CRM. Estavam
+  documentadas como "vindas do CRM" mas usavam `rgba(15,32,56,...)`, que nao
+  existe em lugar nenhum da plataforma. Agora `--agf-sh-2` e o `--shadow` do
+  CRM literal (19 usos) e `--agf-sh-3` e o `--shadow-hover` literal.
 - Corrigido `*/` prematuro dentro do comentario de cabecalho do bloco de
   tokens. Sem essa correcao o comentario fechava cedo, o seletor do `:root`
   seguinte era invalidado e os 113 tokens nao seriam aplicados pelo browser.
