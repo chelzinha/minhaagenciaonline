@@ -1,6 +1,6 @@
 'use strict';
 (() => {
-  const VERSION = '20260905001500';
+  const VERSION = '20260905011500';
 
   const showLoadError = message => {
     const node = document.getElementById('launchStatus');
@@ -20,11 +20,23 @@
     document.head.appendChild(script);
   };
 
+  const loadClientSearch = () => {
+    const script = document.createElement('script');
+    script.src = `/caixa-avista/v3-client-search.js?v=${VERSION}`;
+    script.async = false;
+    script.onload = loadApplication;
+    script.onerror = () => {
+      console.warn('[CAIXA_V3_CLIENT_SEARCH] Não foi possível carregar a busca rápida de cliente.');
+      loadApplication();
+    };
+    document.head.appendChild(script);
+  };
+
   const loadV3Controller = () => {
     const script = document.createElement('script');
     script.src = `/caixa-avista/v3-controller.js?v=${VERSION}`;
     script.async = false;
-    script.onload = loadApplication;
+    script.onload = loadClientSearch;
     script.onerror = () => {
       showLoadError('Não foi possível carregar os controles da V3. Atualize a página e tente novamente.');
     };
