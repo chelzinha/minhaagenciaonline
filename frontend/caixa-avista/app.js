@@ -1,6 +1,6 @@
 'use strict';
 (() => {
-  const VERSION = '20260905011500';
+  const VERSION = '20260905030000';
 
   const showLoadError = message => {
     const node = document.getElementById('launchStatus');
