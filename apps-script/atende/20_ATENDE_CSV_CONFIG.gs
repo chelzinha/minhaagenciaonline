@@ -52,7 +52,8 @@ function ATENDE_importarCsvDriveAgora() {
         added: 0,
         updated: 0,
         skipped: 0,
-        invalidWithoutObject: 0,
+        withoutObject: 0,
+        invalidMissingKey: 0,
         elapsedMs: Date.now() - inicio
       };
     }
@@ -60,7 +61,8 @@ function ATENDE_importarCsvDriveAgora() {
     let totalAdded = 0;
     let totalUpdated = 0;
     let totalSkipped = 0;
-    let totalInvalidWithoutObject = 0;
+    let totalWithoutObject = 0;
+    let totalInvalidMissingKey = 0;
     const resultados = [];
 
     arquivos.slice(0, ATENDE_CSV_DIARIO_CFG.MAX_FILES_PER_RUN).forEach(function(item) {
@@ -69,7 +71,8 @@ function ATENDE_importarCsvDriveAgora() {
       totalAdded += Number(resultado.added || 0);
       totalUpdated += Number(resultado.updated || 0);
       totalSkipped += Number(resultado.skipped || 0);
-      totalInvalidWithoutObject += Number(resultado.invalidWithoutObject || 0);
+      totalWithoutObject += Number(resultado.withoutObject || 0);
+      totalInvalidMissingKey += Number(resultado.invalidMissingKey || 0);
     });
 
     if (totalAdded > 0 || totalUpdated > 0) ATENDE_invalidarCacheEIndice_();
@@ -80,7 +83,8 @@ function ATENDE_importarCsvDriveAgora() {
       added: totalAdded,
       updated: totalUpdated,
       skipped: totalSkipped,
-      invalidWithoutObject: totalInvalidWithoutObject,
+      withoutObject: totalWithoutObject,
+      invalidMissingKey: totalInvalidMissingKey,
       files: resultados,
       elapsedMs: Date.now() - inicio
     };
@@ -110,13 +114,19 @@ function ATENDE_validarCsvDriveSemGravar() {
   const file = arquivos[0].file;
   const parsed = ATENDE_lerCsv_(file);
   const records = [];
-  let invalidWithoutObject = 0;
+  let validObjects = 0;
+  let withoutObject = 0;
+  let invalidMissingKey = 0;
 
   parsed.rows.forEach(function(raw) {
     const record = ATENDE_mapearLinhaCsv_(raw);
-    if (!record.codObjeto) {
-      invalidWithoutObject++;
-      return;
+    if (record.codObjeto) validObjects++;
+    else {
+      withoutObject++;
+      if (!record.csvAtendimentoId) {
+        invalidMissingKey++;
+        return;
+      }
     }
     records.push(record);
   });
@@ -126,8 +136,10 @@ function ATENDE_validarCsvDriveSemGravar() {
     fileName: file.getName(),
     modifiedAt: file.getLastUpdated(),
     totalRows: parsed.rows.length,
-    validObjects: records.length,
-    invalidWithoutObject: invalidWithoutObject,
+    importableRows: records.length,
+    validObjects: validObjects,
+    withoutObject: withoutObject,
+    invalidMissingKey: invalidMissingKey,
     preview: records.slice(0, 5).map(function(record) {
       return {
         Data: record.dtAtendimento,
