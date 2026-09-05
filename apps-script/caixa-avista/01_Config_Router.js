@@ -42,7 +42,7 @@ var CFG = {
     'Identificador do fornecedor', 'Nome do fornecedor', 'Código de referência', 'Data de competência',
     'Data de vencimento', 'Data prevista', 'Recorrência', 'Quantidade de recorrência', 'Descrição',
     'Origem do lançamento', 'Situação', 'Agendado', 'Valor original da parcela (R$)',
-    'Forma de pagamento', 'Valor pago da parcela (R$)', 'Juros pago (R$)', 'Multa paga (R$)',
+    'Forma de pagamento', 'Valor pago da parcela (R$)', 'Juros pago (R$)', 'Multa pago (R$)',
     'Desconto pago (R$)', 'Valor total pago da parcela (R$)', 'Valor da parcela em aberto (R$)',
     'Juros previsto (R$)', 'Multa previsto (R$)', 'Desconto previsto (R$)',
     'Valor total da parcela em aberto (R$)', 'Conta bancária', 'Data do último pagamento',
@@ -137,13 +137,13 @@ function doPost(e) {
 
     switch (action) {
       case 'unitAccess': return jsonOutput_(v2UnitAccessResponse_(user, request.unitId));
-      case 'init': return jsonOutput_(v3Init_(request.date, user));
-      case 'saveClient': return jsonOutput_(v2SaveClient_(request.name, user));
-      case 'saveEntry': return jsonOutput_(v3SaveEntry_(request.payload, user));
+      case 'init': return jsonOutput_(v3FastInit_(request.date, user));
+      case 'saveClient': return jsonOutput_(v3SaveClientFast_(request.name, user));
+      case 'saveEntry': return jsonOutput_(v3SaveEntryDefaultClient_(request.payload, user));
       case 'saveBatch': return jsonOutput_(v3SaveBatch_(request.payloads, user));
       case 'deleteEntry': return jsonOutput_(v2DeleteEntry_(request.payload || {}, user));
       case 'syncPixPayment': return jsonOutput_(v3SyncPix_(request.payload || {}, user));
-      case 'summary': return jsonOutput_(v3Init_(request.date, user));
+      case 'summary': return jsonOutput_(v3FastInit_(request.date, user));
       case 'setOpeningBalance': return jsonOutput_(v2SetOpeningBalance_(request.date, request.amountCents, user));
       case 'createWithdrawal': return jsonOutput_(v2CreateWithdrawal_(request.payload, user));
       case 'closeCash': return jsonOutput_(v3CloseCashSafe_(request.payload, user));
