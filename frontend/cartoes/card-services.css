@@ -1,0 +1,22 @@
+/*
+ * Padrão compartilhado para cartões digitais.
+ * Em novos cartões, incluir este arquivo após o CSS local:
+ * <link rel="stylesheet" href="/cartoes/card-services.css">
+ */
+.pills{
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:clamp(3px,1.4vw,9px);
+  width:100%;
+  min-width:0;
+}
+.pills span{
+  flex:0 1 auto;
+  min-width:0;
+  padding:clamp(7px,1.8vw,9px) clamp(5px,2.2vw,14px);
+  white-space:nowrap;
+  line-height:1.1;
+  font-size:clamp(9.5px,2.65vw,13px);
+}
