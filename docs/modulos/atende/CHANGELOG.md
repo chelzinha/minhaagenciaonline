@@ -8,10 +8,12 @@
 - Validação obrigatória de cabeçalhos antes de qualquer gravação.
 - Mapeamento do relatório para o schema canônico da aba `Postagens`.
 - Conversão do peso informado em gramas para `Peso (kg)`.
-- Deduplicação por código de objeto.
+- Upsert por código de objeto para registros rastreáveis.
+- Importação de atendimentos sem rastreio mantendo `Objeto` vazio.
+- Uso do campo real `ATENDIMENTO` como chave técnica dos registros sem objeto, armazenado em nota da célula para não alterar o schema visual.
 - Controle de arquivo já processado por assinatura técnica e hash SHA-256.
-- Registro das execuções em `LOG_IMPORTACOES`.
-- Invalidação de cache e reconstrução do índice de datas após novas inserções.
+- Registro das execuções em `LOG_IMPORTACOES`, separando criados, atualizados e ignorados.
+- Invalidação de cache e reconstrução do índice de datas após inserções ou atualizações.
 - Função de validação sem gravação.
 - Instalação idempotente de gatilho horário.
 - Rotina de status e remoção do gatilho.
@@ -19,16 +21,19 @@
 ### Preservado
 
 - Frontend atual de `/atende`.
-- Schema existente da aba `Postagens`.
+- As 41 colunas existentes da aba `Postagens`.
 - Histórico já gravado.
 - Busca, filtros, paginação e resumo do painel.
-- Regra de unicidade por objeto.
+- Dados mais ricos já existentes em registros previamente importados por JSON.
+- Status de rastreio já avançado, evitando regressão para `Postado`.
 
 ### Performance
 
 - O CSV é processado em segundo plano e nunca durante a abertura do painel.
+- A classificação inicial lê somente `Objeto` e notas técnicas dessa coluna.
+- A matriz completa é lida apenas quando existem registros que precisam ser atualizados.
 - Novas linhas são gravadas em lote.
-- A leitura anti-duplicata consulta somente a coluna `Objeto`.
+- Atualizações existentes usam escrita em blocos.
 - O índice de datas é reconstruído somente depois do lote.
 
 ### Atenção sensível
@@ -36,6 +41,7 @@
 - O relatório pode conter rastreios, nomes, CEPs, contratos e informações de atendimento.
 - O ID da pasta do Drive fica em Script Properties e não é versionado no GitHub.
 - O conteúdo bruto do CSV não é registrado em logs.
+- Nenhum token ou credencial foi adicionado.
 
 ### Deploy
 
