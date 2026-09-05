@@ -437,3 +437,39 @@ recebeu o sufixo `-ds05`. Todos limpam caches antigos no `activate`, entao a
 nova versao do CSS chega ao usuario no primeiro carregamento apos o deploy.
 Sempre que `shared/ui/agf-ui.css` mudar de forma que os modulos precisem ver,
 bumpar o nome de cache dos 10 SWs na mesma entrega.
+
+## Entrada da Rodada 1 - intra/ contra a camada .crm-shell
+
+A tabela de divergencias produzida na Rodada 0 esta INVALIDA e nao deve ser
+usada. Ela comparou `intra/styles/app-shell.css` contra a camada BASE de
+`crm/styles.css`, e a base nao pinta a tela: `crm/index.html` envolve tudo em
+`.crm-shell`, que sobrescreve os componentes a partir da linha ~1268. Auditar
+CSS por leitura linear, sem modelar a cascata, produz um retrato do arquivo e
+nao da tela.
+
+Tabela refeita contra a camada que realmente pinta:
+
+| Componente | `intra/app-shell.css` | CRM `.crm-shell` | Delta |
+| --- | --- | --- | --- |
+| Botao primario | `.pill-btn` h `44px`, pad `0 20px`, r `999px`, bg `--primary` `#00416B` navy, fs `14px`, fw `700` | `.primary-btn` min-h `40px`, pad-inline `14px`, r `999px`, bg `--accent` `#0E9594` teal, fs `12px`, fw `850` | **cor de acao**, altura, corpo, peso |
+| Botao secundario | nao existe | `.secondary-btn` `#fff` + borda + navy | falta no intra |
+| Botao perigoso | nao existe | `.danger-btn` `#FFF7F6` / `#F2C3BE` / `#d6483d` | falta no intra |
+| Botao de icone | nao existe | `.icon-btn` `40 x 40px` circular | falta no intra |
+| Chip | `.chip` h `24px`, pad `4px 10px`, r `999px`, fs `11px`, fw `700` | `.chip` min-h `24px`, pad `4px 9px`, r `999px`, fs `10px`, fw `850` | corpo e peso |
+| Input | `.search-input input` h `46px`, r `14px` (`--r-input`), bg `--surface-soft` `#F7F9FC`, borda `#E7EAF1`, foco navy | `.filter-row input` min-h `40px`, r `999px`, bg `#fff`, borda `--crm-border`, foco teal | altura, raio, fundo, cor de foco |
+| Select | `.select-soft` h `46px`, r `14px` | pill, min-h `40px` | idem input |
+| Card | `.kpi-card` r `20px` (`--r-card`), `--shadow` `0 2px 8px rgba(31,36,48,.06)` | `.surface-card` r `14px` (`--crm-radius-md`), `--crm-shadow-card` | raio e sombra |
+| Painel | `.panel` r `24px` (`--r-panel`) | sem equivalente direto | - |
+| Topbar | `--topbar-h: 72px` | topbar propria; `--agf-size-topbar` e `56px` | 3 alturas na plataforma |
+| Largura maxima | `--app-max` `430px` / `960px` no desktop | `--max` `1540px` | - |
+
+### A decisao que a Rodada 1 vai exigir
+A acao primaria do `intra/` e **navy `#00416B`**; a do CRM e **teal `#0E9594`**.
+Nao e o mesmo caso do `--accent` teal contra ouro, que eram dois papeis
+diferentes: aqui e o mesmo papel com duas cores. Um dos dois vai ser repintado.
+O `.agf-btn--primary` compartilhado nasceu teal, seguindo o CRM (modulo de
+referencia visual). Se a decisao for navy, e uma linha em `--agf-color-action`.
+
+### Metodo obrigatorio daqui em diante
+Ao auditar um CSS que tem camada de redesign, resolver a cascata antes de
+reportar valor. Contagem de ocorrencias nao decide qual regra vence.

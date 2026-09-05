@@ -38,6 +38,17 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
   carregamento apos o deploy. Sem isso, a Rodada 1 depuraria um bug que nao
   existe no CSS.
 
+### Ajustado apos revisao
+- D3 resolvido com modificador: `.agf-input--pill` e `.agf-select--pill`. O
+  `.crm-shell` aplica raio pill a TODOS os controles de barra de filtro
+  (`.search-field`, `.filter-row select`, `.filter-row input`,
+  `.agenda-toolbar select`), nao so a busca. O modificador deixa a Rodada 1
+  usar a forma certa em barra de filtro; formulario continua retangular.
+- Registrada em `docs/FRONTEND.md` a tabela de divergencias `intra/` contra a
+  camada `.crm-shell`, que substitui a tabela da Rodada 0. Aquela comparou o
+  intra contra a camada BASE do CRM, que nao pinta a tela, e por isso nao pode
+  ser usada como entrada da Rodada 1.
+
 ### Divergencias deliberadas com o CRM
 - D1: botao de icone 44px (alvo de toque) contra 40px do CRM.
 - D2: chip com padding `4px 10px` e gap `6px`, contra `4px 9px` e `5px`, porque

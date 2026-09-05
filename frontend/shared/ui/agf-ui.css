@@ -1273,6 +1273,13 @@ html.agf-route-reverso-admin [class*="rastreio"], html.agf-route-reverso-coleta 
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
 }
+.agf-input--pill,
+.agf-select--pill { border-radius: var(--agf-r-pill); }
+/* O .crm-shell aplica raio pill a TODOS os controles de barra de filtro
+ * (.search-field, .filter-row select, .filter-row input, .agenda-toolbar
+ * select), nao so a busca. Este modificador existe para a barra de filtro
+ * consumir a forma certa sem inventar valor. Formulario continua retangular. */
+
 .agf-field-label {
   display: block;
   margin-bottom: var(--agf-e-1);
