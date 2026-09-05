@@ -50,6 +50,7 @@ function ATENDE_importarCsvDriveAgora() {
         message: 'Nenhum CSV novo encontrado.',
         filesProcessed: 0,
         added: 0,
+        updated: 0,
         skipped: 0,
         invalidWithoutObject: 0,
         elapsedMs: Date.now() - inicio
@@ -57,6 +58,7 @@ function ATENDE_importarCsvDriveAgora() {
     }
 
     let totalAdded = 0;
+    let totalUpdated = 0;
     let totalSkipped = 0;
     let totalInvalidWithoutObject = 0;
     const resultados = [];
@@ -65,16 +67,18 @@ function ATENDE_importarCsvDriveAgora() {
       const resultado = ATENDE_importarArquivoCsv_(item.file, item.metaSignature);
       resultados.push(resultado);
       totalAdded += Number(resultado.added || 0);
+      totalUpdated += Number(resultado.updated || 0);
       totalSkipped += Number(resultado.skipped || 0);
       totalInvalidWithoutObject += Number(resultado.invalidWithoutObject || 0);
     });
 
-    if (totalAdded > 0) ATENDE_invalidarCacheEIndice_();
+    if (totalAdded > 0 || totalUpdated > 0) ATENDE_invalidarCacheEIndice_();
 
     return {
       ok: true,
       filesProcessed: resultados.length,
       added: totalAdded,
+      updated: totalUpdated,
       skipped: totalSkipped,
       invalidWithoutObject: totalInvalidWithoutObject,
       files: resultados,
