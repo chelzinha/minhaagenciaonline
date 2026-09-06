@@ -50,6 +50,9 @@ function ATENDE_buscarDadosD1(params) {
 
   const multi = {
     servico: ATENDE_listaFiltro_(params, 'servicos', 'servico'),
+    servicoTipo: ATENDE_listaFiltro_(params, 'servicoTipos', 'servicoTipo'),
+    servicoSubgrupo: ATENDE_listaFiltro_(params, 'servicoSubgrupos', 'servicoSubgrupo'),
+    servicoTabela: ATENDE_listaFiltro_(params, 'servicoTabelas', 'servicoTabela'),
     tipoObjeto: ATENDE_listaFiltro_(params, 'tiposObjeto', 'tipoObjeto'),
     contratoCliente: ATENDE_listaFiltro_(params, 'contratoClientes', 'contratoCliente'),
     contratoTipo: ATENDE_listaFiltro_(params, 'contratoTipos', 'contratoTipo'),
@@ -143,6 +146,9 @@ function ATENDE_buscarFiltrosD1() {
   return {
     ok: true,
     servicos: response.servicos || [],
+    servicoTipos: response.servicoTipos || [],
+    servicoSubgrupos: response.servicoSubgrupos || [],
+    servicoTabelas: response.servicoTabelas || [],
     contratoClientes: response.contratoClientes || [],
     contratoTipos: response.contratoTipos || [],
     intermediadores: response.intermediadores || [],
