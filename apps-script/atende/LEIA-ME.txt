@@ -1,58 +1,117 @@
-PAINEL ATENDE — AGF JOSÉ BONIFÁCIO
-VERSÃO v18 — DETECÇÃO ROBUSTA DE PAYLOAD
+PAINEL ATENDE - AGF JOSE BONIFACIO
+VERSAO v19 - IMPORTACAO AUTOMATICA DO CSV DIARIO
 
-ARQUIVOS DO PACOTE
-- Code.gs                 Backend Apps Script completo
-- Index.html              Frontend completo
-- appsscript.json          Manifesto Apps Script
-- .clasp.json              Configuração clasp preservada
-- LEIA-ME.txt              Este roteiro
+OBJETIVO
+Preservar todo o fluxo v18 de JSON e acrescentar uma nova fonte automatica:
+o relatorio CSV diario salvo na pasta _Atende Diario do Google Drive.
 
-OBJETIVO DA VERSÃO
-Corrigir a regressão que gerava mensagens como:
-- Chave "itens" ou "objetos" não encontrada.
-- Chave "itens" não encontrada no JSON de atendimento.
+FLUXO NOVO
+Drive
+-> gatilho horario Apps Script
+-> validacao do CSV
+-> upsert por Objeto ou ATENDIMENTO
+-> aba Postagens
+-> indice/cache
+-> painel /atende
 
-CAUSA
-Algumas rotinas ainda dependiam de um caminho fixo, como root.body.itens.
-O JSON pode chegar com envelopes diferentes: array, objeto direto, body direto,
-wrapper adicional ou mais de um bloco completo colado em sequência.
+ARQUIVOS NOVOS
+- 20_ATENDE_CSV_CONFIG.gs
+- 21_ATENDE_CSV_IMPORT.gs
+- 22_ATENDE_CSV_PARSER.gs
+- 23_ATENDE_CSV_IDEMPOTENCIA.gs
+- 24_ATENDE_CSV_RUNTIME.gs
+- 25_ATENDE_CSV_HELPERS.gs
+- 26_ATENDE_PERFORMANCE_COMPAT.gs
+- 27_ATENDE_CSV_SEM_OBJETO.gs
 
-CORREÇÃO
-- O backend percorre a estrutura recebida e identifica listas compatíveis.
-- JSON de postagem e JSON de atendimento são diferenciados pela estrutura real.
-- Se o JSON for colado no campo errado, o sistema exibe uma mensagem específica.
-- O parser continua aceitando JSON tradicional e também tolera BOM, bloco markdown
-  e múltiplos documentos JSON concatenados.
+ARQUIVOS PRESERVADOS
+- Code.gs
+- Index.html
+- zz_PerformancePatch.gs
+- appsscript.json
 
-MAPEAMENTO PRESERVADO
-- Tipo Postagem       <- JSON de postagem
-- tipo                <- exclusivamente at.tipo do JSON de atendimento
-- formaPagamento      <- at.pagamentos[0].formaPagamento
-- codigo              <- at.itens[].codigo
-- descricao           <- at.itens[].descricao
-- vínculo             <- at.itens[].codigoObjeto = coluna Objeto
+O QUE CONTINUA FUNCIONANDO
+- JSON de postagem
+- JSON de atendimento/enriquecimento
+- busca e filtros
+- paginacao
+- resize de colunas
+- indice de datas
+- cache do painel
+- regra de nao duplicar objetos
 
-COMO INSTALAR
-1. No projeto Apps Script, substitua integralmente Code.gs.
-2. Substitua integralmente Index.html.
-3. Preserve appsscript.json, salvo se desejar atualizar o manifesto pelo arquivo incluso.
-4. Salve o projeto.
-5. Faça uma nova implantação do Web App.
-6. Abra o painel publicado em aba anônima.
+REGRA DO CSV
+- Com CODIGO_OBJETO, a chave e o codigo do objeto.
+- Sem CODIGO_OBJETO, o registro tambem e importado.
+- Nesse caso, Objeto permanece vazio no painel.
+- ATENDIMENTO e a chave tecnica e fica em nota da celula Objeto com prefixo ATENDE_CSV_ID:.
+- Nenhum codigo artificial e criado.
+- Se um objeto ja existir, o CSV atualiza apenas campos que conhece.
+- Status avancado nao e rebaixado para Postado.
+- ESTORNO=S pode atualizar o status para Estornado.
+- PESO do CSV vem em gramas e e convertido para kg.
+- MODALIDADE_PAGAMENTO nao e gravado no campo legado tipo, pois os dois campos possuem semanticas diferentes.
 
-CHECKLIST DE TESTE
-1. Abra o painel e valide o carregamento da tabela.
-2. Cole o JSON de postagem no campo JSON de postagem e clique Processar.
-3. Cole o JSON de atendimento no campo JSON de atendimento e clique Enriquecer.
-4. Confirme que tipo recebe valores como AFATURAR, AFATURAR_REVERSO ou PRE_ATENDIMENTO.
-5. Confirme que formaPagamento recebe valores como CARTAO_POSTAGEM ou PIX.
-6. Confirme que codigo e descricao são preenchidos pelo item do atendimento.
-7. Reimporte um JSON de postagem já processado e confirme que não há duplicidade.
-8. Ordene Data e valide a ordem cronológica.
-9. Teste filtros rápidos, paginação e resize.
-10. Cole propositalmente um JSON de atendimento no campo de postagem e confira a mensagem orientativa.
+BASELINE DO ARQUIVO DE 05/09/2026
+- 980 registros
+- 965 com CODIGO_OBJETO
+- 15 sem CODIGO_OBJETO, todos com ATENDIMENTO
+- 623 SARA
+- 357 CORREIOS ATENDE
+- valor total: R$ 69.855,97
+- valor dos 15 sem rastreio: R$ 34.540,20
 
-REVERSÃO
-Se houver qualquer comportamento inesperado, volte à implantação anterior do Web App.
-A versão v18 não remove dados nem altera a estrutura canônica já aprovada.
+PERFORMANCE
+- O CSV nunca e processado durante o carregamento do painel.
+- Novas linhas sao escritas em lote.
+- Atualizacoes sao feitas em blocos.
+- LockService evita execucoes concorrentes.
+- Cache e indice de datas sao atualizados uma vez ao final do lote.
+
+CONFIGURACAO OBRIGATORIA
+No Apps Script:
+Project Settings
+-> Script Properties
+-> ATENDE_CSV_FOLDER_ID = ID da pasta _Atende Diario
+
+PRIMEIRO TESTE
+1. Faca clasp push da versao v19.
+2. Configure ATENDE_CSV_FOLDER_ID.
+3. Execute ATENDE_validarCsvDriveSemGravar().
+4. Para o arquivo baseline, o esperado e:
+   - totalRows = 980
+   - importableRows = 980
+   - validObjects = 965
+   - withoutObject = 15
+   - invalidMissingKey = 0
+5. Confirme que a validacao nao adicionou linhas.
+6. Execute ATENDE_importarCsvDriveAgora().
+7. Confira Postagens e LOG_IMPORTACOES.
+8. Abra /atende e valide o novo dia e o valor total.
+9. Somente depois execute ATENDE_instalarGatilhoCsvDrive().
+
+GATILHO
+ATENDE_instalarGatilhoCsvDrive() instala um unico gatilho a cada 1 hora.
+Executar novamente remove gatilhos duplicados desse handler antes de criar o novo.
+
+STATUS
+ATENDE_statusCsvDrive()
+
+REMOVER GATILHO
+ATENDE_removerGatilhoCsvDrive()
+
+ATENCAO - FUNCAO LEGADA
+Nao execute removerLinhasInvalidasSemObjeto() depois de ativar o CSV.
+Essa funcao antiga considera toda linha sem Objeto invalida e apagaria atendimentos legitimos sem rastreio que usam ATENDE_CSV_ID: como chave tecnica.
+
+REVERSAO
+1. Remova o gatilho.
+2. Volte para a versao anterior no Git.
+3. Faca clasp push.
+4. Se precisar remover o primeiro lote importado, crie backup e use LOG_IMPORTACOES para identificar o lote antes de apagar qualquer linha.
+
+DOCUMENTACAO
+- docs/modulos/atende/README.md
+- docs/modulos/atende/TESTES.md
+- docs/modulos/atende/PERFORMANCE.md
+- docs/modulos/atende/CHANGELOG.md

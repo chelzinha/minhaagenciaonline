@@ -2,6 +2,55 @@
 
 Documento tecnico em preparacao.
 
+## 2026-09-05 - Atende: camada RAW imutavel e bibliotecas administrativas
+
+### Atencao sensivel
+O modulo `/atende` passa a preservar os relatorios oficiais dos Correios em uma camada RAW 1:1 no Cloudflare D1 e adiciona uma camada administrativa de enriquecimento sem alterar os dados de origem.
+
+### Dados envolvidos
+- Dados operacionais de postagem vindos dos CSVs dos Correios.
+- Nomes de remetentes e destinatarios.
+- CEPs.
+- Codigos de objeto/rastreio.
+- Contratos, cartoes de postagem e atendentes.
+- Valores, formas e modalidades de pagamento.
+
+### Regra de integridade
+- Os 26 campos originais do CSV sao imutaveis na tabela RAW.
+- Nenhuma ocorrencia e removida por SRO, atendimento ou outra chave de negocio.
+- Uma linha de dados do CSV corresponde a uma linha da camada RAW.
+- Idempotencia tecnica usa arquivo/versao + numero da linha apenas para impedir reprocessamento acidental da mesma versao.
+- SRO repetido e preservado e apenas destacado visualmente.
+
+### Camada administrativa
+Tabelas separadas armazenam:
+- aliases e nome mestre de clientes;
+- nome de atendentes;
+- nome/tipo de contratos;
+- classificacao de servicos para preencher visualmente OBJETO vazio somente como `PRODUTO ECT` ou `SEM REGISTRO`;
+- local comercial padrao e overrides por postagem;
+- historico das alteracoes administrativas.
+
+### Autenticacao
+- Escritas administrativas exigem usuario com role `admin` na autenticacao existente da plataforma.
+- O Apps Script revalida a sessao antes de encaminhar a escrita ao Worker.
+- O segredo entre Apps Script e Worker permanece fora do frontend e fora do Git.
+
+### Risco principal
+- Alteracao indevida da fonte oficial dos Correios.
+- Exposicao de dados operacionais ou pessoais.
+- Mudanca prematura da fonte do painel antes de validar a nova camada RAW.
+
+### Mitigacao
+- RAW separado das bibliotecas e overrides.
+- Flag de runtime inicia em `legacy` e exige ativacao explicita para `raw`.
+- Importacao so e concluida quando a contagem armazenada coincide com a quantidade de linhas do arquivo.
+- Worker mantem fallback temporario para a fonte anterior durante a migracao.
+- Auditoria registra usuario, campo e valores anterior/novo nas mudancas administrativas.
+
+### Documentacao relacionada
+- `docs/atende/REGRA_DADOS_CORREIOS_IMUTAVEIS.md`.
+
 ## 2026-07-07 - Instrumentacao de performance do CRM
 
 ### Atencao sensivel
