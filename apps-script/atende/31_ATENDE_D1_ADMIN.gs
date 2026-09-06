@@ -62,16 +62,45 @@ function ATENDE_adminPost_(platformToken, path, payload) {
   });
 }
 
+// CODIGO_SERVICO e uma chave cadastral derivada. Para codigos puramente
+// numericos, zeros a esquerda nao diferenciam o servico (04227 = 4227).
+// O valor original da postagem permanece intacto em atende_postagens_raw.codigo_servico.
+function ATENDE_normalizarCodigoServico_(value) {
+  const codigo = String(value == null ? '' : value).trim().toUpperCase();
+  if (!codigo) return '';
+  if (/^\d+$/.test(codigo)) return codigo.replace(/^0+(?=\d)/, '');
+  return codigo;
+}
+
+function ATENDE_normalizarPayloadServicos_(payload) {
+  const source = payload && Array.isArray(payload.items) ? payload.items : [];
+  const seen = {};
+  const items = source.map(function(item) {
+    const copy = Object.assign({}, item || {});
+    const original = String(copy.codigo == null ? '' : copy.codigo).trim();
+    copy.codigo = ATENDE_normalizarCodigoServico_(original);
+    if (!copy.codigo) throw new Error('Existe um servico sem CODIGO.');
+    if (seen[copy.codigo]) {
+      throw new Error('Codigo de servico duplicado apos normalizacao: ' + original + ' = ' + copy.codigo + '.');
+    }
+    seen[copy.codigo] = true;
+    return copy;
+  });
+  return Object.assign({}, payload || {}, { items: items });
+}
+
 function ATENDE_adminBootstrap(platformToken) {
   return ATENDE_adminGet_(platformToken, '/admin/bootstrap');
 }
 
 function ATENDE_adminSalvarServico(platformToken, payload) {
-  return ATENDE_adminPost_(platformToken, '/admin/service', payload);
+  const copy = Object.assign({}, payload || {});
+  copy.codigo = ATENDE_normalizarCodigoServico_(copy.codigo);
+  return ATENDE_adminPost_(platformToken, '/admin/service', copy);
 }
 
 function ATENDE_adminSalvarServicosLote(platformToken, payload) {
-  return ATENDE_adminPost_(platformToken, '/admin/services-bulk', payload);
+  return ATENDE_adminPost_(platformToken, '/admin/services-bulk', ATENDE_normalizarPayloadServicos_(payload));
 }
 
 function ATENDE_adminSalvarAtendente(platformToken, payload) {
