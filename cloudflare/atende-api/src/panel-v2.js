@@ -8,6 +8,7 @@ const CONTRATO_TIPO_SQL = `COALESCE(NULLIF(TRIM(co.tipo), ''), CASE WHEN COALESC
 const CONTRATO_INTERMEDIADOR_SQL = `COALESCE(NULLIF(TRIM(co.nome), ''), CASE WHEN COALESCE(cc.ocorrencias, 0) BETWEEN 1 AND 3 THEN 'CONTRATO ECT' ELSE '' END)`;
 const ATENDENTE_EXIBIDO_SQL = `COALESCE(NULLIF(TRIM(a.nome), ''), r.atendente_norm)`;
 const LOCAL_EXIBIDO_SQL = `COALESCE(po.local_codigo, c.local_padrao, '')`;
+const ESTORNO_ATIVO_SQL = `(TRIM(COALESCE(r.estorno,'')) <> '' AND UPPER(TRIM(r.estorno)) NOT IN ('N','NAO','NÃO','0','FALSE'))`;
 
 const BASE_FROM = `
   FROM atende_postagens_raw r
@@ -75,6 +76,7 @@ const SORT_FIELDS = Object.freeze({
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (request.method === 'GET' && url.pathname === '/atende' && url.searchParams.get('view') === 'dashboard') return dashboardAtende(url, env);
     if (request.method === 'GET' && url.pathname === '/atende') return listAtende(url, env);
     if (request.method === 'GET' && url.pathname === '/filters') return listFilters(url, env);
     return json({ ok:false, error:'not_found' }, 404);
@@ -164,6 +166,63 @@ async function listAtende(url,env) {
     return row;
   });
   return json({ok:true,rows,page,pageSize,total,totalValue,pages:Math.max(1,Math.ceil(total/pageSize)),sortKey:SORT_FIELDS[sortKey]?sortKey:'DATA',sortDir:sortDir.toLowerCase()});
+}
+
+async function dashboardAtende(url,env) {
+  const state=parseFilterState(url);
+  const built=buildWhere(state);
+  const granularity=dashboardGranularity(state.dataInicio,state.dataFim);
+  const periodExpr=granularity==='dia' ? `substr(r.data_postagem_iso,1,10)` : `substr(r.data_postagem_iso,1,7)`;
+
+  const specs=[
+    ['kpis', `SELECT COUNT(*) AS postagens,COALESCE(SUM(r.valor_atendimento_num),0) AS faturamento,COALESCE(AVG(r.valor_atendimento_num),0) AS valor_medio,SUM(CASE WHEN ${ESTORNO_ATIVO_SQL} THEN 1 ELSE 0 END) AS estornos,COALESCE(SUM(CASE WHEN ${ESTORNO_ATIVO_SQL} THEN r.valor_atendimento_num ELSE 0 END),0) AS valor_estornos ${BASE_FROM}${built.whereSql}`],
+    ['evolucao', `SELECT ${periodExpr} AS label,COUNT(*) AS quantidade,COALESCE(SUM(r.valor_atendimento_num),0) AS valor ${BASE_FROM}${appendCondition(built.whereSql,`${periodExpr} IS NOT NULL AND ${periodExpr}<>''`)} GROUP BY ${periodExpr} ORDER BY ${periodExpr} ASC LIMIT 400`],
+    ['tipoServico', breakdownSql("COALESCE(sc.tipo_servico,'')",built.whereSql,20)],
+    ['tabela', breakdownSql("COALESCE(sc.tabela,'')",built.whereSql,20)],
+    ['subgrupo', breakdownSql("COALESCE(sc.subgrupo,'')",built.whereSql,20)],
+    ['servicos', breakdownSql('r.nome_servico',built.whereSql,10)],
+    ['local', breakdownSql(LOCAL_EXIBIDO_SQL,built.whereSql,10)],
+    ['atendentes', breakdownSql(ATENDENTE_EXIBIDO_SQL,built.whereSql,10)],
+    ['intermediadores', breakdownSql(CONTRATO_INTERMEDIADOR_SQL,built.whereSql,10)],
+    ['tiposContrato', breakdownSql(CONTRATO_TIPO_SQL,built.whereSql,10)]
+  ];
+
+  const statements=specs.map(([,sql])=>env.DB.prepare(sql).bind(...built.args));
+  const results=await env.DB.batch(statements);
+  const body={ok:true,granularidade:granularity};
+
+  specs.forEach(([key],index)=>{
+    const rows=results[index]?.results||[];
+    if(key==='kpis') {
+      const row=rows[0]||{};
+      body.kpis={
+        postagens:Number(row.postagens||0),
+        faturamento:Number(row.faturamento||0),
+        valorMedio:Number(row.valor_medio||0),
+        estornos:Number(row.estornos||0),
+        valorEstornos:Number(row.valor_estornos||0)
+      };
+    } else {
+      body[key]=rows.map(row=>({
+        label:clean(row.label),
+        quantidade:Number(row.quantidade||0),
+        valor:Number(row.valor||0)
+      })).filter(row=>row.label);
+    }
+  });
+  return json(body);
+}
+
+function breakdownSql(field,whereSql,limit) {
+  const condition=`${field} IS NOT NULL AND TRIM(CAST(${field} AS TEXT))<>'' AND LOWER(TRIM(CAST(${field} AS TEXT)))<>'null'`;
+  return `SELECT ${field} AS label,COUNT(*) AS quantidade,COALESCE(SUM(r.valor_atendimento_num),0) AS valor ${BASE_FROM}${appendCondition(whereSql,condition)} GROUP BY ${field} ORDER BY valor DESC,quantidade DESC LIMIT ${Math.max(1,Number(limit)||10)}`;
+}
+
+function dashboardGranularity(start,end) {
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end))return'mes';
+  const a=new Date(start+'T00:00:00Z'),b=new Date(end+'T00:00:00Z');
+  const days=Math.round((b-a)/86400000)+1;
+  return days>0&&days<=62?'dia':'mes';
 }
 
 async function listFilters(url,env) {
