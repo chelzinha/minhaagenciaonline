@@ -32,6 +32,9 @@
     <div class="filter-field"><label>Data fim</label><input id="dataFim" type="date" onchange="loadPage(1)"></div>
     <div class="filter-field"><label>Objeto</label><div data-ms="tiposObjeto"></div></div>
     <div class="filter-field"><label>Serviço</label><div data-ms="servicos"></div></div>
+    <div class="filter-field"><label>Tipo serviço</label><div data-ms="servicoTipos"></div></div>
+    <div class="filter-field"><label>Subgrupo</label><div data-ms="servicoSubgrupos"></div></div>
+    <div class="filter-field"><label>Tabela</label><div data-ms="servicoTabelas"></div></div>
     <div class="filter-field"><label>Cliente</label><div data-ms="contratoClientes"></div></div>
     <div class="filter-field"><label>Tipo</label><div data-ms="contratoTipos"></div></div>
     <div class="filter-field"><label>Intermediador</label><div data-ms="intermediadores"></div></div>
@@ -74,8 +77,8 @@
 var PAGE=1,PAGE_SIZE=500,PAGES=1,TOTAL=0,TOTAL_VALUE=0,COLS=[],ROWS=[],TIMER=null,SORT_KEY='DATA',SORT_DIR='desc';
 var AUTH_TOKEN='',AUTH_USER=null,IS_ADMIN=false,SELECTED=new Set(),ADMIN_DATA=null,ADMIN_SERVICE_ROWS=[];
 var WIDTHS=loadSavedWidths(),RS=null,OPEN_MULTI='';
-var MULTI_KEYS=['tiposObjeto','servicos','contratoClientes','contratoTipos','intermediadores','sistemas','estornos','atendentes','modalidadesPagamento','formasPagamento','locais'];
-var MULTI_LABELS={tiposObjeto:'Objeto',servicos:'Serviço',contratoClientes:'Cliente',contratoTipos:'Tipo',intermediadores:'Intermediador',sistemas:'Sistema',estornos:'Estorno',atendentes:'Atendente',modalidadesPagamento:'Modalidade pag.',formasPagamento:'Forma pag.',locais:'Local'};
+var MULTI_KEYS=['tiposObjeto','servicos','servicoTipos','servicoSubgrupos','servicoTabelas','contratoClientes','contratoTipos','intermediadores','sistemas','estornos','atendentes','modalidadesPagamento','formasPagamento','locais'];
+var MULTI_LABELS={tiposObjeto:'Objeto',servicos:'Serviço',servicoTipos:'Tipo serviço',servicoSubgrupos:'Subgrupo',servicoTabelas:'Tabela',contratoClientes:'Cliente',contratoTipos:'Tipo',intermediadores:'Intermediador',sistemas:'Sistema',estornos:'Estorno',atendentes:'Atendente',modalidadesPagamento:'Modalidade pag.',formasPagamento:'Forma pag.',locais:'Local'};
 var MULTI={};MULTI_KEYS.forEach(function(k){MULTI[k]={options:[],applied:[],draft:[]}});
 
 window.onload=function(){initMultiUi();bindAdminTabs();loadFilterOptions();loadPage(1);requestAuth();setTimeout(requestAuth,500);setTimeout(requestAuth,1500)};
@@ -108,8 +111,8 @@ function confirmMulti(key){var s=MULTI[key],all=s.options.map(function(x){return
 function updateMultiButton(key){var s=MULTI[key],txt=document.querySelector('#ms-btn-'+key+' .txt');if(!txt)return;if(!s.applied.length)txt.textContent='Todos';else if(s.applied.length===1){var opt=s.options.find(function(x){return x.value===s.applied[0]});txt.textContent=opt?opt.label:s.applied[0]}else txt.textContent=s.applied.length+' selecionados'}
 function applied(key){return(MULTI[key]&&MULTI[key].applied||[]).slice()}
 
-function loadFilterOptions(){google.script.run.withSuccessHandler(function(r){if(!r||!r.ok)return;setMultiOptions('tiposObjeto',r.tiposObjeto);setMultiOptions('servicos',r.servicos);setMultiOptions('contratoClientes',r.contratoClientes);setMultiOptions('contratoTipos',r.contratoTipos);setMultiOptions('intermediadores',r.intermediadores);setMultiOptions('sistemas',r.sistemas);setMultiOptions('estornos',r.estornos);setMultiOptions('atendentes',r.atendentes);setMultiOptions('modalidadesPagamento',r.modalidadesPagamento);setMultiOptions('formasPagamento',r.formasPagamento);setMultiOptions('locais',r.locais)}).ATENDE_buscarFiltrosD1()}
-function params(page){return{page:page||1,pageSize:PAGE_SIZE,q:getValue('q').trim(),dataInicio:getValue('dataInicio'),dataFim:getValue('dataFim'),tiposObjeto:applied('tiposObjeto'),servicos:applied('servicos'),contratoClientes:applied('contratoClientes'),contratoTipos:applied('contratoTipos'),intermediadores:applied('intermediadores'),sistemas:applied('sistemas'),estornos:applied('estornos'),atendentes:applied('atendentes'),modalidadesPagamento:applied('modalidadesPagamento'),formasPagamento:applied('formasPagamento'),locais:applied('locais'),sortKey:SORT_KEY,sortDir:SORT_DIR}}
+function loadFilterOptions(){google.script.run.withSuccessHandler(function(r){if(!r||!r.ok)return;setMultiOptions('tiposObjeto',r.tiposObjeto);setMultiOptions('servicos',r.servicos);setMultiOptions('servicoTipos',r.servicoTipos);setMultiOptions('servicoSubgrupos',r.servicoSubgrupos);setMultiOptions('servicoTabelas',r.servicoTabelas);setMultiOptions('contratoClientes',r.contratoClientes);setMultiOptions('contratoTipos',r.contratoTipos);setMultiOptions('intermediadores',r.intermediadores);setMultiOptions('sistemas',r.sistemas);setMultiOptions('estornos',r.estornos);setMultiOptions('atendentes',r.atendentes);setMultiOptions('modalidadesPagamento',r.modalidadesPagamento);setMultiOptions('formasPagamento',r.formasPagamento);setMultiOptions('locais',r.locais)}).ATENDE_buscarFiltrosD1()}
+function params(page){return{page:page||1,pageSize:PAGE_SIZE,q:getValue('q').trim(),dataInicio:getValue('dataInicio'),dataFim:getValue('dataFim'),tiposObjeto:applied('tiposObjeto'),servicos:applied('servicos'),servicoTipos:applied('servicoTipos'),servicoSubgrupos:applied('servicoSubgrupos'),servicoTabelas:applied('servicoTabelas'),contratoClientes:applied('contratoClientes'),contratoTipos:applied('contratoTipos'),intermediadores:applied('intermediadores'),sistemas:applied('sistemas'),estornos:applied('estornos'),atendentes:applied('atendentes'),modalidadesPagamento:applied('modalidadesPagamento'),formasPagamento:applied('formasPagamento'),locais:applied('locais'),sortKey:SORT_KEY,sortDir:SORT_DIR}}
 function loadPage(page){var p=params(page),a=p.dataInicio,b=p.dataFim;if(a&&b&&a>b){alert('A data inicial não pode ser maior que a data final.');return}spin(true);google.script.run.withSuccessHandler(function(r){spin(false);if(!r||!r.ok){alert((r&&r.error)||'Erro ao carregar');return}render(r)}).withFailureHandler(fail).ATENDE_buscarDadosD1(p)}
 function scheduleSearch(){clearTimeout(TIMER);TIMER=setTimeout(function(){loadPage(1)},350)}
 function clearFilters(){document.getElementById('q').value='';MULTI_KEYS.forEach(function(k){MULTI[k].applied=[];MULTI[k].draft=[];updateMultiButton(k)});closeMulti();loadPage(1)}
