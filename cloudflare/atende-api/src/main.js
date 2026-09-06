@@ -1,15 +1,21 @@
 import rawApp from './index.js';
+import panelV2 from './panel-v2.js';
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
     if ((url.pathname === '/atende' || url.pathname === '/filters') && request.method === 'GET') {
+      if (!authorized(request, env)) return json({ ok:false, error:'unauthorized' }, 401);
+
       const ready = await rawReady(env);
       if (!ready) {
-        if (!authorized(request, env)) return json({ ok:false, error:'unauthorized' }, 401);
         return url.pathname === '/atende' ? legacyAtende(url, env) : legacyFilters(env);
       }
+
+      return panelV2.fetch(request, env, ctx);
     }
+
     return rawApp.fetch(request, env, ctx);
   }
 };
