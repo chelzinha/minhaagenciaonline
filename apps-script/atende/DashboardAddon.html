@@ -1,0 +1,137 @@
+(function(){
+  var DASH_VIEW='table';
+  var DASH_DATA=null;
+  var DASH_METRIC='valor';
+  var DASH_SEQ=0;
+
+  function money(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+  function integer(v){return Number(v||0).toLocaleString('pt-BR')}
+  function compact(v){
+    v=Number(v||0);
+    if(Math.abs(v)>=1000000)return (v/1000000).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mi';
+    if(Math.abs(v)>=1000)return (v/1000).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mil';
+    return v.toLocaleString('pt-BR',{maximumFractionDigits:0});
+  }
+  function compactMoney(v){return 'R$ '+compact(v)}
+  function periodLabel(v){
+    v=String(v||'');
+    var m=v.match(/^(\d{4})-(\d{2})$/);if(m)return m[2]+'/'+m[1];
+    m=v.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(m)return m[3]+'/'+m[2];
+    return v;
+  }
+
+  function installStyle(){
+    if(document.getElementById('dashboard-addon-style'))return;
+    var s=document.createElement('style');s.id='dashboard-addon-style';s.textContent='\
+.view-switch-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:7px -10px -7px;padding:7px 10px;border-top:1px solid var(--line);background:#fbfdff}.view-switch{display:inline-flex;border:1px solid var(--line2);border-radius:9px;padding:2px;background:#fff}.view-switch button{height:27px;border:0;border-radius:6px;background:transparent;color:var(--muted);font:inherit;font-size:10px;font-weight:900;padding:0 11px;cursor:pointer;display:flex;align-items:center;gap:5px}.view-switch button.active{background:var(--nv);color:#fff}.view-switch button .material-symbols-rounded{font-size:16px}.view-hint{font-size:9px;color:var(--muted);font-weight:700}.dashboard-mode .footer{display:none!important}.dashboard-mode #table,.dashboard-mode #empty{display:none!important}.dashboard-view{display:none;min-width:100%;min-height:100%;padding:12px;background:var(--bg)}.dashboard-mode .dashboard-view{display:block}.db-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:9px}.db-kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 14px;box-shadow:0 2px 8px rgba(15,23,42,.04)}.db-kpi-label{font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.25px}.db-kpi-value{margin-top:6px;color:var(--nv);font-size:21px;line-height:1.05;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.db-kpi-sub{margin-top:5px;font-size:9px;color:var(--muted);min-height:12px}.db-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.db-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 13px;min-width:0;box-shadow:0 2px 8px rgba(15,23,42,.04)}.db-card.wide{grid-column:1/-1}.db-card-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}.db-card-title{font-size:11px;font-weight:900;color:var(--nv)}.db-card-note{font-size:9px;color:var(--muted);margin-left:auto}.db-metric-toggle{display:inline-flex;border:1px solid var(--line);border-radius:7px;padding:2px;margin-left:auto}.db-metric-toggle button{border:0;background:transparent;border-radius:5px;height:23px;padding:0 8px;font:inherit;font-size:9px;font-weight:800;color:var(--muted);cursor:pointer}.db-metric-toggle button.active{background:#eef5fa;color:var(--nv)}.db-bars{display:grid;gap:8px}.db-bar-head{display:flex;align-items:flex-start;gap:8px;font-size:9px}.db-bar-label{font-weight:800;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}.db-bar-value{color:var(--nv);font-weight:900;white-space:nowrap}.db-bar-meta{font-size:8px;color:var(--muted);margin-left:5px}.db-track{height:7px;background:#edf2f6;border-radius:999px;overflow:hidden;margin-top:4px}.db-fill{height:100%;background:var(--nv);border-radius:999px;min-width:2px}.db-empty{height:140px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px}.db-line-wrap{overflow-x:auto}.db-line{width:100%;min-width:650px;height:235px;display:block}.db-line .grid{stroke:#e7edf2;stroke-width:1}.db-line .axis-text{font-family:var(--ff);font-size:10px;fill:#7a899a}.db-line .line{fill:none;stroke:var(--nv);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.db-line .dot{fill:var(--yl);stroke:var(--nv);stroke-width:2}.db-line .area{fill:rgba(0,65,107,.06)}.db-error{padding:30px;text-align:center;color:var(--danger);font-weight:800}.db-loading{padding:40px;text-align:center;color:var(--muted);font-weight:800}@media(max-width:1000px){.db-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.db-grid{grid-template-columns:1fr}.db-card.wide{grid-column:auto}}@media(max-width:600px){.db-kpis{grid-template-columns:1fr}.view-hint{display:none}}';document.head.appendChild(s);
+  }
+
+  function init(){
+    installStyle();
+    var top=document.querySelector('.table-top'),wrap=document.getElementById('wrap');
+    if(!top||!wrap||document.getElementById('viewSwitchRow'))return;
+    var row=document.createElement('div');row.id='viewSwitchRow';row.className='view-switch-row';
+    row.innerHTML='<div class="view-switch"><button type="button" data-view="table" class="active"><span class="material-symbols-rounded">table_rows</span>Tabela</button><button type="button" data-view="dashboard"><span class="material-symbols-rounded">dashboard</span>Dashboard</button></div><span class="view-hint">Os filtros acima valem para as duas visões.</span>';
+    top.appendChild(row);
+    row.querySelectorAll('button[data-view]').forEach(function(b){b.addEventListener('click',function(){switchView(this.getAttribute('data-view'))})});
+    var dash=document.createElement('div');dash.id='dashboardView';dash.className='dashboard-view';dash.innerHTML='<div class="db-loading">Abra a visão Dashboard para carregar os gráficos.</div>';wrap.appendChild(dash);
+
+    var originalRefresh=window.refreshFilteredView;
+    window.refreshFilteredView=function(){
+      var a=getValue('dataInicio'),b=getValue('dataFim');
+      if(a&&b&&a>b){alert('A data inicial não pode ser maior que a data final.');return}
+      updateMonthLabel();renderActiveChips();updateMoreButton();
+      if(DASH_VIEW==='dashboard')loadDashboard();else loadPage(1);
+      loadFilterOptions();
+    };
+    window.ATENDE_dashboardOriginalRefresh=originalRefresh;
+  }
+
+  function switchView(view){
+    view=view==='dashboard'?'dashboard':'table';DASH_VIEW=view;DASH_SEQ++;
+    var card=document.querySelector('.card'),dash=document.getElementById('dashboardView');
+    document.querySelectorAll('#viewSwitchRow button[data-view]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-view')===view)});
+    if(card)card.classList.toggle('dashboard-mode',view==='dashboard');
+    if(view==='dashboard'){
+      clearSelection();
+      if(dash)dash.style.display='block';
+      loadDashboard();
+    }else{
+      if(dash)dash.style.display='none';
+      loadPage(1);
+    }
+  }
+
+  function loadDashboard(){
+    var seq=++DASH_SEQ,dash=document.getElementById('dashboardView');
+    if(!dash)return;
+    dash.innerHTML='<div class="db-loading">Atualizando dashboard...</div>';spin(true,'Atualizando dashboard...');
+    google.script.run.withSuccessHandler(function(r){
+      if(seq!==DASH_SEQ||DASH_VIEW!=='dashboard')return;
+      spin(false);
+      if(!r||!r.ok){dash.innerHTML='<div class="db-error">Não foi possível carregar o dashboard.</div>';return}
+      DASH_DATA=r;
+      var k=r.kpis||{};TOTAL=Number(k.postagens||0);TOTAL_VALUE=Number(k.faturamento||0);
+      document.getElementById('info').textContent=TOTAL.toLocaleString('pt-BR')+' registros';
+      document.getElementById('totalValue').textContent=money(TOTAL_VALUE);
+      renderDashboard();
+    }).withFailureHandler(function(e){
+      if(seq!==DASH_SEQ)return;spin(false);dash.innerHTML='<div class="db-error">'+esc(e&&e.message?e.message:String(e||'Erro ao carregar dashboard'))+'</div>';
+    }).ATENDE_buscarDashboardD1(filterContext());
+  }
+
+  function renderDashboard(){
+    var d=DASH_DATA||{},k=d.kpis||{},dash=document.getElementById('dashboardView');if(!dash)return;
+    dash.innerHTML='<div class="db-kpis">'+
+      kpi('Postagens',integer(k.postagens),'Registros no período filtrado')+
+      kpi('Faturamento',money(k.faturamento),'Soma do valor das postagens')+
+      kpi('Valor médio',money(k.valorMedio),'Faturamento ÷ postagens')+
+      kpi('Estornos',integer(k.estornos),money(k.valorEstornos)+' em valor')+
+      '</div><div class="db-grid">'+
+      evolutionCard(d.evolucao||[],d.granularidade||'mes')+
+      barCard('Tipo de serviço',d.tipoServico||[])+
+      barCard('Tabela',d.tabela||[])+
+      barCard('Subgrupo',d.subgrupo||[])+
+      barCard('Top 10 serviços',d.servicos||[])+
+      barCard('Local',d.local||[])+
+      barCard('Top 10 atendentes',d.atendentes||[])+
+      barCard('Intermediador',d.intermediadores||[])+
+      barCard('Tipo de contrato',d.tiposContrato||[])+
+      '</div>';
+    bindMetricToggle();
+  }
+
+  function kpi(label,value,sub){return '<div class="db-kpi"><div class="db-kpi-label">'+esc(label)+'</div><div class="db-kpi-value">'+esc(value)+'</div><div class="db-kpi-sub">'+esc(sub||'')+'</div></div>'}
+
+  function evolutionCard(rows,granularity){
+    return '<section class="db-card wide"><div class="db-card-head"><div class="db-card-title">Evolução no tempo</div><span class="db-card-note">'+(granularity==='dia'?'por dia':'por mês')+'</span><div class="db-metric-toggle"><button type="button" data-metric="valor" class="'+(DASH_METRIC==='valor'?'active':'')+'">Faturamento</button><button type="button" data-metric="quantidade" class="'+(DASH_METRIC==='quantidade'?'active':'')+'">Postagens</button></div></div>'+lineChart(rows,DASH_METRIC)+'</section>';
+  }
+
+  function bindMetricToggle(){
+    document.querySelectorAll('.db-metric-toggle button').forEach(function(b){b.addEventListener('click',function(){DASH_METRIC=this.getAttribute('data-metric')==='quantidade'?'quantidade':'valor';renderDashboard()})});
+  }
+
+  function lineChart(rows,key){
+    if(!rows||!rows.length)return '<div class="db-empty">Sem dados para o período selecionado.</div>';
+    var W=1000,H=235,L=60,R=22,T=18,B=42,plotW=W-L-R,plotH=H-T-B;
+    var vals=rows.map(function(x){return Number(x[key]||0)}),max=Math.max.apply(null,vals.concat([1]));
+    var pts=rows.map(function(x,i){var px=rows.length===1?L+plotW/2:L+(i/(rows.length-1))*plotW,py=T+plotH-(Number(x[key]||0)/max)*plotH;return{x:px,y:py,row:x}});
+    var grid='',labels='',ticks=4;
+    for(var g=0;g<=ticks;g++){var y=T+(g/ticks)*plotH,val=max*(1-g/ticks);grid+='<line class="grid" x1="'+L+'" y1="'+y+'" x2="'+(W-R)+'" y2="'+y+'"></line><text class="axis-text" x="'+(L-7)+'" y="'+(y+3)+'" text-anchor="end">'+esc(key==='valor'?compactMoney(val):compact(val))+'</text>'}
+    var step=Math.max(1,Math.ceil(rows.length/9));
+    pts.forEach(function(p,i){if(i%step===0||i===pts.length-1)labels+='<text class="axis-text" x="'+p.x+'" y="'+(H-13)+'" text-anchor="middle">'+esc(periodLabel(p.row.label))+'</text>'});
+    var poly=pts.map(function(p){return p.x+','+p.y}).join(' '),area=L+','+(T+plotH)+' '+poly+' '+(W-R)+','+(T+plotH),dots='';
+    pts.forEach(function(p){var t=periodLabel(p.row.label)+' · '+(key==='valor'?money(p.row.valor):integer(p.row.quantidade)+' postagens');dots+='<circle class="dot" cx="'+p.x+'" cy="'+p.y+'" r="4"><title>'+esc(t)+'</title></circle>'});
+    return '<div class="db-line-wrap"><svg class="db-line" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+grid+'<polygon class="area" points="'+area+'"></polygon><polyline class="line" points="'+poly+'"></polyline>'+dots+labels+'</svg></div>';
+  }
+
+  function barCard(title,rows){
+    if(!rows||!rows.length)return '<section class="db-card"><div class="db-card-head"><div class="db-card-title">'+esc(title)+'</div></div><div class="db-empty">Sem dados classificados neste recorte.</div></section>';
+    var max=Math.max.apply(null,rows.map(function(x){return Number(x.valor||0)}).concat([0]));
+    var useValue=max>0;if(!useValue)max=Math.max.apply(null,rows.map(function(x){return Number(x.quantidade||0)}).concat([1]));
+    var html=rows.map(function(x){var base=useValue?Number(x.valor||0):Number(x.quantidade||0),pct=Math.max(1,Math.min(100,(base/max)*100));return '<div><div class="db-bar-head"><span class="db-bar-label" title="'+esc(x.label)+'">'+esc(x.label)+'</span><span class="db-bar-value">'+money(x.valor)+'<span class="db-bar-meta">'+integer(x.quantidade)+' post.</span></span></div><div class="db-track"><div class="db-fill" style="width:'+pct.toFixed(2)+'%"></div></div></div>'}).join('');
+    return '<section class="db-card"><div class="db-card-head"><div class="db-card-title">'+esc(title)+'</div><span class="db-card-note">por faturamento</span></div><div class="db-bars">'+html+'</div></section>';
+  }
+
+  window.addEventListener('load',function(){setTimeout(init,30)});
+})();
