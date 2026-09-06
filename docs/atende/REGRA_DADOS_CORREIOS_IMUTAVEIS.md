@@ -12,6 +12,26 @@ Na camada RAW do Cloudflare D1:
 - uma reimportacao da mesma versao do mesmo arquivo nao cria outra copia tecnica da mesma linha, usando `import_key + numero_linha` apenas para idempotencia da ingestao;
 - os 26 campos originais sao armazenados como texto e nao sao alterados depois da insercao.
 
+## Fluxo das pastas do Drive
+
+A pasta raiz configurada em `ATENDE_CSV_FOLDER_ID` possui duas subpastas operacionais:
+
+- `ENTRADA` - arquivos ainda aguardando confirmacao integral no D1;
+- `PROCESSADA` - arquivos cuja quantidade de linhas foi confirmada no D1.
+
+Regras:
+
+1. todo CSV colocado em `ENTRADA` entra na fila de importacao;
+2. nao existe limite fixo de quantidade de arquivos por execucao;
+3. a rotina processa quantos arquivos couberem na janela segura de execucao do Apps Script;
+4. se o tempo estiver terminando, o arquivo permanece em `ENTRADA` e a proxima execucao continua do ponto ja recebido pelo D1;
+5. o arquivo somente e movido para `PROCESSADA` depois que `gravadas = total_linhas` e a importacao estiver concluida;
+6. qualquer falha mantem o arquivo em `ENTRADA`;
+7. CSVs deixados diretamente na pasta raiz durante a transicao sao movidos automaticamente para `ENTRADA`;
+8. mover o arquivo entre pastas nao altera seu conteudo nem seu `fileId`.
+
+A tabela `atende_raw_importacoes` e o par `fileId + hash` continuam como segunda camada de idempotencia e integridade.
+
 ## Camada de apresentacao
 
 Limpeza e enriquecimento existem somente em tabelas separadas e na consulta do painel:
