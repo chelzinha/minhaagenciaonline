@@ -12,6 +12,14 @@ export default {
       return panelV2.fetch(request, env, ctx);
     }
 
+    if (url.pathname === '/admin/bootstrap' && request.method === 'GET') {
+      if (!authorized(request, env)) return json({ ok:false, error:'unauthorized' }, 401);
+      return adminBootstrapV2(env);
+    }
+    if (url.pathname === '/admin/contract' && request.method === 'POST') {
+      if (!authorized(request, env)) return json({ ok:false, error:'unauthorized' }, 401);
+      return adminSaveContractV2(request, env);
+    }
     if (url.pathname === '/admin/services-bulk' && request.method === 'POST') {
       if (!authorized(request, env)) return json({ ok:false, error:'unauthorized' }, 401);
       return adminBulkServices(request, env);
@@ -46,6 +54,111 @@ async function rawReady(env) {
 
 function authorized(request, env) {
   return !!env.ATENDE_API_TOKEN && (request.headers.get('Authorization') || '') === `Bearer ${env.ATENDE_API_TOKEN}`;
+}
+
+async function adminBootstrapV2(env) {
+  const rawJoin = `
+    FROM atende_postagens_raw r
+    JOIN atende_raw_importacoes ri
+      ON ri.import_key=r.import_key
+     AND ri.concluido_em IS NOT NULL
+  `;
+  const [services, attendants, contracts, clients, historyRows] = await Promise.all([
+    env.DB.prepare(`
+      SELECT r.codigo_servico_norm AS codigo,
+             MAX(r.nome_servico) AS nome,
+             COUNT(*) AS ocorrencias,
+             sc.tipo_objeto
+      ${rawJoin}
+      LEFT JOIN atende_servico_classificacao sc ON sc.codigo_servico=r.codigo_servico_norm
+      WHERE r.codigo_servico_norm <> ''
+      GROUP BY r.codigo_servico_norm, sc.tipo_objeto
+      ORDER BY MAX(r.nome_servico) COLLATE NOCASE ASC, r.codigo_servico_norm ASC
+      LIMIT 2000
+    `).all(),
+    env.DB.prepare(`
+      SELECT r.atendente_norm AS codigo,
+             COUNT(*) AS ocorrencias,
+             a.nome
+      ${rawJoin}
+      LEFT JOIN atende_atendentes a ON a.codigo=r.atendente_norm AND a.ativo=1
+      WHERE r.atendente_norm <> ''
+      GROUP BY r.atendente_norm, a.nome
+      ORDER BY COALESCE(a.nome,r.atendente_norm) COLLATE NOCASE ASC
+      LIMIT 1000
+    `).all(),
+    env.DB.prepare(`
+      SELECT r.numero_contrato_norm AS numero,
+             COUNT(*) AS ocorrencias,
+             co.cliente,
+             co.tipo,
+             co.nome
+      ${rawJoin}
+      LEFT JOIN atende_contratos co ON co.numero=r.numero_contrato_norm AND co.ativo=1
+      WHERE r.numero_contrato_norm <> ''
+      GROUP BY r.numero_contrato_norm, co.cliente, co.tipo, co.nome
+      ORDER BY COALESCE(co.cliente,co.nome,r.numero_contrato_norm) COLLATE NOCASE ASC
+      LIMIT 2000
+    `).all(),
+    env.DB.prepare(`
+      SELECT c.id,c.nome_atual,c.local_padrao,c.ativo,COUNT(ca.id) AS aliases
+      FROM atende_clientes c
+      LEFT JOIN atende_cliente_aliases ca ON ca.cliente_id=c.id
+      GROUP BY c.id
+      ORDER BY c.nome_atual COLLATE NOCASE ASC
+      LIMIT 2000
+    `).all(),
+    env.DB.prepare(`
+      SELECT entidade,chave,campo,valor_anterior,valor_novo,usuario,criado_em
+      FROM atende_admin_historico
+      ORDER BY id DESC
+      LIMIT 100
+    `).all()
+  ]);
+  return json({
+    ok:true,
+    servicos:services.results||[],
+    atendentes:attendants.results||[],
+    contratos:contracts.results||[],
+    clientes:clients.results||[],
+    locais:[{codigo:'AGF',nome:'AGF'},{codigo:'METRO',nome:'METRÔ'}],
+    historico:historyRows.results||[]
+  });
+}
+
+async function adminSaveContractV2(request, env) {
+  let body; try { body=await request.json(); } catch (_) { return json({ok:false,error:'invalid_json'},400); }
+  const numero=clean(body?.numero).toUpperCase();
+  const cliente=clean(body?.cliente);
+  const tipo=clean(body?.tipo);
+  const nome=clean(body?.nome);
+  const user=adminUser(request);
+  if(!numero)return json({ok:false,error:'numero_required'},400);
+  if(!cliente)return json({ok:false,error:'cliente_required'},400);
+  if(!nome)return json({ok:false,error:'intermediador_required'},400);
+
+  const old=await env.DB.prepare(`SELECT cliente,nome,tipo FROM atende_contratos WHERE numero=?`).bind(numero).first();
+  const oldObj={cliente:clean(old?.cliente),tipo:clean(old?.tipo),nome:clean(old?.nome)};
+  const newObj={cliente,tipo,nome};
+  if(old&&JSON.stringify(oldObj)===JSON.stringify(newObj))return json({ok:true,unchanged:true});
+
+  await env.DB.prepare(`
+    INSERT INTO atende_contratos(numero,cliente,nome,tipo,observacao,ativo,atualizado_por,atualizado_em)
+    VALUES(?,?,?,?,NULL,1,?,datetime('now'))
+    ON CONFLICT(numero) DO UPDATE SET
+      cliente=excluded.cliente,
+      nome=excluded.nome,
+      tipo=excluded.tipo,
+      observacao=NULL,
+      ativo=1,
+      atualizado_por=excluded.atualizado_por,
+      atualizado_em=datetime('now')
+  `).bind(numero,cliente,nome,tipo,user).run();
+  await env.DB.prepare(`
+    INSERT INTO atende_admin_historico(entidade,chave,campo,valor_anterior,valor_novo,usuario,criado_em)
+    VALUES('contrato',?,'cadastro',?,?,?,datetime('now'))
+  `).bind(numero,JSON.stringify(oldObj),JSON.stringify(newObj),user).run();
+  return json({ok:true});
 }
 
 async function adminBulkServices(request, env) {
