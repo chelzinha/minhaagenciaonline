@@ -12,7 +12,10 @@ const ATENDE_D1_PANEL_COLUMNS = Object.freeze([
   { key: 'NOME REMETENTE', label: 'NOME REMETENTE', width: 200 },
   { key: 'CARTAO POSTAGEM', label: 'CARTÃO POSTAGEM', width: 120, mono: true },
   { key: 'CONTRATO', label: 'CONTRATO', width: 112, mono: true },
-  { key: 'NOME CONTRATO', label: 'INTERMEDIADOR', width: 150 },
+  { key: 'OCORR', label: 'OCORR.', width: 78, numeric: true },
+  { key: 'CLIENTE', label: 'CLIENTE', width: 230 },
+  { key: 'TIPO', label: 'TIPO', width: 120 },
+  { key: 'INTERMEDIADOR', label: 'INTERMEDIADOR', width: 150 },
   { key: 'SISTEMA', label: 'SISTEMA', width: 128 },
   { key: 'VALOR', label: 'VALOR', width: 92, numeric: true, type: 'money' },
   { key: 'ESTORNO', label: 'ESTORNO', width: 76 },
@@ -33,6 +36,10 @@ function ATENDE_buscarDadosD1(params) {
     ? params.servicos.map(function(v) { return String(v || '').trim(); }).filter(Boolean)
     : (params.servico ? [String(params.servico).trim()].filter(Boolean) : []);
   const contrato = String(params.contrato || '').trim();
+  const contratoOcorr = String(params.contratoOcorr || '').trim();
+  const contratoCliente = String(params.contratoCliente || '').trim();
+  const contratoTipo = String(params.contratoTipo || '').trim();
+  const intermediador = String(params.intermediador || '').trim();
   const sistema = String(params.sistema || '').trim();
   const estorno = String(params.estorno || '').trim();
   const atendente = String(params.atendente || '').trim();
@@ -56,6 +63,10 @@ function ATENDE_buscarDadosD1(params) {
   if (q) query.push('q=' + encodeURIComponent(q));
   servicos.forEach(function(servico) { query.push('servico=' + encodeURIComponent(servico)); });
   if (contrato) query.push('contrato=' + encodeURIComponent(contrato));
+  if (contratoOcorr) query.push('contratoOcorr=' + encodeURIComponent(contratoOcorr));
+  if (contratoCliente) query.push('contratoCliente=' + encodeURIComponent(contratoCliente));
+  if (contratoTipo) query.push('contratoTipo=' + encodeURIComponent(contratoTipo));
+  if (intermediador) query.push('intermediador=' + encodeURIComponent(intermediador));
   if (sistema) query.push('sistema=' + encodeURIComponent(sistema));
   if (estorno) query.push('estorno=' + encodeURIComponent(estorno));
   if (atendente) query.push('atendente=' + encodeURIComponent(atendente));
@@ -75,12 +86,20 @@ function ATENDE_buscarDadosD1(params) {
       copy.OBJETO = copy.SRO || '';
       copy['COD SERVICO'] = copy.SERVICO || '';
       copy.SERVICO = '';
-      copy['NOME CONTRATO'] = '';
+      copy.OCORR = '';
+      copy.CLIENTE = '';
+      copy.TIPO = '';
+      copy.INTERMEDIADOR = copy['NOME CONTRATO'] || '';
       copy.LOCAL = '';
       copy._RAW_ID = 0;
       copy._SRO_DUPLICADO = 0;
       copy._NOME_REMETENTE_ORIGINAL = copy['NOME REMETENTE'] || '';
     }
+
+    if (!Object.prototype.hasOwnProperty.call(copy, 'OCORR')) copy.OCORR = '';
+    if (!Object.prototype.hasOwnProperty.call(copy, 'CLIENTE')) copy.CLIENTE = '';
+    if (!Object.prototype.hasOwnProperty.call(copy, 'TIPO')) copy.TIPO = '';
+    if (!Object.prototype.hasOwnProperty.call(copy, 'INTERMEDIADOR')) copy.INTERMEDIADOR = copy['NOME CONTRATO'] || '';
 
     if (copy.VALOR !== '' && copy.VALOR != null) {
       const n = Number(copy.VALOR);
@@ -120,6 +139,10 @@ function ATENDE_buscarFiltrosD1() {
     ok: true,
     servicos: response.servicos || [],
     contratos: response.contratos || [],
+    contratoOcorrencias: response.contratoOcorrencias || [],
+    contratoClientes: response.contratoClientes || [],
+    contratoTipos: response.contratoTipos || [],
+    intermediadores: response.intermediadores || [],
     sistemas: response.sistemas || [],
     estornos: response.estornos || [],
     atendentes: response.atendentes || [],
