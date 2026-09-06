@@ -97,19 +97,49 @@ Código | Serviço | Ocorr. | Tipo | Subgrupo | Tabela | OBJETO quando vazio
 
 Mantém-se o botão de salvamento em lote e foi adicionado `Importar CSV`.
 
+## Normalização do código de serviço
+
+Foi identificado que a mesma referência de serviço pode chegar com e sem zeros à esquerda, por exemplo:
+
+```text
+04227 = 4227
+06238 = 6238
+005070 = 5070
+```
+
+Essas variações não representam serviços diferentes. A chave cadastral derivada passa a usar o código canônico sem zeros à esquerda para valores puramente numéricos.
+
+Regras:
+
+- `codigo_servico` original da postagem permanece exatamente como veio no CSV;
+- somente `codigo_servico_norm`, coluna técnica derivada, é normalizada;
+- códigos numéricos ignoram zeros à esquerda;
+- códigos alfanuméricos permanecem com trim/uppercase, sem remoção interna de caracteres;
+- Admin > Serviços passa a agrupar as ocorrências pela chave canônica;
+- a importação CSV da biblioteca de serviços usa a mesma chave canônica;
+- novas postagens também são normalizadas automaticamente por trigger no D1.
+
+A migration também consolida eventuais registros duplicados já existentes em `atende_servico_classificacao`, preservando uma única chave canônica por serviço.
+
 ## Banco D1
 
-Migration nova:
+Migrations desta rodada:
 
 `cloudflare/atende-api/migrations/0005_servicos_biblioteca.sql`
 
-Ela amplia `atende_servico_classificacao` com:
+Amplia `atende_servico_classificacao` com:
 
 - `tipo_servico`;
 - `subgrupo`;
 - `tabela`.
 
-A migration preserva os registros já existentes da biblioteca e permite que um serviço tenha metadados mesmo sem classificação de `OBJETO QUANDO VAZIO`.
+`cloudflare/atende-api/migrations/0006_normalizar_codigo_servico.sql`
+
+- normaliza `codigo_servico_norm` dos registros já existentes;
+- consolida a biblioteca de serviços pela chave canônica;
+- cria trigger para manter a normalização em novas cargas.
+
+As migrations preservam os campos RAW originais.
 
 ## Publicação necessária
 
