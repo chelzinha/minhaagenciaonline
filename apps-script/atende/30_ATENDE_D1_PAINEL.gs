@@ -12,12 +12,11 @@ const ATENDE_D1_PANEL_COLUMNS = Object.freeze([
   { key: 'NOME REMETENTE', label: 'NOME REMETENTE', width: 200 },
   { key: 'CARTAO POSTAGEM', label: 'CARTÃO POSTAGEM', width: 120, mono: true },
   { key: 'CONTRATO', label: 'CONTRATO', width: 112, mono: true },
-  { key: 'NOME CONTRATO', label: 'NOME CONTRATO', width: 150 },
+  { key: 'NOME CONTRATO', label: 'INTERMEDIADOR', width: 150 },
   { key: 'SISTEMA', label: 'SISTEMA', width: 128 },
   { key: 'VALOR', label: 'VALOR', width: 92, numeric: true, type: 'money' },
   { key: 'ESTORNO', label: 'ESTORNO', width: 76 },
-  { key: 'ATENDENTE', label: 'ATENDENTE', width: 132, mono: true },
-  { key: 'NOME ATENDENTE', label: 'NOME ATENDENTE', width: 140 },
+  { key: 'ATENDENTE', label: 'ATENDENTE', width: 150 },
   { key: 'MODALIDADE PAGAMENTO', label: 'MODALIDADE PAGAMENTO', width: 158 },
   { key: 'FORMA PAGAMENTO', label: 'FORMA PAGAMENTO', width: 142 },
   { key: 'LOCAL', label: 'LOCAL', width: 82, editableAdmin: true }
@@ -26,11 +25,13 @@ const ATENDE_D1_PANEL_COLUMNS = Object.freeze([
 function ATENDE_buscarDadosD1(params) {
   params = params || {};
   const page = Math.max(1, Number(params.page || 1));
-  const pageSize = Math.min(200, Math.max(1, Number(params.pageSize || 100)));
+  const pageSize = Math.min(500, Math.max(1, Number(params.pageSize || 500)));
   const q = String(params.q || '').trim();
   const dataInicio = String(params.dataInicio || params.startDate || params.inicio || '').trim();
   const dataFim = String(params.dataFim || params.endDate || params.fim || '').trim();
-  const servico = String(params.servico || '').trim();
+  const servicos = Array.isArray(params.servicos)
+    ? params.servicos.map(function(v) { return String(v || '').trim(); }).filter(Boolean)
+    : (params.servico ? [String(params.servico).trim()].filter(Boolean) : []);
   const contrato = String(params.contrato || '').trim();
   const sistema = String(params.sistema || '').trim();
   const estorno = String(params.estorno || '').trim();
@@ -53,7 +54,7 @@ function ATENDE_buscarDadosD1(params) {
   if (dataInicio) query.push('dataInicio=' + encodeURIComponent(dataInicio));
   if (dataFim) query.push('dataFim=' + encodeURIComponent(dataFim));
   if (q) query.push('q=' + encodeURIComponent(q));
-  if (servico) query.push('servico=' + encodeURIComponent(servico));
+  servicos.forEach(function(servico) { query.push('servico=' + encodeURIComponent(servico)); });
   if (contrato) query.push('contrato=' + encodeURIComponent(contrato));
   if (sistema) query.push('sistema=' + encodeURIComponent(sistema));
   if (estorno) query.push('estorno=' + encodeURIComponent(estorno));
@@ -69,16 +70,12 @@ function ATENDE_buscarDadosD1(params) {
   const rows = (response.rows || []).map(function(row) {
     const copy = Object.assign({}, row);
 
-    // Durante a migracao o Worker continua servindo a tabela legada ate a
-    // ativacao explicita da fonte RAW. Este adaptador impede qualquer quebra
-    // do novo HTML nesse intervalo.
     if (!Object.prototype.hasOwnProperty.call(copy, 'OBJETO')) {
       compatibilityMode = true;
       copy.OBJETO = copy.SRO || '';
       copy['COD SERVICO'] = copy.SERVICO || '';
       copy.SERVICO = '';
       copy['NOME CONTRATO'] = '';
-      copy['NOME ATENDENTE'] = '';
       copy.LOCAL = '';
       copy._RAW_ID = 0;
       copy._SRO_DUPLICADO = 0;
@@ -128,13 +125,13 @@ function ATENDE_buscarFiltrosD1() {
     atendentes: response.atendentes || [],
     modalidadesPagamento: response.modalidadesPagamento || [],
     formasPagamento: response.formasPagamento || [],
-    tiposObjeto: response.tiposObjeto || ['PRODUTO ECT', 'SEM REGISTRO'],
+    tiposObjeto: response.tiposObjeto || ['SRO', 'PRODUTO ECT', 'SEM REGISTRO'],
     locais: response.locais || [{ codigo: 'AGF', nome: 'AGF' }, { codigo: 'METRO', nome: 'METRÔ' }]
   };
 }
 
 function ATENDE_testarLeituraPainelD1() {
-  const result = ATENDE_buscarDadosD1({ page: 1, pageSize: 100 });
+  const result = ATENDE_buscarDadosD1({ page: 1, pageSize: 500 });
   const summary = {
     ok: result.ok,
     total: result.total,
