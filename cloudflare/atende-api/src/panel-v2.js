@@ -7,6 +7,17 @@ const BASE_FROM = `
   LEFT JOIN atende_clientes c ON c.id = ca.cliente_id AND c.ativo = 1
   LEFT JOIN atende_atendentes a ON a.codigo = r.atendente_norm AND a.ativo = 1
   LEFT JOIN atende_contratos co ON co.numero = r.numero_contrato_norm AND co.ativo = 1
+  LEFT JOIN (
+    SELECT rr.numero_contrato_norm AS numero, COUNT(*) AS ocorrencias
+    FROM atende_postagens_raw rr
+    JOIN atende_raw_importacoes rii
+      ON rii.import_key = rr.import_key
+     AND rii.concluido_em IS NOT NULL
+    WHERE rr.numero_contrato_norm IS NOT NULL
+      AND TRIM(rr.numero_contrato_norm) <> ''
+      AND LOWER(TRIM(rr.numero_contrato_norm)) <> 'null'
+    GROUP BY rr.numero_contrato_norm
+  ) cc ON cc.numero = r.numero_contrato_norm
   LEFT JOIN atende_servico_classificacao sc ON sc.codigo_servico = r.codigo_servico_norm
   LEFT JOIN atende_postagem_overrides po ON po.raw_id = r.id
   LEFT JOIN atende_sro_counts sd ON sd.codigo_objeto_norm = r.codigo_objeto_norm
@@ -22,7 +33,10 @@ const SORT_FIELDS = Object.freeze({
   'NOME REMETENTE': 'nome_remetente_exibido',
   'CARTAO POSTAGEM': 'r.cartao_postagem',
   'CONTRATO': 'r.numero_contrato_norm',
-  'NOME CONTRATO': 'nome_contrato_exibido',
+  'OCORR': 'COALESCE(cc.ocorrencias, 0)',
+  'CLIENTE': 'COALESCE(co.cliente, \'\')',
+  'TIPO': 'COALESCE(co.tipo, \'\')',
+  'INTERMEDIADOR': 'COALESCE(co.nome, \'\')',
   'SISTEMA': 'r.sistema_postagem',
   'VALOR': 'r.valor_atendimento_num',
   'ESTORNO': 'r.estorno',
@@ -50,6 +64,10 @@ async function listAtende(url, env) {
   const dataFim = clean(url.searchParams.get('dataFim'));
   const q = clean(url.searchParams.get('q'));
   const contrato = clean(url.searchParams.get('contrato'));
+  const contratoOcorr = clean(url.searchParams.get('contratoOcorr'));
+  const contratoCliente = clean(url.searchParams.get('contratoCliente'));
+  const contratoTipo = clean(url.searchParams.get('contratoTipo'));
+  const intermediador = clean(url.searchParams.get('intermediador'));
   const sistema = clean(url.searchParams.get('sistema'));
   const estorno = clean(url.searchParams.get('estorno'));
   const atendente = clean(url.searchParams.get('atendente'));
@@ -78,10 +96,10 @@ async function listAtende(url, env) {
     where.push(`(
       r.codigo_objeto LIKE ? OR r.atendimento LIKE ? OR r.nome_remetente LIKE ? OR c.nome_atual LIKE ? OR
       r.cep_destinatario LIKE ? OR r.cep_remetente LIKE ? OR r.numero_contrato LIKE ? OR co.nome LIKE ? OR
-      r.cartao_postagem LIKE ? OR r.sistema_postagem LIKE ? OR r.cpf_matricula_atendente LIKE ? OR a.nome LIKE ? OR
-      r.codigo_servico LIKE ? OR r.nome_servico LIKE ?
+      co.cliente LIKE ? OR co.tipo LIKE ? OR r.cartao_postagem LIKE ? OR r.sistema_postagem LIKE ? OR
+      r.cpf_matricula_atendente LIKE ? OR a.nome LIKE ? OR r.codigo_servico LIKE ? OR r.nome_servico LIKE ?
     )`);
-    args.push(...Array(14).fill(like));
+    args.push(...Array(16).fill(like));
   }
 
   if (servicos.length) {
@@ -90,6 +108,13 @@ async function listAtende(url, env) {
   }
 
   addExactFilter(where, args, 'r.numero_contrato_norm', contrato);
+  if (contratoOcorr) {
+    const ocorr = Number(contratoOcorr);
+    if (Number.isFinite(ocorr) && ocorr >= 0) { where.push('COALESCE(cc.ocorrencias, 0) = ?'); args.push(ocorr); }
+  }
+  addExactFilter(where, args, 'co.cliente', contratoCliente);
+  addExactFilter(where, args, 'co.tipo', contratoTipo);
+  addExactFilter(where, args, 'co.nome', intermediador);
   addExactFilter(where, args, 'r.sistema_postagem', sistema);
   addExactFilter(where, args, 'r.estorno', estorno);
   addExactFilter(where, args, 'r.atendente_norm', atendente);
@@ -129,7 +154,10 @@ async function listAtende(url, env) {
     r.nome_remetente AS "_NOME_REMETENTE_ORIGINAL",
     r.cartao_postagem AS "CARTAO POSTAGEM",
     r.numero_contrato AS "CONTRATO",
-    COALESCE(co.nome, '') AS "NOME CONTRATO",
+    COALESCE(cc.ocorrencias, 0) AS "OCORR",
+    COALESCE(co.cliente, '') AS "CLIENTE",
+    COALESCE(co.tipo, '') AS "TIPO",
+    COALESCE(co.nome, '') AS "INTERMEDIADOR",
     r.sistema_postagem AS "SISTEMA",
     r.valor_atendimento_num AS "VALOR",
     r.estorno AS "ESTORNO",
@@ -145,13 +173,11 @@ async function listAtende(url, env) {
     ? `CASE WHEN ${OBJETO_VAZIO_SQL} THEN COALESCE(sc.tipo_objeto, '') ELSE r.codigo_objeto END`
     : sortField === 'nome_remetente_exibido'
       ? `COALESCE(c.nome_atual, r.nome_remetente)`
-      : sortField === 'nome_contrato_exibido'
-        ? `COALESCE(co.nome, '')`
-        : sortField === 'atendente_exibido'
-          ? `COALESCE(NULLIF(a.nome, ''), r.atendente_norm)`
-          : sortField === 'local_exibido'
-            ? `COALESCE(po.local_codigo, c.local_padrao, '')`
-            : sortField;
+      : sortField === 'atendente_exibido'
+        ? `COALESCE(NULLIF(a.nome, ''), r.atendente_norm)`
+        : sortField === 'local_exibido'
+          ? `COALESCE(po.local_codigo, c.local_padrao, '')`
+          : sortField;
 
   const result = await env.DB.prepare(`
     SELECT ${select}
@@ -169,12 +195,7 @@ async function listAtende(url, env) {
   });
 
   return json({
-    ok:true,
-    rows,
-    page,
-    pageSize,
-    total,
-    totalValue,
+    ok:true, rows, page, pageSize, total, totalValue,
     pages:Math.max(1, Math.ceil(total / pageSize)),
     sortKey:SORT_FIELDS[sortKey] ? sortKey : 'DATA',
     sortDir:sortDir.toLowerCase()
@@ -185,19 +206,23 @@ async function listFilters(env) {
   const simpleSpecs = [
     ['servicos', 'r.nome_servico'],
     ['contratos', 'r.numero_contrato_norm'],
+    ['contratoOcorrencias', 'cc.ocorrencias'],
+    ['contratoClientes', 'co.cliente'],
+    ['contratoTipos', 'co.tipo'],
+    ['intermediadores', 'co.nome'],
     ['sistemas', 'r.sistema_postagem'],
     ['estornos', 'r.estorno'],
     ['modalidadesPagamento', 'r.modalidade_pagamento'],
     ['formasPagamento', 'r.forma_pagamento']
   ];
 
-  const statements = simpleSpecs.map(([, field]) => env.DB.prepare(`
+  const statements = simpleSpecs.map(([key, field]) => env.DB.prepare(`
     SELECT DISTINCT ${field} AS value
     ${BASE_FROM}
     WHERE ${field} IS NOT NULL
-      AND TRIM(${field}) <> ''
-      AND LOWER(TRIM(${field})) <> 'null'
-    ORDER BY ${field} COLLATE NOCASE ASC
+      AND TRIM(CAST(${field} AS TEXT)) <> ''
+      AND LOWER(TRIM(CAST(${field} AS TEXT))) <> 'null'
+    ORDER BY ${key === 'contratoOcorrencias' ? field + ' ASC' : field + ' COLLATE NOCASE ASC'}
     LIMIT 2000
   `));
 
@@ -239,22 +264,17 @@ function addExactFilter(where, args, field, value) {
   args.push(value);
 }
 
-function unique(values) {
-  return Array.from(new Set(values));
-}
-
+function unique(values) { return Array.from(new Set(values)); }
 function clean(value) {
   if (value === null || value === undefined) return '';
   const text = String(value).trim();
   return /^(null|undefined)$/i.test(text) ? '' : text;
 }
-
 function formatDateBR(value) {
   const text = clean(value);
   const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
   return match ? `${match[3]}/${match[2]}/${match[1]}` : text;
 }
-
 function json(body, status=200) {
   return new Response(JSON.stringify(body), {
     status,
