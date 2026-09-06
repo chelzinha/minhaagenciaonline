@@ -170,6 +170,29 @@ function ATENDE_buscarFiltrosD1(params) {
   };
 }
 
+function ATENDE_buscarDashboardD1(params) {
+  params = params || {};
+  const query = ['view=dashboard'];
+  ATENDE_adicionarContextoFiltroQuery_(query, params);
+  const startedAt = Date.now();
+  const response = ATENDE_fetchD1_('/atende?' + query.join('&'), { method: 'get' });
+  return {
+    ok: true,
+    kpis: response.kpis || { postagens:0, faturamento:0, valorMedio:0, estornos:0, valorEstornos:0 },
+    granularidade: String(response.granularidade || 'mes'),
+    evolucao: response.evolucao || [],
+    tipoServico: response.tipoServico || [],
+    tabela: response.tabela || [],
+    subgrupo: response.subgrupo || [],
+    servicos: response.servicos || [],
+    local: response.local || [],
+    atendentes: response.atendentes || [],
+    intermediadores: response.intermediadores || [],
+    tiposContrato: response.tiposContrato || [],
+    meta: { tempoMs: Date.now() - startedAt }
+  };
+}
+
 function ATENDE_testarLeituraPainelD1() {
   const result = ATENDE_buscarDadosD1({ page: 1, pageSize: 500 });
   const summary = {
