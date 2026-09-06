@@ -130,6 +130,23 @@ A API de filtros passa a retornar:
 
 Assim, o usuário seleciona JULIO, HELENA etc., mas a filtragem continua usando a chave original da fonte.
 
+### 12. Salvamento em lote da classificação de serviços
+
+A aba `Serviços` do Admin deixa de exigir um clique em `Salvar` por linha.
+
+Novo fluxo:
+
+1. o administrador altera quantas classificações desejar na lista exibida;
+2. clica uma única vez em `Salvar alterações`;
+3. o Apps Script envia o lote ao Worker por `/admin/services-bulk`;
+4. o Worker compara cada item com a classificação já gravada;
+5. somente itens realmente alterados são escritos;
+6. o histórico é criado somente quando o campo `tipo_objeto` efetivamente muda.
+
+O endpoint aceita no máximo 500 itens por requisição. A tela administrativa renderiza até 150 serviços por pesquisa, portanto o lote da interface permanece abaixo do limite.
+
+`Sem mapeamento` remove apenas a classificação derivada da biblioteca. O dado RAW do CSV permanece intacto.
+
 ## Worker de painel v2
 
 Foi criada a camada:
@@ -147,6 +164,7 @@ O fallback legado continua disponível.
 - `cloudflare/atende-api/src/panel-v2.js`
 - `cloudflare/atende-api/src/main.js`
 - `apps-script/atende/30_ATENDE_D1_PAINEL.gs`
+- `apps-script/atende/31_ATENDE_D1_ADMIN.gs`
 - `apps-script/atende/Index.html`
 - `frontend/atende/index.html`
 - `frontend/atende/sw.js`
@@ -156,7 +174,7 @@ O fallback legado continua disponível.
 1. atualizar branch local;
 2. publicar Worker Cloudflare;
 3. `clasp push` + atualizar o deployment existente do Apps Script;
-4. publicar `frontend` no Cloudflare Pages;
+4. publicar `frontend` no Cloudflare Pages somente quando houver alteração na casca externa;
 5. Ctrl+F5 no `/atende`;
 6. validar Admin e os novos filtros.
 
@@ -177,4 +195,5 @@ Confirmar:
 - INTERMEDIADOR substitui NOME CONTRATO visualmente;
 - botão Admin aparece somente para admin;
 - modal Admin abre pela topbar externa;
+- `Salvar alterações` grava várias classificações de serviço em uma única ação;
 - gravações administrativas continuam sem modificar o RAW.
