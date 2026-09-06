@@ -12,6 +12,24 @@ Na camada RAW do Cloudflare D1:
 - uma reimportacao da mesma versao do mesmo arquivo nao cria outra copia tecnica da mesma linha, usando `import_key + numero_linha` apenas para idempotencia da ingestao;
 - os 26 campos originais sao armazenados como texto e nao sao alterados depois da insercao.
 
+## Infraestrutura oficial do modulo
+
+O `/atende` faz parte da plataforma hospedada no **Cloudflare**.
+
+Arquitetura atual:
+
+```text
+Cloudflare / Frontend
+        ↓
+Google Apps Script
+        ↓
+Cloudflare Worker
+        ↓
+Cloudflare D1
+```
+
+Netlify nao faz parte do fluxo atual de producao deste modulo.
+
 ## Fluxo das pastas do Drive
 
 A pasta raiz configurada em `ATENDE_CSV_FOLDER_ID` possui duas subpastas operacionais:
