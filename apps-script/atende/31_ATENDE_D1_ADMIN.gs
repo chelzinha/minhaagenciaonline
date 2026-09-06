@@ -70,6 +70,10 @@ function ATENDE_adminSalvarServico(platformToken, payload) {
   return ATENDE_adminPost_(platformToken, '/admin/service', payload);
 }
 
+function ATENDE_adminSalvarServicosLote(platformToken, payload) {
+  return ATENDE_adminPost_(platformToken, '/admin/services-bulk', payload);
+}
+
 function ATENDE_adminSalvarAtendente(platformToken, payload) {
   return ATENDE_adminPost_(platformToken, '/admin/attendant', payload);
 }
