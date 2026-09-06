@@ -4,6 +4,8 @@
 
 O módulo `/atende` foi migrado para uma arquitetura com camada RAW imutável no Cloudflare D1, preservando exatamente uma linha no banco para cada linha dos CSVs dos Correios.
 
+> **Infraestrutura atual:** o frontend da Plataforma AGF está hospedado no **Cloudflare**. Netlify não faz parte do fluxo atual de produção deste módulo.
+
 Estado confirmado:
 
 - hospedagem/frontend da plataforma: Cloudflare;
@@ -156,10 +158,9 @@ Google Drive
   -> Apps Script
   -> Cloudflare Worker
   -> Cloudflare D1
+  -> Cloudflare / Frontend
   -> /atende
 ```
-
-O frontend da Plataforma AGF está hospedado no Cloudflare. Netlify não faz parte do fluxo atual de produção deste módulo.
 
 ## 6. Regra visual da coluna OBJETO
 
@@ -267,7 +268,7 @@ Neste momento está sendo publicada a camada que inclui:
 - painel lendo a fonte RAW;
 - novas colunas de apresentação;
 - área administrativa;
-- wrapper autenticado do `/atende` no frontend Cloudflare.
+- wrapper autenticado do `/atende` no frontend hospedado no Cloudflare.
 
 Colunas esperadas no novo painel:
 
