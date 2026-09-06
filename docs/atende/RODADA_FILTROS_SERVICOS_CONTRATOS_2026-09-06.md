@@ -121,6 +121,55 @@ Regras:
 
 A migration também consolida eventuais registros duplicados já existentes em `atende_servico_classificacao`, preservando uma única chave canônica por serviço.
 
+## Filtros facetados e reorganização visual
+
+Com o crescimento da base e da quantidade de dimensões disponíveis, a barra fixa com todos os filtros foi substituída por uma navegação facetada.
+
+### Table-top
+
+Busca, Data início, Data fim, quantidade resultante e valor total ficam no topo da tabela.
+
+Os filtros principais sempre visíveis são:
+
+```text
+OBJETO | SERVIÇO | CLIENTE | ATENDENTE | LOCAL
+```
+
+Os demais ficam em `Mais filtros`, agrupados por assunto:
+
+- Serviço: Tipo serviço, Subgrupo, Tabela;
+- Contrato: Tipo, Intermediador;
+- Operação: Sistema, Estorno;
+- Pagamento: Modalidade, Forma de pagamento.
+
+Filtros aplicados também aparecem como chips removíveis, sem esconder o estado atual dentro dos dropdowns.
+
+### Facetas dependentes
+
+As opções de cada filtro são recalculadas considerando todos os outros filtros ativos, exceto ele próprio.
+
+Exemplo:
+
+```text
+OBJETO = PRODUTO ECT
+```
+
+faz `SERVIÇO` mostrar somente serviços presentes nesse subconjunto. Da mesma forma, `TIPO SERVIÇO = Encomenda` reduz as opções disponíveis em `SUBGRUPO`, `TABELA` e demais dimensões.
+
+O próprio filtro é excluído de sua consulta de opções para permitir acrescentar outros valores em uma multiseleção já ativa.
+
+### Contagem contextual
+
+Cada opção passa a retornar a quantidade de registros resultante no contexto dos demais filtros, por exemplo:
+
+```text
+PAC (3.214)
+SEDEX (2.876)
+Reverso (417)
+```
+
+Depois de confirmar um filtro, o quantitativo total e o valor do painel são recalculados e as demais facetas são atualizadas.
+
 ## Banco D1
 
 Migrations desta rodada:
@@ -143,12 +192,11 @@ As migrations preservam os campos RAW originais.
 
 ## Publicação necessária
 
-Como esta rodada altera banco, Worker e Apps Script, a ordem correta é:
+Para a reorganização facetada não há migration nova. É necessário:
 
 1. `git pull` da branch `feat/atende-csv-diario`;
-2. aplicar migrations remotas do D1;
-3. publicar o Worker;
-4. `clasp push`;
-5. atualizar o deployment existente do Apps Script.
+2. publicar o Worker;
+3. `clasp push`;
+4. atualizar o deployment existente do Apps Script.
 
-Não há alteração necessária no Cloudflare Pages nesta rodada.
+Não há alteração necessária no Cloudflare Pages.
