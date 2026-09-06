@@ -38,17 +38,9 @@ function ATENDE_listaFiltro_(params, plural, singular) {
     });
 }
 
-function ATENDE_buscarDadosD1(params) {
+function ATENDE_mapaFiltrosD1_(params) {
   params = params || {};
-  const page = Math.max(1, Number(params.page || 1));
-  const pageSize = Math.min(500, Math.max(1, Number(params.pageSize || 500)));
-  const q = String(params.q || '').trim();
-  const dataInicio = String(params.dataInicio || params.startDate || params.inicio || '').trim();
-  const dataFim = String(params.dataFim || params.endDate || params.fim || '').trim();
-  const sortKey = String(params.sortKey || 'DATA').trim() || 'DATA';
-  const sortDir = String(params.sortDir || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
-
-  const multi = {
+  return {
     servico: ATENDE_listaFiltro_(params, 'servicos', 'servico'),
     servicoTipo: ATENDE_listaFiltro_(params, 'servicoTipos', 'servicoTipo'),
     servicoSubgrupo: ATENDE_listaFiltro_(params, 'servicoSubgrupos', 'servicoSubgrupo'),
@@ -64,8 +56,30 @@ function ATENDE_buscarDadosD1(params) {
     formaPagamento: ATENDE_listaFiltro_(params, 'formasPagamento', 'formaPagamento'),
     local: ATENDE_listaFiltro_(params, 'locais', 'local')
   };
+}
 
+function ATENDE_adicionarContextoFiltroQuery_(query, params) {
+  params = params || {};
+  const q = String(params.q || '').trim();
+  const dataInicio = String(params.dataInicio || params.startDate || params.inicio || '').trim();
+  const dataFim = String(params.dataFim || params.endDate || params.fim || '').trim();
   if (dataInicio && dataFim && dataInicio > dataFim) throw new Error('Data inicial maior que data final.');
+  if (dataInicio) query.push('dataInicio=' + encodeURIComponent(dataInicio));
+  if (dataFim) query.push('dataFim=' + encodeURIComponent(dataFim));
+  if (q) query.push('q=' + encodeURIComponent(q));
+  const multi = ATENDE_mapaFiltrosD1_(params);
+  Object.keys(multi).forEach(function(key) {
+    multi[key].forEach(function(value) { query.push(key + '=' + encodeURIComponent(value)); });
+  });
+  return query;
+}
+
+function ATENDE_buscarDadosD1(params) {
+  params = params || {};
+  const page = Math.max(1, Number(params.page || 1));
+  const pageSize = Math.min(500, Math.max(1, Number(params.pageSize || 500)));
+  const sortKey = String(params.sortKey || 'DATA').trim() || 'DATA';
+  const sortDir = String(params.sortDir || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
 
   const query = [
     'page=' + encodeURIComponent(page),
@@ -73,15 +87,7 @@ function ATENDE_buscarDadosD1(params) {
     'sortKey=' + encodeURIComponent(sortKey),
     'sortDir=' + encodeURIComponent(sortDir)
   ];
-  if (dataInicio) query.push('dataInicio=' + encodeURIComponent(dataInicio));
-  if (dataFim) query.push('dataFim=' + encodeURIComponent(dataFim));
-  if (q) query.push('q=' + encodeURIComponent(q));
-
-  Object.keys(multi).forEach(function(key) {
-    multi[key].forEach(function(value) {
-      query.push(key + '=' + encodeURIComponent(value));
-    });
-  });
+  ATENDE_adicionarContextoFiltroQuery_(query, params);
 
   const startedAt = Date.now();
   const response = ATENDE_fetchD1_('/atende?' + query.join('&'), { method: 'get' });
@@ -141,8 +147,10 @@ function ATENDE_buscarDadosD1(params) {
   };
 }
 
-function ATENDE_buscarFiltrosD1() {
-  const response = ATENDE_fetchD1_('/filters', { method: 'get' });
+function ATENDE_buscarFiltrosD1(params) {
+  const query = [];
+  ATENDE_adicionarContextoFiltroQuery_(query, params || {});
+  const response = ATENDE_fetchD1_('/filters' + (query.length ? '?' + query.join('&') : ''), { method: 'get' });
   return {
     ok: true,
     servicos: response.servicos || [],
@@ -157,8 +165,8 @@ function ATENDE_buscarFiltrosD1() {
     atendentes: response.atendentes || [],
     modalidadesPagamento: response.modalidadesPagamento || [],
     formasPagamento: response.formasPagamento || [],
-    tiposObjeto: response.tiposObjeto || ['SRO', 'PRODUTO ECT', 'SEM REGISTRO'],
-    locais: response.locais || [{ value: 'AGF', label: 'AGF' }, { value: 'METRO', label: 'METRÔ' }]
+    tiposObjeto: response.tiposObjeto || [],
+    locais: response.locais || []
   };
 }
 
