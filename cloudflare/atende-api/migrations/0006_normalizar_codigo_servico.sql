@@ -118,3 +118,52 @@ CREATE INDEX IF NOT EXISTS idx_atende_servico_classificacao_subgrupo
   ON atende_servico_classificacao(subgrupo);
 CREATE INDEX IF NOT EXISTS idx_atende_servico_classificacao_tabela
   ON atende_servico_classificacao(tabela);
+
+-- Canonicaliza tambem qualquer cadastro futuro feito pelo Admin.
+-- Ex.: se um CSV administrativo enviar 04227, a linha final armazenada sera 4227.
+DROP TRIGGER IF EXISTS trg_atende_normaliza_biblioteca_servico;
+CREATE TRIGGER trg_atende_normaliza_biblioteca_servico
+AFTER INSERT ON atende_servico_classificacao
+FOR EACH ROW
+WHEN TRIM(COALESCE(NEW.codigo_servico, '')) <> ''
+ AND UPPER(TRIM(NEW.codigo_servico)) NOT GLOB '*[^0-9]*'
+ AND COALESCE(NULLIF(LTRIM(UPPER(TRIM(NEW.codigo_servico)), '0'), ''), '0') <> NEW.codigo_servico
+BEGIN
+  INSERT INTO atende_servico_classificacao (
+    codigo_servico,
+    nome_servico_referencia,
+    tipo_objeto,
+    observacao,
+    atualizado_por,
+    atualizado_em,
+    tipo_servico,
+    subgrupo,
+    tabela
+  ) VALUES (
+    COALESCE(NULLIF(LTRIM(UPPER(TRIM(NEW.codigo_servico)), '0'), ''), '0'),
+    NEW.nome_servico_referencia,
+    CASE
+      WHEN UPPER(TRIM(COALESCE(NEW.tipo_objeto, ''))) IN ('PRODUTO ECT','SEM REGISTRO')
+        THEN UPPER(TRIM(NEW.tipo_objeto))
+      ELSE NULL
+    END,
+    NEW.observacao,
+    NEW.atualizado_por,
+    NEW.atualizado_em,
+    NEW.tipo_servico,
+    NEW.subgrupo,
+    NEW.tabela
+  )
+  ON CONFLICT(codigo_servico) DO UPDATE SET
+    nome_servico_referencia=excluded.nome_servico_referencia,
+    tipo_objeto=excluded.tipo_objeto,
+    observacao=excluded.observacao,
+    atualizado_por=excluded.atualizado_por,
+    atualizado_em=excluded.atualizado_em,
+    tipo_servico=excluded.tipo_servico,
+    subgrupo=excluded.subgrupo,
+    tabela=excluded.tabela;
+
+  DELETE FROM atende_servico_classificacao
+  WHERE codigo_servico = NEW.codigo_servico;
+END;
