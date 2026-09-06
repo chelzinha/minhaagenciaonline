@@ -83,11 +83,33 @@ O código original permanece intacto no RAW e continua sendo a chave da bibliote
 
 O filtro também continua se chamando `ATENDENTE`, porém exibe o nome amigável quando houver vínculo cadastrado. O valor técnico enviado ao backend continua sendo o código original.
 
-### 7. NOME CONTRATO renomeado para INTERMEDIADOR
+### 7. Contratos enriquecidos
 
-A chave de dados interna permanece compatível, porém o cabeçalho visível no painel passa a ser `INTERMEDIADOR`.
+A biblioteca de contratos passa a usar a estrutura administrativa definitiva:
 
-A área administrativa de contratos também usa a nomenclatura Intermediador no campo de nome.
+```text
+Contrato | Ocorr. | Cliente | Tipo | Intermediador
+```
+
+Regras:
+
+- `Contrato`: chave técnica ligada ao `NUMERO_CONTRATO` do RAW;
+- `Ocorr.`: calculada diretamente do RAW, nunca gravada a partir do CSV administrativo;
+- `Cliente`: cliente vinculado ao contrato no Portal Postal;
+- `Tipo`: classificação do contrato/cliente, como PLATINUM, BRONZE ou CONTRATO ANTIGO;
+- `Intermediador`: intermediador do contrato, como PORTAL POSTAL.
+
+`Observação` deixa de existir no fluxo novo. A coluna histórica permanece no schema apenas por compatibilidade e recebe `NULL` nas novas gravações.
+
+O painel passa a exibir, após `CARTÃO POSTAGEM`:
+
+```text
+CONTRATO | OCORR. | CLIENTE | TIPO | INTERMEDIADOR
+```
+
+Os cinco campos ficam disponíveis como filtros independentes.
+
+`CLIENTE` do contrato não substitui `NOME REMETENTE`; são dimensões diferentes.
 
 ### 8. Limpar filtros preserva datas
 
@@ -149,7 +171,7 @@ O endpoint aceita no máximo 500 itens por requisição. A tela administrativa r
 
 ### 13. Importação CSV administrativa para Remetentes e Contratos
 
-Para acelerar a primeira carga das bibliotecas, as abas `Remetentes` e `Contratos` passam a aceitar CSV diretamente pelo Admin.
+Para acelerar a primeira carga das bibliotecas, as abas `Remetentes` e `Contratos` aceitam CSV diretamente pelo Admin.
 
 Essa importação não substitui nem altera o CSV operacional dos Correios. Ela grava somente tabelas de biblioteca/normalização.
 
@@ -183,23 +205,25 @@ Limite: 1.000 linhas por importação.
 
 #### Contratos
 
-Cabeçalhos esperados:
+Cabeçalhos definitivos:
 
 ```text
 Contrato
 Ocorr.
-Intermediador
+Cliente
 Tipo
-Observação
+Intermediador
 ```
 
 Regras:
 
-- `Contrato` é a chave técnica;
-- `Intermediador`, `Tipo` e `Observação` alimentam `atende_contratos`;
-- `Ocorr.` pode existir no CSV para manter o mesmo desenho visual do Admin, mas é ignorada na gravação porque a ocorrência é sempre calculada a partir do RAW;
+- `Contrato` é obrigatório;
+- `Cliente` é obrigatório;
+- `Intermediador` é obrigatório;
+- `Tipo` pode ficar vazio;
+- `Ocorr.` pode estar no CSV para manter o mesmo desenho do Admin, mas é ignorada na gravação porque a ocorrência é calculada pelo RAW;
 - contrato repetido com conteúdo conflitante dentro do mesmo CSV é recusado;
-- linhas já idênticas ao cadastro existente são consideradas `sem mudança` e não geram histórico desnecessário.
+- linhas idênticas ao cadastro existente são consideradas `sem mudança` e não geram histórico desnecessário.
 
 Endpoint Worker:
 
@@ -207,20 +231,23 @@ Endpoint Worker:
 
 Limite: 1.000 linhas por importação.
 
+## Migration do cadastro de contratos
+
+A migration `0004_contratos_cliente.sql` adiciona `cliente` à tabela `atende_contratos` e cria índices para Cliente, Tipo e Intermediador.
+
+Ela deve ser aplicada no D1 remoto antes de publicar o Worker que lê esses campos.
+
 ## Worker de painel v2
 
-Foi criada a camada:
+A camada `cloudflare/atende-api/src/panel-v2.js` concentra as regras de leitura e filtros do painel RAW sem alterar a rotina de ingestão definida em `src/index.js`.
 
-`cloudflare/atende-api/src/panel-v2.js`
-
-Ela concentra as novas regras de leitura e filtros do painel RAW sem alterar a rotina de ingestão definida em `src/index.js`.
-
-`src/main.js` passa a encaminhar `/atende` e `/filters` para essa camada quando `panel_source=raw` e a base RAW estiver pronta.
+`src/main.js` encaminha `/atende` e `/filters` para essa camada quando `panel_source=raw` e a base RAW estiver pronta.
 
 O fallback legado continua disponível.
 
 ## Arquivos principais alterados
 
+- `cloudflare/atende-api/migrations/0004_contratos_cliente.sql`
 - `cloudflare/atende-api/src/panel-v2.js`
 - `cloudflare/atende-api/src/main.js`
 - `apps-script/atende/30_ATENDE_D1_PAINEL.gs`
@@ -232,19 +259,19 @@ O fallback legado continua disponível.
 ## Ordem de publicação
 
 1. atualizar branch local;
-2. publicar Worker Cloudflare;
-3. `clasp push` + atualizar o deployment existente do Apps Script;
-4. publicar `frontend` no Cloudflare Pages somente quando houver alteração na casca externa;
-5. Ctrl+F5 no `/atende`;
-6. validar Admin e os novos filtros.
+2. aplicar migrations remotas do D1;
+3. publicar Worker Cloudflare;
+4. `clasp push` + atualizar o deployment existente do Apps Script;
+5. publicar `frontend` no Cloudflare Pages somente quando houver alteração na casca externa;
+6. Ctrl+F5 no `/atende`;
+7. validar Admin e os novos filtros.
 
 ## Validações pós-deploy
 
 Confirmar:
 
-- total continua em 28.639 antes de novos CSVs;
+- total continua coerente com o RAW;
 - valor total continua coerente;
-- não existe segunda topbar interna;
 - painel não extrapola largura da página;
 - scroll horizontal acontece apenas dentro da tabela;
 - paginação abre com 500;
@@ -252,10 +279,11 @@ Confirmar:
 - OBJETO contém a opção SRO;
 - SERVIÇO aceita múltiplas opções;
 - ATENDENTE mostra nome quando cadastrado e código enquanto não cadastrado;
-- INTERMEDIADOR substitui NOME CONTRATO visualmente;
+- painel contém CONTRATO, OCORR., CLIENTE, TIPO e INTERMEDIADOR;
+- os cinco campos de contrato possuem filtro próprio;
 - botão Admin aparece somente para admin;
 - modal Admin abre pela topbar externa;
 - `Salvar alterações` grava várias classificações de serviço em uma única ação;
 - Remetentes aceita CSV sem criar clientes duplicados desnecessariamente;
-- Contratos aceita CSV e ignora `Ocorr.` na gravação;
+- Contratos aceita o CSV definitivo e ignora `Ocorr.` na gravação;
 - gravações administrativas continuam sem modificar o RAW.
