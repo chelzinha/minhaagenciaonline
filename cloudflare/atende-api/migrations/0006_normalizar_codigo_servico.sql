@@ -16,6 +16,23 @@ SET codigo_servico_norm = CASE
   ELSE UPPER(TRIM(COALESCE(codigo_servico_norm, '')))
 END;
 
+-- Garante a mesma regra para toda nova linha RAW inserida daqui para frente.
+-- O gatilho altera somente a coluna tecnica derivada codigo_servico_norm.
+DROP TRIGGER IF EXISTS trg_atende_normaliza_codigo_servico;
+CREATE TRIGGER trg_atende_normaliza_codigo_servico
+AFTER INSERT ON atende_postagens_raw
+FOR EACH ROW
+BEGIN
+  UPDATE atende_postagens_raw
+  SET codigo_servico_norm = CASE
+    WHEN TRIM(COALESCE(NEW.codigo_servico_norm, '')) <> ''
+     AND UPPER(TRIM(NEW.codigo_servico_norm)) NOT GLOB '*[^0-9]*'
+      THEN COALESCE(NULLIF(LTRIM(UPPER(TRIM(NEW.codigo_servico_norm)), '0'), ''), '0')
+    ELSE UPPER(TRIM(COALESCE(NEW.codigo_servico_norm, '')))
+  END
+  WHERE id = NEW.id;
+END;
+
 -- A biblioteca administrativa usa a mesma chave canonica.
 -- Se ja existirem duas entradas equivalentes (ex.: 04227 e 4227),
 -- preserva a entrada mais recentemente atualizada e passa a usar uma unica chave.
