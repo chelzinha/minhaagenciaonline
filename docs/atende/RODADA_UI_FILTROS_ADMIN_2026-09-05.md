@@ -147,6 +147,66 @@ O endpoint aceita no máximo 500 itens por requisição. A tela administrativa r
 
 `Sem mapeamento` remove apenas a classificação derivada da biblioteca. O dado RAW do CSV permanece intacto.
 
+### 13. Importação CSV administrativa para Remetentes e Contratos
+
+Para acelerar a primeira carga das bibliotecas, as abas `Remetentes` e `Contratos` passam a aceitar CSV diretamente pelo Admin.
+
+Essa importação não substitui nem altera o CSV operacional dos Correios. Ela grava somente tabelas de biblioteca/normalização.
+
+#### Remetentes
+
+Cabeçalhos esperados:
+
+```text
+Nome recebido do Atende
+Nome correto
+Cliente existente (opcional)
+Local padrão
+```
+
+Regras:
+
+- `Nome recebido do Atende` vira o alias da fonte;
+- `Nome correto` vira o nome do cliente mestre;
+- `Cliente existente (opcional)` pode receber o nome exato do cliente, o ID do cliente, ficar vazio ou conter `Criar novo cliente`;
+- vazio ou `Criar novo cliente` faz o sistema procurar primeiro um cliente mestre com o mesmo `Nome correto`; se não existir, cria um novo;
+- vários aliases do mesmo `Nome correto` na mesma carga reutilizam o mesmo cliente mestre;
+- `Local padrão` aceita vazio, `AGF`, `METRO` ou `METRÔ`;
+- aliases duplicados dentro do mesmo CSV são recusados antes da gravação;
+- referência ambígua a cliente existente é recusada.
+
+Endpoint Worker:
+
+`POST /admin/client-aliases-bulk`
+
+Limite: 1.000 linhas por importação.
+
+#### Contratos
+
+Cabeçalhos esperados:
+
+```text
+Contrato
+Ocorr.
+Intermediador
+Tipo
+Observação
+```
+
+Regras:
+
+- `Contrato` é a chave técnica;
+- `Intermediador`, `Tipo` e `Observação` alimentam `atende_contratos`;
+- `Ocorr.` pode existir no CSV para manter o mesmo desenho visual do Admin, mas é ignorada na gravação porque a ocorrência é sempre calculada a partir do RAW;
+- contrato repetido com conteúdo conflitante dentro do mesmo CSV é recusado;
+- linhas já idênticas ao cadastro existente são consideradas `sem mudança` e não geram histórico desnecessário.
+
+Endpoint Worker:
+
+`POST /admin/contracts-bulk`
+
+Limite: 1.000 linhas por importação.
+
 ## Worker de painel v2
 
 Foi criada a camada:
@@ -196,4 +256,6 @@ Confirmar:
 - botão Admin aparece somente para admin;
 - modal Admin abre pela topbar externa;
 - `Salvar alterações` grava várias classificações de serviço em uma única ação;
+- Remetentes aceita CSV sem criar clientes duplicados desnecessariamente;
+- Contratos aceita CSV e ignora `Ocorr.` na gravação;
 - gravações administrativas continuam sem modificar o RAW.
