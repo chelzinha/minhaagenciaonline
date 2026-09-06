@@ -69,6 +69,9 @@ async function listAtende(url, env) {
   const q = clean(url.searchParams.get('q'));
 
   const servicos = getMulti(url, 'servico', 'servicos');
+  const servicoTipos = getMulti(url, 'servicoTipo', 'servicoTipos');
+  const servicoSubgrupos = getMulti(url, 'servicoSubgrupo', 'servicoSubgrupos');
+  const servicoTabelas = getMulti(url, 'servicoTabela', 'servicoTabelas');
   const contratoClientes = getMulti(url, 'contratoCliente', 'contratoClientes');
   const contratoTipos = getMulti(url, 'contratoTipo', 'contratoTipos');
   const intermediadores = getMulti(url, 'intermediador', 'intermediadores');
@@ -102,6 +105,9 @@ async function listAtende(url, env) {
   }
 
   addMultiFilter(where, args, 'r.nome_servico', servicos);
+  addMultiFilter(where, args, "COALESCE(sc.tipo_servico, '')", servicoTipos);
+  addMultiFilter(where, args, "COALESCE(sc.subgrupo, '')", servicoSubgrupos);
+  addMultiFilter(where, args, "COALESCE(sc.tabela, '')", servicoTabelas);
   addMultiFilter(where, args, "COALESCE(co.cliente, '')", contratoClientes);
   addMultiFilter(where, args, CONTRATO_TIPO_SQL, contratoTipos);
   addMultiFilter(where, args, CONTRATO_INTERMEDIADOR_SQL, intermediadores);
@@ -197,6 +203,9 @@ async function listAtende(url, env) {
 async function listFilters(env) {
   const simpleSpecs = [
     ['servicos', 'r.nome_servico'],
+    ['servicoTipos', "COALESCE(sc.tipo_servico, '')"],
+    ['servicoSubgrupos', "COALESCE(sc.subgrupo, '')"],
+    ['servicoTabelas', "COALESCE(sc.tabela, '')"],
     ['contratoClientes', "COALESCE(co.cliente, '')"],
     ['contratoTipos', CONTRATO_TIPO_SQL],
     ['intermediadores', CONTRATO_INTERMEDIADOR_SQL],
