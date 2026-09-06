@@ -13,19 +13,7 @@ Foram removidos os filtros de:
 
 As colunas `CONTRATO` e `OCORR.` continuam no painel e continuam ordenáveis.
 
-Os filtros categóricos passam a usar multiselect com aplicação explícita:
-
-- Objeto;
-- Serviço;
-- Cliente;
-- Tipo;
-- Intermediador;
-- Sistema;
-- Estorno;
-- Atendente;
-- Modalidade de pagamento;
-- Forma de pagamento;
-- Local.
+Os filtros categóricos passam a usar multiselect com aplicação explícita.
 
 Cada dropdown possui:
 
@@ -36,7 +24,7 @@ Cada dropdown possui:
 
 Marcar ou desmarcar opções não recarrega o painel. A consulta só é executada após `Confirmar`.
 
-O botão geral `Limpar` continua preservando Data início e Data fim.
+O botão geral `Limpar filtros` continua preservando Data início e Data fim.
 
 ## ATENDENTE agrupado por nome
 
@@ -127,18 +115,18 @@ Com o crescimento da base e da quantidade de dimensões disponíveis, a barra fi
 
 ### Table-top
 
-Busca, Data início, Data fim, quantidade resultante e valor total ficam no topo da tabela.
+Busca, Data início, Data fim, seletor de mês completo, quantidade resultante e valor total ficam no topo da tabela.
 
 Os filtros principais sempre visíveis são:
 
 ```text
-OBJETO | SERVIÇO | CLIENTE | ATENDENTE | LOCAL
+OBJETO | TIPO SERVIÇO | CLIENTE | ATENDENTE | LOCAL
 ```
 
-Os demais ficam em `Mais filtros`, agrupados por assunto:
+Os demais ficam em `Mais filtros`, agrupados e ordenados por hierarquia:
 
-- Serviço: Tipo serviço, Subgrupo, Tabela;
-- Contrato: Tipo, Intermediador;
+- Serviço: Tabela, Subgrupo, Serviço;
+- Contrato: Intermediador, Tipo;
 - Operação: Sistema, Estorno;
 - Pagamento: Modalidade, Forma de pagamento.
 
@@ -154,7 +142,7 @@ Exemplo:
 OBJETO = PRODUTO ECT
 ```
 
-faz `SERVIÇO` mostrar somente serviços presentes nesse subconjunto. Da mesma forma, `TIPO SERVIÇO = Encomenda` reduz as opções disponíveis em `SUBGRUPO`, `TABELA` e demais dimensões.
+faz os filtros de serviço mostrarem somente valores presentes nesse subconjunto. Da mesma forma, `TIPO SERVIÇO = Encomenda` reduz as opções disponíveis em `TABELA`, `SUBGRUPO`, `SERVIÇO` e demais dimensões.
 
 O próprio filtro é excluído de sua consulta de opções para permitir acrescentar outros valores em uma multiseleção já ativa.
 
@@ -169,6 +157,25 @@ Reverso (417)
 ```
 
 Depois de confirmar um filtro, o quantitativo total e o valor do painel são recalculados e as demais facetas são atualizadas.
+
+## Seletor de mês completo
+
+Foi adicionado ao lado de Data início e Data fim um controle mensal com navegação direta:
+
+```text
+‹  Setembro de 2026  ›
+```
+
+Regras:
+
+- a seta esquerda seleciona o mês anterior completo;
+- a seta direita seleciona o próximo mês completo;
+- clicar no nome do mês abre o seletor nativo de mês do navegador;
+- selecionar um mês preenche Data início com o primeiro dia e Data fim com o último dia daquele mês;
+- o painel, os totais e todas as facetas são recalculados usando esse período;
+- quando Data início e Data fim correspondem exatamente a um mês completo, o nome desse mês aparece no controle;
+- quando as datas formam outro intervalo, o controle mostra `Período personalizado`;
+- o seletor mensal reutiliza os filtros de data existentes e não cria novo campo no RAW ou no D1.
 
 ## Banco D1
 
@@ -192,11 +199,10 @@ As migrations preservam os campos RAW originais.
 
 ## Publicação necessária
 
-Para a reorganização facetada não há migration nova. É necessário:
+Para a reorganização de hierarquia visual e o seletor mensal não há migration nova nem mudança no Worker. É necessário:
 
 1. `git pull` da branch `feat/atende-csv-diario`;
-2. publicar o Worker;
-3. `clasp push`;
-4. atualizar o deployment existente do Apps Script.
+2. `clasp push`;
+3. atualizar o deployment existente do Apps Script.
 
 Não há alteração necessária no Cloudflare Pages.
