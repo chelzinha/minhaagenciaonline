@@ -69,13 +69,55 @@ async function adminBulkContracts(request, env) {
   const source=Array.isArray(body?.items)?body.items:[];
   if(!source.length)return json({ok:false,error:'items_required'},400);
   if(source.length>1000)return json({ok:false,error:'max_1000_items'},413);
+
   const map=new Map(),errors=[];
-  source.forEach((raw,index)=>{const numero=clean(raw?.numero).toUpperCase(),nome=clean(raw?.nome),tipo=clean(raw?.tipo),observacao=clean(raw?.observacao);if(!numero&&!nome&&!tipo&&!observacao)return;if(!numero){errors.push({linha:index+2,error:'contrato_required'});return;}if(!nome){errors.push({linha:index+2,contrato:numero,error:'intermediador_required'});return;}const prev=map.get(numero),next={numero,nome,tipo,observacao};if(prev&&JSON.stringify(prev)!==JSON.stringify(next))errors.push({linha:index+2,contrato:numero,error:'duplicate_contract_conflict'});else map.set(numero,next);});
+  source.forEach((raw,index)=>{
+    const numero=clean(raw?.numero).toUpperCase();
+    const cliente=clean(raw?.cliente);
+    const tipo=clean(raw?.tipo);
+    const nome=clean(raw?.nome);
+    if(!numero&&!cliente&&!tipo&&!nome)return;
+    if(!numero){errors.push({linha:index+2,error:'contrato_required'});return;}
+    if(!cliente){errors.push({linha:index+2,contrato:numero,error:'cliente_required'});return;}
+    if(!nome){errors.push({linha:index+2,contrato:numero,error:'intermediador_required'});return;}
+    const prev=map.get(numero),next={numero,cliente,tipo,nome};
+    if(prev&&JSON.stringify(prev)!==JSON.stringify(next))errors.push({linha:index+2,contrato:numero,error:'duplicate_contract_conflict'});
+    else map.set(numero,next);
+  });
   if(errors.length)return json({ok:false,error:'csv_validation_failed',details:errors.slice(0,50)},400);
-  const items=Array.from(map.values());if(!items.length)return json({ok:false,error:'valid_items_required'},400);
-  const current=new Map();for(let i=0;i<items.length;i+=80){const chunk=items.slice(i,i+80),q=await env.DB.prepare(`SELECT numero,nome,tipo,observacao FROM atende_contratos WHERE numero IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk.map(x=>x.numero)).all();(q.results||[]).forEach(r=>current.set(clean(r.numero).toUpperCase(),r));}
-  const user=adminUser(request),statements=[];let saved=0,unchanged=0;
-  for(const item of items){const old=current.get(item.numero)||null,oldObj={nome:clean(old?.nome),tipo:clean(old?.tipo),observacao:clean(old?.observacao)},newObj={nome:item.nome,tipo:item.tipo,observacao:item.observacao};if(old&&JSON.stringify(oldObj)===JSON.stringify(newObj)){unchanged++;continue;}statements.push(env.DB.prepare(`INSERT INTO atende_contratos(numero,nome,tipo,observacao,ativo,atualizado_por,atualizado_em) VALUES(?,?,?,?,1,?,datetime('now')) ON CONFLICT(numero) DO UPDATE SET nome=excluded.nome,tipo=excluded.tipo,observacao=excluded.observacao,ativo=1,atualizado_por=excluded.atualizado_por,atualizado_em=datetime('now')`).bind(item.numero,item.nome,item.tipo,item.observacao,user));statements.push(auditStmt(env,'contrato',item.numero,'cadastro',JSON.stringify(oldObj),JSON.stringify(newObj),user));saved++;}
+
+  const items=Array.from(map.values());
+  if(!items.length)return json({ok:false,error:'valid_items_required'},400);
+
+  const current=new Map();
+  for(let i=0;i<items.length;i+=80){
+    const chunk=items.slice(i,i+80);
+    const q=await env.DB.prepare(`SELECT numero,cliente,nome,tipo FROM atende_contratos WHERE numero IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk.map(x=>x.numero)).all();
+    (q.results||[]).forEach(r=>current.set(clean(r.numero).toUpperCase(),r));
+  }
+
+  const user=adminUser(request),statements=[];
+  let saved=0,unchanged=0;
+  for(const item of items){
+    const old=current.get(item.numero)||null;
+    const oldObj={cliente:clean(old?.cliente),tipo:clean(old?.tipo),nome:clean(old?.nome)};
+    const newObj={cliente:item.cliente,tipo:item.tipo,nome:item.nome};
+    if(old&&JSON.stringify(oldObj)===JSON.stringify(newObj)){unchanged++;continue;}
+    statements.push(env.DB.prepare(`
+      INSERT INTO atende_contratos(numero,cliente,nome,tipo,observacao,ativo,atualizado_por,atualizado_em)
+      VALUES(?,?,?,?,NULL,1,?,datetime('now'))
+      ON CONFLICT(numero) DO UPDATE SET
+        cliente=excluded.cliente,
+        nome=excluded.nome,
+        tipo=excluded.tipo,
+        observacao=NULL,
+        ativo=1,
+        atualizado_por=excluded.atualizado_por,
+        atualizado_em=datetime('now')
+    `).bind(item.numero,item.cliente,item.nome,item.tipo,user));
+    statements.push(auditStmt(env,'contrato',item.numero,'cadastro',JSON.stringify(oldObj),JSON.stringify(newObj),user));
+    saved++;
+  }
   for(let i=0;i<statements.length;i+=70)await env.DB.batch(statements.slice(i,i+70));
   return json({ok:true,received:items.length,saved,unchanged});
 }
