@@ -16,6 +16,11 @@ export default {
       return panelV2.fetch(request, env, ctx);
     }
 
+    if (url.pathname === '/admin/services-bulk' && request.method === 'POST') {
+      if (!authorized(request, env)) return json({ ok:false, error:'unauthorized' }, 401);
+      return adminBulkServices(request, env);
+    }
+
     return rawApp.fetch(request, env, ctx);
   }
 };
@@ -48,6 +53,87 @@ async function rawReady(env) {
 
 function authorized(request, env) {
   return !!env.ATENDE_API_TOKEN && (request.headers.get('Authorization') || '') === `Bearer ${env.ATENDE_API_TOKEN}`;
+}
+
+async function adminBulkServices(request, env) {
+  let body;
+  try { body = await request.json(); }
+  catch (_) { return json({ ok:false, error:'invalid_json' }, 400); }
+
+  const source = Array.isArray(body?.items) ? body.items : [];
+  if (!source.length) return json({ ok:false, error:'items_required' }, 400);
+  if (source.length > 500) return json({ ok:false, error:'max_500_items' }, 413);
+
+  const seen = new Set();
+  const items = [];
+  for (const raw of source) {
+    const codigo = clean(raw?.codigo).toUpperCase();
+    const tipoObjeto = clean(raw?.tipoObjeto).toUpperCase();
+    const nomeServico = clean(raw?.nomeServico);
+    if (!codigo || seen.has(codigo)) continue;
+    if (tipoObjeto && !['PRODUTO ECT', 'SEM REGISTRO'].includes(tipoObjeto)) {
+      return json({ ok:false, error:'invalid_tipo_objeto', codigo }, 400);
+    }
+    seen.add(codigo);
+    items.push({ codigo, tipoObjeto, nomeServico });
+  }
+  if (!items.length) return json({ ok:false, error:'valid_items_required' }, 400);
+
+  const placeholders = items.map(() => '?').join(',');
+  const currentRows = await env.DB.prepare(`
+    SELECT codigo_servico, nome_servico_referencia, tipo_objeto
+    FROM atende_servico_classificacao
+    WHERE codigo_servico IN (${placeholders})
+  `).bind(...items.map(x => x.codigo)).all();
+  const current = new Map((currentRows.results || []).map(row => [String(row.codigo_servico || ''), row]));
+  const user = clean(request.headers.get('X-AGF-Admin-User')) || 'admin';
+
+  const statements = [];
+  let changed = 0;
+  let unchanged = 0;
+
+  for (const item of items) {
+    const old = current.get(item.codigo) || null;
+    const oldTipo = clean(old?.tipo_objeto).toUpperCase();
+    const oldNome = clean(old?.nome_servico_referencia);
+    const typeChanged = oldTipo !== item.tipoObjeto;
+    const nameChanged = oldNome !== item.nomeServico;
+
+    if (!typeChanged && !nameChanged) {
+      unchanged++;
+      continue;
+    }
+
+    if (!item.tipoObjeto) {
+      statements.push(env.DB.prepare(`DELETE FROM atende_servico_classificacao WHERE codigo_servico = ?`).bind(item.codigo));
+    } else {
+      statements.push(env.DB.prepare(`
+        INSERT INTO atende_servico_classificacao(
+          codigo_servico, nome_servico_referencia, tipo_objeto, atualizado_por, atualizado_em
+        ) VALUES(?,?,?,?,datetime('now'))
+        ON CONFLICT(codigo_servico) DO UPDATE SET
+          nome_servico_referencia=excluded.nome_servico_referencia,
+          tipo_objeto=excluded.tipo_objeto,
+          atualizado_por=excluded.atualizado_por,
+          atualizado_em=datetime('now')
+      `).bind(item.codigo, item.nomeServico, item.tipoObjeto, user));
+    }
+
+    if (typeChanged) {
+      statements.push(env.DB.prepare(`
+        INSERT INTO atende_admin_historico(
+          entidade, chave, campo, valor_anterior, valor_novo, usuario, criado_em
+        ) VALUES('servico', ?, 'tipo_objeto', ?, ?, ?, datetime('now'))
+      `).bind(item.codigo, oldTipo, item.tipoObjeto, user));
+    }
+    changed++;
+  }
+
+  for (let i = 0; i < statements.length; i += 80) {
+    await env.DB.batch(statements.slice(i, i + 80));
+  }
+
+  return json({ ok:true, received:items.length, saved:changed, unchanged });
 }
 
 const SORT = Object.freeze({
