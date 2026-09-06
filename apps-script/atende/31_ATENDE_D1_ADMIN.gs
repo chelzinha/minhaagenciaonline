@@ -82,8 +82,16 @@ function ATENDE_adminSalvarContrato(platformToken, payload) {
   return ATENDE_adminPost_(platformToken, '/admin/contract', payload);
 }
 
+function ATENDE_adminImportarContratosLote(platformToken, payload) {
+  return ATENDE_adminPost_(platformToken, '/admin/contracts-bulk', payload);
+}
+
 function ATENDE_adminSalvarAliasCliente(platformToken, payload) {
   return ATENDE_adminPost_(platformToken, '/admin/client-alias', payload);
+}
+
+function ATENDE_adminImportarRemetentesLote(platformToken, payload) {
+  return ATENDE_adminPost_(platformToken, '/admin/client-aliases-bulk', payload);
 }
 
 function ATENDE_adminAlterarLocalLote(platformToken, payload) {
