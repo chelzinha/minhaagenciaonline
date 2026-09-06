@@ -133,5 +133,6 @@
     return '<section class="db-card"><div class="db-card-head"><div class="db-card-title">'+esc(title)+'</div><span class="db-card-note">por faturamento</span></div><div class="db-bars">'+html+'</div></section>';
   }
 
-  window.addEventListener('load',function(){setTimeout(init,30)});
+  if(document.readyState==='complete')setTimeout(init,30);
+  else window.addEventListener('load',function(){setTimeout(init,30)});
 })();
