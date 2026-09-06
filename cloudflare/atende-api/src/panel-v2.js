@@ -1,4 +1,8 @@
 const OBJETO_VAZIO_SQL = `(r.codigo_objeto IS NULL OR TRIM(r.codigo_objeto) = '' OR LOWER(TRIM(r.codigo_objeto)) = 'null')`;
+const CONTRATO_TIPO_SQL = `COALESCE(NULLIF(TRIM(co.tipo), ''), CASE WHEN COALESCE(cc.ocorrencias, 0) BETWEEN 1 AND 3 THEN 'CONTRATO ECT' ELSE '' END)`;
+const CONTRATO_INTERMEDIADOR_SQL = `COALESCE(NULLIF(TRIM(co.nome), ''), CASE WHEN COALESCE(cc.ocorrencias, 0) BETWEEN 1 AND 3 THEN 'CONTRATO ECT' ELSE '' END)`;
+const ATENDENTE_EXIBIDO_SQL = `COALESCE(NULLIF(TRIM(a.nome), ''), r.atendente_norm)`;
+const LOCAL_EXIBIDO_SQL = `COALESCE(po.local_codigo, c.local_padrao, '')`;
 
 const BASE_FROM = `
   FROM atende_postagens_raw r
@@ -34,9 +38,9 @@ const SORT_FIELDS = Object.freeze({
   'CARTAO POSTAGEM': 'r.cartao_postagem',
   'CONTRATO': 'r.numero_contrato_norm',
   'OCORR': 'COALESCE(cc.ocorrencias, 0)',
-  'CLIENTE': 'COALESCE(co.cliente, \'\')',
-  'TIPO': 'COALESCE(co.tipo, \'\')',
-  'INTERMEDIADOR': 'COALESCE(co.nome, \'\')',
+  'CLIENTE': "COALESCE(co.cliente, '')",
+  'TIPO': CONTRATO_TIPO_SQL,
+  'INTERMEDIADOR': CONTRATO_INTERMEDIADOR_SQL,
   'SISTEMA': 'r.sistema_postagem',
   'VALOR': 'r.valor_atendimento_num',
   'ESTORNO': 'r.estorno',
@@ -63,23 +67,18 @@ async function listAtende(url, env) {
   const dataInicio = clean(url.searchParams.get('dataInicio'));
   const dataFim = clean(url.searchParams.get('dataFim'));
   const q = clean(url.searchParams.get('q'));
-  const contrato = clean(url.searchParams.get('contrato'));
-  const contratoOcorr = clean(url.searchParams.get('contratoOcorr'));
-  const contratoCliente = clean(url.searchParams.get('contratoCliente'));
-  const contratoTipo = clean(url.searchParams.get('contratoTipo'));
-  const intermediador = clean(url.searchParams.get('intermediador'));
-  const sistema = clean(url.searchParams.get('sistema'));
-  const estorno = clean(url.searchParams.get('estorno'));
-  const atendente = clean(url.searchParams.get('atendente'));
-  const modalidadePagamento = clean(url.searchParams.get('modalidadePagamento'));
-  const formaPagamento = clean(url.searchParams.get('formaPagamento'));
-  const tipoObjeto = clean(url.searchParams.get('tipoObjeto')).toUpperCase();
-  const local = clean(url.searchParams.get('local'));
 
-  const servicos = unique([
-    ...url.searchParams.getAll('servico').map(clean),
-    ...clean(url.searchParams.get('servicos')).split('|').map(clean)
-  ].filter(Boolean));
+  const servicos = getMulti(url, 'servico', 'servicos');
+  const contratoClientes = getMulti(url, 'contratoCliente', 'contratoClientes');
+  const contratoTipos = getMulti(url, 'contratoTipo', 'contratoTipos');
+  const intermediadores = getMulti(url, 'intermediador', 'intermediadores');
+  const sistemas = getMulti(url, 'sistema', 'sistemas');
+  const estornos = getMulti(url, 'estorno', 'estornos');
+  const atendentes = getMulti(url, 'atendente', 'atendentes');
+  const modalidadesPagamento = getMulti(url, 'modalidadePagamento', 'modalidadesPagamento');
+  const formasPagamento = getMulti(url, 'formaPagamento', 'formasPagamento');
+  const tiposObjeto = getMulti(url, 'tipoObjeto', 'tiposObjeto').map(v => v.toUpperCase());
+  const locais = getMulti(url, 'local', 'locais');
 
   const sortKey = clean(url.searchParams.get('sortKey')) || 'DATA';
   const sortField = SORT_FIELDS[sortKey] || SORT_FIELDS.DATA;
@@ -102,35 +101,28 @@ async function listAtende(url, env) {
     args.push(...Array(16).fill(like));
   }
 
-  if (servicos.length) {
-    where.push(`(${servicos.map(() => 'r.nome_servico = ? COLLATE NOCASE').join(' OR ')})`);
-    args.push(...servicos);
-  }
+  addMultiFilter(where, args, 'r.nome_servico', servicos);
+  addMultiFilter(where, args, "COALESCE(co.cliente, '')", contratoClientes);
+  addMultiFilter(where, args, CONTRATO_TIPO_SQL, contratoTipos);
+  addMultiFilter(where, args, CONTRATO_INTERMEDIADOR_SQL, intermediadores);
+  addMultiFilter(where, args, 'r.sistema_postagem', sistemas);
+  addMultiFilter(where, args, 'r.estorno', estornos);
+  addMultiFilter(where, args, ATENDENTE_EXIBIDO_SQL, atendentes);
+  addMultiFilter(where, args, 'r.modalidade_pagamento', modalidadesPagamento);
+  addMultiFilter(where, args, 'r.forma_pagamento', formasPagamento);
+  addMultiFilter(where, args, LOCAL_EXIBIDO_SQL, locais);
 
-  addExactFilter(where, args, 'r.numero_contrato_norm', contrato);
-  if (contratoOcorr) {
-    const ocorr = Number(contratoOcorr);
-    if (Number.isFinite(ocorr) && ocorr >= 0) { where.push('COALESCE(cc.ocorrencias, 0) = ?'); args.push(ocorr); }
-  }
-  addExactFilter(where, args, 'co.cliente', contratoCliente);
-  addExactFilter(where, args, 'co.tipo', contratoTipo);
-  addExactFilter(where, args, 'co.nome', intermediador);
-  addExactFilter(where, args, 'r.sistema_postagem', sistema);
-  addExactFilter(where, args, 'r.estorno', estorno);
-  addExactFilter(where, args, 'r.atendente_norm', atendente);
-  addExactFilter(where, args, 'r.modalidade_pagamento', modalidadePagamento);
-  addExactFilter(where, args, 'r.forma_pagamento', formaPagamento);
-
-  if (tipoObjeto === 'SRO') {
-    where.push(`NOT ${OBJETO_VAZIO_SQL} AND UPPER(TRIM(r.codigo_objeto)) LIKE '%BR'`);
-  } else if (tipoObjeto === 'PRODUTO ECT' || tipoObjeto === 'SEM REGISTRO') {
-    where.push(`${OBJETO_VAZIO_SQL} AND sc.tipo_objeto = ?`);
-    args.push(tipoObjeto);
-  }
-
-  if (local) {
-    where.push(`COALESCE(po.local_codigo, c.local_padrao, '') = ?`);
-    args.push(local);
+  if (tiposObjeto.length) {
+    const clauses = [];
+    for (const tipo of unique(tiposObjeto)) {
+      if (tipo === 'SRO') {
+        clauses.push(`(NOT ${OBJETO_VAZIO_SQL} AND UPPER(TRIM(r.codigo_objeto)) LIKE '%BR')`);
+      } else if (tipo === 'PRODUTO ECT' || tipo === 'SEM REGISTRO') {
+        clauses.push(`(${OBJETO_VAZIO_SQL} AND sc.tipo_objeto = ?)`);
+        args.push(tipo);
+      }
+    }
+    if (clauses.length) where.push(`(${clauses.join(' OR ')})`);
   }
 
   const whereSql = where.length ? ` WHERE ${where.join(' AND ')}` : '';
@@ -156,16 +148,16 @@ async function listAtende(url, env) {
     r.numero_contrato AS "CONTRATO",
     COALESCE(cc.ocorrencias, 0) AS "OCORR",
     COALESCE(co.cliente, '') AS "CLIENTE",
-    COALESCE(co.tipo, '') AS "TIPO",
-    COALESCE(co.nome, '') AS "INTERMEDIADOR",
+    ${CONTRATO_TIPO_SQL} AS "TIPO",
+    ${CONTRATO_INTERMEDIADOR_SQL} AS "INTERMEDIADOR",
     r.sistema_postagem AS "SISTEMA",
     r.valor_atendimento_num AS "VALOR",
     r.estorno AS "ESTORNO",
-    COALESCE(NULLIF(a.nome, ''), r.cpf_matricula_atendente) AS "ATENDENTE",
+    ${ATENDENTE_EXIBIDO_SQL} AS "ATENDENTE",
     r.atendente_norm AS "_ATENDENTE_CODIGO",
     r.modalidade_pagamento AS "MODALIDADE PAGAMENTO",
     r.forma_pagamento AS "FORMA PAGAMENTO",
-    COALESCE(po.local_codigo, c.local_padrao, '') AS "LOCAL",
+    ${LOCAL_EXIBIDO_SQL} AS "LOCAL",
     CASE WHEN COALESCE(sd.ocorrencias, 0) > 1 THEN 1 ELSE 0 END AS "_SRO_DUPLICADO"
   `;
 
@@ -174,9 +166,9 @@ async function listAtende(url, env) {
     : sortField === 'nome_remetente_exibido'
       ? `COALESCE(c.nome_atual, r.nome_remetente)`
       : sortField === 'atendente_exibido'
-        ? `COALESCE(NULLIF(a.nome, ''), r.atendente_norm)`
+        ? ATENDENTE_EXIBIDO_SQL
         : sortField === 'local_exibido'
-          ? `COALESCE(po.local_codigo, c.local_padrao, '')`
+          ? LOCAL_EXIBIDO_SQL
           : sortField;
 
   const result = await env.DB.prepare(`
@@ -205,36 +197,33 @@ async function listAtende(url, env) {
 async function listFilters(env) {
   const simpleSpecs = [
     ['servicos', 'r.nome_servico'],
-    ['contratos', 'r.numero_contrato_norm'],
-    ['contratoOcorrencias', 'cc.ocorrencias'],
-    ['contratoClientes', 'co.cliente'],
-    ['contratoTipos', 'co.tipo'],
-    ['intermediadores', 'co.nome'],
+    ['contratoClientes', "COALESCE(co.cliente, '')"],
+    ['contratoTipos', CONTRATO_TIPO_SQL],
+    ['intermediadores', CONTRATO_INTERMEDIADOR_SQL],
     ['sistemas', 'r.sistema_postagem'],
     ['estornos', 'r.estorno'],
     ['modalidadesPagamento', 'r.modalidade_pagamento'],
     ['formasPagamento', 'r.forma_pagamento']
   ];
 
-  const statements = simpleSpecs.map(([key, field]) => env.DB.prepare(`
+  const statements = simpleSpecs.map(([, field]) => env.DB.prepare(`
     SELECT DISTINCT ${field} AS value
     ${BASE_FROM}
     WHERE ${field} IS NOT NULL
       AND TRIM(CAST(${field} AS TEXT)) <> ''
       AND LOWER(TRIM(CAST(${field} AS TEXT))) <> 'null'
-    ORDER BY ${key === 'contratoOcorrencias' ? field + ' ASC' : field + ' COLLATE NOCASE ASC'}
+    ORDER BY ${field} COLLATE NOCASE ASC
     LIMIT 2000
   `));
 
   statements.push(env.DB.prepare(`
-    SELECT r.atendente_norm AS value,
-           COALESCE(NULLIF(MAX(a.nome), ''), r.atendente_norm) AS label
+    SELECT ${ATENDENTE_EXIBIDO_SQL} AS value
     ${BASE_FROM}
     WHERE r.atendente_norm IS NOT NULL
       AND TRIM(r.atendente_norm) <> ''
       AND LOWER(TRIM(r.atendente_norm)) <> 'null'
-    GROUP BY r.atendente_norm
-    ORDER BY COALESCE(NULLIF(MAX(a.nome), ''), r.atendente_norm) COLLATE NOCASE ASC
+    GROUP BY ${ATENDENTE_EXIBIDO_SQL}
+    ORDER BY ${ATENDENTE_EXIBIDO_SQL} COLLATE NOCASE ASC
     LIMIT 2000
   `));
 
@@ -242,7 +231,7 @@ async function listFilters(env) {
   const body = {
     ok:true,
     tiposObjeto:['SRO', 'PRODUTO ECT', 'SEM REGISTRO'],
-    locais:[{codigo:'AGF', nome:'AGF'}, {codigo:'METRO', nome:'METRÔ'}]
+    locais:[{value:'AGF', label:'AGF'}, {value:'METRO', label:'METRÔ'}]
   };
 
   simpleSpecs.forEach(([key], i) => {
@@ -250,18 +239,29 @@ async function listFilters(env) {
   });
 
   const attendantResult = results[simpleSpecs.length];
-  body.atendentes = (attendantResult?.results || []).map(row => ({
-    value:clean(row.value),
-    label:clean(row.label) || clean(row.value)
-  })).filter(row => row.value);
+  body.atendentes = (attendantResult?.results || [])
+    .map(row => clean(row.value))
+    .filter(Boolean);
 
   return json(body);
 }
 
-function addExactFilter(where, args, field, value) {
-  if (!value) return;
-  where.push(`${field} = ? COLLATE NOCASE`);
-  args.push(value);
+function addMultiFilter(where, args, field, values) {
+  const list = unique((values || []).map(clean).filter(Boolean));
+  if (!list.length) return;
+  where.push(`(${list.map(() => `${field} = ? COLLATE NOCASE`).join(' OR ')})`);
+  args.push(...list);
+}
+
+function getMulti(url, singular, plural) {
+  const values = [
+    ...url.searchParams.getAll(singular),
+    ...url.searchParams.getAll(plural)
+  ];
+  for (const packed of url.searchParams.getAll(plural)) {
+    if (packed.includes('|')) values.push(...packed.split('|'));
+  }
+  return unique(values.map(clean).filter(Boolean));
 }
 
 function unique(values) { return Array.from(new Set(values)); }
