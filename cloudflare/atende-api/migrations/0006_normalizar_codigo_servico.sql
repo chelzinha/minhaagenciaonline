@@ -36,6 +36,10 @@ END;
 -- A biblioteca administrativa usa a mesma chave canonica.
 -- Se ja existirem duas entradas equivalentes (ex.: 04227 e 4227),
 -- preserva a entrada mais recentemente atualizada e passa a usar uma unica chave.
+-- DROP IF EXISTS deixa a migration segura caso uma tentativa anterior tenha
+-- deixado a tabela temporaria criada antes de falhar.
+DROP TABLE IF EXISTS atende_servico_classificacao_canon;
+
 CREATE TABLE atende_servico_classificacao_canon (
   codigo_servico TEXT PRIMARY KEY,
   nome_servico_referencia TEXT,
@@ -58,7 +62,11 @@ WITH normalizada AS (
     END AS codigo_canonico,
     codigo_servico,
     nome_servico_referencia,
-    tipo_objeto,
+    CASE
+      WHEN UPPER(TRIM(COALESCE(tipo_objeto, ''))) IN ('PRODUTO ECT','SEM REGISTRO')
+        THEN UPPER(TRIM(tipo_objeto))
+      ELSE NULL
+    END AS tipo_objeto,
     observacao,
     atualizado_por,
     atualizado_em,
