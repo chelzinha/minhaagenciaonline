@@ -25,6 +25,19 @@ const ATENDE_D1_PANEL_COLUMNS = Object.freeze([
   { key: 'LOCAL', label: 'LOCAL', width: 82, editableAdmin: true }
 ]);
 
+function ATENDE_listaFiltro_(params, plural, singular) {
+  const source = Array.isArray(params[plural])
+    ? params[plural]
+    : (params[singular] ? [params[singular]] : []);
+  const seen = {};
+  return source.map(function(v) { return String(v == null ? '' : v).trim(); })
+    .filter(function(v) {
+      if (!v || seen[v]) return false;
+      seen[v] = true;
+      return true;
+    });
+}
+
 function ATENDE_buscarDadosD1(params) {
   params = params || {};
   const page = Math.max(1, Number(params.page || 1));
@@ -32,23 +45,22 @@ function ATENDE_buscarDadosD1(params) {
   const q = String(params.q || '').trim();
   const dataInicio = String(params.dataInicio || params.startDate || params.inicio || '').trim();
   const dataFim = String(params.dataFim || params.endDate || params.fim || '').trim();
-  const servicos = Array.isArray(params.servicos)
-    ? params.servicos.map(function(v) { return String(v || '').trim(); }).filter(Boolean)
-    : (params.servico ? [String(params.servico).trim()].filter(Boolean) : []);
-  const contrato = String(params.contrato || '').trim();
-  const contratoOcorr = String(params.contratoOcorr || '').trim();
-  const contratoCliente = String(params.contratoCliente || '').trim();
-  const contratoTipo = String(params.contratoTipo || '').trim();
-  const intermediador = String(params.intermediador || '').trim();
-  const sistema = String(params.sistema || '').trim();
-  const estorno = String(params.estorno || '').trim();
-  const atendente = String(params.atendente || '').trim();
-  const modalidadePagamento = String(params.modalidadePagamento || '').trim();
-  const formaPagamento = String(params.formaPagamento || '').trim();
-  const tipoObjeto = String(params.tipoObjeto || '').trim();
-  const local = String(params.local || '').trim();
   const sortKey = String(params.sortKey || 'DATA').trim() || 'DATA';
   const sortDir = String(params.sortDir || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+
+  const multi = {
+    servico: ATENDE_listaFiltro_(params, 'servicos', 'servico'),
+    tipoObjeto: ATENDE_listaFiltro_(params, 'tiposObjeto', 'tipoObjeto'),
+    contratoCliente: ATENDE_listaFiltro_(params, 'contratoClientes', 'contratoCliente'),
+    contratoTipo: ATENDE_listaFiltro_(params, 'contratoTipos', 'contratoTipo'),
+    intermediador: ATENDE_listaFiltro_(params, 'intermediadores', 'intermediador'),
+    sistema: ATENDE_listaFiltro_(params, 'sistemas', 'sistema'),
+    estorno: ATENDE_listaFiltro_(params, 'estornos', 'estorno'),
+    atendente: ATENDE_listaFiltro_(params, 'atendentes', 'atendente'),
+    modalidadePagamento: ATENDE_listaFiltro_(params, 'modalidadesPagamento', 'modalidadePagamento'),
+    formaPagamento: ATENDE_listaFiltro_(params, 'formasPagamento', 'formaPagamento'),
+    local: ATENDE_listaFiltro_(params, 'locais', 'local')
+  };
 
   if (dataInicio && dataFim && dataInicio > dataFim) throw new Error('Data inicial maior que data final.');
 
@@ -61,19 +73,12 @@ function ATENDE_buscarDadosD1(params) {
   if (dataInicio) query.push('dataInicio=' + encodeURIComponent(dataInicio));
   if (dataFim) query.push('dataFim=' + encodeURIComponent(dataFim));
   if (q) query.push('q=' + encodeURIComponent(q));
-  servicos.forEach(function(servico) { query.push('servico=' + encodeURIComponent(servico)); });
-  if (contrato) query.push('contrato=' + encodeURIComponent(contrato));
-  if (contratoOcorr) query.push('contratoOcorr=' + encodeURIComponent(contratoOcorr));
-  if (contratoCliente) query.push('contratoCliente=' + encodeURIComponent(contratoCliente));
-  if (contratoTipo) query.push('contratoTipo=' + encodeURIComponent(contratoTipo));
-  if (intermediador) query.push('intermediador=' + encodeURIComponent(intermediador));
-  if (sistema) query.push('sistema=' + encodeURIComponent(sistema));
-  if (estorno) query.push('estorno=' + encodeURIComponent(estorno));
-  if (atendente) query.push('atendente=' + encodeURIComponent(atendente));
-  if (modalidadePagamento) query.push('modalidadePagamento=' + encodeURIComponent(modalidadePagamento));
-  if (formaPagamento) query.push('formaPagamento=' + encodeURIComponent(formaPagamento));
-  if (tipoObjeto) query.push('tipoObjeto=' + encodeURIComponent(tipoObjeto));
-  if (local) query.push('local=' + encodeURIComponent(local));
+
+  Object.keys(multi).forEach(function(key) {
+    multi[key].forEach(function(value) {
+      query.push(key + '=' + encodeURIComponent(value));
+    });
+  });
 
   const startedAt = Date.now();
   const response = ATENDE_fetchD1_('/atende?' + query.join('&'), { method: 'get' });
@@ -138,8 +143,6 @@ function ATENDE_buscarFiltrosD1() {
   return {
     ok: true,
     servicos: response.servicos || [],
-    contratos: response.contratos || [],
-    contratoOcorrencias: response.contratoOcorrencias || [],
     contratoClientes: response.contratoClientes || [],
     contratoTipos: response.contratoTipos || [],
     intermediadores: response.intermediadores || [],
@@ -149,7 +152,7 @@ function ATENDE_buscarFiltrosD1() {
     modalidadesPagamento: response.modalidadesPagamento || [],
     formasPagamento: response.formasPagamento || [],
     tiposObjeto: response.tiposObjeto || ['SRO', 'PRODUTO ECT', 'SEM REGISTRO'],
-    locais: response.locais || [{ codigo: 'AGF', nome: 'AGF' }, { codigo: 'METRO', nome: 'METRÔ' }]
+    locais: response.locais || [{ value: 'AGF', label: 'AGF' }, { value: 'METRO', label: 'METRÔ' }]
   };
 }
 
