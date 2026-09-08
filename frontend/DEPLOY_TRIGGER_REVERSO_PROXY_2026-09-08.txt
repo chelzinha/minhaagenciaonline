@@ -1,0 +1,11 @@
+Deploy trigger para Cloudflare Pages.
+
+Objetivo:
+- Forçar novo deploy do Cloudflare usando o HEAD atual da branch main.
+- Confirmar publicação dos atalhos do Portal AGF para Reverso:
+  - /reverso/?slug=enel
+  - /reverso-admin/?unidade=enel
+  - /reverso-coleta/?unidade=enel
+- Confirmar uso do proxy /reverso-api nos módulos Reverso.
+
+Data: 2026-09-08
