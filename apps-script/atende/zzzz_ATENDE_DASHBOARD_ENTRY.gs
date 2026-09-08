@@ -56,7 +56,7 @@ function ATENDE_testarHtmlDashboard() {
   var indexOriginal = HtmlService.createHtmlOutputFromFile('Index').getContent();
   var indexLimpo = ATENDE_limparDashboardLegadoDoHtml_(indexOriginal);
   var dashboardJs = HtmlService.createHtmlOutputFromFile('DashboardAddon').getContent();
-  return {
+  var result = {
     ok: true,
     indexBytesOriginal: indexOriginal.length,
     indexBytesLimpo: indexLimpo.length,
@@ -67,4 +67,7 @@ function ATENDE_testarHtmlDashboard() {
     addonPossuiDashboard: dashboardJs.indexOf('dashboardView') >= 0,
     addonGestaoV2: dashboardJs.indexOf('Visão executiva') >= 0 && dashboardJs.indexOf('ATENDE_buscarDashboardGestaoD1') >= 0
   };
+  console.log('ATENDE - DIAGNOSTICO HTML DASHBOARD');
+  console.log(JSON.stringify(result, null, 2));
+  return result;
 }
