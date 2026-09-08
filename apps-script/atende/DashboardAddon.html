@@ -1,3 +1,4 @@
+<script id="atende-dashboard-v2-script">
 (function(){
   var DASH_VIEW='table';
   var DASH_DATA=null;
@@ -29,17 +30,31 @@
   function init(){
     installStyle();
     var top=document.querySelector('.table-top'),wrap=document.getElementById('wrap');
-    if(!top||!wrap||document.getElementById('viewSwitchRow'))return;
-    var row=document.createElement('div');row.id='viewSwitchRow';row.className='view-switch-row';
-    row.innerHTML='<div class="view-switch"><button type="button" data-view="table" class="active"><span class="material-symbols-rounded">table_rows</span>Tabela</button><button type="button" data-view="dashboard"><span class="material-symbols-rounded">dashboard</span>Dashboard</button></div><span class="view-hint">Os filtros acima valem para as duas visões.</span>';
-    top.appendChild(row);
-    row.querySelectorAll('button[data-view]').forEach(function(b){b.addEventListener('click',function(){switchView(this.getAttribute('data-view'))})});
-    var dash=document.createElement('div');dash.id='dashboardView';dash.className='dashboard-view';dash.innerHTML='<div class="db-loading">Abra a visão Dashboard para carregar os indicadores.</div>';wrap.appendChild(dash);
-    var originalRefresh=window.refreshFilteredView;
-    window.refreshFilteredView=function(){var a=getValue('dataInicio'),b=getValue('dataFim');if(a&&b&&a>b){alert('A data inicial não pode ser maior que a data final.');return}updateMonthLabel();renderActiveChips();updateMoreButton();if(DASH_VIEW==='dashboard')loadDashboard();else loadPage(1);loadFilterOptions()};
-    window.ATENDE_dashboardOriginalRefresh=originalRefresh;
-  }
+    if(!top||!wrap)return false;
 
+    var row=document.getElementById('viewSwitchRow');
+    if(!row){
+      row=document.createElement('div');row.id='viewSwitchRow';row.className='view-switch-row';
+      row.innerHTML='<div class="view-switch"><button type="button" data-view="table" class="active"><span class="material-symbols-rounded">table_rows</span>Tabela</button><button type="button" data-view="dashboard"><span class="material-symbols-rounded">dashboard</span>Dashboard</button></div><span class="view-hint">Os filtros acima valem para as duas visÃµes.</span>';
+      top.appendChild(row);
+      row.querySelectorAll('button[data-view]').forEach(function(b){b.addEventListener('click',function(){switchView(this.getAttribute('data-view'))})});
+    }
+
+    var dash=document.getElementById('dashboardView');
+    if(!dash){
+      dash=document.createElement('div');dash.id='dashboardView';dash.className='dashboard-view';dash.innerHTML='<div class="db-loading">Abra a visÃ£o Dashboard para carregar os indicadores.</div>';wrap.appendChild(dash);
+    }
+
+    if(!window.ATENDE_DASHBOARD_V2_REFRESH_PATCHED){
+      var originalRefresh=window.refreshFilteredView;
+      window.refreshFilteredView=function(){var a=getValue('dataInicio'),b=getValue('dataFim');if(a&&b&&a>b){alert('A data inicial nÃ£o pode ser maior que a data final.');return}updateMonthLabel();renderActiveChips();updateMoreButton();if(DASH_VIEW==='dashboard')loadDashboard();else loadPage(1);loadFilterOptions()};
+      window.ATENDE_dashboardOriginalRefresh=originalRefresh;
+      window.ATENDE_DASHBOARD_V2_REFRESH_PATCHED=true;
+    }
+
+    window.ATENDE_DASHBOARD_V2_READY=true;
+    return true;
+  }
   function switchView(view){
     view=view==='dashboard'?'dashboard':'table';DASH_VIEW=view;DASH_SEQ++;
     var card=document.querySelector('.card'),dash=document.getElementById('dashboardView');
@@ -122,5 +137,40 @@
     return'<section class="db-card"><div class="db-card-head"><div class="db-card-title">'+esc(title)+'</div><span class="db-card-note">'+esc(note||'composição')+'</span></div><div class="db-donut-layout"><div class="db-donut" style="background:conic-gradient('+parts.join(',')+')"><div class="db-donut-center"><div><strong>'+percent(100,0)+'</strong><span>do recorte</span></div></div></div><div class="db-legend">'+legend+'</div></div></section>';
   }
 
-  if(document.readyState==='complete')setTimeout(init,30);else window.addEventListener('load',function(){setTimeout(init,30)});
+  /* ATENDE_DASHBOARD_V2_PERSISTENT */
+  function bootDashboardV2(attempt){
+    attempt=Number(attempt||0);
+    window.ATENDE_DASHBOARD_V2_SOURCE='gestao-v2';
+    if(init())return true;
+    if(attempt<80){setTimeout(function(){bootDashboardV2(attempt+1)},100)}
+    else{window.ATENDE_DASHBOARD_V2_READY=false;console.error('Dashboard V2: table-top ou wrap nao encontrados apos as tentativas de inicializacao.')}
+    return false;
+  }
+
+  function watchDashboardV2(){
+    bootDashboardV2(0);
+
+    if(window.MutationObserver&&!window.ATENDE_DASHBOARD_V2_OBSERVER){
+      var observer=new MutationObserver(function(){
+        if(!document.getElementById('viewSwitchRow')||!document.getElementById('dashboardView'))bootDashboardV2(0);
+      });
+      observer.observe(document.documentElement||document.body,{childList:true,subtree:true});
+      window.ATENDE_DASHBOARD_V2_OBSERVER=observer;
+    }
+
+    if(!window.ATENDE_DASHBOARD_V2_WATCHDOG){
+      window.ATENDE_DASHBOARD_V2_WATCHDOG=setInterval(function(){
+        if(document.visibilityState==='hidden')return;
+        if(!document.getElementById('viewSwitchRow')||!document.getElementById('dashboardView'))bootDashboardV2(0);
+      },1500);
+    }
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',watchDashboardV2,{once:true});
+  }else{
+    watchDashboardV2();
+  }
+  window.addEventListener('load',watchDashboardV2,{once:true});
 })();
+</script>

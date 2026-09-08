@@ -1,3 +1,4 @@
+// ATENDE_CLIENTE_PORTAL_LOCAIS_UI_V2
 // ============================================================
 // ATENDE - LEITURA PAGINADA DO PAINEL A PARTIR DO CLOUDFLARE D1
 // ============================================================
@@ -13,8 +14,8 @@ const ATENDE_D1_PANEL_COLUMNS = Object.freeze([
   { key: 'CARTAO POSTAGEM', label: 'CARTÃO POSTAGEM', width: 120, mono: true },
   { key: 'CONTRATO', label: 'CONTRATO', width: 112, mono: true },
   { key: 'OCORR', label: 'OCORR.', width: 78, numeric: true },
-  { key: 'CLIENTE', label: 'CLIENTE', width: 230 },
-  { key: 'CADASTRO PORTAL', label: 'CADASTRO PORTAL', width: 230 },
+  { key: 'CLIENTE', label: 'RAZ\u00C3O SOCIAL', width: 230 },
+  { key: 'CLIENTE PORTAL', label: 'CLIENTE PORTAL', width: 230 },
   { key: 'ORIGEM PORTAL', label: 'ORIGEM PORTAL', width: 105 },
   { key: 'TIPO', label: 'TIPO', width: 120 },
   { key: 'INTERMEDIADOR', label: 'INTERMEDIADOR', width: 150 },
@@ -48,6 +49,7 @@ function ATENDE_mapaFiltrosD1_(params) {
     servicoSubgrupo: ATENDE_listaFiltro_(params, 'servicoSubgrupos', 'servicoSubgrupo'),
     servicoTabela: ATENDE_listaFiltro_(params, 'servicoTabelas', 'servicoTabela'),
     tipoObjeto: ATENDE_listaFiltro_(params, 'tiposObjeto', 'tipoObjeto'),
+    clientePortal: ATENDE_listaFiltro_(params, 'clientesPortal', 'clientePortal'),
     contratoCliente: ATENDE_listaFiltro_(params, 'contratoClientes', 'contratoCliente'),
     contratoTipo: ATENDE_listaFiltro_(params, 'contratoTipos', 'contratoTipo'),
     intermediador: ATENDE_listaFiltro_(params, 'intermediadores', 'intermediador'),
@@ -73,7 +75,15 @@ function ATENDE_adicionarContextoFiltroQuery_(query, params) {
   Object.keys(multi).forEach(function(key) {
     multi[key].forEach(function(value) { query.push(key + '=' + encodeURIComponent(value)); });
   });
-  return query;
+  const presencasColuna = params.presencasColuna && typeof params.presencasColuna === 'object'
+    ? params.presencasColuna
+    : {};
+  Object.keys(presencasColuna).forEach(function(key) {
+    const mode = String(presencasColuna[key] || '').toLowerCase();
+    if (mode === 'blank' || mode === 'filled') {
+      query.push('presence=' + encodeURIComponent(String(key) + '|' + mode));
+    }
+  });  return query;
 }
 
 function ATENDE_buscarDadosD1(params) {
@@ -96,6 +106,18 @@ function ATENDE_buscarDadosD1(params) {
   let compatibilityMode = false;
   const rows = (response.rows || []).map(function(row) {
     const copy = Object.assign({}, row);
+    // ATENDE_CLIENTE_PORTAL_COMPAT_V1
+    const portalCliente = String(
+      copy['CLIENTE PORTAL'] || copy['CADASTRO PORTAL'] || ''
+    ).trim();
+    copy['CLIENTE PORTAL'] = portalCliente;
+    // Mantido internamente por compatibilidade com respostas/deploys anteriores.
+    if (!Object.prototype.hasOwnProperty.call(copy, 'CADASTRO PORTAL') || !copy['CADASTRO PORTAL']) {
+      copy['CADASTRO PORTAL'] = portalCliente;
+    }
+    if ((!Object.prototype.hasOwnProperty.call(copy, 'ORIGEM PORTAL') || !copy['ORIGEM PORTAL']) && copy._ORIGEM_PORTAL) {
+      copy['ORIGEM PORTAL'] = copy._ORIGEM_PORTAL;
+    }
 
     if (!Object.prototype.hasOwnProperty.call(copy, 'OBJETO')) {
       compatibilityMode = true;
@@ -104,6 +126,7 @@ function ATENDE_buscarDadosD1(params) {
       copy.SERVICO = '';
       copy.OCORR = '';
       copy.CLIENTE = '';
+      if (!copy['CLIENTE PORTAL']) copy['CLIENTE PORTAL'] = copy['CADASTRO PORTAL'] || '';
       copy['CADASTRO PORTAL'] = '';
       copy['ORIGEM PORTAL'] = '';
       copy.TIPO = '';
@@ -116,6 +139,8 @@ function ATENDE_buscarDadosD1(params) {
 
     if (!Object.prototype.hasOwnProperty.call(copy, 'OCORR')) copy.OCORR = '';
     if (!Object.prototype.hasOwnProperty.call(copy, 'CLIENTE')) copy.CLIENTE = '';
+    if (!Object.prototype.hasOwnProperty.call(copy, 'CLIENTE PORTAL')) copy['CLIENTE PORTAL'] = copy['CADASTRO PORTAL'] || '';
+    if (!copy['CLIENTE PORTAL'] && copy['CADASTRO PORTAL']) copy['CLIENTE PORTAL'] = copy['CADASTRO PORTAL'];
     if (!Object.prototype.hasOwnProperty.call(copy, 'CADASTRO PORTAL')) copy['CADASTRO PORTAL'] = '';
     if (!Object.prototype.hasOwnProperty.call(copy, 'ORIGEM PORTAL')) copy['ORIGEM PORTAL'] = '';
     if (!Object.prototype.hasOwnProperty.call(copy, 'TIPO')) copy.TIPO = '';
@@ -163,6 +188,7 @@ function ATENDE_buscarFiltrosD1(params) {
     servicoTipos: response.servicoTipos || [],
     servicoSubgrupos: response.servicoSubgrupos || [],
     servicoTabelas: response.servicoTabelas || [],
+    clientesPortal: response.clientesPortal || response.cadastrosPortal || [],
     contratoClientes: response.contratoClientes || [],
     contratoTipos: response.contratoTipos || [],
     intermediadores: response.intermediadores || [],

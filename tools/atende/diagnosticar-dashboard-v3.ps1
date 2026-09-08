@@ -58,12 +58,16 @@ try {
   Test-NodeSyntax $tmp 'DashboardV3.html'
   Test-NodeSyntax $workerPath 'dashboard-v3-wrapper.js'
 
+  # Use regex ASCII-safe nos textos com acento. Windows PowerShell 5.1 pode
+  # interpretar scripts UTF-8 sem BOM de forma diferente conforme a maquina.
+  # As sequencias \u abaixo sao interpretadas pelo motor regex .NET, nao pelo
+  # parser do PowerShell, evitando falso negativo por encoding do arquivo .ps1.
   $checks = [ordered]@{
     'Endpoint V3' = ($js -match 'ATENDE_buscarDashboardGestaoV3D1')
-    'Visao executiva' = ($js -match 'Visão executiva')
+    'Visao executiva' = ($js -match 'Vis\u00e3o executiva')
     'Canal' = ($js -match "intermediadores='Canal'")
     'Metas Admin' = ($js -match 'ATENDE_adminSalvarMetasDashboard')
-    'Ultimos 6 meses' = ($js -match 'últimos 6 meses')
+    'Ultimos 6 meses' = ($js -match '\u00faltimos 6 meses')
     'Oportunidade embalagem' = ($js -match 'Oportunidade de embalagem')
     'Sem Top Atendentes' = ($js -notmatch "barCard\('Atendentes'")
   }

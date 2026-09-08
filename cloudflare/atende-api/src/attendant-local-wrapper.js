@@ -35,15 +35,19 @@ function withAttendantLocal(env) {
 }
 
 function rewriteSql(sql) {
-  return String(sql||'')
-    .replace(
+  let text=String(sql||'');
+
+  if(!/\bJOIN\s+atende_atendente_local\s+atl\b/i.test(text)){
+    text=text.replace(
       'LEFT JOIN atende_atendentes a ON a.codigo = r.atendente_norm AND a.ativo = 1',
       'LEFT JOIN atende_atendentes a ON a.codigo = r.atendente_norm AND a.ativo = 1\n  LEFT JOIN atende_atendente_local atl ON atl.codigo = r.atendente_norm'
-    )
-    .replace(
-      /COALESCE\(pcl\.local_codigo,\s*po\.local_codigo,\s*a\.local_padrao,\s*c\.local_padrao,\s*''\)/g,
-      "COALESCE(pcl.local_codigo, po.local_codigo, atl.local_codigo, a.local_padrao, c.local_padrao, '')"
     );
+  }
+
+  return text.replace(
+    /COALESCE\(pcl\.local_codigo,\s*po\.local_codigo,\s*a\.local_padrao,\s*c\.local_padrao,\s*''\)/g,
+    "COALESCE(pcl.local_codigo, po.local_codigo, atl.local_codigo, a.local_padrao, c.local_padrao, '')"
+  );
 }
 
 async function augmentAdminBootstrap(response, env) {
@@ -100,7 +104,7 @@ async function saveAttendantDynamic(request, env) {
       ativo=1,
       atualizado_por=excluded.atualizado_por,
       atualizado_em=datetime('now')
-  `).bind(codigo,nome,user).run();
+  `).bind(codigo,nome,user,user).run();
 
   if(local){
     await env.DB.prepare(`

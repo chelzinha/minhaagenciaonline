@@ -8,7 +8,7 @@ const CONTRATO_TIPO_SQL = `COALESCE(NULLIF(TRIM(co.tipo), ''), CASE WHEN COALESC
 const CONTRATO_INTERMEDIADOR_SQL = `COALESCE(NULLIF(TRIM(co.nome), ''), CASE WHEN COALESCE(cc.ocorrencias, 0) BETWEEN 1 AND 3 THEN 'CONTRATO ECT' ELSE '' END)`;
 const ATENDENTE_EXIBIDO_SQL = `COALESCE(NULLIF(TRIM(a.nome), ''), r.atendente_norm)`;
 const CLIENTE_PORTAL_SQL = `COALESCE(cp.cliente_portal, '')`;
-const LOCAL_EXIBIDO_SQL = `COALESCE(pcl.local_codigo, po.local_codigo, a.local_padrao, c.local_padrao, '')`;
+const LOCAL_EXIBIDO_SQL = `COALESCE(CASE WHEN pte.raw_id IS NULL THEN pcl.local_codigo ELSE NULL END, po.local_codigo, atl.local_codigo, a.local_padrao, c.local_padrao, '')`;
 const ESTORNO_ATIVO_SQL = `(TRIM(COALESCE(r.estorno,'')) <> '' AND UPPER(TRIM(r.estorno)) NOT IN ('N','NAO','NÃO','0','FALSE'))`;
 
 const BASE_FROM = `
@@ -17,6 +17,7 @@ const BASE_FROM = `
   LEFT JOIN atende_cliente_aliases ca ON ca.alias_normalizado = r.nome_remetente_norm
   LEFT JOIN atende_clientes c ON c.id = ca.cliente_id AND c.ativo = 1
   LEFT JOIN atende_atendentes a ON a.codigo = r.atendente_norm AND a.ativo = 1
+  LEFT JOIN atende_atendente_local atl ON atl.codigo = r.atendente_norm
   LEFT JOIN atende_contratos co ON co.numero = r.numero_contrato_norm AND co.ativo = 1
   LEFT JOIN (
     SELECT rr.numero_contrato_norm AS numero, COUNT(*) AS ocorrencias
@@ -31,6 +32,7 @@ const BASE_FROM = `
   ) cc ON cc.numero = r.numero_contrato_norm
   LEFT JOIN atende_servico_classificacao sc ON sc.codigo_servico = r.codigo_servico_norm
   LEFT JOIN atende_postagem_overrides po ON po.raw_id = r.id
+  LEFT JOIN atende_postagem_trava_excecoes pte ON pte.raw_id = r.id
   LEFT JOIN atende_sro_counts sd ON sd.codigo_objeto_norm = r.codigo_objeto_norm
   LEFT JOIN atende_cliente_portal cp ON cp.raw_id = r.id
   LEFT JOIN atende_cliente_portal_local pcl

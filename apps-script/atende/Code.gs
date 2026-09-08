@@ -176,11 +176,64 @@ const TEXT_COLUMNS = new Set([
 // ============================================================
 //  ENTRY POINT
 // ============================================================
+// ============================================================
+//  ENTRY POINT - FONTE UNICA DO DASHBOARD GERENCIAL V2
+// ============================================================
+function ATENDE_limparDashboardLegadoDoHtml_(html) {
+  html = String(html || '');
+
+  html = html.replace(
+    /<!--[\s]*ATENDE_DASHBOARD_INLINE_START[\s]*-->[\s\S]*?<!--[\s]*ATENDE_DASHBOARD_INLINE_END[\s]*-->/g,
+    ''
+  );
+
+  html = html.replace(
+    /<script>[\s\S]*?ATENDE_dashboardAddonJs\(\);[\s\S]*?<\/script>/g,
+    ''
+  );
+
+  return html;
+}
+
 function doGet() {
+  var indexOriginal = HtmlService.createHtmlOutputFromFile('Index').getContent();
+  var indexHtml = ATENDE_limparDashboardLegadoDoHtml_(indexOriginal);
+  var dashboardHtml = HtmlService.createHtmlOutputFromFile('DashboardV3').getContent();
+  var dashboardScript = dashboardHtml;
+
+  var versionMarker = '<meta name="atende-dashboard-version" content="gestao-v2">\n';
+  if (indexHtml.indexOf('</head>') >= 0) {
+    indexHtml = indexHtml.replace('</head>', versionMarker + '</head>');
+  }
+
+  var html = indexHtml.indexOf('</body>') >= 0
+    ? indexHtml.replace('</body>', dashboardScript + '</body>')
+    : indexHtml + dashboardScript;
+
   return HtmlService
-    .createHtmlOutputFromFile('Index')
-    .setTitle('Postagens — AGF José Bonifácio')
+    .createHtmlOutput(html)
+    .setTitle('Postagens â€” AGF JosÃ© BonifÃ¡cio')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function ATENDE_testarHtmlDashboard() {
+  var indexOriginal = HtmlService.createHtmlOutputFromFile('Index').getContent();
+  var indexLimpo = ATENDE_limparDashboardLegadoDoHtml_(indexOriginal);
+  var dashboardHtml = HtmlService.createHtmlOutputFromFile('DashboardV3').getContent();
+  var result = {
+    ok: true,
+    indexBytesOriginal: indexOriginal.length,
+    indexBytesLimpo: indexLimpo.length,
+    dashboardBytes: dashboardHtml.length,
+    tinhaDashboardInlineLegado: indexOriginal.indexOf('ATENDE_DASHBOARD_INLINE_END') >= 0,
+    loaderAssincronoLegado: indexOriginal.indexOf('ATENDE_dashboardAddonJs') >= 0,
+    addonPossuiSwitch: dashboardHtml.indexOf('viewSwitchRow') >= 0,
+    addonPossuiDashboard: dashboardHtml.indexOf('dashboardView') >= 0,
+    addonGestaoV2: dashboardHtml.indexOf('VisÃ£o executiva') >= 0 && dashboardHtml.indexOf('ATENDE_buscarDashboardGestaoD1') >= 0,
+    doGetFonte: 'Code.gs'
+  };
+  console.log(JSON.stringify(result, null, 2));
+  return result;
 }
 
 // ============================================================

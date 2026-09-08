@@ -3,5 +3,8 @@
 // ============================================================
 
 function ATENDE_dashboardAddonJs() {
-  return HtmlService.createHtmlOutputFromFile('DashboardAddon').getContent();
+  var html = HtmlService.createHtmlOutputFromFile('DashboardAddon').getContent();
+  return String(html || '')
+    .replace(/^\s*<script\b[^>]*>\s*/i, '')
+    .replace(/\s*<\/script>\s*$/i, '');
 }

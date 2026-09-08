@@ -34,6 +34,72 @@
     var pane=document.getElementById('pane-contratos');if(pane){pane.querySelectorAll('input,select').forEach(function(el){if(el.placeholder&&/intermediador/i.test(el.placeholder))el.placeholder=el.placeholder.replace(/intermediador/ig,'canal')});pane.querySelectorAll('option').forEach(function(o){if(/intermediador/i.test(o.textContent))o.textContent=o.textContent.replace(/Intermediador/ig,'Canal')})}
   }
 
+  var IMPORT_RUN_ACTIVE=false,IMPORT_RUN_ROUNDS=0,IMPORT_RUN_MAX_ROUNDS=25;
+
+  function ensureImportAdmin(){
+    var tabs=document.querySelector('.admin-tabs'),body=document.querySelector('.admin-body');
+    if(!tabs||!body||document.getElementById('pane-importacoes'))return;
+    var btn=document.createElement('button');btn.className='admin-tab';btn.type='button';btn.dataset.tab='importacoes';btn.textContent='Importa\u00e7\u00f5es';tabs.appendChild(btn);
+    var pane=document.createElement('div');pane.className='admin-pane';pane.id='pane-importacoes';
+    pane.innerHTML='<div class="admin-note"><b>Importa\u00e7\u00f5es do Drive:</b> coloque quantos CSVs quiser na pasta <b>ENTRADA</b>. O bot\u00e3o abaixo executa o mesmo fluxo oficial do gatilho: ENTRADA \u2192 D1 \u2192 PROCESSADA e atualiza o CLIENTE PORTAL ao concluir o Consolidador.</div>'+
+      '<div class="admin-tools"><button class="btn" id="dbImportRefresh" type="button"><span class="material-symbols-rounded">refresh</span>Atualizar lista</button><button class="btn btn-primary" id="dbImportRunBtn" type="button"><span class="material-symbols-rounded">play_arrow</span>Processar tudo agora</button><span class="status" id="dbImportStatus"></span></div>'+
+      '<div class="db-admin-meta-grid" style="margin-bottom:10px"><section class="db-admin-meta-card"><h3>ENTRADA</h3><div style="font-size:22px;font-weight:900;color:var(--nv)" id="dbImportPending">-</div><div style="font-size:8px;color:var(--muted);margin-top:3px">arquivos aguardando</div></section><section class="db-admin-meta-card"><h3>Automa\u00e7\u00e3o</h3><div style="font-size:12px;font-weight:900;color:var(--nv)" id="dbImportTrigger">-</div><div style="font-size:8px;color:var(--muted);margin-top:3px" id="dbImportTriggerSub">-</div></section><section class="db-admin-meta-card"><h3>Fluxo</h3><div style="font-size:11px;font-weight:900;color:var(--nv)">ENTRADA \u2192 PROCESSADA</div><div style="font-size:8px;color:var(--muted);margin-top:3px">RAW preservado e idempotente</div></section></div>'+
+      '<div id="dbImportFiles"></div>';
+    body.appendChild(pane);
+    btn.addEventListener('click',function(){document.querySelectorAll('.admin-tab').forEach(function(x){x.classList.toggle('active',x===btn)});document.querySelectorAll('.admin-pane').forEach(function(x){x.classList.toggle('active',x===pane)});loadImportAdmin()});
+    document.getElementById('dbImportRefresh').addEventListener('click',loadImportAdmin);
+    document.getElementById('dbImportRunBtn').addEventListener('click',processImportAdmin);
+  }
+
+  function setImportStatus(text,cls){var e=document.getElementById('dbImportStatus');if(e){e.textContent=text||'';e.className='status '+(cls||'')}}
+  function formatImportSize(bytes){bytes=Number(bytes||0);if(bytes>=1048576)return(bytes/1048576).toLocaleString('pt-BR',{maximumFractionDigits:1})+' MB';if(bytes>=1024)return(bytes/1024).toLocaleString('pt-BR',{maximumFractionDigits:0})+' KB';return bytes.toLocaleString('pt-BR')+' B'}
+  function formatImportDate(value){var d=new Date(value);if(!Number.isFinite(d.getTime()))return'';return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+
+  function renderImportAdmin(r){
+    r=r||{};var files=Array.isArray(r.files)?r.files:[],trigger=r.trigger||{};
+    var pending=document.getElementById('dbImportPending'),tr=document.getElementById('dbImportTrigger'),sub=document.getElementById('dbImportTriggerSub'),host=document.getElementById('dbImportFiles');
+    if(pending)pending.textContent=integer(r.pending||files.length);
+    if(tr)tr.textContent=trigger.installed?'Ativo':'Inativo';
+    if(sub)sub.textContent=trigger.cadence||'';
+    if(!host)return;
+    if(!files.length){host.innerHTML='<div class="admin-note" style="background:#ecfdf3;color:#166534"><b>ENTRADA vazia.</b> N\u00e3o h\u00e1 CSV aguardando processamento.</div>';return}
+    host.innerHTML='<table class="admin-table"><thead><tr><th>Arquivo</th><th>Tamanho</th><th>Atualizado</th><th>Status</th></tr></thead><tbody>'+files.map(function(f){return'<tr><td><b>'+esc(f.name||'')+'</b></td><td>'+esc(formatImportSize(f.size))+'</td><td>'+esc(formatImportDate(f.updatedAt))+'</td><td><span class="db-delta neutral">Aguardando</span></td></tr>'}).join('')+'</tbody></table>';
+  }
+
+  function loadImportAdmin(){
+    if(!window.AUTH_TOKEN&&!AUTH_TOKEN){setImportStatus('Sess\u00e3o Admin ausente.','err');return}
+    setImportStatus('Atualizando...','');
+    google.script.run.withSuccessHandler(function(r){renderImportAdmin(r);setImportStatus(Number(r&&r.pending||0)?integer(r.pending)+' arquivo(s) na ENTRADA.':'ENTRADA vazia.','ok')}).withFailureHandler(function(e){setImportStatus(e&&e.message?e.message:String(e),'err')}).ATENDE_adminStatusImportacoes(AUTH_TOKEN);
+  }
+
+  function processImportAdmin(){
+    if(IMPORT_RUN_ACTIVE)return;
+    if(!AUTH_TOKEN){setImportStatus('Sess\u00e3o Admin ausente.','err');return}
+    if(!confirm('Processar agora todos os CSVs que estiverem na pasta ENTRADA?'))return;
+    IMPORT_RUN_ACTIVE=true;IMPORT_RUN_ROUNDS=0;setImportRunButton(true);runNextImportRound();
+  }
+
+  function setImportRunButton(on){var b=document.getElementById('dbImportRunBtn');if(!b)return;b.disabled=!!on;b.innerHTML=on?'<span class="material-symbols-rounded">hourglass_top</span>Processando...':'<span class="material-symbols-rounded">play_arrow</span>Processar tudo agora'}
+
+  function finishImportRun(message,cls,reload){
+    IMPORT_RUN_ACTIVE=false;setImportRunButton(false);setImportStatus(message,cls||'ok');
+    if(reload){try{loadFilterOptions()}catch(_){ }try{if(DASH_VIEW==='dashboard')loadDashboard();else loadPage(1)}catch(_){ }}
+  }
+
+  function runNextImportRound(){
+    IMPORT_RUN_ROUNDS++;
+    setImportStatus('Processando ENTRADA... rodada '+IMPORT_RUN_ROUNDS,'');
+    google.script.run.withSuccessHandler(function(r){
+      r=r||{};renderImportAdmin(r);var run=r.run||{},pending=Number(r.pending||0),errors=Array.isArray(run.errors)?run.errors:[];
+      var completed=Number(run.filesCompleted||0),partial=Number(run.filesPartial||0),sent=Number(run.sentThisRun||0);
+      setImportStatus('Rodada '+IMPORT_RUN_ROUNDS+': '+completed+' conclu\u00eddo(s), '+partial+' parcial(is), '+integer(sent)+' linhas enviadas. '+pending+' pendente(s).',errors.length?'err':'');
+      if(pending<=0){finishImportRun('Importa\u00e7\u00e3o conclu\u00edda. ENTRADA vazia.','ok',true);return}
+      if(errors.length){var first=errors[0]||{};finishImportRun('Processamento interrompido: '+(first.fileName?first.fileName+' - ':'')+(first.error||'erro no arquivo')+'. O arquivo permaneceu na ENTRADA.','err',true);return}
+      if(r.canContinueAutomatically&&IMPORT_RUN_ROUNDS<IMPORT_RUN_MAX_ROUNDS){setTimeout(runNextImportRound,900);return}
+      if(IMPORT_RUN_ROUNDS>=IMPORT_RUN_MAX_ROUNDS){finishImportRun('Limite de rodadas atingido com '+pending+' arquivo(s) ainda na ENTRADA. Clique novamente para continuar.','err',true);return}
+      finishImportRun(pending+' arquivo(s) continuam na ENTRADA. Clique em Processar tudo agora para continuar.','err',true);
+    }).withFailureHandler(function(e){finishImportRun(e&&e.message?e.message:String(e),'err',false)}).ATENDE_adminProcessarImportacoes(AUTH_TOKEN);
+  }
   function ensureMetaAdmin(){
     var tabs=document.querySelector('.admin-tabs'),body=document.querySelector('.admin-body');if(!tabs||!body||document.getElementById('pane-metas'))return;
     var btn=document.createElement('button');btn.className='admin-tab';btn.type='button';btn.dataset.tab='metas';btn.textContent='Metas';tabs.appendChild(btn);
@@ -51,7 +117,7 @@
   function saveMetaAdmin(){var mes=document.getElementById('dbMetaMes').value,p={competencia:mes,diasUteisRealizados:Number(document.getElementById('dbDiasRealizados').value||0),diasUteisMes:Number(document.getElementById('dbDiasMes').value||0),encomendasMeta:parseNum(document.getElementById('dbEncomendasMeta').value)};[['Balcao','balcao'],['Metro','metro']].forEach(function(a){['Bronze','Prata','Ouro','Diamante'].forEach(function(x){p[a[1]+x.charAt(0).toUpperCase()+x.slice(1)]=parseNum(document.getElementById('db'+a[0]+x).value)})});setMetaStatus('Salvando...','');google.script.run.withSuccessHandler(function(){setMetaStatus('Metas salvas.','ok');if(DASH_VIEW==='dashboard')loadDashboard()}).withFailureHandler(function(e){setMetaStatus(e&&e.message?e.message:String(e),'err')}).ATENDE_adminSalvarMetasDashboard(AUTH_TOKEN,p)}
 
   function init(){
-    installStyle();renameCanalUi();ensureMetaAdmin();
+    installStyle();renameCanalUi();ensureMetaAdmin();ensureImportAdmin();
     var top=document.querySelector('.table-top'),wrap=document.getElementById('wrap');if(!top||!wrap)return false;
     var row=document.getElementById('viewSwitchRow');if(!row){row=document.createElement('div');row.id='viewSwitchRow';row.className='view-switch-row';row.innerHTML='<div class="view-switch"><button type="button" data-view="table" class="active"><span class="material-symbols-rounded">table_rows</span>Tabela</button><button type="button" data-view="dashboard"><span class="material-symbols-rounded">dashboard</span>Dashboard</button></div><span class="view-hint">Os filtros acima valem para as duas visões; metas são sempre mensais.</span>';top.appendChild(row);row.querySelectorAll('button[data-view]').forEach(function(b){b.addEventListener('click',function(){switchView(this.getAttribute('data-view'))})})}
     if(!document.getElementById('dashboardView')){var dash=document.createElement('div');dash.id='dashboardView';dash.className='dashboard-view';dash.innerHTML='<div class="db-empty">Abra a visão Dashboard para carregar os indicadores.</div>';wrap.appendChild(dash)}

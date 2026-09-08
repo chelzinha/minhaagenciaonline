@@ -40,7 +40,21 @@
     .pwd-overlay{position:fixed;inset:0;background:rgba(15,23,42,.42);display:none;align-items:center;justify-content:center;z-index:100;padding:18px}.pwd-overlay.on{display:flex}.pwd-card{width:min(420px,96vw);background:#fff;border-radius:16px;box-shadow:0 22px 55px rgba(15,23,42,.24);overflow:hidden}.pwd-head{display:flex;align-items:center;padding:16px 18px;border-bottom:1px solid #e5ebf1}.pwd-head strong{font-size:15px}.pwd-head button{margin-left:auto;border:0;background:transparent;cursor:pointer;color:#64748b}.pwd-body{padding:16px 18px}.pwd-field{margin-bottom:12px}.pwd-field label{display:block;font-size:11px;font-weight:800;color:#35516f;margin-bottom:5px}.pwd-field input{width:100%;height:38px;border:1px solid #cbd5e1;border-radius:9px;padding:0 10px;font:inherit;outline:none}.pwd-field input:focus{border-color:#1c789d;box-shadow:0 0 0 3px rgba(28,120,157,.10)}.pwd-error{display:none;background:#fff1f2;color:#b42318;border-radius:8px;padding:8px 10px;font-size:11px;margin-bottom:10px}.pwd-error.show{display:block}.pwd-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}.pwd-actions button{height:34px;border-radius:8px;padding:0 13px;border:1px solid #cbd5e1;background:#fff;color:#183e69;font-weight:800;cursor:pointer}.pwd-actions .primary{background:#173c64;color:#fff;border-color:#173c64}
     .toast{position:fixed;right:18px;bottom:18px;z-index:120;background:#173c64;color:#fff;border-radius:10px;padding:10px 13px;font-size:12px;font-weight:700;box-shadow:0 12px 30px rgba(15,23,42,.2);display:none}.toast.on{display:block}.toast.err{background:#b42318}
     @media(max-width:640px){.atende-topbar-inner{padding:0 10px}.top-divider{display:none}.atende-brand small{display:none}.atende-brand strong{font-size:13px}.brand-icon{width:34px;height:34px}.portal-btn{width:32px}.top-actions{gap:3px}.admin-top-btn span:last-child{display:none}.admin-top-btn{width:34px;padding:0;justify-content:center}}
-  </style>
+      /* ATENDE_MOBILE_SHELL_V1 */
+    @media(max-width:700px){
+      html,body{height:100dvh!important;min-height:100dvh!important;overflow:hidden!important}
+      .atende-shell{height:100dvh!important;min-height:100dvh!important;grid-template-rows:58px minmax(0,1fr)!important}
+      .atende-topbar,.atende-topbar-inner{min-height:58px!important;height:58px!important}
+      .atende-frame-wrap{min-height:0!important;height:100%!important;overflow:hidden!important;touch-action:pan-x pan-y!important}
+      #atendeFrame{height:100%!important;min-height:0!important;width:100%!important;max-width:100%!important;overflow:auto!important;touch-action:pan-x pan-y!important}
+      .user-wrap,.user-av,.user-av-md{flex-shrink:0!important}
+      .user-av-md{width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;max-width:36px!important;max-height:36px!important;aspect-ratio:1/1!important;flex-basis:36px!important;border-radius:50%!important}
+      .user-av-md img{width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;object-fit:cover!important;border-radius:50%!important}
+      .atende-topbar-inner{padding-left:10px!important;padding-right:10px!important;gap:8px!important}
+      .atende-brand{min-width:0!important;flex:1 1 auto!important}.atende-brand strong{overflow:hidden!important;text-overflow:ellipsis!important}
+      .top-actions{flex:0 0 auto!important;min-width:max-content!important}
+    }
+</style>
 </head>
 <body>
   <div class="atende-shell">
@@ -66,7 +80,7 @@
       </div>
     </header>
     <main class="atende-frame-wrap">
-      <iframe id="atendeFrame" src="https://script.google.com/macros/s/AKfycbwCBAG4gBVHMHh7cHgnIG215RL8m8CbymvsAaHcs4bXhp0RCyPeP_cr6IA5iZtsch_m1g/exec" data-agf-frame-src="https://script.google.com/macros/s/AKfycbwCBAG4gBVHMHh7cHgnIG215RL8m8CbymvsAaHcs4bXhp0RCyPeP_cr6IA5iZtsch_m1g/exec" title="Atendimento" loading="eager" scrolling="no" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      <iframe id="atendeFrame" src="https://script.google.com/macros/s/AKfycbwCBAG4gBVHMHh7cHgnIG215RL8m8CbymvsAaHcs4bXhp0RCyPeP_cr6IA5iZtsch_m1g/exec" data-agf-frame-src="https://script.google.com/macros/s/AKfycbwCBAG4gBVHMHh7cHgnIG215RL8m8CbymvsAaHcs4bXhp0RCyPeP_cr6IA5iZtsch_m1g/exec" title="Atendimento" loading="eager" scrolling="auto" referrerpolicy="strict-origin-when-cross-origin"></iframe>
     </main>
   </div>
 
