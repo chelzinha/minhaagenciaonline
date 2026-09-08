@@ -3,12 +3,14 @@
 // ============================================================
 
 function ATENDE_dashboardAddonJs() {
-  // O Index.html injeta o retorno desta função dentro de uma tag <script>
-  // criada no navegador. DashboardTabsV4.html já possui sua própria tag
-  // <script>, por isso removemos apenas o wrapper externo antes de devolver
-  // o JavaScript ao frontend.
-  const html = HtmlService.createHtmlOutputFromFile('DashboardTabsV4').getContent();
-  return String(html || '')
-    .replace(/^\s*<script\b[^>]*>/i, '')
-    .replace(/<\/script>\s*$/i, '');
+  // Mantemos o Dashboard V4 como base estável e carregamos a camada V5
+  // em seguida. O Index.html injeta o retorno dentro de uma tag <script>,
+  // portanto cada arquivo HTML tem apenas seu wrapper <script> removido.
+  const arquivos = ['DashboardTabsV4', 'DashboardIntelligenceV5'];
+  return arquivos.map(function(nome) {
+    const html = HtmlService.createHtmlOutputFromFile(nome).getContent();
+    return String(html || '')
+      .replace(/^\s*<script\b[^>]*>/i, '')
+      .replace(/<\/script>\s*$/i, '');
+  }).join('\n\n');
 }
