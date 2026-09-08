@@ -14,7 +14,20 @@ $match = [regex]::Match($content, '(?s)^\s*<script[^>]*>(.*)</script>\s*$')
 if (-not $match.Success) { throw 'DashboardV3.html precisa conter exatamente um bloco <script> externo.' }
 $js = $match.Groups[1].Value
 
-if ($js -match '&lt;|&gt;|&#43;|&amp;') { throw 'Entidade HTML encontrada dentro do JavaScript do DashboardV3.' }
+# A funcao esc() usa deliberadamente &amp;, &lt; e &gt; para escapar dados
+# antes de inseri-los no HTML. Essas entidades sao corretas e nao podem ser
+# tratadas como corrupcao do JavaScript. Removemos apenas essa funcao da
+# varredura e procuramos entidades suspeitas no restante do codigo.
+$entityScan = [regex]::Replace($js, '(?s)function\s+esc\(v\)\{.*?\}', '')
+$entityMatch = [regex]::Match($entityScan, '&(?:lt|gt|amp|#43);')
+if ($entityMatch.Success) {
+  $prefix = $entityScan.Substring(0, $entityMatch.Index)
+  $lineNumber = ([regex]::Matches($prefix, "`n")).Count + 1
+  $start = [Math]::Max(0, $entityMatch.Index - 90)
+  $length = [Math]::Min(180, $entityScan.Length - $start)
+  $snippet = $entityScan.Substring($start, $length).Replace("`r", ' ').Replace("`n", ' ')
+  throw ("Entidade HTML suspeita '{0}' fora de esc() na linha aproximada {1}. Trecho: {2}" -f $entityMatch.Value, $lineNumber, $snippet)
+}
 
 function Test-NodeSyntax([string]$sourcePath, [string]$label) {
   $psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -61,7 +74,7 @@ try {
   $migration = [System.IO.File]::ReadAllText($migrationPath)
   if ($migration -notmatch 'atende_dashboard_metas_mensais') { throw 'Migration 0010 nao cria a tabela de metas esperada.' }
 
-  Write-Host 'OK - JavaScript sem entidades HTML corrompidas.' -ForegroundColor Green
+  Write-Host 'OK - JavaScript sem entidades HTML suspeitas fora da funcao esc().' -ForegroundColor Green
   Write-Host 'OK - Evolucao 6 meses, Canal, Metas e Embalagem encontrados.' -ForegroundColor Green
   Write-Host 'OK - Migration 0010 encontrada.' -ForegroundColor Green
   Write-Host ('Bytes JS: ' + $js.Length) -ForegroundColor DarkGray
