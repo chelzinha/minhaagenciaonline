@@ -14,13 +14,22 @@ $v4 = [System.IO.File]::ReadAllText($v4Path)
 $proxy = [System.IO.File]::ReadAllText($proxyPath)
 
 # 1) Controle de acesso da aba Gestao.
-# A substituicao por regex aceita tanto o arquivo original quanto uma execucao parcial anterior.
-$canFinal = "function canManage(){if(DATA&&typeof DATA.gestaoPermitida==='boolean')return DATA.gestaoPermitida;var r=role();return !!window.IS_ADMIN||r==='admin'||r==='manager'||r==='gestor'||r==='socio'||r==='sócio'}"
-$canPattern = "function canManage\(\)\{(?:if\(DATA&&typeof DATA\.gestaoPermitida==='boolean'\)return DATA\.gestaoPermitida;)?var r=role\(\);return !!window\.IS_ADMIN\|\|r==='admin'\|\|r==='manager'\|\|r==='gestor'\|\|r==='socio'\|\|r==='sócio'\}"
+# O arquivo local pode ter vindo de uma versao anterior. Em vez de depender
+# do corpo exato de canManage(), substituimos qualquer implementacao simples
+# existente. Se ela nao existir, inserimos logo depois de role().
+$canFinal = "function canManage(){if(DATA&&typeof DATA.gestaoPermitida==='boolean')return DATA.gestaoPermitida;var r=role();return !!window.IS_ADMIN||r==='admin'||r==='manager'||r==='gestor'||r==='socio'||r==='s\u00f3cio'}"
+$canPattern = 'function\s+canManage\(\)\s*\{[^\}]*\}'
+
 if ([regex]::IsMatch($v4, $canPattern)) {
-  $v4 = [regex]::Replace($v4, $canPattern, $canFinal, 1)
+  $v4 = [regex]::Replace($v4, $canPattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $canFinal }, 1)
 } elseif ($v4 -notmatch 'gestaoPermitida') {
-  throw 'Falhou: nao foi possivel localizar canManage() no DashboardTabsV4.html.'
+  $rolePattern = 'function\s+role\(\)\s*\{[^\}]*\}'
+  $roleMatch = [regex]::Match($v4, $rolePattern)
+  if (-not $roleMatch.Success) {
+    throw 'Falhou: nao foi possivel localizar role() ou canManage() no DashboardTabsV4.html.'
+  }
+  $insertAt = $roleMatch.Index + $roleMatch.Length
+  $v4 = $v4.Insert($insertAt, "`r`n  $canFinal")
 }
 
 # 2) O payload V4 valida a sessao no Apps Script e remove remuneracao de usuario comum.
