@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "agf-caixa-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-08",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "LEGACY_CAIXA_URL": "https://script.google.com/macros/s/AKfycbxRaTJeaXhGTC0Lbyqf_Osnr_HsOyUnlOWjwtGMvkvPY1d98H0RthjJPCkLJRkP1x8o/exec"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "agf-caixa",
+      "database_id": "REPLACE_WITH_AGF_CAIXA_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
