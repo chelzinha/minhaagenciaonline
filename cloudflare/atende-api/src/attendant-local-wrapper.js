@@ -37,11 +37,6 @@ function withAttendantLocal(env) {
 function rewriteSql(sql) {
   let text=String(sql||'');
 
-  // Algumas camadas mais novas ja montam explicitamente o JOIN de
-  // atende_atendente_local. O wrapper antigo tambem o injetava em runtime,
-  // gerando o mesmo alias `atl` duas vezes no Dashboard. Em D1/SQLite isso
-  // derruba a consulta e o Worker termina com erro 1101. Torna a reescrita
-  // idempotente: so injeta quando o JOIN ainda nao existe no SQL recebido.
   if(!/\bJOIN\s+atende_atendente_local\s+atl\b/i.test(text)){
     text=text.replace(
       'LEFT JOIN atende_atendentes a ON a.codigo = r.atendente_norm AND a.ativo = 1',
@@ -119,7 +114,7 @@ async function saveAttendantDynamic(request, env) {
         local_codigo=excluded.local_codigo,
         atualizado_por=excluded.atualizado_por,
         atualizado_em=datetime('now')
-    `).bind(codigo,local,user));
+    `).bind(codigo,local,user).run();
   }else{
     await env.DB.prepare(`DELETE FROM atende_atendente_local WHERE codigo=?`).bind(codigo).run();
   }
