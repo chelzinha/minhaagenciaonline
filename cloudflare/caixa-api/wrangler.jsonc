@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "agf-caixa",
-      "database_id": "REPLACE_WITH_AGF_CAIXA_DATABASE_ID",
+      "database_id": "2ec703cf-9d26-4737-9342-41c19aa4ceb8",
       "migrations_dir": "migrations"
     }
   ]
