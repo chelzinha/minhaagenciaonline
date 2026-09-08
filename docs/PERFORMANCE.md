@@ -132,3 +132,58 @@ Esta mudança melhora a sensação de resposta da interface, mas não representa
 
 ### Pendência futura
 A otimização estrutural de dados ainda deve ser tratada em evolução própria, considerando cache, dados resumidos, pré-processamento ou migração futura para banco de dados.
+
+## 2026-09-08 - Caixa V3 - migração de leitura para Workers + D1
+
+### Tela
+`/caixa/` e homologação Caixa V3.
+
+### Problema percebido
+Mesmo após reduzir a preparação das abas e o número de leituras no Apps Script, a abertura do Caixa continuou percebida como lenta.
+
+### Origem confirmada no código
+O bootstrap ainda dependia de uma chamada ao Google Apps Script e de leituras/processamento de Google Sheets para montar unidade, permissões, bibliotecas, clientes, movimentos, sangrias, fechamento, complementos e Pix pendentes.
+
+### Melhoria em desenvolvimento
+Foi iniciada uma migração híbrida em `feature/caixa-v3-d1`:
+
+```text
+Frontend
+-> Cloudflare Worker
+-> D1 para unitAccess/init/summary
+-> Apps Script V3 somente para escritas na primeira fase
+```
+
+O Apps Script continua responsável, temporariamente, por operações já homologadas envolvendo escrita, PDF/Drive e Conta Azul. O Worker espelha os resultados no D1.
+
+### Banco
+Banco dedicado planejado: `agf-caixa`.
+
+O schema usa tabelas transacionais e índices para consultas por usuário, unidade, data, status, Pix, fechamento e Conta Azul.
+
+### Medição
+A resposta D1 de `init` inclui `bootstrapMs`.
+
+A homologação deve comparar:
+
+- tempo total da requisição;
+- `bootstrapMs`;
+- totais e movimentos retornados;
+- Pix pendentes;
+- fechamento e complementos;
+- resultado nas duas unidades.
+
+### Risco
+Mudança estrutural e sensível por envolver dados financeiros, permissões, Pix e integração Conta Azul.
+
+Mitigação:
+
+- branch isolada;
+- D1 separado;
+- produção sem alteração;
+- escrita financeira ainda no Apps Script nesta etapa;
+- autenticação JWT validada no Worker;
+- rollback para o endpoint Apps Script sem migração reversa.
+
+### Documento relacionado
+`docs/CAIXA_V3_D1_MIGRACAO.md`.
