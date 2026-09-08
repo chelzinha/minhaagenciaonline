@@ -1,0 +1,16 @@
+{
+  "name": "agf-caixa-api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "d1:create": "wrangler d1 create agf-caixa",
+    "d1:migrate:local": "wrangler d1 migrations apply agf-caixa --local",
+    "d1:migrate:remote": "wrangler d1 migrations apply agf-caixa --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.129.1"
+  }
+}
