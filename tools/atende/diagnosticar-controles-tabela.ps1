@@ -34,7 +34,7 @@ $checks=@{
   'seletor de colunas' = ($addon -match 'tcColumnsBtn' -and $addon -match 'hiddenColumns')
   'preferencia por usuario' = ($addon -match 'AUTH_USER' -and $addon -match 'userKey')
   'filtro Em branco' = ($addon -match 'Em branco' -and $wrapper -match 'presenceBlankSql')
-  'filtro Nao em branco' = ($addon -match 'filled' -and $wrapper -match "mode==='filled'")
+  'filtro Nao em branco' = ($addon -match 'filled' -and $wrapper.Contains("mode!=='filled'") -and $wrapper.Contains('`NOT (${blank})`'))
   'cadeado individual' = ($addon -match 'toggleLineLock' -and $wrapper -match '/admin/row-lock-exception')
   'cadeado em lote' = ($addon -match 'applyBulkLock' -and $wrapper -match 'max_1000_rows')
   'Local dinamico na tabela' = ($wrapper -match 'atende_atendente_local atl' -and $wrapper -match 'atl\.local_codigo')
