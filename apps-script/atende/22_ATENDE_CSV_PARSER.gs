@@ -1,5 +1,5 @@
 // ============================================================
-// ATENDE - PARSER E MAPEAMENTO DO CSV DIARIO
+// ATENDE - PARSER E MAPEAMENTO DOS CSVs ATENDE + CONSOLIDADOR
 // ============================================================
 
 function ATENDE_lerCsv_(file) {
@@ -7,22 +7,36 @@ function ATENDE_lerCsv_(file) {
   text = String(text || '').replace(/^\uFEFF/, '');
   if (!text.trim()) throw new Error('O arquivo CSV esta vazio: ' + file.getName());
 
-  const matrix = Utilities.parseCsv(text, ';');
-  if (!matrix || matrix.length < 2) throw new Error('O CSV nao possui linhas de dados: ' + file.getName());
+  const matrixOriginal = Utilities.parseCsv(text, ';');
+  if (!matrixOriginal || matrixOriginal.length < 2) throw new Error('O CSV nao possui linhas de dados: ' + file.getName());
 
-  const headers = matrix[0].map(function(value) {
+  const headers = matrixOriginal[0].map(function(value) {
     return ATENDE_cleanCsvValue_(value).trim().toUpperCase();
   });
-  const missing = ATENDE_CSV_DIARIO_CFG.REQUIRED_HEADERS.filter(function(header) {
-    return headers.indexOf(header) < 0;
-  });
-  if (missing.length) throw new Error('CSV com estrutura inesperada. Cabecalhos ausentes: ' + missing.join(', '));
 
-  // rawRows preserva literalmente o valor de cada celula lida do CSV.
-  // Nao converte "null", nao remove espacos e nao normaliza numeros.
-  // Essa matriz alimenta exclusivamente a camada RAW imutavel do D1.
-  const rawRows = matrix.slice(1).filter(function(row) {
-    return row.some(function(value) { return String(value == null ? '' : value) !== ''; });
+  const sourceType = ATENDE_detectarFonteCsv_(headers);
+  if (!sourceType) {
+    throw new Error('CSV com estrutura inesperada. Nao foi possivel identificar ATENDE ou CONSOLIDADOR pelos cabecalhos.');
+  }
+
+  if (sourceType === 'ATENDE') {
+    const missing = ATENDE_CSV_DIARIO_CFG.REQUIRED_HEADERS.filter(function(header) {
+      return headers.indexOf(header) < 0;
+    });
+    if (missing.length) throw new Error('CSV ATENDE com estrutura inesperada. Cabecalhos ausentes: ' + missing.join(', '));
+  } else {
+    const missingCons = ATENDE_validarHeadersConsolidador_(headers);
+    if (missingCons.length) throw new Error('CSV CONSOLIDADOR com estrutura inesperada. Cabecalhos ausentes: ' + missingCons.join(', '));
+  }
+
+  const matrix = matrixOriginal.slice(1).map(function(row) {
+    return sourceType === 'CONSOLIDADOR' ? ATENDE_repararLinhaConsolidador_(row, headers) : row;
+  });
+
+  const rawRows = matrix.filter(function(row) {
+    if (!row.some(function(value) { return String(value == null ? '' : value) !== ''; })) return false;
+    if (sourceType === 'CONSOLIDADOR' && ATENDE_linhaTotalConsolidador_(row, headers)) return false;
+    return true;
   }).map(function(row) {
     const obj = {};
     headers.forEach(function(header, index) {
@@ -31,14 +45,79 @@ function ATENDE_lerCsv_(file) {
     return obj;
   });
 
-  // rows continua normalizada para compatibilidade com os fluxos legados.
   const rows = rawRows.map(function(raw) {
     const obj = {};
     headers.forEach(function(header) { obj[header] = ATENDE_cleanCsvValue_(raw[header]); });
     return obj;
   });
 
-  return { text: text, headers: headers, rows: rows, rawRows: rawRows };
+  return { text: text, headers: headers, rows: rows, rawRows: rawRows, sourceType: sourceType };
+}
+
+function ATENDE_detectarFonteCsv_(headers) {
+  const has = function(name) { return headers.indexOf(name) >= 0; };
+  if (has('ATENDIMENTO') && has('CODIGO_OBJETO') && has('DATA_POSTAGEM')) return 'ATENDE';
+
+  const venda = ATENDE_headerExiste_(headers, ['VENDA/PP.', 'VENDA/PP', 'VENDA_PP', 'VENDA PP']);
+  const cxat = ATENDE_headerExiste_(headers, ['CX./AT.', 'CX./AT', 'CX/AT', 'CX_AT']);
+  if (has('OBJETO') && venda && cxat) return 'CONSOLIDADOR';
+  return '';
+}
+
+function ATENDE_validarHeadersConsolidador_(headers) {
+  const specs = [
+    { label: 'OBJETO', aliases: ['OBJETO'] },
+    { label: 'VENDA/PP.', aliases: ['VENDA/PP.', 'VENDA/PP', 'VENDA_PP', 'VENDA PP'] },
+    { label: 'CX./AT.', aliases: ['CX./AT.', 'CX./AT', 'CX/AT', 'CX_AT'] },
+    { label: 'CLIENTE', aliases: ['CLIENTE', 'RAZAO_SOCIAL', 'RAZÃO_SOCIAL'] },
+    { label: 'ECT', aliases: ['ECT'] },
+    { label: 'DATA', aliases: ['DATA'] },
+    { label: 'VALOR', aliases: ['VALOR'] }
+  ];
+  return specs.filter(function(spec) {
+    return !ATENDE_headerExiste_(headers, spec.aliases);
+  }).map(function(spec) { return spec.label; });
+}
+
+function ATENDE_headerExiste_(headers, aliases) {
+  return aliases.some(function(alias) { return headers.indexOf(alias) >= 0; });
+}
+
+function ATENDE_indiceHeader_(headers, aliases) {
+  for (let i = 0; i < aliases.length; i++) {
+    const idx = headers.indexOf(aliases[i]);
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+// Alguns CSVs do Consolidador trazem ponto e virgula solto dentro de DESTINATARIO.
+// Nesses casos Utilities.parseCsv cria colunas extras. Reunimos somente o miolo
+// de DESTINATARIO e preservamos todas as demais colunas nas posicoes originais.
+function ATENDE_repararLinhaConsolidador_(row, headers) {
+  const source = Array.isArray(row) ? row.slice() : [];
+  if (source.length <= headers.length) {
+    while (source.length < headers.length) source.push('');
+    return source;
+  }
+
+  const destIdx = ATENDE_indiceHeader_(headers, ['DESTINATARIO', 'DESTINATÁRIO']);
+  if (destIdx < 0) return source.slice(0, headers.length);
+
+  const extra = source.length - headers.length;
+  const merged = source.slice(destIdx, destIdx + extra + 1).join(';');
+  const fixed = source.slice(0, destIdx).concat([merged], source.slice(destIdx + extra + 1));
+  while (fixed.length < headers.length) fixed.push('');
+  return fixed.slice(0, headers.length);
+}
+
+function ATENDE_linhaTotalConsolidador_(row, headers) {
+  const objetoIdx = ATENDE_indiceHeader_(headers, ['OBJETO']);
+  const objeto = objetoIdx >= 0 ? String(row[objetoIdx] == null ? '' : row[objetoIdx]).trim() : '';
+  if (objeto) return false;
+  return row.some(function(value) {
+    return String(value == null ? '' : value).trim().toUpperCase() === 'TOTAL';
+  });
 }
 
 function ATENDE_mapearLinhaCsv_(raw) {
