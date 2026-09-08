@@ -11,30 +11,37 @@ if (-not (Test-Path $proxyPath)) { throw "39_ATENDE_DASHBOARD_V4.gs nao encontra
 
 $index = [System.IO.File]::ReadAllText($indexPath)
 $v4 = [System.IO.File]::ReadAllText($v4Path)
+$proxy = [System.IO.File]::ReadAllText($proxyPath)
 
-# Endurece a aba Gestao sem reescrever o restante do dashboard.
-$oldCan = "function canManage(){var r=role();return !!window.IS_ADMIN||r==='admin'||r==='manager'||r==='gestor'||r==='socio'||r==='sócio'}"
-$newCan = "function canManage(){if(DATA&&typeof DATA.gestaoPermitida==='boolean')return DATA.gestaoPermitida;var r=role();return !!window.IS_ADMIN||r==='admin'||r==='manager'||r==='gestor'||r==='socio'||r==='sócio'}"
-if ($v4.Contains($oldCan)) { $v4 = $v4.Replace($oldCan, $newCan) }
+# 1) Controle de acesso da aba Gestao.
+# A substituicao por regex aceita tanto o arquivo original quanto uma execucao parcial anterior.
+$canFinal = "function canManage(){if(DATA&&typeof DATA.gestaoPermitida==='boolean')return DATA.gestaoPermitida;var r=role();return !!window.IS_ADMIN||r==='admin'||r==='manager'||r==='gestor'||r==='socio'||r==='sócio'}"
+$canPattern = "function canManage\(\)\{(?:if\(DATA&&typeof DATA\.gestaoPermitida==='boolean'\)return DATA\.gestaoPermitida;)?var r=role\(\);return !!window\.IS_ADMIN\|\|r==='admin'\|\|r==='manager'\|\|r==='gestor'\|\|r==='socio'\|\|r==='sócio'\}"
+if ([regex]::IsMatch($v4, $canPattern)) {
+  $v4 = [regex]::Replace($v4, $canPattern, $canFinal, 1)
+} elseif ($v4 -notmatch 'gestaoPermitida') {
+  throw 'Falhou: nao foi possivel localizar canManage() no DashboardTabsV4.html.'
+}
 
-$oldSwitch = "function switchView(v){if(v==='gestao'&&!canManage()){VIEW='gestao';activate(v);renderAccess();return}VIEW=['operacao','comercial','gestao'].indexOf(v)>=0?v:'table';activate(VIEW);if(VIEW==='table'){var d=document.getElementById('dashboardView');if(d)d.style.display='none';loadPage(1)}else load()}"
-$newSwitch = "function switchView(v){VIEW=['operacao','comercial','gestao'].indexOf(v)>=0?v:'table';activate(VIEW);if(VIEW==='table'){var d=document.getElementById('dashboardView');if(d)d.style.display='none';loadPage(1)}else load()}"
-if ($v4.Contains($oldSwitch)) { $v4 = $v4.Replace($oldSwitch, $newSwitch) }
-
-$oldCall = ".ATENDE_buscarDashboardGestaoV3D1(filterContext())"
+# 2) O payload V4 valida a sessao no Apps Script e remove remuneracao de usuario comum.
+$oldCall = '.ATENDE_buscarDashboardGestaoV3D1(filterContext())'
 $newCall = ".ATENDE_buscarDashboardV4D1(filterContext(),String(window.AUTH_TOKEN||''))"
 if ($v4.Contains($oldCall)) { $v4 = $v4.Replace($oldCall, $newCall) }
 
-$oldData = "DATA=r;var k=r.kpis||{};"
-$newData = "DATA=r;markAccess();var k=r.kpis||{};"
-if ($v4.Contains($oldData)) { $v4 = $v4.Replace($oldData, $newData) }
+# 3) Depois da resposta do servidor, sincroniza o cadeado da aba Gestao com a permissao real.
+if ($v4 -notmatch 'DATA=r;markAccess\(\);var k=r\.kpis') {
+  $v4 = $v4.Replace('DATA=r;var k=r.kpis||{};', 'DATA=r;markAccess();var k=r.kpis||{};')
+}
 
 if ($v4 -notmatch 'ATENDE_buscarDashboardV4D1') { throw 'Falhou: Dashboard V4 nao foi conectado ao proxy com controle de acesso.' }
 if ($v4 -notmatch 'gestaoPermitida') { throw 'Falhou: controle de acesso da aba Gestao nao foi aplicado.' }
+if ($proxy -notmatch 'gestaoPermitida') { throw 'Falhou: proxy V4 sem controle de acesso da Gestao.' }
+if ($proxy -notmatch 'base\.remuneracao\s*=\s*\{\}') { throw 'Falhou: proxy V4 nao remove remuneracao para usuario comum.' }
 
 # Mantem o arquivo fonte local alinhado com o que sera injetado no Index.
 [System.IO.File]::WriteAllText($v4Path, $v4, (New-Object System.Text.UTF8Encoding($false)))
 
+# Substitui apenas o addon de dashboard. Nao toca no shell externo, topo ou Cloudflare Pages.
 $pattern = '(?s)<script id="atende-dashboard-v3-script">.*?</script>'
 if ([regex]::IsMatch($index, $pattern)) {
   $index = [regex]::Replace($index, $pattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $v4.Trim() }, 1)
@@ -51,6 +58,7 @@ if ([regex]::IsMatch($index, $pattern)) {
 if ($index -notmatch 'data-view="operacao"') { throw 'Falhou: aba Operacao nao foi injetada.' }
 if ($index -notmatch 'data-view="comercial"') { throw 'Falhou: aba Comercial nao foi injetada.' }
 if ($index -notmatch 'data-view="gestao"') { throw 'Falhou: aba Gestao nao foi injetada.' }
+if ($index -notmatch 'gestaoPermitida') { throw 'Falhou: permissao da Gestao nao chegou ao Index.' }
 if ($index -notmatch 'ADJ_MENS') { throw 'Falhou: fatores de ajuste contratuais nao foram injetados.' }
 if ($index -match 'Cobertura Portal') { Write-Host 'AVISO - o texto Cobertura Portal ainda existe em outro trecho do Index, mas nao faz parte do Dashboard V4.' -ForegroundColor Yellow }
 
