@@ -2,6 +2,37 @@
 
 Documento tecnico em preparacao.
 
+## 2026-09-08 - Atende: protecao server-side da remuneracao do Dashboard V4
+
+### Atencao sensivel
+A remuneracao contratual exibida na aba `Gestao` deve permanecer restrita a perfis autorizados. Foi identificado que o frontend do Dashboard V4 ainda chamava o agregador V3, que retornava o objeto `remuneracao` sem aplicar a validacao de role criada no V4.
+
+### Mudanca aplicada
+- `DashboardTabsV4.html` passa a chamar `ATENDE_buscarDashboardV4D1` em vez do agregador V3.
+- O token de autenticacao ja recebido pelo bridge do portal e encaminhado ao Apps Script apenas para validacao server-side.
+- `39_ATENDE_DASHBOARD_V4.gs` revalida a sessao e remove `remuneracao` da resposta quando o perfil nao e de gestao.
+
+### Dados envolvidos
+- Indicadores agregados de faturamento e operacao.
+- Remuneracao contratual estimada da agencia.
+- Role e identificador de sessao usados exclusivamente para autorizacao.
+
+### Risco principal
+- Um usuario comum nao visualizar a aba Gestao, mas ainda receber dados de remuneracao na resposta ao navegador.
+
+### Mitigacao
+- Aplicar minimizacao de dados no backend, e nao apenas ocultacao visual.
+- Manter Operacao e Comercial disponiveis com os indicadores nao sensiveis.
+- Em falha de validacao, o backend assume ausencia de permissao e nao devolve remuneracao.
+
+### Segredos e dados reais
+- Nenhum token, credencial, valor real de remuneracao ou dado pessoal foi registrado neste documento.
+
+### Validacao apos deploy
+- Usuario comum: aba Gestao bloqueada e objeto de remuneracao ausente/vazio na resposta.
+- Perfil de gestao: indicadores sensiveis carregam normalmente.
+- Operacao e Comercial: permanecem funcionais para usuarios autenticados.
+
 ## 2026-09-05 - Atende: camada RAW imutavel e bibliotecas administrativas
 
 ### Atencao sensivel
