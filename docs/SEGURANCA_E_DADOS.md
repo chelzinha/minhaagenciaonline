@@ -2,6 +2,24 @@
 
 Documento tecnico em preparacao.
 
+## Atende - protecao de indicadores de gestao
+
+ATENÇÃO - dados ou segurança.
+
+A aba `Gestao` do Dashboard V4 possui indicadores de remuneracao contratual que nao devem ser enviados ao navegador de usuarios comuns. A interface continua ocultando a area conforme o perfil, mas a protecao principal deve ocorrer no backend.
+
+Controle aplicado em 2026-09-08:
+- O frontend do Dashboard V4 passou a chamar `ATENDE_buscarDashboardV4D1` com o token de sessao recebido pelo bridge de autenticacao.
+- O Apps Script revalida o token no backend antes de devolver os dados do dashboard.
+- Perfis sem permissao de gestao recebem `remuneracao` vazio.
+- Operacao e Comercial continuam recebendo os demais indicadores necessarios.
+- Nenhum token, valor de remuneracao real ou dado pessoal foi registrado nesta documentacao.
+
+Validacao recomendada apos deploy:
+- Com usuario comum, confirmar que a aba Gestao permanece bloqueada e que a resposta do dashboard nao contem remuneracao contratual.
+- Com perfil autorizado, confirmar que a aba Gestao continua carregando normalmente.
+- Confirmar que Operacao e Comercial permanecem funcionais para usuarios autenticados.
+
 ## Apps Script e arquivos locais
 
 Os arquivos .clasp.json foram ignorados via .gitignore para evitar exposicao de identificadores locais dos projetos Apps Script.
