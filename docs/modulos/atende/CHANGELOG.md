@@ -1,5 +1,29 @@
 # Changelog - Atende
 
+## 2026-09-08 - Redesign visual do Dashboard V4
+
+### Alterado
+
+- Redesenho visual das abas `Operacao`, `Comercial` e `Gestao` sem alterar a logica dos indicadores.
+- Tipografia dos KPIs ampliada para melhorar leitura em desktop e mobile.
+- Cards, espacamentos, bordas e sombras reorganizados para reduzir densidade visual.
+- Navegacao entre `Tabela`, `Operacao`, `Comercial` e `Gestao` transformada em controle segmentado mais legivel.
+- Graficos, donuts, rankings, metas, medalhas e blocos de remuneracao receberam hierarquia visual mais clara.
+- Layout responsivo revisado para notebooks, tablets e celulares.
+
+### Preservado
+
+- Filtros e contexto do periodo selecionado.
+- Funcoes de calculo, comparacoes, metas e projecoes.
+- Controle de acesso existente da aba de Gestao.
+- Estrutura de dados e backend Apps Script.
+- Tabela operacional e rotinas de importacao.
+
+### Deploy
+
+- Requer `clasp push` do modulo `apps-script/atende` apos a branch ser integrada.
+- Requer atualizar a implantacao Web App existente para manter a mesma URL publica.
+
 ## 2026-09-05 - Importacao automatica do CSV diario
 
 ### Adicionado
