@@ -14,6 +14,8 @@ const ATENDE_D1_PANEL_COLUMNS = Object.freeze([
   { key: 'CONTRATO', label: 'CONTRATO', width: 112, mono: true },
   { key: 'OCORR', label: 'OCORR.', width: 78, numeric: true },
   { key: 'CLIENTE', label: 'CLIENTE', width: 230 },
+  { key: 'CADASTRO PORTAL', label: 'CADASTRO PORTAL', width: 230 },
+  { key: 'ORIGEM PORTAL', label: 'ORIGEM PORTAL', width: 105 },
   { key: 'TIPO', label: 'TIPO', width: 120 },
   { key: 'INTERMEDIADOR', label: 'INTERMEDIADOR', width: 150 },
   { key: 'SISTEMA', label: 'SISTEMA', width: 128 },
@@ -102,6 +104,8 @@ function ATENDE_buscarDadosD1(params) {
       copy.SERVICO = '';
       copy.OCORR = '';
       copy.CLIENTE = '';
+      copy['CADASTRO PORTAL'] = '';
+      copy['ORIGEM PORTAL'] = '';
       copy.TIPO = '';
       copy.INTERMEDIADOR = copy['NOME CONTRATO'] || '';
       copy.LOCAL = '';
@@ -112,6 +116,8 @@ function ATENDE_buscarDadosD1(params) {
 
     if (!Object.prototype.hasOwnProperty.call(copy, 'OCORR')) copy.OCORR = '';
     if (!Object.prototype.hasOwnProperty.call(copy, 'CLIENTE')) copy.CLIENTE = '';
+    if (!Object.prototype.hasOwnProperty.call(copy, 'CADASTRO PORTAL')) copy['CADASTRO PORTAL'] = '';
+    if (!Object.prototype.hasOwnProperty.call(copy, 'ORIGEM PORTAL')) copy['ORIGEM PORTAL'] = '';
     if (!Object.prototype.hasOwnProperty.call(copy, 'TIPO')) copy.TIPO = '';
     if (!Object.prototype.hasOwnProperty.call(copy, 'INTERMEDIADOR')) copy.INTERMEDIADOR = copy['NOME CONTRATO'] || '';
 
