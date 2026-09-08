@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "agf-atende-api",
-  "main": "src/attendant-local-wrapper.js",
+  "main": "src/dashboard-management-wrapper.js",
   "compatibility_date": "2026-09-05",
   "limits": {
     "cpu_ms": 300000
