@@ -125,7 +125,8 @@ function doPost(e) {
     var adminOnly = {
       processContaAzulQueue: true,
       syncContaAzulLibrary: true,
-      retryPdfs: true
+      retryPdfs: true,
+      exportD1Snapshot: true
     };
 
     if (adminOnly[action] && user.role !== 'admin') {
@@ -150,6 +151,8 @@ function doPost(e) {
       case 'processContaAzulQueue': return jsonOutput_(processContaAzulQueueV2(request.limit));
       case 'syncContaAzulLibrary': return jsonOutput_(syncContaAzulLibraryV2());
       case 'retryPdfs': return jsonOutput_(retryPendingPdfsV2());
+      case 'exportD1Snapshot': return jsonOutput_(v3D1FullSnapshot_());
+      case 'exportD1UnitSnapshot': return jsonOutput_(v3D1UnitSnapshot_(user));
       case 'ping': return jsonOutput_({ ok:true, service:'caixa-avista-v3', date:v2Today_(), authMode:gate.mode });
       default: return jsonOutput_(fail_('Ação inválida ou ausente.', 'INVALID_ACTION'));
     }
