@@ -7,8 +7,7 @@ import {
   importLegacyUnitSnapshot,
   unitAccessResponse,
   upsertClientFromApi,
-  upsertEntriesFromApi,
-  upsertWithdrawalFromApi
+  upsertEntriesFromApi
 } from './db.js';
 import {
   postLegacy,
@@ -32,6 +31,12 @@ const LEGACY_WRITE_ACTIONS = new Set([
   'createWithdrawal',
   'closeCash',
   ...ADMIN_PROXY_ACTIONS
+]);
+
+const UNIT_RECONCILE_ACTIONS = new Set([
+  'setOpeningBalance',
+  'createWithdrawal',
+  'closeCash'
 ]);
 
 function json(data, status = 200, request = null) {
@@ -74,16 +79,20 @@ function fail(error, request, status = 200) {
 }
 
 async function readBody(request) {
+  const text = await request.text();
+
+  if (!String(text || '').trim()) {
+    const error = new Error('Corpo da requisição ausente.');
+    error.code = 'EMPTY_REQUEST';
+    throw error;
+  }
+
   try {
-    return await request.json();
+    return JSON.parse(text);
   } catch (_) {
-    try {
-      return JSON.parse(await request.text());
-    } catch (_) {
-      const error = new Error('Corpo da requisição inválido.');
-      error.code = 'INVALID_JSON';
-      throw error;
-    }
+    const error = new Error('Corpo da requisição inválido.');
+    error.code = 'INVALID_JSON';
+    throw error;
   }
 }
 
@@ -153,6 +162,14 @@ async function statusSnapshot(db) {
   };
 }
 
+async function reconcileUnitFromLegacy(env, token, unitId) {
+  const id = String(unitId || '').trim();
+  if (!id) return;
+
+  const snapshot = await pullUnitSnapshot(env, token, id);
+  await importLegacyUnitSnapshot(env.DB, snapshot);
+}
+
 async function mirrorLegacyResult(env, ctx, action, body, result, token) {
   if (!result?.ok) return;
 
@@ -171,25 +188,17 @@ async function mirrorLegacyResult(env, ctx, action, body, result, token) {
     return;
   }
 
-  if (action === 'createWithdrawal' && result.withdrawal) {
-    ctx.waitUntil(
-      upsertWithdrawalFromApi(env.DB, result.withdrawal, String(body?.unitId || ''))
-    );
-    return;
-  }
-
   /*
-   * Fechamento e saldo alteram múltiplas tabelas ao mesmo tempo.
-   * Para manter o espelho D1 coerente, sincronizamos a unidade antes de
-   * devolver a resposta. Essas operações são pouco frequentes e já são
-   * naturalmente mais longas por PDF/Conta Azul.
+   * Saldo, sangria e fechamento alteram mais de uma informação relacionada ao
+   * caixa diário. Nesses casos o D1 é reconciliado pela visão oficial do
+   * Apps Script antes de devolver sucesso ao frontend.
    */
-  if (action === 'closeCash' || action === 'setOpeningBalance') {
-    const unitId = String(body?.unitId || '').trim();
-    if (unitId) {
-      const snapshot = await pullUnitSnapshot(env, token, unitId);
-      await importLegacyUnitSnapshot(env.DB, snapshot);
-    }
+  if (UNIT_RECONCILE_ACTIONS.has(action)) {
+    await reconcileUnitFromLegacy(
+      env,
+      token,
+      String(body?.unitId || '').trim()
+    );
   }
 }
 
