@@ -2,9 +2,31 @@
 // ATENDE - PARSER E MAPEAMENTO DOS CSVs ATENDE + CONSOLIDADOR
 // ============================================================
 
+function ATENDE_lerTextoCsv_(file) {
+  const blob = file.getBlob();
+  let text = String(blob.getDataAsString('UTF-8') || '').replace(/^\uFEFF/, '');
+  let encoding = 'UTF-8';
+
+  // O Consolidador do Portal Postal pode ser exportado em ANSI/Latin-1.
+  // Quando um arquivo desses e lido como UTF-8, caracteres como Ã, Ô etc.
+  // aparecem como U+FFFD (�). Nesse caso relê o mesmo blob em ISO-8859-1.
+  if (text.indexOf('\uFFFD') >= 0) {
+    const latin1 = String(blob.getDataAsString('ISO-8859-1') || '').replace(/^\uFEFF/, '');
+    const utf8Broken = (text.match(/\uFFFD/g) || []).length;
+    const latin1Broken = (latin1.match(/\uFFFD/g) || []).length;
+    if (latin1Broken < utf8Broken) {
+      text = latin1;
+      encoding = 'ISO-8859-1';
+    }
+  }
+
+  return { text: text, encoding: encoding };
+}
+
 function ATENDE_lerCsv_(file) {
-  let text = file.getBlob().getDataAsString('UTF-8');
-  text = String(text || '').replace(/^\uFEFF/, '');
+  const decoded = ATENDE_lerTextoCsv_(file);
+  const text = decoded.text;
+  const encoding = decoded.encoding;
   if (!text.trim()) throw new Error('O arquivo CSV esta vazio: ' + file.getName());
 
   const matrixOriginal = Utilities.parseCsv(text, ';');
@@ -51,7 +73,7 @@ function ATENDE_lerCsv_(file) {
     return obj;
   });
 
-  return { text: text, headers: headers, rows: rows, rawRows: rawRows, sourceType: sourceType };
+  return { text: text, encoding: encoding, headers: headers, rows: rows, rawRows: rawRows, sourceType: sourceType };
 }
 
 function ATENDE_detectarFonteCsv_(headers) {
