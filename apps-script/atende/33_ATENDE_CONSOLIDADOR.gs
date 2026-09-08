@@ -36,6 +36,7 @@ function ATENDE_identificarCsvEntradaSemGravar() {
       return {
         fileName: file.getName(),
         sourceType: parsed.sourceType || '',
+        encoding: parsed.encoding || '',
         rows: (parsed.rawRows || []).length,
         headers: parsed.headers || []
       };
