@@ -8,7 +8,21 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw 'Node.js nao 
 $tmp = Join-Path $env:TEMP ("atende-dashboard-addon-{0}.js" -f $PID)
 try {
   $content = [System.IO.File]::ReadAllText($path)
-  [System.IO.File]::WriteAllText($tmp,$content,(New-Object System.Text.UTF8Encoding($false)))
+  $js = $content
+  $wrapped = $false
+
+  $m = [regex]::Match($content,'(?is)^\s*<script\b[^>]*>([\s\S]*)</script>\s*$')
+  if ($m.Success) {
+    $js = $m.Groups[1].Value
+    $wrapped = $true
+  }
+
+  if ($js -match '&lt;|&gt;|&#43;|&amp;') {
+    Write-Host 'ERRO - JavaScript fonte contem entidades HTML que quebrariam a execucao.' -ForegroundColor Red
+    exit 1
+  }
+
+  [System.IO.File]::WriteAllText($tmp,$js,(New-Object System.Text.UTF8Encoding($false)))
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.FileName = 'node'
   $psi.Arguments = "--check `"$tmp`""
@@ -31,7 +45,10 @@ try {
   }
 
   Write-Host 'OK - DashboardAddon.html passou no node --check.' -ForegroundColor Green
-  Write-Host ('Bytes: ' + $content.Length) -ForegroundColor DarkGray
+  Write-Host ('Encapsulado em <script>: ' + $wrapped) -ForegroundColor DarkGray
+  Write-Host ('Bytes HTML: ' + $content.Length) -ForegroundColor DarkGray
+  Write-Host ('Bytes JS: ' + $js.Length) -ForegroundColor DarkGray
+  Write-Host 'OK - nenhuma entidade HTML foi encontrada dentro do JavaScript fonte.' -ForegroundColor Green
 } finally {
   Remove-Item $tmp -Force -ErrorAction SilentlyContinue
 }
