@@ -13,6 +13,7 @@
   const roleControlled = document.querySelectorAll('[data-role],[data-roles]');
   const appControlled = document.querySelectorAll('[data-app]');
   const appAnyControlled = document.querySelectorAll('[data-app-any]');
+  const REVERSO_ENEL_BASE = 'https://agfenel.netlify.app';
 
   function setStatus(message) { status.textContent = message || ''; }
   function hideBoot() { bootView && bootView.classList.add('hide'); }
@@ -28,6 +29,46 @@
   }
   function cleanPortalUrl() {
     if (history.replaceState && location.search) history.replaceState(null, '', '/agf/' + location.hash);
+  }
+  function setCardDestination(card, href, displayText) {
+    if (!card) return;
+    card.href = href;
+    const bottom = card.querySelector('.card-bottom span:first-child');
+    if (bottom) bottom.textContent = displayText;
+  }
+  function setCardCopy(card, title, description, iconName, badgeText, badgeClass) {
+    if (!card) return;
+    const titleNode = card.querySelector('.card-copy h2');
+    const descriptionNode = card.querySelector('.card-copy p');
+    const iconNode = card.querySelector('.card-icon .material-symbols-rounded');
+    const badgeNode = card.querySelector('.card-badge');
+    if (titleNode) titleNode.textContent = title;
+    if (descriptionNode) descriptionNode.textContent = description;
+    if (iconNode) iconNode.textContent = iconName;
+    if (badgeNode) {
+      badgeNode.textContent = badgeText;
+      badgeNode.className = 'card-badge' + (badgeClass ? ' ' + badgeClass : '');
+    }
+  }
+  function applyReversoEnelShortcuts(user) {
+    const hasAnyReverso = ['reverso-admin', 'reverso-coleta', 'reverso-expedicao'].some((key) => auth.hasApp(user, key));
+    const adminCard = document.querySelector('[data-app="reverso-admin"]');
+    const coletaCard = document.querySelector('[data-app="reverso-coleta"]');
+    const explicitHomeCard = document.querySelector('[data-app-any*="reverso-admin"]');
+    const legacyExpedicaoCard = document.querySelector('[data-app="reverso-expedicao"], a[href="/reverso-expedicao/"], a[href*="/reverso-expedicao"]');
+    const homeCard = explicitHomeCard || legacyExpedicaoCard;
+
+    if (homeCard) {
+      setCardDestination(homeCard, REVERSO_ENEL_BASE + '/', 'agfenel.netlify.app');
+      setCardCopy(homeCard, 'Home Reverso', 'Acesso do usuário final para cadastro e acompanhamento de objetos.', 'home', 'Público', '');
+      homeCard.classList.toggle('hide', !hasAnyReverso);
+    }
+
+    setCardDestination(adminCard, REVERSO_ENEL_BASE + '/admin/', 'agfenel.netlify.app/admin');
+    setCardCopy(adminCard, 'Admin Reverso', 'Painel administrativo completo da logística reversa.', 'admin_panel_settings', 'Interno', '');
+
+    setCardDestination(coletaCard, REVERSO_ENEL_BASE + '/coletador/', 'agfenel.netlify.app/coletador');
+    setCardCopy(coletaCard, 'Coleta Reverso', 'Retirada física, leitura de etiquetas e fechamento de coletas.', 'local_shipping', 'Interno', '');
   }
   function showLogin(message) {
     hideBoot();
@@ -55,6 +96,7 @@
       const keys = String(node.dataset.appAny || '').split(',').map((item) => item.trim()).filter(Boolean);
       node.classList.toggle('hide', keys.length > 0 && !keys.some((key) => auth.hasApp(user, key)));
     });
+    applyReversoEnelShortcuts(user);
   }
   function initPasswordToggles() {
     document.querySelectorAll('[data-password-toggle]').forEach((button) => {
@@ -74,7 +116,7 @@
     });
   }
   async function validateExisting() {
-    if (!auth || !auth.isConfigured()) { showLogin('Falta configurar o URL do Apps Script em /shared/auth/agf-auth-config.js.'); return; }
+    if (!auth || !auth.isConfigured()) { showLogin('Falta configurar o URL do Apps Script de autenticação em /shared/auth/agf-auth-config.js.'); return; }
     const local = auth.getLocalSession();
     if (!local) { showLogin(); return; }
     const cached = local.user || { username:local.payload.sub, displayName:local.payload.sub, role:local.payload.role, apps:local.payload.apps || [] };
