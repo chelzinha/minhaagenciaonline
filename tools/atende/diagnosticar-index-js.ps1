@@ -24,6 +24,42 @@ Write-Host ('renderAdminLocations: ' + ([regex]::Matches($html, 'function\s+rend
 Write-Host ('applyPortalLocalUi: ' + ([regex]::Matches($html, 'function\s+applyPortalLocalUi\s*\(').Count))
 Write-Host ''
 
+function Invoke-NodeCheck([string]$filePath) {
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = $node.Source
+  $psi.Arguments = '--check "' + $filePath + '"'
+  $psi.UseShellExecute = $false
+  $psi.RedirectStandardOutput = $true
+  $psi.RedirectStandardError = $true
+  $psi.CreateNoWindow = $true
+
+  $p = New-Object System.Diagnostics.Process
+  $p.StartInfo = $psi
+  [void]$p.Start()
+  $stdout = $p.StandardOutput.ReadToEnd()
+  $stderr = $p.StandardError.ReadToEnd()
+  $p.WaitForExit()
+
+  return [pscustomobject]@{
+    ExitCode = $p.ExitCode
+    StdOut = $stdout
+    StdErr = $stderr
+  }
+}
+
+function Show-Context([string]$filePath, [int]$lineNumber) {
+  if ($lineNumber -le 0) { return }
+  $lines = [System.IO.File]::ReadAllLines($filePath)
+  $start = [Math]::Max(1, $lineNumber - 4)
+  $end = [Math]::Min($lines.Length, $lineNumber + 4)
+  Write-Host ("Contexto em torno da linha {0}:" -f $lineNumber) -ForegroundColor Yellow
+  for ($n = $start; $n -le $end; $n++) {
+    $prefix = if ($n -eq $lineNumber) { '>>' } else { '  ' }
+    Write-Host ("{0} {1,4}: {2}" -f $prefix, $n, $lines[$n - 1]) -ForegroundColor ($(if ($n -eq $lineNumber) { 'Red' } else { 'Gray' }))
+  }
+  Write-Host ''
+}
+
 $failed = $false
 $tempFiles = @()
 try {
@@ -39,12 +75,19 @@ try {
     [System.IO.File]::WriteAllText($tmp, $jsCheck, (New-Object System.Text.UTF8Encoding($false)))
     $tempFiles += $tmp
 
-    $output = & node --check $tmp 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    $result = Invoke-NodeCheck $tmp
+    if ($result.ExitCode -ne 0) {
       $failed = $true
       Write-Host ("ERRO no bloco <script> #{0}" -f ($i + 1)) -ForegroundColor Red
-      $output | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+      $msg = (($result.StdErr + "`n" + $result.StdOut).Trim())
+      if ($msg) { $msg -split "`r?`n" | ForEach-Object { Write-Host $_ -ForegroundColor Red } }
       Write-Host ''
+
+      $lineNumber = 0
+      $m = [regex]::Match($msg, [regex]::Escape($tmp) + ':(\d+)')
+      if (-not $m.Success) { $m = [regex]::Match($msg, ':(\d+)\s*$',[System.Text.RegularExpressions.RegexOptions]::Multiline) }
+      if ($m.Success) { $lineNumber = [int]$m.Groups[1].Value }
+      Show-Context $tmp $lineNumber
     } else {
       Write-Host ("OK bloco <script> #{0}" -f ($i + 1)) -ForegroundColor Green
     }
