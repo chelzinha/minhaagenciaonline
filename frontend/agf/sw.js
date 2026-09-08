@@ -1,4 +1,4 @@
-const CACHE='agf-portal-v12-reverso-netlify-enel';
+const CACHE='agf-portal-v13-reverso-netlify-redirects';
 const STATIC=['/agf/','/agf/index.html','/agf/agf.css?v=reverso-home-v168','/agf/agf.js?v=reverso-home-v168','/shared/ui/agf-ui.css?v=ver-senha-v3','/shared/ui/agf-ui.js?v=ver-senha-v3','/shared/auth/agf-auth-client.js','/assets/pwa/agf/icon-192.png'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>Promise.all(STATIC.map(url=>cache.add(url).catch(()=>{})))));});
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE&&key.startsWith('agf-portal-')).map(key=>caches.delete(key)))),self.clients.claim()])));
@@ -8,7 +8,7 @@ self.addEventListener('fetch',event=>{
   const url=new URL(req.url);
   if(url.hostname.includes('script.google.com')||url.hostname.includes('googleusercontent.com')||url.hostname.includes('agfenel.netlify.app'))return;
   if(url.pathname==='/shared/auth/agf-auth-config.js'){event.respondWith(fetch(req,{cache:'no-store'}));return;}
-  if(req.mode==='navigate'){event.respondWith(fetch(req).catch(()=>caches.match('/agf/')));return;}
+  if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>caches.match('/agf/')));return;}
   if(url.origin!==location.origin)return;
   const isUiAsset=/\.(css|js)$/i.test(url.pathname);
   if(isUiAsset){
