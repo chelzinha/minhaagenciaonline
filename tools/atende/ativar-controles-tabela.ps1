@@ -107,7 +107,7 @@ if($table -notmatch 'atl\.local_codigo'){
 }
 
 # ------------------------------------------------------------
-# 4. Dashboard V3: a mesma excecao individual precisa valer nos KPIs/Metas/Local.
+# 4. Dashboard V3: a mesma excecao individual vale nos KPIs/Metas/Local.
 # ------------------------------------------------------------
 $dash = [System.IO.File]::ReadAllText($dashboardWorkerPath)
 $nl = NewLine-For $dash
@@ -124,7 +124,7 @@ Save-Text $dashboardWorkerPath $dash
 Write-Host 'OK - Dashboard V3 alinhado com as excecoes individuais de Local.' -ForegroundColor Green
 
 # ------------------------------------------------------------
-# 5. Painel base do Dashboard: Local/filtros tambem respeitam excecao e Local dinamico.
+# 5. Painel base: Local/filtros tambem respeitam excecao e Local dinamico.
 # ------------------------------------------------------------
 $panel = [System.IO.File]::ReadAllText($panelWorkerPath)
 $nl = NewLine-For $panel
@@ -145,12 +145,23 @@ Save-Text $panelWorkerPath $panel
 Write-Host 'OK - painel base alinhado com trava individual e Locais dinamicos.' -ForegroundColor Green
 
 # ------------------------------------------------------------
-# 6. Garantias finais. Nenhum arquivo de Pages e alterado nesta rodada.
+# 6. Entry point do Worker. Altera apenas a chave main conhecida.
 # ------------------------------------------------------------
 $wrangler = [System.IO.File]::ReadAllText($wranglerPath)
 if($wrangler -notmatch '"main"\s*:\s*"src/table-controls-wrapper\.js"'){
-  throw 'wrangler.jsonc ainda nao aponta para src/table-controls-wrapper.js. Rode git fetch/checkout dos arquivos novos.'
+  if($wrangler -notmatch '"main"\s*:\s*"src/dashboard-v3-wrapper\.js"'){
+    throw 'Entry point atual do wrangler.jsonc nao e o esperado. Patch cancelado para evitar sobrescrita incorreta.'
+  }
+  $wrangler = [regex]::Replace($wrangler,'"main"\s*:\s*"src/dashboard-v3-wrapper\.js"','"main": "src/table-controls-wrapper.js"',1)
+  Save-Text $wranglerPath $wrangler
+  Write-Host 'OK - Worker passa pelo table-controls-wrapper.js.' -ForegroundColor Green
+}else{
+  Write-Host 'Worker ja passa pelo table-controls-wrapper.js.' -ForegroundColor Yellow
 }
+
+# ------------------------------------------------------------
+# 7. Garantias finais. Nenhum arquivo de Pages e alterado nesta rodada.
+# ------------------------------------------------------------
 $table = [System.IO.File]::ReadAllText($tableWrapperPath)
 if($table -notmatch '/admin/row-lock-exception'){ throw 'Endpoint de destrava por linha nao encontrado.' }
 if($table -notmatch 'presenceBlankSql'){ throw 'Filtro server-side de celulas vazias nao encontrado.' }
