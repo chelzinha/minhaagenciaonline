@@ -35,15 +35,24 @@ function withAttendantLocal(env) {
 }
 
 function rewriteSql(sql) {
-  return String(sql||'')
-    .replace(
+  let text=String(sql||'');
+
+  // Algumas camadas mais novas ja montam explicitamente o JOIN de
+  // atende_atendente_local. O wrapper antigo tambem o injetava em runtime,
+  // gerando o mesmo alias `atl` duas vezes no Dashboard. Em D1/SQLite isso
+  // derruba a consulta e o Worker termina com erro 1101. Torna a reescrita
+  // idempotente: so injeta quando o JOIN ainda nao existe no SQL recebido.
+  if(!/\bJOIN\s+atende_atendente_local\s+atl\b/i.test(text)){
+    text=text.replace(
       'LEFT JOIN atende_atendentes a ON a.codigo = r.atendente_norm AND a.ativo = 1',
       'LEFT JOIN atende_atendentes a ON a.codigo = r.atendente_norm AND a.ativo = 1\n  LEFT JOIN atende_atendente_local atl ON atl.codigo = r.atendente_norm'
-    )
-    .replace(
-      /COALESCE\(pcl\.local_codigo,\s*po\.local_codigo,\s*a\.local_padrao,\s*c\.local_padrao,\s*''\)/g,
-      "COALESCE(pcl.local_codigo, po.local_codigo, atl.local_codigo, a.local_padrao, c.local_padrao, '')"
     );
+  }
+
+  return text.replace(
+    /COALESCE\(pcl\.local_codigo,\s*po\.local_codigo,\s*a\.local_padrao,\s*c\.local_padrao,\s*''\)/g,
+    "COALESCE(pcl.local_codigo, po.local_codigo, atl.local_codigo, a.local_padrao, c.local_padrao, '')"
+  );
 }
 
 async function augmentAdminBootstrap(response, env) {
@@ -100,7 +109,7 @@ async function saveAttendantDynamic(request, env) {
       ativo=1,
       atualizado_por=excluded.atualizado_por,
       atualizado_em=datetime('now')
-  `).bind(codigo,nome,user).run();
+  `).bind(codigo,nome,user,user).run();
 
   if(local){
     await env.DB.prepare(`
@@ -110,7 +119,7 @@ async function saveAttendantDynamic(request, env) {
         local_codigo=excluded.local_codigo,
         atualizado_por=excluded.atualizado_por,
         atualizado_em=datetime('now')
-    `).bind(codigo,local,user).run();
+    `).bind(codigo,local,user));
   }else{
     await env.DB.prepare(`DELETE FROM atende_atendente_local WHERE codigo=?`).bind(codigo).run();
   }
