@@ -30,19 +30,15 @@ if ($start -lt 0 -or $end -le $start) {
   throw 'Nao foi possivel delimitar o bloco de Atendentes. Patch cancelado.'
 }
 
+# ASCII-only para funcionar corretamente inclusive no Windows PowerShell 5.1.
+# Os acentos do HTML sao produzidos por escapes Unicode no JavaScript.
 $replacement = @'
 /* ATENDE_LOCAL_ATENDENTE_PATCH_V2 */
-function renderAdminAttendants(){if(!ADMIN_DATA)return;var q=getValue('searchAttendant').toLowerCase(),rows=(ADMIN_DATA.atendentes||[]).filter(function(x){return!q||(String(x.codigo||'')+' '+String(x.nome||'')+' '+String(x.local_padrao||'')).toLowerCase().includes(q)}).slice(0,200);document.getElementById('adminAttendants').innerHTML='<table class="admin-table"><thead><tr><th>Código</th><th>Ocorr.</th><th>Nome exibido</th><th>Local padrão</th><th></th></tr></thead><tbody>'+rows.map(function(x,i){var local=String(x.local_padrao||'').toUpperCase();return'<tr><td>'+esc(x.codigo)+'</td><td>'+Number(x.ocorrencias||0).toLocaleString('pt-BR')+'</td><td><input id="att-'+i+'" value="'+esc(x.nome||'')+'" placeholder="Nome do atendente"></td><td><select id="att-local-'+i+'"><option value="" '+(!local?'selected':'')+'>Sem padrão</option><option value="AGF" '+(local==='AGF'?'selected':'')+'>AGF</option><option value="METRO" '+(local==='METRO'?'selected':'')+'>METRÔ</option></select></td><td><button class="btn" onclick="saveAttendant(\''+js(x.codigo)+'\','+i+')">Salvar</button></td></tr>'}).join('')+'</tbody></table>'}
+function renderAdminAttendants(){if(!ADMIN_DATA)return;var q=getValue('searchAttendant').toLowerCase(),rows=(ADMIN_DATA.atendentes||[]).filter(function(x){return!q||(String(x.codigo||'')+' '+String(x.nome||'')+' '+String(x.local_padrao||'')).toLowerCase().includes(q)}).slice(0,200);document.getElementById('adminAttendants').innerHTML='<table class="admin-table"><thead><tr><th>C\u00F3digo</th><th>Ocorr.</th><th>Nome exibido</th><th>Local padr\u00E3o</th><th></th></tr></thead><tbody>'+rows.map(function(x,i){var local=String(x.local_padrao||'').toUpperCase();return'<tr><td>'+esc(x.codigo)+'</td><td>'+Number(x.ocorrencias||0).toLocaleString('pt-BR')+'</td><td><input id="att-'+i+'" value="'+esc(x.nome||'')+'" placeholder="Nome do atendente"></td><td><select id="att-local-'+i+'"><option value="" '+(!local?'selected':'')+'>Sem padr\u00E3o</option><option value="AGF" '+(local==='AGF'?'selected':'')+'>AGF</option><option value="METRO" '+(local==='METRO'?'selected':'')+'>METR\u00D4</option></select></td><td><button class="btn" onclick="saveAttendant(\''+js(x.codigo)+'\','+i+')">Salvar</button></td></tr>'}).join('')+'</tbody></table>'}
 function saveAttendant(code,i){adminCall('attendant',{codigo:code,nome:getValue('att-'+i),localPadrao:getValue('att-local-'+i)})}
 '@
 
 $text = $text.Substring(0, $start) + $replacement + $text.Substring($end)
-
-$noteOld = 'O filtro ATENDENTE agrupa nomes repetidos. Aqui os códigos continuam separados porque cada código original precisa manter seu vínculo com a pessoa.'
-$noteNew = 'O filtro ATENDENTE agrupa nomes repetidos. Cada código continua separado e pode ter um Local padrão. O Local automático usa primeiro o Atendente e, se ele não tiver padrão, usa o Remetente. A alteração manual do Local na tabela continua tendo prioridade.'
-if ($text.Contains($noteOld)) {
-  $text = $text.Replace($noteOld, $noteNew)
-}
 
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($indexPath, $text, $utf8NoBom)
