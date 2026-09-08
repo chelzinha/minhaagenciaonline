@@ -53,6 +53,7 @@ at_unmatched AS (
   LEFT JOIN atende_cliente_portal ap
     ON ap.raw_id=r.id
   WHERE ap.raw_id IS NULL
+    AND substr(r.data_postagem_iso,1,10) BETWEEN '2026-08-01' AND '2026-08-31'
     AND UPPER(TRIM(COALESCE(r.codigo_objeto_norm,''))) NOT LIKE '%BR'
     AND TRIM(COALESCE(r.data_postagem_iso,''))<>''
     AND TRIM(COALESCE(r.codigo_servico_norm,''))<>''
