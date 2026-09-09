@@ -112,7 +112,7 @@
 
 <div class="admin-overlay" id="adminOverlay"><section class="admin-modal">
   <div class="admin-head"><h2>Cadastros do Atende</h2><span class="status" id="adminStatus"></span><div class="spacer"></div><button class="btn" onclick="closeAdmin()"><span class="material-symbols-rounded">close</span>Fechar</button></div>
-  <nav class="admin-tabs"><button class="admin-tab active" data-tab="servicos">Serviços</button><button class="admin-tab" data-tab="atendentes">Atendentes</button><button class="admin-tab" data-tab="contratos">Contratos</button><button class="admin-tab" data-tab="remetentes">Remetentes</button><button class="admin-tab" data-tab="locais">Locais</button><button class="admin-tab" data-tab="historico">Histórico</button></nav>
+  <nav class="admin-tabs"><button class="admin-tab active" data-tab="servicos">Serviços</button><button class="admin-tab" data-tab="atendentes">Atendentes</button><button class="admin-tab" data-tab="contratos">Contratos</button><button class="admin-tab" data-tab="remetentes">Remetentes</button><button class="admin-tab" data-tab="locais">Locais</button><button class="admin-tab" data-tab="importacoes">Importações</button><button class="admin-tab" data-tab="historico">Histórico</button></nav>
   <div class="admin-body">
     <div class="admin-pane active" id="pane-servicos"><div class="admin-note"><b>Biblioteca de Serviços:</b> importe CSV com <b>CODIGO; SERVICO; TIPO; SUBGRUPO; TABELA; OBJETO QUANDO VAZIO</b>. O OBJETO original do RAW nunca é alterado.</div><div class="admin-tools"><input class="admin-input grow" id="searchService" placeholder="Buscar código, serviço, tipo, subgrupo ou tabela" oninput="renderAdminServices()"><button class="btn" onclick="triggerCsvInput('servicesCsvInput')"><span class="material-symbols-rounded">upload_file</span>Importar CSV</button><input id="servicesCsvInput" type="file" accept=".csv,text/csv" hidden onchange="importServicesCsv(this)"><button class="btn btn-primary" id="saveServicesBulkBtn" onclick="saveServicesBulk()"><span class="material-symbols-rounded">save</span>Salvar alterações</button></div><div id="adminServices"></div></div>
     <div class="admin-pane" id="pane-atendentes"><div class="admin-note">O filtro ATENDENTE agrupa nomes repetidos. Aqui os códigos continuam separados porque cada código original precisa manter seu vínculo com a pessoa.</div><div class="admin-tools"><input class="admin-input grow" id="searchAttendant" placeholder="Buscar código ou nome" oninput="renderAdminAttendants()"></div><div id="adminAttendants"></div></div>
@@ -124,7 +124,35 @@
       <div class="admin-tools"><input class="admin-input grow" id="searchPortalLocal" placeholder="Buscar CLIENTE PORTAL" oninput="renderAdminLocations()"><select class="admin-input" id="filterPortalLocal" style="width:190px" onchange="renderAdminLocations()"><option value="">Todos os Locais</option></select><span class="status" id="portalLocalCount"></span></div>
       <div class="bulkbar on" style="margin-bottom:8px"><strong id="portalBulkCount">0 selecionados</strong><span>Travar em:</span><select id="portalBulkLocal"></select><button class="btn btn-primary" onclick="applyPortalLocalBulk()">Aplicar ao grupo</button><button class="btn" onclick="clearPortalLocalSelection()">Limpar</button></div>
       <div id="adminPortalLocals"></div>
-    </div>    <div class="admin-pane" id="pane-historico"><div id="adminHistory"></div></div>
+    </div>    <div class="admin-pane" id="pane-importacoes">
+  <div class="admin-note">
+    <b>Importação diária do Atende</b><br>
+    Os arquivos CSV colocados na pasta de entrada são processados para a base D1
+    e depois movidos para a pasta de processados.
+  </div>
+
+  <div class="admin-tools">
+    <button class="btn" type="button" onclick="ATENDE_loadAdminImportacoes()">
+      <span class="material-symbols-rounded">refresh</span>
+      Atualizar
+    </button>
+
+    <button class="btn btn-primary" id="adminImportRunBtn" type="button"
+      onclick="ATENDE_processarAdminImportacoes()">
+      <span class="material-symbols-rounded">play_arrow</span>
+      Processar CSVs agora
+    </button>
+
+    <span class="status" id="adminImportStatus"></span>
+  </div>
+
+  <div id="adminImportSummary" class="admin-note">
+    Carregando situação das importações...
+  </div>
+
+  <div id="adminImportFiles"></div>
+</div>
+<div class="admin-pane" id="pane-historico"><div id="adminHistory"></div></div>
   </div>
 </section></div>
 
@@ -645,5 +673,208 @@ else window.addEventListener('load',function(){setTimeout(retry,0)});
 </script>
 
 
+<script id="atende-import-admin-ui">
+(function(){
+  'use strict';
+
+  var IMPORT_RUNNING = false;
+  var IMPORT_PASSES = 0;
+  var IMPORT_MAX_PASSES = 15;
+
+  function importEsc(v){
+    if(typeof window.esc === 'function') return esc(v);
+    return String(v == null ? '' : v)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  function importSize(bytes){
+    bytes = Number(bytes || 0);
+    if(bytes < 1024) return bytes + ' B';
+    if(bytes < 1024 * 1024) return (bytes / 1024).toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' KB';
+    return (bytes / 1024 / 1024).toLocaleString('pt-BR',{maximumFractionDigits:2}) + ' MB';
+  }
+
+  function importDate(v){
+    if(!v) return '-';
+    try{
+      var d = new Date(v);
+      if(isNaN(d.getTime())) return String(v);
+      return d.toLocaleString('pt-BR');
+    }catch(_){
+      return String(v);
+    }
+  }
+
+  function importStatus(text, cls){
+    var el = document.getElementById('adminImportStatus');
+    if(!el) return;
+    el.textContent = text || '';
+    el.className = 'status ' + (cls || '');
+  }
+
+  function renderImportacoes(r){
+    r = r || {};
+
+    var pending = Number(r.pending || 0);
+    var trigger = r.trigger || {};
+    var files = Array.isArray(r.files) ? r.files : [];
+
+    var summary = document.getElementById('adminImportSummary');
+
+    if(summary){
+      summary.innerHTML =
+        '<b>' + pending.toLocaleString('pt-BR') + ' arquivo' +
+        (pending === 1 ? '' : 's') + ' pendente' +
+        (pending === 1 ? '' : 's') + '</b>' +
+        '<br>Entrada: <b>' + importEsc(r.entrada || '-') + '</b>' +
+        ' &nbsp; | &nbsp; Processada: <b>' + importEsc(r.processada || '-') + '</b>' +
+        '<br>Automação: <b>' + importEsc(trigger.cadence || 'Não informada') + '</b>' +
+        (trigger.installed ? ' - gatilho ativo' : ' - gatilho não encontrado');
+    }
+
+    var box = document.getElementById('adminImportFiles');
+
+    if(!box) return;
+
+    if(!files.length){
+      box.innerHTML =
+        '<div class="admin-note" style="background:#f0fdf4;color:#166534">' +
+        '<b>Nenhum CSV aguardando processamento.</b>' +
+        '</div>';
+      return;
+    }
+
+    box.innerHTML =
+      '<table class="admin-table">' +
+      '<thead><tr>' +
+      '<th>Arquivo</th>' +
+      '<th>Tamanho</th>' +
+      '<th>Atualizado</th>' +
+      '<th>Status</th>' +
+      '</tr></thead>' +
+      '<tbody>' +
+      files.map(function(f){
+        return '<tr>' +
+          '<td><b>' + importEsc(f.name || '') + '</b></td>' +
+          '<td>' + importEsc(importSize(f.size)) + '</td>' +
+          '<td>' + importEsc(importDate(f.updatedAt)) + '</td>' +
+          '<td>' + importEsc(f.status || 'AGUARDANDO') + '</td>' +
+        '</tr>';
+      }).join('') +
+      '</tbody></table>';
+  }
+
+  window.ATENDE_loadAdminImportacoes = function(){
+    if(!window.IS_ADMIN || !window.AUTH_TOKEN){
+      importStatus('Administrador não autenticado.','err');
+      return;
+    }
+
+    importStatus('Atualizando...','');
+
+    google.script.run
+      .withSuccessHandler(function(r){
+        renderImportacoes(r);
+        importStatus('Atualizado','ok');
+      })
+      .withFailureHandler(function(e){
+        importStatus(e && e.message ? e.message : String(e || 'Erro'),'err');
+      })
+      .ATENDE_adminStatusImportacoes(window.AUTH_TOKEN);
+  };
+
+  function runImportPass(){
+    IMPORT_PASSES++;
+
+    var btn = document.getElementById('adminImportRunBtn');
+
+    if(btn) btn.disabled = true;
+
+    importStatus(
+      'Processando arquivos' +
+      (IMPORT_PASSES > 1 ? ' - etapa ' + IMPORT_PASSES : '') +
+      '...',
+      ''
+    );
+
+    google.script.run
+      .withSuccessHandler(function(r){
+        renderImportacoes(r);
+
+        var pending = Number((r || {}).pending || 0);
+
+        if(
+          r &&
+          r.canContinueAutomatically &&
+          pending > 0 &&
+          IMPORT_PASSES < IMPORT_MAX_PASSES
+        ){
+          setTimeout(runImportPass, 700);
+          return;
+        }
+
+        IMPORT_RUNNING = false;
+
+        if(btn) btn.disabled = false;
+
+        if(pending > 0){
+          importStatus(
+            'Processamento concluído. Ainda existem ' +
+            pending.toLocaleString('pt-BR') +
+            ' arquivos pendentes.',
+            ''
+          );
+        }else{
+          importStatus('Importação concluída','ok');
+        }
+
+        try{
+          if(typeof loadPage === 'function') loadPage(1);
+          if(typeof loadFilterOptions === 'function') loadFilterOptions();
+        }catch(_){}
+      })
+      .withFailureHandler(function(e){
+        IMPORT_RUNNING = false;
+
+        if(btn) btn.disabled = false;
+
+        importStatus(
+          e && e.message ? e.message : String(e || 'Erro no processamento'),
+          'err'
+        );
+      })
+      .ATENDE_adminProcessarImportacoes(window.AUTH_TOKEN);
+  }
+
+  window.ATENDE_processarAdminImportacoes = function(){
+    if(IMPORT_RUNNING) return;
+
+    if(!window.IS_ADMIN || !window.AUTH_TOKEN){
+      importStatus('Administrador não autenticado.','err');
+      return;
+    }
+
+    IMPORT_RUNNING = true;
+    IMPORT_PASSES = 0;
+
+    runImportPass();
+  };
+
+  document.addEventListener('click',function(e){
+    var btn = e.target.closest &&
+      e.target.closest('.admin-tab[data-tab="importacoes"]');
+
+    if(!btn) return;
+
+    setTimeout(function(){
+      window.ATENDE_loadAdminImportacoes();
+    },50);
+  });
+
+})();
+</script>
 </body>
 </html>
