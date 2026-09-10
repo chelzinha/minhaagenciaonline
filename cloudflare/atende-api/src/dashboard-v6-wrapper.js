@@ -158,10 +158,19 @@ async function buildDashboardV6(url, env) {
   const v6StartedAt = Date.now();
   const state = parseState(url);
   const anchorMonth = await resolveAnchorMonth(state, env);
-  const contractCatalog = await loadContractCatalog(env);
+
+  const [contractCatalog, allHolidays] = await Promise.all([
+    loadContractCatalog(env),
+    loadHolidays(
+      env,
+      monthAdd(anchorMonth,-12)+'-01',
+      monthRange(monthAdd(anchorMonth,2)).end
+    )
+  ]);
+
   const contract = contractForMonth(contractCatalog, anchorMonth);
-  const allHolidays = await loadHolidays(env, monthAdd(anchorMonth,-12)+'-01', monthRange(monthAdd(anchorMonth,2)).end);
   const targetBundle = await loadTargetBundle(anchorMonth, env, allHolidays);
+  const setupMs = Date.now() - v6StartedAt;
 
   const temposMs = {};
 
@@ -243,6 +252,7 @@ async function buildDashboardV6(url, env) {
       anchorMonth,
       geradoEm:new Date().toISOString(),
       metodoProjecao:'recorrente/dias*mes + eventual_ja_realizado',
+      setupMs,
       temposMs,
       v6Ms:Date.now()-v6StartedAt
     }
@@ -254,14 +264,36 @@ async function buildDashboardV6(url, env) {
 // ---------------------------------------------------------------------------
 
 async function loadTargetBundle(competencia, env, holidays) {
-  const row = await env.DB.prepare(`SELECT * FROM atende_dashboard_metas_mensais WHERE competencia=?`).bind(competencia).first();
   const range = monthRange(competencia);
-  const last = await env.DB.prepare(`
-    SELECT MAX(substr(data_postagem_iso,1,10)) AS ultima_data,
-           COUNT(DISTINCT substr(data_postagem_iso,1,10)) AS dias_movimento
-    FROM atende_postagens_canonicas
-    WHERE data_postagem_iso>=? AND data_postagem_iso<=?
-  `).bind(range.start+' 00:00:00',range.end+' 23:59:59').first();
+
+  // Para ultima data e quantidade de dias distintos nao precisamos
+  // reconstruir a view canonica. Duplicidades nao alteram nenhuma
+  // dessas duas medidas.
+  const [rowResult, lastResult] = await env.DB.batch([
+    env.DB
+      .prepare(`SELECT * FROM atende_dashboard_metas_mensais WHERE competencia=?`)
+      .bind(competencia),
+
+    env.DB
+      .prepare(`
+        SELECT
+          MAX(substr(r.data_postagem_iso,1,10)) AS ultima_data,
+          COUNT(DISTINCT substr(r.data_postagem_iso,1,10)) AS dias_movimento
+        FROM atende_postagens_raw r
+        JOIN atende_raw_importacoes ri
+          ON ri.import_key = r.import_key
+         AND ri.concluido_em IS NOT NULL
+        WHERE r.data_postagem_iso>=?
+          AND r.data_postagem_iso<=?
+      `)
+      .bind(
+        range.start+' 00:00:00',
+        range.end+' 23:59:59'
+      )
+  ]);
+
+  const row = rowResult?.results?.[0] || null;
+  const last = lastResult?.results?.[0] || {};
   const calc = calculatedDays(competencia, clean(last?.ultima_data), holidays);
   const overrideReal = nullableInt(row?.dias_uteis_realizados_override);
   const overrideMes = nullableInt(row?.dias_uteis_mes_override);

@@ -114,21 +114,44 @@ export default {
       return saveTargets(request, env);
     }
 
-    const response = await baseApp.fetch(request, env, ctx);
-    if (!(request.method === 'GET' && url.pathname === '/atende' && url.searchParams.get('view') === 'dashboard' && response.ok)) {
-      return response;
+    const isDashboard =
+      request.method === 'GET' &&
+      url.pathname === '/atende' &&
+      url.searchParams.get('view') === 'dashboard';
+
+    if (!isDashboard) {
+      return baseApp.fetch(request, env, ctx);
     }
+
+    if (!authorized(request, env)) {
+      return baseApp.fetch(request, env, ctx);
+    }
+
+    const extrasPromise = buildV3(url, env, null)
+      .then(extras => ({extras, error:''}))
+      .catch(err => ({
+        extras:null,
+        error:err && err.message
+          ? String(err.message)
+          : String(err || 'dashboard_v3_error')
+      }));
+
+    const response = await baseApp.fetch(request, env, ctx);
+
+    if (!response.ok) return response;
 
     let body;
     try { body = await response.json(); }
     catch (_) { return response; }
 
-    try {
-      const extras = await buildV3(url, env, body);
-      Object.assign(body, extras);
-    } catch (err) {
-      body.dashboardV3Erro = err && err.message ? String(err.message) : String(err || 'dashboard_v3_error');
+    const extraResult = await extrasPromise;
+
+    if (extraResult.extras) {
+      Object.assign(body, extraResult.extras);
+    } else {
+      body.dashboardV3Erro = extraResult.error;
     }
+
     return json(body, response.status);
   }
 };

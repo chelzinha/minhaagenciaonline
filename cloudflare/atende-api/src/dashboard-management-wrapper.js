@@ -69,21 +69,42 @@ const FACETS = Object.freeze({
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const isDashboard =
+      request.method === 'GET' &&
+      url.pathname === '/atende' &&
+      url.searchParams.get('view') === 'dashboard';
+
+    if (!isDashboard) {
+      return baseApp.fetch(request, env, ctx);
+    }
+
+    if (!authorized(request, env)) {
+      return baseApp.fetch(request, env, ctx);
+    }
+
+    const extrasPromise = buildManagement(url, env, null)
+      .then(extras => ({extras, error:''}))
+      .catch(err => ({
+        extras:null,
+        error:err && err.message
+          ? String(err.message)
+          : String(err || 'dashboard_management_error')
+      }));
+
     const response = await baseApp.fetch(request, env, ctx);
 
-    if (!(request.method === 'GET' && url.pathname === '/atende' && url.searchParams.get('view') === 'dashboard' && response.ok)) {
-      return response;
-    }
+    if (!response.ok) return response;
 
     let body;
     try { body = await response.json(); }
     catch (_) { return response; }
 
-    try {
-      const extras = await buildManagement(url, env, body);
-      Object.assign(body, extras);
-    } catch (err) {
-      body.gestaoErro = err && err.message ? String(err.message) : String(err || 'dashboard_management_error');
+    const extraResult = await extrasPromise;
+
+    if (extraResult.extras) {
+      Object.assign(body, extraResult.extras);
+    } else {
+      body.gestaoErro = extraResult.error;
     }
 
     return json(body, response.status);
@@ -243,6 +264,7 @@ function appendCondition(whereSql,condition){return whereSql?`${whereSql} AND ${
 function addMultiFilter(where,args,field,values){const list=unique((values||[]).map(clean).filter(Boolean));if(!list.length)return;where.push(`(${list.map(()=>`${field} = ? COLLATE NOCASE`).join(' OR ')})`);args.push(...list);}
 function getMulti(url,singular,plural){const values=[...url.searchParams.getAll(singular),...url.searchParams.getAll(plural)];for(const packed of url.searchParams.getAll(plural))if(packed.includes('|'))values.push(...packed.split('|'));return unique(values.map(clean).filter(Boolean));}
 function unique(values){return Array.from(new Set(values));}
+function authorized(request,env){return !!env.ATENDE_API_TOKEN&&(request.headers.get('Authorization')||'')===`Bearer ${env.ATENDE_API_TOKEN}`;}
 function clean(value){if(value===null||value===undefined)return'';const text=String(value).trim();return/^(null|undefined)$/i.test(text)?'':text;}
 function isoDate(d){return d.toISOString().slice(0,10);}
 function json(body,status=200){return new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});}
