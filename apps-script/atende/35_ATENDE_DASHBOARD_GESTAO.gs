@@ -21,6 +21,7 @@ function ATENDE_buscarDashboardGestaoD1(params) {
     servicos: response.servicos || [],
     local: response.local || [],
     atendentes: response.atendentes || [],
+    atendentesDesempenho: response.atendentesDesempenho || [],
     intermediadores: response.intermediadores || [],
     tiposContrato: response.tiposContrato || [],
     clientesPortal: response.clientesPortal || [],

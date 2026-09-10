@@ -12,7 +12,7 @@ function ATENDE_buscarDashboardGestaoV3D1(params) {
 
   return {
     ok: response && response.ok !== false,
-    versaoDashboard: String(response.versaoDashboard || 'gestao-v3'),
+    versaoDashboard: String(response.versaoDashboard || 'gestao-v6'),
     kpis: response.kpis || { postagens:0, faturamento:0, valorMedio:0, estornos:0, valorEstornos:0 },
     granularidade: String(response.granularidade || 'mes'),
     evolucao: response.evolucao || [],
@@ -24,6 +24,7 @@ function ATENDE_buscarDashboardGestaoV3D1(params) {
     local: response.local || [],
     localGlobal: response.localGlobal || response.local || [],
     atendentes: response.atendentes || [],
+    atendentesDesempenho: response.atendentesDesempenho || [],
     intermediadores: response.intermediadores || [],
     canais: response.canais || response.intermediadores || [],
     tiposContrato: response.tiposContrato || [],
