@@ -515,7 +515,7 @@ function buildProjection(a, config) {
     diasUteisRealizados:done,diasUteisMes:days,
     recorrenteRealizado:round2(total.recorrente),eventualRealizado:round2(total.eventual),pendenteRealizado:round2(total.pendente),realizado:round2(total.realizado),projetado:round2(total.projetado),
     revisaoNecessaria:signals.length>0,sinaisEventual:signals.slice(0,20),
-    grupos,locais:{agf:locs.AGF||{},metro:locs.METRO||{},todos:locs}
+    grupos:groups,locais:{agf:locs.AGF||{},metro:locs.METRO||{},todos:locs}
   };
 }
 function newProjectionGroup(grupo){return{grupo,realizado:0,recorrenteRealizado:0,eventualRealizado:0,pendenteRealizado:0,projetado:0,confiavel:true};}
