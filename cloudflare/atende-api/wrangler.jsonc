@@ -17,6 +17,7 @@
   "env": {
     "v6test": {
       "name": "agf-atende-api-v6test",
+      "main": "src/dashboard-v6-wrapper.js",
       "d1_databases": [
         {
           "binding": "DB",

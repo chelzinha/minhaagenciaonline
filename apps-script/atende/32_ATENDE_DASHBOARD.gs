@@ -3,15 +3,14 @@
 // ============================================================
 
 function ATENDE_dashboardAddonJs() {
-  // DashboardTabsV4 continua como base estrutural.
-  // DashboardIntelligenceV5 permanece temporariamente como camada funcional
-  // estável enquanto a V6 de backend é validada em ambiente isolado.
-  // DashboardVisualV6 aplica exclusivamente os refinamentos visuais da V6.
+  // DashboardTabsV4 permanece como base estrutural estável.
+  // A V6 substitui a inteligência V5 apenas neste deployment de teste.
+  // DashboardVisualV6 aplica os refinamentos visuais aprovados.
   const arquivos = [
     'DashboardTabsV4',
-    'DashboardIntelligenceV5',
+    'DashboardIntelligenceV6',
     'DashboardVisualV6',
-    'DashboardMetaAdmin'
+    'DashboardMetaAdminV6'
   ];
 
   return arquivos.map(function(nome) {

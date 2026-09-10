@@ -1,0 +1,532 @@
+<script id="atende-dashboard-meta-admin-v6">
+(function(){
+'use strict';
+
+function token(){
+  try{
+    if(typeof AUTH_TOKEN !== 'undefined' && AUTH_TOKEN) return String(AUTH_TOKEN);
+  }catch(_){}
+  return String(window.AUTH_TOKEN || '');
+}
+
+function money(v){
+  return 'R$ ' + Number(v || 0).toLocaleString('pt-BR',{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
+}
+
+function parseNum(v){
+  v=String(v==null?'':v)
+    .replace(/R\$/gi,'')
+    .replace(/\s/g,'');
+
+  if(v.indexOf(',')>=0){
+    v=v.replace(/\./g,'').replace(',','.');
+  }
+
+  var x=Number(v);
+  return Number.isFinite(x)?x:0;
+}
+
+function esc(v){
+  return String(v==null?'':v)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function tierInputs(prefix){
+  return ['Bronze','Prata','Ouro','Diamante'].map(function(x){
+    return '<label>'+x+' (R$)<input id="db'+prefix+x+'" inputmode="decimal"></label>';
+  }).join('');
+}
+
+function setStatus(text,cls){
+  var el=document.getElementById('dbMetaStatus');
+  if(!el)return;
+  el.textContent=text||'';
+  el.className='status '+(cls||'');
+}
+
+function defaultMonth(){
+  try{
+    if(typeof fullMonthFromDates==='function'){
+      var m=fullMonthFromDates();
+      if(m)return m;
+    }
+  }catch(_){}
+
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+
+function loadMeta(){
+  var mes=document.getElementById('dbMetaMes');
+  if(!mes)return;
+
+  if(!mes.value)mes.value=defaultMonth();
+
+  var auth=token();
+  if(!auth){
+    setStatus('Sessão administrativa não encontrada.','err');
+    return;
+  }
+
+  setStatus('Carregando...','');
+
+  google.script.run
+    .withSuccessHandler(function(r){
+      var c=r&&r.config||{};
+
+      // Campos passam a ser OVERRIDE. Vazio = usar o valor calculado.
+      document.getElementById('dbDiasRealizados').value=
+        (c.diasUteisRealizadosOverride===null||c.diasUteisRealizadosOverride===undefined)
+          ? '' : c.diasUteisRealizadosOverride;
+      document.getElementById('dbDiasMes').value=
+        (c.diasUteisMesOverride===null||c.diasUteisMesOverride===undefined)
+          ? '' : c.diasUteisMesOverride;
+      renderCalculado(c);
+      document.getElementById('dbEncomendasMeta').value=
+        c.encomendasMeta?money(c.encomendasMeta):'';
+
+      [
+        ['Balcao','balcao'],
+        ['Metro','metro']
+      ].forEach(function(p){
+        ['Bronze','Prata','Ouro','Diamante'].forEach(function(x){
+          var key=p[1]+x.charAt(0).toUpperCase()+x.slice(1);
+          var el=document.getElementById('db'+p[0]+x);
+          if(el)el.value=c[key]?money(c[key]):'';
+        });
+      });
+
+      setStatus(
+        r&&r.found?'Cadastro carregado.':'Mês ainda sem cadastro.',
+        'ok'
+      );
+      loadRevenueClients();
+    })
+    .withFailureHandler(function(e){
+      setStatus(e&&e.message?e.message:String(e),'err');
+    })
+    .ATENDE_adminBuscarMetasDashboard(auth,mes.value);
+}
+
+// Campo vazio devolve null: o backend usa o valor calculado.
+function overrideValue(id){
+  var el=document.getElementById(id);
+  if(!el)return null;
+  var v=String(el.value||'').trim();
+  if(v==='')return null;
+  var num=Number(v);
+  return isFinite(num)?Math.round(num):null;
+}
+
+function renderCalculado(c){
+  var box=document.getElementById('dbDiasCalculado');
+  if(!box)return;
+  c=c||{};
+  var calcR=Number(c.diasUteisRealizadosCalculado||0);
+  var calcM=Number(c.diasUteisMesCalculado||0);
+  var efR=Number(c.diasUteisRealizados||0);
+  var efM=Number(c.diasUteisMes||0);
+  var mov=Number(c.diasComMovimento||0);
+  var ultima=String(c.ultimaDataComMovimento||'');
+  var manual=(c.diasUteisRealizadosOverride!==null&&c.diasUteisRealizadosOverride!==undefined)
+          ||(c.diasUteisMesOverride!==null&&c.diasUteisMesOverride!==undefined);
+
+  var html=''+
+    '<div class="db-calc-line"><span>Calculado pelo calendário</span>'+
+      '<strong>'+calcR+' / '+calcM+' dias úteis</strong></div>'+
+    '<div class="db-calc-line"><span>Em uso pelo painel</span>'+
+      '<strong>'+efR+' / '+efM+' dias úteis</strong></div>'+
+    '<div class="db-calc-line"><span>Dias com movimento</span>'+
+      '<strong>'+mov+(ultima?' · último em '+ultima:'')+'</strong></div>';
+
+  if(c.diasDivergencia){
+    html+='<div class="db-calc-warn">Valor manual diferente do calculado. '+
+      'O painel está usando o manual ('+efR+' / '+efM+'). '+
+      'Limpe os campos para voltar ao calculado ('+calcR+' / '+calcM+').</div>';
+  }else if(manual){
+    html+='<div class="db-calc-ok">Override manual ativo e igual ao calculado.</div>';
+  }else{
+    html+='<div class="db-calc-ok">Automático. Nada a fazer todo dia.</div>';
+  }
+  box.innerHTML=html;
+}
+
+
+function setRevenueStatus(text,cls){
+  var el=document.getElementById('dbRevenueStatus');
+  if(!el)return;
+  el.textContent=text||'';
+  el.className='status '+(cls||'');
+}
+
+function revenueSelectOptions(value){
+  value=String(value||'').toUpperCase();
+  return [
+    ['', 'Não classificado'],
+    ['RECORRENTE','Recorrente'],
+    ['CAMPANHA','Campanha / lote mensal'],
+    ['PONTUAL','Pontual / eventual']
+  ].map(function(o){
+    return '<option value="'+o[0]+'"'+(value===o[0]?' selected':'')+'>'+o[1]+'</option>';
+  }).join('');
+}
+
+function signalText(x){
+  var sig=x&&x.sinais||[];
+  if(!sig.length)return '<span class="db-rev-ok">Sem sinal</span>';
+  var motivos=[];
+  sig.forEach(function(s){(s.motivos||[]).forEach(function(m){if(motivos.indexOf(m)<0)motivos.push(m);});});
+  var labels={alta_concentracao:'alta concentração',fora_historico:'fora do histórico',sem_historico_concentrado:'novo/concentrado',classificacao_vencida:'classificação vencida'};
+  return '<span class="db-rev-warn">Revisar</span><div class="db-rev-reason">'+esc(motivos.map(function(m){return labels[m]||m;}).join(' · '))+'</div>';
+}
+
+function loadRevenueClients(){
+  var mes=document.getElementById('dbMetaMes');
+  var box=document.getElementById('dbRevenueRows');
+  if(!mes||!box||!mes.value)return;
+  var auth=token();
+  if(!auth)return;
+  setRevenueStatus('Carregando clientes...','');
+  google.script.run
+    .withSuccessHandler(function(r){
+      var rows=r&&r.clientes||[];
+      if(!rows.length){
+        box.innerHTML='<tr><td colspan="8" class="db-rev-empty">Sem clientes no período.</td></tr>';
+        setRevenueStatus('Nenhum cliente no período.','ok');
+        return;
+      }
+      box.innerHTML=rows.map(function(x){
+        var encodedKey=encodeURIComponent(String(x.clienteChave||''));
+        var encodedName=encodeURIComponent(String(x.cliente||''));
+        return '<tr'+(x.precisaRevisao?' class="needs-review"':'')+'>'+
+          '<td><strong>'+esc(x.cliente)+'</strong><div class="db-rev-key">'+esc(x.clienteChave)+'</div></td>'+
+          '<td class="num">'+money(x.faturamento)+'</td>'+
+          '<td class="num">'+money(x.media3Meses)+'</td>'+
+          '<td class="num">'+Number(x.participacaoTotal||0).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%</td>'+
+          '<td>'+signalText(x)+'</td>'+
+          '<td><select class="db-revenue-type" data-key="'+encodedKey+'" data-name="'+encodedName+'">'+revenueSelectOptions(x.tipoReceita)+'</select></td>'+
+          '<td><input class="db-revenue-end" type="date" value="'+esc(x.dataFimPrevista||'')+'"></td>'+
+          '<td><input class="db-revenue-note" type="text" value="'+esc(x.observacao||'')+'" placeholder="ex.: eleição termina em outubro"></td>'+
+        '</tr>';
+      }).join('');
+      var pending=rows.filter(function(x){return x.precisaRevisao&&!x.tipoReceita;}).length;
+      setRevenueStatus(pending?pending+' cliente(s) pedindo revisão.':'Classificação sem alertas pendentes.',pending?'warn':'ok');
+    })
+    .withFailureHandler(function(e){
+      setRevenueStatus(e&&e.message?e.message:String(e),'err');
+    })
+    .ATENDE_adminBuscarClassificacaoReceita(auth,mes.value);
+}
+
+function saveRevenueType(select){
+  if(!select)return;
+  var auth=token();
+  if(!auth){setRevenueStatus('Sessão administrativa não encontrada.','err');return;}
+  var row=select.closest('tr');
+  var end=row&&row.querySelector('.db-revenue-end');
+  var note=row&&row.querySelector('.db-revenue-note');
+  var payload={
+    clienteChave:decodeURIComponent(select.dataset.key||''),
+    clienteNome:decodeURIComponent(select.dataset.name||''),
+    tipoReceita:String(select.value||''),
+    dataFimPrevista:String(end&&end.value||''),
+    observacao:String(note&&note.value||'')
+  };
+  select.disabled=true;
+  setRevenueStatus('Salvando classificação...','');
+  google.script.run
+    .withSuccessHandler(function(){
+      select.disabled=false;
+      setRevenueStatus('Classificação salva. Recalculando sinais...','ok');
+      loadRevenueClients();
+      try{if(typeof window.refreshFilteredView==='function')window.refreshFilteredView();}catch(_){}
+    })
+    .withFailureHandler(function(e){
+      select.disabled=false;
+      setRevenueStatus(e&&e.message?e.message:String(e),'err');
+    })
+    .ATENDE_adminSalvarClassificacaoReceita(auth,payload);
+}
+
+function saveMeta(){
+  var mes=document.getElementById('dbMetaMes').value;
+
+  if(!mes){
+    setStatus('Selecione a competência.','err');
+    return;
+  }
+
+  var p={
+    competencia:mes,
+    diasUteisRealizadosOverride:overrideValue('dbDiasRealizados'),
+    diasUteisMesOverride:overrideValue('dbDiasMes'),
+    encomendasMeta:parseNum(
+      document.getElementById('dbEncomendasMeta').value
+    )
+  };
+
+  [
+    ['Balcao','balcao'],
+    ['Metro','metro']
+  ].forEach(function(a){
+    ['Bronze','Prata','Ouro','Diamante'].forEach(function(x){
+      p[a[1]+x.charAt(0).toUpperCase()+x.slice(1)] =
+        parseNum(document.getElementById('db'+a[0]+x).value);
+    });
+  });
+
+  var auth=token();
+  if(!auth){
+    setStatus('Sessão administrativa não encontrada.','err');
+    return;
+  }
+
+  setStatus('Salvando...','');
+
+  google.script.run
+    .withSuccessHandler(function(){
+      setStatus('Metas salvas.','ok');
+      loadMeta();
+
+      try{
+        if(typeof window.refreshFilteredView==='function'){
+          window.refreshFilteredView();
+        }
+      }catch(_){}
+    })
+    .withFailureHandler(function(e){
+      setStatus(e&&e.message?e.message:String(e),'err');
+    })
+    .ATENDE_adminSalvarMetasDashboard(auth,p);
+}
+
+function style(){
+  if(document.getElementById('atende-meta-admin-css'))return;
+
+  var s=document.createElement('style');
+  s.id='atende-meta-admin-css';
+  s.textContent=`
+    .db-admin-top{
+      display:flex;
+      gap:8px;
+      align-items:end;
+      margin-bottom:10px
+    }
+    .db-admin-top label{
+      display:grid;
+      gap:3px;
+      font-size:8px;
+      font-weight:900;
+      color:var(--muted)
+    }
+    .db-admin-top input{
+      height:29px;
+      border:1px solid var(--line2);
+      border-radius:7px;
+      padding:0 7px;
+      font:inherit
+    }
+    .db-admin-meta-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px
+    }
+    .db-admin-meta-card{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:10px;
+      background:#fbfdff
+    }
+    .db-admin-meta-card h3{
+      margin:0 0 8px;
+      color:var(--nv);
+      font-size:11px
+    }
+    .db-admin-meta-fields{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:7px
+    }
+    .db-admin-meta-fields label{
+      display:grid;
+      gap:3px;
+      color:var(--muted);
+      font-size:8px;
+      font-weight:800
+    }
+    .db-admin-meta-fields input{
+      height:29px;
+      border:1px solid var(--line2);
+      border-radius:7px;
+      padding:0 7px;
+      font:inherit;
+      font-size:10px;
+      min-width:0
+    }
+    .db-admin-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:7px;
+      margin-top:10px
+    }
+    .db-revenue-card{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fbfdff}
+    .db-revenue-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+    .db-revenue-head h3{margin:0;color:var(--nv);font-size:11px}
+    .db-revenue-head p{margin:3px 0 0;color:var(--muted);font-size:9px;line-height:1.4}
+    .db-revenue-head .status{margin-left:auto;white-space:nowrap}
+    .db-revenue-wrap{overflow:auto;max-height:390px;border:1px solid var(--line);border-radius:8px;background:#fff}
+    .db-revenue-table{width:100%;border-collapse:collapse;font-size:9.5px;min-width:1180px}
+    .db-revenue-table th,.db-revenue-table td{padding:7px 8px;border-bottom:1px solid #edf1f5;text-align:left;vertical-align:middle}
+    .db-revenue-table th{position:sticky;top:0;background:#f5f8fb;color:var(--muted);font-size:8px;text-transform:uppercase;z-index:1}
+    .db-revenue-table .num{text-align:right;white-space:nowrap}
+    .db-revenue-table tr.needs-review td{background:#fffaf1}
+    .db-revenue-type,.db-revenue-end,.db-revenue-note{height:28px;border:1px solid var(--line2);border-radius:7px;background:#fff;padding:0 6px;font:inherit;font-size:9px}.db-revenue-type{min-width:165px}.db-revenue-end{min-width:126px}.db-revenue-note{min-width:220px}
+    .db-rev-key{font-size:7.5px;color:#9aa7b5;margin-top:2px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .db-rev-warn,.db-rev-ok{display:inline-flex;border-radius:999px;padding:3px 6px;font-size:8px;font-weight:900}
+    .db-rev-warn{background:#fff0d8;color:#9a570b}.db-rev-ok{background:#e9f9ee;color:#15803d}
+    .db-rev-reason{font-size:7.5px;color:#9a570b;margin-top:3px;white-space:nowrap}
+    .db-rev-empty{text-align:center!important;color:var(--muted);padding:18px!important}
+    @media(max-width:900px){
+      .db-admin-meta-grid{
+        grid-template-columns:1fr
+      }
+    }
+  `;
+  document.head.appendChild(s);
+}
+
+function install(){
+  var tabs=document.querySelector('.admin-tabs');
+  var body=document.querySelector('.admin-body');
+
+  if(!tabs||!body)return false;
+  if(document.getElementById('pane-metas'))return true;
+
+  style();
+
+  var btn=document.createElement('button');
+  btn.className='admin-tab';
+  btn.type='button';
+  btn.dataset.tab='metas';
+  btn.textContent='Metas';
+  tabs.appendChild(btn);
+
+  var pane=document.createElement('div');
+  pane.className='admin-pane';
+  pane.id='pane-metas';
+
+  pane.innerHTML=
+    '<div class="admin-note">'+
+      '<b>Metas mensais:</b> os dias úteis são calculados automaticamente. Use os campos manuais apenas como override quando necessário.'+
+    '</div>'+
+
+    '<div class="db-admin-top">'+
+      '<label>Competência'+
+        '<input id="dbMetaMes" type="month">'+
+      '</label>'+
+      '<button class="btn" id="dbMetaCarregar" type="button">'+
+        '<span class="material-symbols-rounded">refresh</span>Carregar'+
+      '</button>'+
+      '<span class="status" id="dbMetaStatus"></span>'+
+    '</div>'+
+
+    '<style>'+
+      '.db-calc{border:1px solid #E3EAF1;border-radius:10px;background:#FBFCFD;padding:10px 11px;display:grid;gap:6px;font-size:11px}'+
+      '.db-calc-line{display:flex;justify-content:space-between;gap:10px;color:#65758B}'+
+      '.db-calc-line strong{color:#1C2A3A}'+
+      '.db-calc-warn{margin-top:2px;padding:8px 9px;border-radius:8px;background:#FFF6DA;color:#B45309;font-weight:700;line-height:1.4}'+
+      '.db-calc-ok{margin-top:2px;padding:8px 9px;border-radius:8px;background:#E9F9EE;color:#15803D;font-weight:700}'+
+      '.db-admin-meta-fields label em{font-style:normal;color:#8290A0;font-weight:500}'+
+    '</style>'+
+    '<div class="db-admin-meta-grid">'+
+
+      '<section class="db-admin-meta-card">'+
+        '<h3>Dias úteis + Encomendas</h3>'+
+        '<div class="db-admin-meta-fields">'+
+          '<label>Dias realizados <em>(opcional)</em>'+
+            '<input id="dbDiasRealizados" type="number" min="0" step="1" placeholder="automático">'+
+          '</label>'+
+          '<label>Dias no mês <em>(opcional)</em>'+
+            '<input id="dbDiasMes" type="number" min="1" step="1" placeholder="automático">'+
+          '</label>'+
+          '<div id="dbDiasCalculado" class="db-calc" style="grid-column:1/-1"></div>'+
+          '<label style="grid-column:1/-1">Meta Encomendas (R$)'+
+            '<input id="dbEncomendasMeta" inputmode="decimal">'+
+          '</label>'+
+        '</div>'+
+      '</section>'+
+
+      '<section class="db-admin-meta-card">'+
+        '<h3>Balcão AGF</h3>'+
+        '<div class="db-admin-meta-fields">'+tierInputs('Balcao')+'</div>'+
+      '</section>'+
+
+      '<section class="db-admin-meta-card">'+
+        '<h3>Metrô</h3>'+
+        '<div class="db-admin-meta-fields">'+tierInputs('Metro')+'</div>'+
+      '</section>'+
+
+    '</div>'+
+
+    '<div class="db-admin-actions">'+
+      '<button class="btn btn-primary" id="dbMetaSalvar" type="button">'+
+        '<span class="material-symbols-rounded">save</span>Salvar metas do mês'+
+      '</button>'+
+    '</div>'+
+    '<section class="db-revenue-card">'+
+      '<div class="db-revenue-head"><div><h3>Tipo de receita para projeção V6</h3><p>A classificação manual decide. Recorrente é extrapolado pelos dias úteis; Campanha/Pontual soma apenas o que já ocorreu. O sinal estatístico nunca altera a classificação sozinho.</p></div><span class="status" id="dbRevenueStatus"></span></div>'+
+      '<div class="db-revenue-wrap"><table class="db-revenue-table"><thead><tr><th>Cliente</th><th class="num">Faturamento</th><th class="num">Média 3m</th><th class="num">Participação</th><th>Sinal</th><th>Tipo de receita</th><th>Data fim</th><th>Observação</th></tr></thead><tbody id="dbRevenueRows"><tr><td colspan="8" class="db-rev-empty">Carregue uma competência.</td></tr></tbody></table></div>'+
+    '</section>';
+
+  body.appendChild(pane);
+
+  document.getElementById('dbMetaMes').value=defaultMonth();
+
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.admin-tab').forEach(function(x){
+      x.classList.toggle('active',x===btn);
+    });
+
+    document.querySelectorAll('.admin-pane').forEach(function(x){
+      x.classList.toggle('active',x===pane);
+    });
+
+    loadMeta();
+  });
+
+  document.getElementById('dbMetaCarregar')
+    .addEventListener('click',loadMeta);
+
+  document.getElementById('dbMetaSalvar')
+    .addEventListener('click',saveMeta);
+
+  pane.addEventListener('change',function(e){
+    var el=e.target;
+    if(!el||!el.classList)return;
+    if(el.classList.contains('db-revenue-type'))saveRevenueType(el);
+    if(el.classList.contains('db-revenue-end')||el.classList.contains('db-revenue-note')){
+      var row=el.closest('tr'),sel=row&&row.querySelector('.db-revenue-type');
+      if(sel&&sel.value)saveRevenueType(sel);
+    }
+  });
+
+  return true;
+}
+
+var tries=0;
+function retry(){
+  tries++;
+  if(install()||tries>=30)return;
+  setTimeout(retry,100);
+}
+
+retry();
+
+})();
+</script>
