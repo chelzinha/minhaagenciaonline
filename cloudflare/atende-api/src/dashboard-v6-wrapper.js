@@ -43,14 +43,8 @@ const BASE_FROM_V6 = `
   LEFT JOIN atende_atendentes a ON a.codigo = r.atendente_norm AND a.ativo = 1
   LEFT JOIN atende_atendente_local atl ON atl.codigo = r.atendente_norm
   LEFT JOIN atende_contratos co ON co.numero = r.numero_contrato_norm AND co.ativo = 1
-  LEFT JOIN (
-    SELECT rr.numero_contrato_norm AS numero, COUNT(*) AS ocorrencias
-    FROM atende_postagens_canonicas rr
-    WHERE rr.numero_contrato_norm IS NOT NULL
-      AND TRIM(rr.numero_contrato_norm)<>''
-      AND LOWER(TRIM(rr.numero_contrato_norm))<>'null'
-    GROUP BY rr.numero_contrato_norm
-  ) cc ON cc.numero = r.numero_contrato_norm
+  LEFT JOIN atende_contrato_counts cc
+    ON cc.numero = r.numero_contrato_norm
   LEFT JOIN atende_servico_classificacao sc ON sc.codigo_servico = r.codigo_servico_norm
   LEFT JOIN atende_postagem_overrides po ON po.raw_id = r.id
   LEFT JOIN atende_cliente_portal cp ON cp.raw_id = r.id

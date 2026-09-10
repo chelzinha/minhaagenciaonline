@@ -132,6 +132,7 @@ async function ingestRaw(request, env) {
   if (shouldComplete && state?.concluido_em) {
     await updateCanonicalIdsForImport(env, importKey);
     await rebuildSroCounts(env);
+    await rebuildContractCounts(env);
   }
 
   return json({ ok:true, duplicateFile:false, received:rows.length, inserted, invalid, receivedThrough, stored:Number(state?.gravadas || 0), completed:!!state?.concluido_em });
@@ -170,6 +171,30 @@ async function rebuildSroCounts(env) {
       WHERE r.codigo_objeto_norm LIKE '%BR'
       GROUP BY r.codigo_objeto_norm
       HAVING COUNT(*) > 1
+    `)
+  ]);
+}
+
+
+async function rebuildContractCounts(env) {
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM atende_contrato_counts`),
+
+    env.DB.prepare(`
+      INSERT INTO atende_contrato_counts(
+        numero,
+        ocorrencias,
+        atualizado_em
+      )
+      SELECT
+        TRIM(r.numero_contrato_norm) AS numero,
+        COUNT(*) AS ocorrencias,
+        datetime('now') AS atualizado_em
+      FROM atende_postagens_canonicas r
+      WHERE r.numero_contrato_norm IS NOT NULL
+        AND TRIM(r.numero_contrato_norm) <> ''
+        AND LOWER(TRIM(r.numero_contrato_norm)) <> 'null'
+      GROUP BY TRIM(r.numero_contrato_norm)
     `)
   ]);
 }
