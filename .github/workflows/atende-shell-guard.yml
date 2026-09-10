@@ -1,0 +1,72 @@
+name: Atende shell guard
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/atende/**'
+      - '.github/workflows/atende-shell-guard.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/atende/**'
+      - '.github/workflows/atende-shell-guard.yml'
+
+jobs:
+  preserve-shell:
+    name: Preserve Atende top shell
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate permanent Atende shell
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          INDEX='frontend/atende/index.html'
+          SW='frontend/atende/sw.js'
+
+          test -f "$INDEX" || { echo 'ERRO: frontend/atende/index.html nao existe.'; exit 1; }
+          test -f "$SW" || { echo 'ERRO: frontend/atende/sw.js nao existe.'; exit 1; }
+
+          required_markers=(
+            'class="atende-shell"'
+            'class="atende-topbar"'
+            'id="adminTopBtn"'
+            'id="refreshFrameBtn"'
+            'id="userAvBtn"'
+            'id="atendeFrame"'
+            'data-agf-frame-src='
+            'agf:auth-context'
+            'agf:open-admin'
+          )
+
+          for marker in "${required_markers[@]}"; do
+            if ! grep -Fq "$marker" "$INDEX"; then
+              echo "ERRO: regressao do shell do Atende. Marcador obrigatorio ausente: $marker"
+              exit 1
+            fi
+          done
+
+          if grep -Fq 'agf-embed-only' "$INDEX"; then
+            echo 'ERRO: o Atende voltou para o layout embed-only. O topo permanente nao pode ser removido.'
+            exit 1
+          fi
+
+          sw_markers=(
+            'self.skipWaiting()'
+            'self.clients.claim()'
+            "cache:'no-store'"
+          )
+
+          for marker in "${sw_markers[@]}"; do
+            if ! grep -Fq "$marker" "$SW"; then
+              echo "ERRO: protecao de cache/navegacao ausente no Service Worker: $marker"
+              exit 1
+            fi
+          done
+
+          echo 'OK - shell permanente do Atende preservado.'
+          echo 'OK - topo, Admin, refresh, avatar, bridge de autenticacao e navegacao no-store encontrados.'

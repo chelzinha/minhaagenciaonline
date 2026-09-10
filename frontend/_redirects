@@ -3,10 +3,21 @@
 /painelandre            https://agf-painel-andre.netlify.app          302
 /painelandre/*          https://agf-painel-andre.netlify.app/:splat   302
 
-/dce                    https://agf-dce-facil.netlify.app          302
-/dce/*                  https://agf-dce-facil.netlify.app/:splat   302
-/reverso/*              /reverso/index.html                        200
-/reverso-admin/*        /reverso-admin/index.html                  200
-/reverso-coleta/*       /reverso-coleta/index.html                 200
-/reverso-expedicao/*    /reverso-expedicao/index.html              200
-/reverso-interno/*      /agf/                                      302
+/dce                    https://agf-dce-facil.netlify.app            302
+/dce/*                  https://agf-dce-facil.netlify.app/:splat     302
+
+# Logistica Reversa - app operacional correto hoje esta no Netlify agfenel.
+# Mantemos redirects externos para que atalhos antigos /reverso* nao abram o prototipo generico.
+/reverso                https://agfenel.netlify.app/                 302
+/reverso/               https://agfenel.netlify.app/                 302
+/reverso/*              https://agfenel.netlify.app/:splat           302
+/reverso-admin          https://agfenel.netlify.app/admin/           302
+/reverso-admin/         https://agfenel.netlify.app/admin/           302
+/reverso-admin/*        https://agfenel.netlify.app/admin/:splat     302
+/reverso-coleta         https://agfenel.netlify.app/coletador/       302
+/reverso-coleta/        https://agfenel.netlify.app/coletador/       302
+/reverso-coleta/*       https://agfenel.netlify.app/coletador/:splat 302
+/reverso-expedicao      https://agfenel.netlify.app/admin/           302
+/reverso-expedicao/     https://agfenel.netlify.app/admin/           302
+/reverso-expedicao/*    https://agfenel.netlify.app/admin/:splat     302
+/reverso-interno/*      /agf/                                        302

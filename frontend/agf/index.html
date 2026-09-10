@@ -15,7 +15,7 @@
   <link rel="apple-touch-icon" href="/assets/pwa/agf/apple-touch-icon.png">
   <link rel="manifest" href="/agf/manifest.webmanifest">
   <link rel="stylesheet" href="/shared/ui/agf-ui.css?v=ver-senha-v3">
-  <link rel="stylesheet" href="/agf/agf.css?v=ver-senha-v3">
+  <link rel="stylesheet" href="/agf/agf.css?v=reverso-home-v168">
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
 </head>
@@ -119,22 +119,22 @@
         </a>
       </section>
 
-      <div class="portal-section-title" data-role="admin"><h2>Logística Reversa</h2></div>
-      <section class="app-grid" aria-label="Módulos internos de logística reversa">
-        <a class="app-card" data-app="reverso-admin" href="/reverso-admin/">
+      <div class="portal-section-title"><h2>LOGÍSTICA REVERSA</h2></div>
+      <section class="app-grid" aria-label="Módulos de logística reversa">
+        <a class="app-card" data-app-any="reverso-admin,reverso-coleta,reverso-expedicao" href="/reverso/?slug=enel">
+          <div class="card-top"><span class="card-icon"><span class="material-symbols-rounded" data-agf-icon="home">home</span></span><span class="card-badge">Público</span></div>
+          <div class="card-copy"><h2>Home Reverso</h2><p>Acesso do usuário final para cadastro e acompanhamento de objetos.</p></div>
+          <div class="card-bottom"><span>/reverso/?slug=enel</span><span class="material-symbols-rounded">arrow_forward</span></div>
+        </a>
+        <a class="app-card" data-app="reverso-admin" href="/reverso-admin/?unidade=enel">
           <div class="card-top"><span class="card-icon"><span class="material-symbols-rounded">admin_panel_settings</span></span><span class="card-badge">Interno</span></div>
           <div class="card-copy"><h2>Admin Reverso</h2><p>Painel administrativo completo da logística reversa.</p></div>
           <div class="card-bottom"><span>/reverso-admin</span><span class="material-symbols-rounded">arrow_forward</span></div>
         </a>
-        <a class="app-card" data-app="reverso-coleta" href="/reverso-coleta/">
+        <a class="app-card" data-app="reverso-coleta" href="/reverso-coleta/?unidade=enel">
           <div class="card-top"><span class="card-icon"><span class="material-symbols-rounded">local_shipping</span></span><span class="card-badge">Interno</span></div>
           <div class="card-copy"><h2>Coleta Reverso</h2><p>Retirada física, leitura de etiquetas e fechamento de coletas.</p></div>
           <div class="card-bottom"><span>/reverso-coleta</span><span class="material-symbols-rounded">arrow_forward</span></div>
-        </a>
-        <a class="app-card" data-app="reverso-expedicao" href="/reverso-expedicao/">
-          <div class="card-top"><span class="card-icon"><span class="material-symbols-rounded">outbox</span></span><span class="card-badge">Interno</span></div>
-          <div class="card-copy"><h2>Expedição Reverso</h2><p>Conferência de entrada, postagem, SRO e comunicação de rastreio.</p></div>
-          <div class="card-bottom"><span>/reverso-expedicao</span><span class="material-symbols-rounded">arrow_forward</span></div>
         </a>
       </section>
 
@@ -154,7 +154,7 @@
     </main>
   </div>
   <script src="/shared/ui/agf-ui.js?v=ver-senha-v3"></script>
-  <script src="/agf/agf.js?v=ver-senha-v3"></script>
+  <script src="/agf/agf.js?v=reverso-home-v168"></script>
   <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/agf/sw.js').catch(()=>{}));}</script>
 </body>
 </html>

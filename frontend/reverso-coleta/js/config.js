@@ -1,7 +1,7 @@
 export const APP_CONFIG = {
-  API_BASE_URL: 'https://script.google.com/macros/s/AKfycbzKKJ9mnRRa9E6JLOuDLKadK5D5_I6AgV2Gus5gVISByV5z3TB9KL13hqJrjMowI090Qw/exec',
+  API_BASE_URL: '/reverso-api',
   APP_NAME: 'Reverso AGF José Bonifácio',
-  VERSION: '1.4.0-coleta-field',
+  VERSION: '1.6.9-cloudflare-proxy',
   API_TIMEOUT_MS: 60000,
   WHATSAPP_SUPPORT_URL: 'https://wa.me/5585988864444',
   STORAGE_KEYS: {
