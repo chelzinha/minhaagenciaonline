@@ -98,19 +98,54 @@ export default {
       return saveRevenueClient(request, env);
     }
 
-    const response = await baseApp.fetch(request, env, ctx);
     const isDashboard = request.method === 'GET' && url.pathname === '/atende' && url.searchParams.get('view') === 'dashboard';
-    if (!isDashboard || !response.ok) return response;
+
+    if (!isDashboard) return baseApp.fetch(request, env, ctx);
+
+    // Mantem o comportamento de autenticacao do stack anterior.
+    // A paralelizacao so ocorre para requisicoes ja autenticadas.
+    if (!authorized(request, env)) return baseApp.fetch(request, env, ctx);
+
+    const totalStartedAt = Date.now();
+
+    const extrasPromise = buildDashboardV6(url, env)
+      .then(extras => ({extras, error:''}))
+      .catch(err => ({
+        extras:null,
+        error:err && err.message ? String(err.message) : String(err || 'dashboard_v6_error')
+      }));
+
+    const baseStartedAt = Date.now();
+    const response = await baseApp.fetch(request, env, ctx);
+    const baseMs = Date.now() - baseStartedAt;
+
+    if (!response.ok) return response;
 
     let body;
     try { body = await response.json(); }
     catch (_) { return response; }
 
-    try {
-      const extras = await buildDashboardV6(url, env, body);
+    const extraResult = await extrasPromise;
+
+    if (extraResult.extras) {
+      const extras = extraResult.extras;
+
+      if (extras.metas) {
+        extras.metas = {
+          ...(body.metas || {}),
+          ...extras.metas,
+          realizado:(body.metas && body.metas.realizado) || extras.metas.realizado || {}
+        };
+      }
+
+      if (extras.dashboardV6Meta) {
+        extras.dashboardV6Meta.baseMs = baseMs;
+        extras.dashboardV6Meta.totalMs = Date.now() - totalStartedAt;
+      }
+
       Object.assign(body, extras);
-    } catch (err) {
-      body.dashboardV6Erro = err && err.message ? String(err.message) : String(err || 'dashboard_v6_error');
+    } else {
+      body.dashboardV6Erro = extraResult.error;
     }
 
     const headers = new Headers(response.headers);
@@ -119,7 +154,8 @@ export default {
   }
 };
 
-async function buildDashboardV6(url, env, body) {
+async function buildDashboardV6(url, env) {
+  const v6StartedAt = Date.now();
   const state = parseState(url);
   const anchorMonth = await resolveAnchorMonth(state, env);
   const contractCatalog = await loadContractCatalog(env);
@@ -127,13 +163,24 @@ async function buildDashboardV6(url, env, body) {
   const allHolidays = await loadHolidays(env, monthAdd(anchorMonth,-12)+'-01', monthRange(monthAdd(anchorMonth,2)).end);
   const targetBundle = await loadTargetBundle(anchorMonth, env, allHolidays);
 
+  const temposMs = {};
+
+  async function timed(name, fn) {
+    const started = Date.now();
+    try {
+      return await fn();
+    } finally {
+      temposMs[name] = Date.now() - started;
+    }
+  }
+
   const [series, clientAnalytics, health, daily, attendantPack, captacao] = await Promise.all([
-    buildMonthlySeries(anchorMonth, state, env, contractCatalog),
-    buildClientAnalytics(anchorMonth, state, env, targetBundle.config),
-    buildHealth(anchorMonth, env, targetBundle.config, contract, allHolidays),
-    buildDaily(state, anchorMonth, env, allHolidays),
-    buildAttendantAndPackaging(state, anchorMonth, env),
-    buildCaptacao(state, anchorMonth, env)
+    timed('serie', () => buildMonthlySeries(anchorMonth, state, env, contractCatalog)),
+    timed('clientes', () => buildClientAnalytics(anchorMonth, state, env, targetBundle.config)),
+    timed('saude', () => buildHealth(anchorMonth, env, targetBundle.config, contract, allHolidays)),
+    timed('diario', () => buildDaily(state, anchorMonth, env, allHolidays)),
+    timed('atendentes', () => buildAttendantAndPackaging(state, anchorMonth, env)),
+    timed('captacao', () => buildCaptacao(state, anchorMonth, env))
   ]);
 
   const projection = buildProjection(clientAnalytics, targetBundle.config);
@@ -173,11 +220,10 @@ async function buildDashboardV6(url, env, body) {
   return {
     versaoDashboard:'gestao-v6',
     metas:{
-      ...(body.metas || {}),
       disponivel:targetBundle.found,
       competencia:anchorMonth,
       config:targetBundle.config,
-      realizado:(body.metas && body.metas.realizado) || {}
+      realizado:{}
     },
     projecaoReceita:projection,
     remuneracao:remuneration,
@@ -193,7 +239,13 @@ async function buildDashboardV6(url, env, body) {
     quedaClientes,
     radarR5,
     riscoConcentracao,
-    dashboardV6Meta:{anchorMonth,geradoEm:new Date().toISOString(),metodoProjecao:'recorrente/dias*mes + eventual_ja_realizado'}
+    dashboardV6Meta:{
+      anchorMonth,
+      geradoEm:new Date().toISOString(),
+      metodoProjecao:'recorrente/dias*mes + eventual_ja_realizado',
+      temposMs,
+      v6Ms:Date.now()-v6StartedAt
+    }
   };
 }
 
@@ -475,6 +527,26 @@ async function buildClientAnalytics(competencia, state, env, config) {
       motivos:reasons,precisaRevisao:!effectiveType&&reasons.length>0
     });
   });
+
+  // A classificacao e definida pela identidade do cliente.
+  // Se qualquer grupo nao classificado da mesma chave disparar revisao,
+  // todos os grupos nao classificados desse cliente ficam pendentes.
+  const clientesEmRevisao = new Set(
+    items
+      .filter(x => x.precisaRevisao)
+      .map(x => x.clienteChave)
+  );
+
+  items.forEach(x => {
+    if (!clientesEmRevisao.has(x.clienteChave)) return;
+    if (x.tipoReceitaEfetivo) return;
+
+    if (!x.precisaRevisao) {
+      x.precisaRevisao = true;
+      x.motivos = unique([...(x.motivos || []), 'cliente_em_revisao']);
+    }
+  });
+
   return {competencia,items,groupTotals,histMonths,classMap};
 }
 
@@ -773,6 +845,34 @@ async function buildAttendantAndPackaging(state, anchorMonth, env) {
 // ---------------------------------------------------------------------------
 
 async function buildCaptacao(state, anchorMonth, env) {
+  try {
+    const cepReady = await env.DB
+      .prepare('SELECT 1 AS ok FROM atende_cep_bairro LIMIT 1')
+      .first();
+
+    if (!cepReady) {
+      return {
+        cobertura:0,
+        origem:[],
+        destino:[],
+        shareLocal:0,
+        shareInteriorCE:0,
+        indisponivel:true,
+        motivo:'biblioteca_cep_bairro_vazia'
+      };
+    }
+  } catch (_) {
+    return {
+      cobertura:0,
+      origem:[],
+      destino:[],
+      shareLocal:0,
+      shareInteriorCE:0,
+      indisponivel:true,
+      motivo:'migration_cep_bairro_ausente'
+    };
+  }
+
   const scoped=cloneState(state);
   if(!scoped.dataInicio&&!scoped.dataFim){const rr=monthRange(anchorMonth);scoped.dataInicio=rr.start;scoped.dataFim=rr.end;}
   const current=buildWhere(scoped);
