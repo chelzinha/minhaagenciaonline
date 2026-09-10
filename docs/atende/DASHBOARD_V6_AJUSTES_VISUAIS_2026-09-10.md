@@ -12,7 +12,7 @@ Refinar três blocos visuais da V6 sem alterar a regra de negócio já definida 
 
 O card deixa de ser apenas textual e passa a usar duas trilhas visuais independentes, uma para **Balcão AGF** e outra para **Metrô**.
 
-Cada trilha deve exibir:
+Cada trilha exibe:
 
 - Bronze, Prata, Ouro e Diamante com ícone `military_tech`;
 - cor própria por faixa;
@@ -20,7 +20,7 @@ Cada trilha deve exibir:
 - destaque forte da faixa atual;
 - barra de progresso até a próxima faixa;
 - valor que falta para a próxima medalha;
-- medalha esperada na projeção V6.
+- medalha esperada na projeção V6 quando o backend fornecer a projeção ajustada.
 
 Paleta:
 
@@ -31,11 +31,11 @@ Paleta:
 | Ouro | `#D5A100` |
 | Diamante | `#5370D9` |
 
-A projeção exibida continua usando a regra V6: receita recorrente é extrapolada; Campanha/Pontual soma somente o realizado; sinais pendentes mantêm a projeção sob revisão.
+A projeção exibida usa exclusivamente `projecaoReceita` do backend V6. Não há fallback para extrapolação linear no refinamento visual.
 
 ## 2. Realizado x meta x projeção
 
-Substituir a tabela simples por comparação gráfica por grupo:
+A tabela simples é substituída por comparação gráfica por grupo:
 
 - Encomendas;
 - Balcão AGF;
@@ -50,13 +50,13 @@ Para cada grupo:
 - percentual projeção/meta;
 - valores absolutos de realizado, meta e projeção.
 
-A escala de cada linha deve acomodar o maior entre realizado, meta e projeção, para não esconder projeções acima de 100%.
+A escala de cada linha acomoda o maior entre realizado, meta e projeção, para não esconder projeções acima de 100%.
 
 ## 3. Faturamento por Local, Mix por Tipo de Serviço e Canal
 
 Os três cards passam de barras horizontais para **gráficos donut**.
 
-Cada donut deve exibir:
+Cada donut exibe:
 
 - total no centro;
 - fatias por categoria;
@@ -64,20 +64,33 @@ Cada donut deve exibir:
 - mesma paleta compartilhada do dashboard;
 - no máximo cinco categorias principais + `Outros` para preservar legibilidade.
 
-Aplicar tanto em **Operação** quanto em **Gestão**.
+A conversão é aplicada tanto em **Operação** quanto em **Gestão**.
+
+## Estratégia de implementação
+
+Para reduzir risco de regressão enquanto o backend V6 continua sendo fechado em ambiente isolado:
+
+1. `DashboardTabsV4.html` continua sendo a base estrutural.
+2. `DashboardIntelligenceV5.html` continua sendo a camada funcional estável nesta etapa.
+3. `DashboardVisualV6.html` roda por último e substitui somente os três blocos visuais aprovados.
+4. `36_ATENDE_DASHBOARD_V3.gs` libera `projecaoReceita` para o browser quando o Worker V6 passar a fornecê-la.
+5. O front visual V6 não calcula projeção linear por conta própria.
+
+## Arquivos desta rodada
+
+- `apps-script/atende/DashboardVisualV6.html`
+- `apps-script/atende/32_ATENDE_DASHBOARD.gs`
+- `apps-script/atende/36_ATENDE_DASHBOARD_V3.gs`
+- `docs/atende/DASHBOARD_V6_AJUSTES_VISUAIS_2026-09-10.md`
 
 ## Regras de não regressão
 
 1. Não alterar `main`.
-2. Não mudar contratos de payload.
-3. Não alterar fórmula de projeção V6.
+2. Não mudar contratos existentes de payload; apenas liberar a chave nova `projecaoReceita`.
+3. Não implementar fórmula de projeção no refinamento visual.
 4. Não duplicar regra contratual/PPCC no front.
 5. Não alterar permissões de Gestão.
 6. Manter responsividade abaixo de 900 px.
-7. Continuar usando `DashboardTabsV4.html` como base visual e `DashboardIntelligenceV6.html` como camada de patch.
+7. A projeção visual deve permanecer indisponível se o backend V6 não fornecer a versão ajustada.
 
-## Arquivo principal
-
-`apps-script/atende/DashboardIntelligenceV6.html`
-
-A implementação deve ocorrer na branch `feat/atende-dashboard-v6` e só poderá ser levada à `main` depois da validação funcional do ambiente V6 isolado.
+A implementação ocorre exclusivamente na branch `feat/atende-dashboard-v6` e só poderá ser levada à `main` depois da validação funcional do ambiente V6 isolado.
