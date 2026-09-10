@@ -1,13 +1,19 @@
 // ============================================================
-// ATENDE - ADDON VISUAL DO DASHBOARD V6 (BRANCH DE TESTE)
+// ATENDE - ADDONS DO DASHBOARD V6 (BRANCH DE TESTE)
 // ============================================================
 
 function ATENDE_dashboardAddonJs() {
-  // DashboardTabsV4 permanece como base visual estável.
-  // Nesta branch carregamos apenas a camada Intelligence V6 e o Admin V6.
-  // V5 continua preservado no repositório e pode ser restaurado trocando
-  // apenas esta lista de arquivos.
-  const arquivos = ['DashboardTabsV4', 'DashboardIntelligenceV6', 'DashboardMetaAdminV6'];
+  // DashboardTabsV4 continua como base estrutural.
+  // DashboardIntelligenceV5 permanece temporariamente como camada funcional
+  // estável enquanto a V6 de backend é validada em ambiente isolado.
+  // DashboardVisualV6 aplica exclusivamente os refinamentos visuais da V6.
+  const arquivos = [
+    'DashboardTabsV4',
+    'DashboardIntelligenceV5',
+    'DashboardVisualV6',
+    'DashboardMetaAdmin'
+  ];
+
   return arquivos.map(function(nome) {
     const html = HtmlService.createHtmlOutputFromFile(nome).getContent();
     return String(html || '')
