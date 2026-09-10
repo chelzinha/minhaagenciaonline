@@ -25,6 +25,7 @@ function ATENDE_buscarDashboardGestaoV3D1(params) {
     localGlobal: response.localGlobal || response.local || [],
     atendentes: response.atendentes || [],
     atendentesDesempenho: response.atendentesDesempenho || [],
+    projecaoReceita: response.projecaoReceita || {},
     intermediadores: response.intermediadores || [],
     canais: response.canais || response.intermediadores || [],
     tiposContrato: response.tiposContrato || [],
