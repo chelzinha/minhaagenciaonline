@@ -468,7 +468,7 @@ async function buildClientAnalytics(competencia, state, env, config) {
     }
     items.push({
       clienteChave:clientKey,cliente:clean(currentRow?.cliente)||names.get(clientKey)||clean(cls.cliente_nome)||'(sem cliente)',
-      grupo,valorAtual:round2(currentValue),quantidade:num(currentRow?.quantidade),locais:currentRow?.locais||{},
+      grupo:group,valorAtual:round2(currentValue),quantidade:num(currentRow?.quantidade),locais:currentRow?.locais||{},
       historico:histValues.map((v,i)=>({competencia:histMonths[i],valor:round2(v)})),
       media3Meses:round2(avg3),esperadoParcial:round2(expectedPartial),participacaoGrupo:round2(shareGroup),
       tipoReceita:type,tipoReceitaEfetivo:effectiveType,dataFimPrevista:dataFim,observacao:clean(cls.observacao),
