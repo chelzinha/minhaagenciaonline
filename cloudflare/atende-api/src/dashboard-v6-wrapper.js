@@ -629,7 +629,7 @@ function buildEffectiveRate(series, anchorMonth) {
   const first=closed[0],variation=first&&latest?latest.taxaEfetiva-first.taxaEfetiva:0;
   let insight='';
   if(closed.length>=2){const prev=closed[closed.length-2];if(latest.faturamento>prev.faturamento&&latest.taxaEfetiva<prev.taxaEfetiva)insight=`Faturamento subiu ${fixed((latest.faturamento-prev.faturamento)*100/prev.faturamento,1)}% e a taxa efetiva caiu ${fixed(prev.taxaEfetiva-latest.taxaEfetiva,2)} pontos. O mix migrou para linhas de menor retorno.`;}
-  return {serie,current:series.find(x=>x.competencia===anchorMonth)||null,atual:series.find(x=>x.competencia===anchorMonth)||null,ultimoFechado:latest,media12m:round2(mean),variacao12m:round2(variation),tendencia:trend,coeficienteMensal:round2(slope),insight};
+  return {serie:series,current:series.find(x=>x.competencia===anchorMonth)||null,atual:series.find(x=>x.competencia===anchorMonth)||null,ultimoFechado:latest,media12m:round2(mean),variacao12m:round2(variation),tendencia:trend,coeficienteMensal:round2(slope),insight};
 }
 
 function buildDecomposition(series) {
