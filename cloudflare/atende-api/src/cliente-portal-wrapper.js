@@ -217,8 +217,7 @@ async function rebuildClientePortal(env){
   `).first();
   const totalAtende=await env.DB.prepare(`
     SELECT COUNT(*) AS n
-    FROM atende_postagens_raw r
-    JOIN atende_raw_importacoes ri ON ri.import_key=r.import_key AND ri.concluido_em IS NOT NULL
+    FROM atende_postagens_canonicas r
   `).first();
   const total=Number(counts?.total||0),atende=Number(totalAtende?.n||0);
   return {
@@ -255,8 +254,7 @@ cons_sro AS (
 at_sro AS (
   SELECT r.*,
          ROW_NUMBER() OVER (PARTITION BY r.codigo_objeto_norm ORDER BY r.data_postagem_iso,r.id) AS ocorr
-  FROM atende_postagens_raw r
-  JOIN atende_raw_importacoes ri ON ri.import_key=r.import_key AND ri.concluido_em IS NOT NULL
+  FROM atende_postagens_canonicas r
   WHERE UPPER(TRIM(COALESCE(r.codigo_objeto_norm,''))) LIKE '%BR'
 )
 INSERT INTO atende_cliente_portal(
@@ -293,8 +291,7 @@ cons_sro AS (
 at_sro AS (
   SELECT r.*,
          ROW_NUMBER() OVER (PARTITION BY r.codigo_objeto_norm ORDER BY r.data_postagem_iso,r.id) AS ocorr
-  FROM atende_postagens_raw r
-  JOIN atende_raw_importacoes ri ON ri.import_key=r.import_key AND ri.concluido_em IS NOT NULL
+  FROM atende_postagens_canonicas r
   WHERE UPPER(TRIM(COALESCE(r.codigo_objeto_norm,''))) LIKE '%BR'
 ),
 paired_sro AS (
@@ -347,8 +344,7 @@ at_groups0 AS (
          substr(r.data_postagem_iso,1,10) AS data_iso,
          r.codigo_servico_norm AS ect_norm,
          ROUND(ABS(COALESCE(r.valor_atendimento_num,0)),2) AS valor_abs
-  FROM atende_postagens_raw r
-  JOIN atende_raw_importacoes ri ON ri.import_key=r.import_key AND ri.concluido_em IS NOT NULL
+  FROM atende_postagens_canonicas r
   JOIN att_box ab ON ab.atendente_norm=r.atendente_norm
   WHERE UPPER(TRIM(COALESCE(r.codigo_objeto_norm,''))) NOT LIKE '%BR'
     AND TRIM(COALESCE(r.atendimento,''))<>''

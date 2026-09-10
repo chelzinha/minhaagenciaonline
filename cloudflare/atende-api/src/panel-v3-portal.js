@@ -12,18 +12,14 @@ const LOCAL_EXIBIDO_SQL = `COALESCE(pcl.local_codigo, po.local_codigo, a.local_p
 const ESTORNO_ATIVO_SQL = `(TRIM(COALESCE(r.estorno,'')) <> '' AND UPPER(TRIM(r.estorno)) NOT IN ('N','NAO','NÃO','0','FALSE'))`;
 
 const BASE_FROM = `
-  FROM atende_postagens_raw r
-  JOIN atende_raw_importacoes ri ON ri.import_key = r.import_key AND ri.concluido_em IS NOT NULL
+  FROM atende_postagens_canonicas r
   LEFT JOIN atende_cliente_aliases ca ON ca.alias_normalizado = r.nome_remetente_norm
   LEFT JOIN atende_clientes c ON c.id = ca.cliente_id AND c.ativo = 1
   LEFT JOIN atende_atendentes a ON a.codigo = r.atendente_norm AND a.ativo = 1
   LEFT JOIN atende_contratos co ON co.numero = r.numero_contrato_norm AND co.ativo = 1
   LEFT JOIN (
     SELECT rr.numero_contrato_norm AS numero, COUNT(*) AS ocorrencias
-    FROM atende_postagens_raw rr
-    JOIN atende_raw_importacoes rii
-      ON rii.import_key = rr.import_key
-     AND rii.concluido_em IS NOT NULL
+    FROM atende_postagens_canonicas rr
     WHERE rr.numero_contrato_norm IS NOT NULL
       AND TRIM(rr.numero_contrato_norm) <> ''
       AND LOWER(TRIM(rr.numero_contrato_norm)) <> 'null'
