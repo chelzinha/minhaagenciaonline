@@ -395,3 +395,12 @@ function ATENDE_statusGatilhoD1() {
   console.log(JSON.stringify(result, null, 2));
   return result;
 }
+
+function ATENDE_rebuildClientePortalD1() {
+  const result = ATENDE_fetchD1_('/rebuild-cliente-portal', {
+    method: 'post'
+  });
+  console.log('ATENDE - REBUILD CLIENTE PORTAL D1');
+  console.log(JSON.stringify(result, null, 2));
+  return result;
+}
