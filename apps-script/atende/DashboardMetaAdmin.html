@@ -1,0 +1,340 @@
+<script id="atende-dashboard-meta-admin">
+(function(){
+'use strict';
+
+function token(){
+  try{
+    if(typeof AUTH_TOKEN !== 'undefined' && AUTH_TOKEN) return String(AUTH_TOKEN);
+  }catch(_){}
+  return String(window.AUTH_TOKEN || '');
+}
+
+function money(v){
+  return 'R$ ' + Number(v || 0).toLocaleString('pt-BR',{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
+}
+
+function parseNum(v){
+  v=String(v==null?'':v)
+    .replace(/R\$/gi,'')
+    .replace(/\s/g,'');
+
+  if(v.indexOf(',')>=0){
+    v=v.replace(/\./g,'').replace(',','.');
+  }
+
+  var x=Number(v);
+  return Number.isFinite(x)?x:0;
+}
+
+function tierInputs(prefix){
+  return ['Bronze','Prata','Ouro','Diamante'].map(function(x){
+    return '<label>'+x+' (R$)<input id="db'+prefix+x+'" inputmode="decimal"></label>';
+  }).join('');
+}
+
+function setStatus(text,cls){
+  var el=document.getElementById('dbMetaStatus');
+  if(!el)return;
+  el.textContent=text||'';
+  el.className='status '+(cls||'');
+}
+
+function defaultMonth(){
+  try{
+    if(typeof fullMonthFromDates==='function'){
+      var m=fullMonthFromDates();
+      if(m)return m;
+    }
+  }catch(_){}
+
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+
+function loadMeta(){
+  var mes=document.getElementById('dbMetaMes');
+  if(!mes)return;
+
+  if(!mes.value)mes.value=defaultMonth();
+
+  var auth=token();
+  if(!auth){
+    setStatus('Sessão administrativa não encontrada.','err');
+    return;
+  }
+
+  setStatus('Carregando...','');
+
+  google.script.run
+    .withSuccessHandler(function(r){
+      var c=r&&r.config||{};
+
+      document.getElementById('dbDiasRealizados').value=c.diasUteisRealizados||0;
+      document.getElementById('dbDiasMes').value=c.diasUteisMes||'';
+      document.getElementById('dbEncomendasMeta').value=
+        c.encomendasMeta?money(c.encomendasMeta):'';
+
+      [
+        ['Balcao','balcao'],
+        ['Metro','metro']
+      ].forEach(function(p){
+        ['Bronze','Prata','Ouro','Diamante'].forEach(function(x){
+          var key=p[1]+x.charAt(0).toUpperCase()+x.slice(1);
+          var el=document.getElementById('db'+p[0]+x);
+          if(el)el.value=c[key]?money(c[key]):'';
+        });
+      });
+
+      setStatus(
+        r&&r.found?'Cadastro carregado.':'Mês ainda sem cadastro.',
+        'ok'
+      );
+    })
+    .withFailureHandler(function(e){
+      setStatus(e&&e.message?e.message:String(e),'err');
+    })
+    .ATENDE_adminBuscarMetasDashboard(auth,mes.value);
+}
+
+function saveMeta(){
+  var mes=document.getElementById('dbMetaMes').value;
+
+  if(!mes){
+    setStatus('Selecione a competência.','err');
+    return;
+  }
+
+  var p={
+    competencia:mes,
+    diasUteisRealizados:Number(
+      document.getElementById('dbDiasRealizados').value||0
+    ),
+    diasUteisMes:Number(
+      document.getElementById('dbDiasMes').value||0
+    ),
+    encomendasMeta:parseNum(
+      document.getElementById('dbEncomendasMeta').value
+    )
+  };
+
+  [
+    ['Balcao','balcao'],
+    ['Metro','metro']
+  ].forEach(function(a){
+    ['Bronze','Prata','Ouro','Diamante'].forEach(function(x){
+      p[a[1]+x.charAt(0).toUpperCase()+x.slice(1)] =
+        parseNum(document.getElementById('db'+a[0]+x).value);
+    });
+  });
+
+  var auth=token();
+  if(!auth){
+    setStatus('Sessão administrativa não encontrada.','err');
+    return;
+  }
+
+  setStatus('Salvando...','');
+
+  google.script.run
+    .withSuccessHandler(function(){
+      setStatus('Metas salvas.','ok');
+
+      try{
+        if(typeof window.refreshFilteredView==='function'){
+          window.refreshFilteredView();
+        }
+      }catch(_){}
+    })
+    .withFailureHandler(function(e){
+      setStatus(e&&e.message?e.message:String(e),'err');
+    })
+    .ATENDE_adminSalvarMetasDashboard(auth,p);
+}
+
+function style(){
+  if(document.getElementById('atende-meta-admin-css'))return;
+
+  var s=document.createElement('style');
+  s.id='atende-meta-admin-css';
+  s.textContent=`
+    .db-admin-top{
+      display:flex;
+      gap:8px;
+      align-items:end;
+      margin-bottom:10px
+    }
+    .db-admin-top label{
+      display:grid;
+      gap:3px;
+      font-size:8px;
+      font-weight:900;
+      color:var(--muted)
+    }
+    .db-admin-top input{
+      height:29px;
+      border:1px solid var(--line2);
+      border-radius:7px;
+      padding:0 7px;
+      font:inherit
+    }
+    .db-admin-meta-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px
+    }
+    .db-admin-meta-card{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:10px;
+      background:#fbfdff
+    }
+    .db-admin-meta-card h3{
+      margin:0 0 8px;
+      color:var(--nv);
+      font-size:11px
+    }
+    .db-admin-meta-fields{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:7px
+    }
+    .db-admin-meta-fields label{
+      display:grid;
+      gap:3px;
+      color:var(--muted);
+      font-size:8px;
+      font-weight:800
+    }
+    .db-admin-meta-fields input{
+      height:29px;
+      border:1px solid var(--line2);
+      border-radius:7px;
+      padding:0 7px;
+      font:inherit;
+      font-size:10px;
+      min-width:0
+    }
+    .db-admin-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:7px;
+      margin-top:10px
+    }
+    @media(max-width:900px){
+      .db-admin-meta-grid{
+        grid-template-columns:1fr
+      }
+    }
+  `;
+  document.head.appendChild(s);
+}
+
+function install(){
+  var tabs=document.querySelector('.admin-tabs');
+  var body=document.querySelector('.admin-body');
+
+  if(!tabs||!body)return false;
+  if(document.getElementById('pane-metas'))return true;
+
+  style();
+
+  var btn=document.createElement('button');
+  btn.className='admin-tab';
+  btn.type='button';
+  btn.dataset.tab='metas';
+  btn.textContent='Metas';
+  tabs.appendChild(btn);
+
+  var pane=document.createElement('div');
+  pane.className='admin-pane';
+  pane.id='pane-metas';
+
+  pane.innerHTML=
+    '<div class="admin-note">'+
+      '<b>Metas mensais:</b> informe os dias úteis e as metas de faturamento do mês.'+
+    '</div>'+
+
+    '<div class="db-admin-top">'+
+      '<label>Competência'+
+        '<input id="dbMetaMes" type="month">'+
+      '</label>'+
+      '<button class="btn" id="dbMetaCarregar" type="button">'+
+        '<span class="material-symbols-rounded">refresh</span>Carregar'+
+      '</button>'+
+      '<span class="status" id="dbMetaStatus"></span>'+
+    '</div>'+
+
+    '<div class="db-admin-meta-grid">'+
+
+      '<section class="db-admin-meta-card">'+
+        '<h3>Dias úteis + Encomendas</h3>'+
+        '<div class="db-admin-meta-fields">'+
+          '<label>Dias realizados'+
+            '<input id="dbDiasRealizados" type="number" min="0" step="1">'+
+          '</label>'+
+          '<label>Dias no mês'+
+            '<input id="dbDiasMes" type="number" min="1" step="1">'+
+          '</label>'+
+          '<label style="grid-column:1/-1">Meta Encomendas (R$)'+
+            '<input id="dbEncomendasMeta" inputmode="decimal">'+
+          '</label>'+
+        '</div>'+
+      '</section>'+
+
+      '<section class="db-admin-meta-card">'+
+        '<h3>Balcão AGF</h3>'+
+        '<div class="db-admin-meta-fields">'+tierInputs('Balcao')+'</div>'+
+      '</section>'+
+
+      '<section class="db-admin-meta-card">'+
+        '<h3>Metrô</h3>'+
+        '<div class="db-admin-meta-fields">'+tierInputs('Metro')+'</div>'+
+      '</section>'+
+
+    '</div>'+
+
+    '<div class="db-admin-actions">'+
+      '<button class="btn btn-primary" id="dbMetaSalvar" type="button">'+
+        '<span class="material-symbols-rounded">save</span>Salvar metas do mês'+
+      '</button>'+
+    '</div>';
+
+  body.appendChild(pane);
+
+  document.getElementById('dbMetaMes').value=defaultMonth();
+
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.admin-tab').forEach(function(x){
+      x.classList.toggle('active',x===btn);
+    });
+
+    document.querySelectorAll('.admin-pane').forEach(function(x){
+      x.classList.toggle('active',x===pane);
+    });
+
+    loadMeta();
+  });
+
+  document.getElementById('dbMetaCarregar')
+    .addEventListener('click',loadMeta);
+
+  document.getElementById('dbMetaSalvar')
+    .addEventListener('click',saveMeta);
+
+  return true;
+}
+
+var tries=0;
+function retry(){
+  tries++;
+  if(install()||tries>=30)return;
+  setTimeout(retry,100);
+}
+
+retry();
+
+})();
+</script>
