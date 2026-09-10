@@ -13,8 +13,8 @@ const ATENDE_D1_PANEL_COLUMNS = Object.freeze([
   { key: 'CARTAO POSTAGEM', label: 'CARTÃO POSTAGEM', width: 120, mono: true },
   { key: 'CONTRATO', label: 'CONTRATO', width: 112, mono: true },
   { key: 'OCORR', label: 'OCORR.', width: 78, numeric: true },
-  { key: 'CLIENTE', label: 'CLIENTE', width: 230 },
-  { key: 'CADASTRO PORTAL', label: 'CADASTRO PORTAL', width: 230 },
+  { key: 'CLIENTE', label: 'RAZÃO SOCIAL', width: 230 },
+  { key: 'CLIENTE PORTAL', label: 'CADASTRO PORTAL', width: 230 },
   { key: 'ORIGEM PORTAL', label: 'ORIGEM PORTAL', width: 105 },
   { key: 'TIPO', label: 'TIPO', width: 120 },
   { key: 'INTERMEDIADOR', label: 'INTERMEDIADOR', width: 150 },
@@ -48,6 +48,7 @@ function ATENDE_mapaFiltrosD1_(params) {
     servicoSubgrupo: ATENDE_listaFiltro_(params, 'servicoSubgrupos', 'servicoSubgrupo'),
     servicoTabela: ATENDE_listaFiltro_(params, 'servicoTabelas', 'servicoTabela'),
     tipoObjeto: ATENDE_listaFiltro_(params, 'tiposObjeto', 'tipoObjeto'),
+    clientePortal: ATENDE_listaFiltro_(params, 'clientesPortal', 'clientePortal'),
     contratoCliente: ATENDE_listaFiltro_(params, 'contratoClientes', 'contratoCliente'),
     contratoTipo: ATENDE_listaFiltro_(params, 'contratoTipos', 'contratoTipo'),
     intermediador: ATENDE_listaFiltro_(params, 'intermediadores', 'intermediador'),
@@ -97,6 +98,18 @@ function ATENDE_buscarDadosD1(params) {
   const rows = (response.rows || []).map(function(row) {
     const copy = Object.assign({}, row);
 
+    // Compatibilidade entre o nome tecnico atual e respostas antigas.
+    // O Worker atual envia CLIENTE PORTAL.
+    const portalCliente = String(
+      copy['CLIENTE PORTAL'] || copy['CADASTRO PORTAL'] || ''
+    ).trim();
+
+    copy['CLIENTE PORTAL'] = portalCliente;
+
+    if (!Object.prototype.hasOwnProperty.call(copy, 'CADASTRO PORTAL') || !copy['CADASTRO PORTAL']) {
+      copy['CADASTRO PORTAL'] = portalCliente;
+    }
+
     if (!Object.prototype.hasOwnProperty.call(copy, 'OBJETO')) {
       compatibilityMode = true;
       copy.OBJETO = copy.SRO || '';
@@ -116,7 +129,9 @@ function ATENDE_buscarDadosD1(params) {
 
     if (!Object.prototype.hasOwnProperty.call(copy, 'OCORR')) copy.OCORR = '';
     if (!Object.prototype.hasOwnProperty.call(copy, 'CLIENTE')) copy.CLIENTE = '';
-    if (!Object.prototype.hasOwnProperty.call(copy, 'CADASTRO PORTAL')) copy['CADASTRO PORTAL'] = '';
+    if (!Object.prototype.hasOwnProperty.call(copy, 'CLIENTE PORTAL')) copy['CLIENTE PORTAL'] = copy['CADASTRO PORTAL'] || '';
+    if (!copy['CLIENTE PORTAL'] && copy['CADASTRO PORTAL']) copy['CLIENTE PORTAL'] = copy['CADASTRO PORTAL'];
+    if (!Object.prototype.hasOwnProperty.call(copy, 'CADASTRO PORTAL')) copy['CADASTRO PORTAL'] = copy['CLIENTE PORTAL'] || '';
     if (!Object.prototype.hasOwnProperty.call(copy, 'ORIGEM PORTAL')) copy['ORIGEM PORTAL'] = '';
     if (!Object.prototype.hasOwnProperty.call(copy, 'TIPO')) copy.TIPO = '';
     if (!Object.prototype.hasOwnProperty.call(copy, 'INTERMEDIADOR')) copy.INTERMEDIADOR = copy['NOME CONTRATO'] || '';
@@ -163,6 +178,7 @@ function ATENDE_buscarFiltrosD1(params) {
     servicoTipos: response.servicoTipos || [],
     servicoSubgrupos: response.servicoSubgrupos || [],
     servicoTabelas: response.servicoTabelas || [],
+    clientesPortal: response.clientesPortal || response.cadastrosPortal || [],
     contratoClientes: response.contratoClientes || [],
     contratoTipos: response.contratoTipos || [],
     intermediadores: response.intermediadores || [],
