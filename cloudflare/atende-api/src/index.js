@@ -129,9 +129,35 @@ async function ingestRaw(request, env) {
     await env.DB.prepare(`UPDATE atende_raw_importacoes SET concluido_em = NULL WHERE import_key = ?`).bind(importKey).run();
     return json({ ok:false, error:'raw_line_count_mismatch', expected:totalRows, stored:Number(state?.gravadas || 0) }, 409);
   }
-  if (shouldComplete && state?.concluido_em) await rebuildSroCounts(env);
+  if (shouldComplete && state?.concluido_em) {
+    await updateCanonicalIdsForImport(env, importKey);
+    await rebuildSroCounts(env);
+  }
 
   return json({ ok:true, duplicateFile:false, received:rows.length, inserted, invalid, receivedThrough, stored:Number(state?.gravadas || 0), completed:!!state?.concluido_em });
+}
+
+async function updateCanonicalIdsForImport(env, importKey) {
+  await env.DB.prepare(`
+    INSERT OR IGNORE INTO atende_postagens_canonicas_ids(operation_key, raw_id)
+    SELECT
+      CASE
+        WHEN TRIM(COALESCE(r.codigo_objeto_norm, '')) <> '' THEN
+          'OBJ:' || TRIM(r.codigo_objeto_norm) ||
+          '|ATD:' || COALESCE(NULLIF(TRIM(r.atendimento), ''), 'SEM_ATENDIMENTO')
+        WHEN TRIM(COALESCE(r.atendimento, '')) <> '' THEN
+          'ATD:' || TRIM(r.atendimento)
+        ELSE
+          'RAW:' || CAST(r.id AS TEXT)
+      END AS operation_key,
+      MIN(r.id) AS raw_id
+    FROM atende_postagens_raw r
+    JOIN atende_raw_importacoes ri
+      ON ri.import_key = r.import_key
+     AND ri.concluido_em IS NOT NULL
+    WHERE r.import_key = ?
+    GROUP BY operation_key
+  `).bind(importKey).run();
 }
 
 async function rebuildSroCounts(env) {
@@ -140,8 +166,7 @@ async function rebuildSroCounts(env) {
     env.DB.prepare(`
       INSERT INTO atende_sro_counts(codigo_objeto_norm, ocorrencias)
       SELECT r.codigo_objeto_norm, COUNT(*)
-      FROM atende_postagens_raw r
-      JOIN atende_raw_importacoes ri ON ri.import_key=r.import_key AND ri.concluido_em IS NOT NULL
+      FROM atende_postagens_canonicas r
       WHERE r.codigo_objeto_norm LIKE '%BR'
       GROUP BY r.codigo_objeto_norm
       HAVING COUNT(*) > 1
