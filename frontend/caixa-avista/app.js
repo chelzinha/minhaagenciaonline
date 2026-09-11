@@ -18,14 +18,26 @@
     document.head.appendChild(script);
   };
 
+  const loadSafePatch = () => {
+    const script = document.createElement('script');
+    script.src = '/caixa-avista/v21-safe-patch.js?v=20260911190000';
+    script.async = false;
+    script.onload = loadApplication;
+    script.onerror = () => {
+      console.warn('[CAIXA_V21_PATCH] Patch indisponível; mantendo V2 estável.');
+      loadApplication();
+    };
+    document.head.appendChild(script);
+  };
+
   const loadMovementHistory = () => {
     const script = document.createElement('script');
     script.src = '/caixa-avista/movement-history.js?v=20260904230000';
     script.async = false;
-    script.onload = loadApplication;
+    script.onload = loadSafePatch;
     script.onerror = () => {
       console.warn('[CAIXA_MOVEMENT_HISTORY] Não foi possível carregar a data e hora das movimentações.');
-      loadApplication();
+      loadSafePatch();
     };
     document.head.appendChild(script);
   };
