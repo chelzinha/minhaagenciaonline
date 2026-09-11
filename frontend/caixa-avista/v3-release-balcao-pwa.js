@@ -1,7 +1,7 @@
 'use strict';
 
 (() => {
-  const BUILD = '20260911143000';
+  const BUILD = '20260911150000';
   const isCaixaRoute = /^\/caixa(?:\/|$)/.test(window.location.pathname);
 
   function ensureReleaseStyles() {
@@ -69,11 +69,12 @@
     }
 
     const descriptionBox = document.querySelector('.description-box .minor-title');
-    if (descriptionBox) {
+    if (descriptionBox && descriptionBox.dataset.v3ReleaseReady !== '1') {
       const icon = descriptionBox.querySelector('.material-symbols-rounded');
       descriptionBox.textContent = '';
       if (icon) descriptionBox.appendChild(icon);
       descriptionBox.appendChild(document.createTextNode('Observação'));
+      descriptionBox.dataset.v3ReleaseReady = '1';
     }
   }
 
@@ -137,11 +138,17 @@
     if (theme) theme.content = '#00416B';
 
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+      const registerServiceWorker = () => {
         navigator.serviceWorker
           .register(`/caixa/sw.js?v=${BUILD}`, { scope: '/caixa/' })
           .catch(error => console.warn('[CAIXA_PWA_SW]', error));
-      }, { once: true });
+      };
+
+      if (document.readyState === 'complete') {
+        registerServiceWorker();
+      } else {
+        window.addEventListener('load', registerServiceWorker, { once: true });
+      }
     }
 
     let deferredPrompt = null;
