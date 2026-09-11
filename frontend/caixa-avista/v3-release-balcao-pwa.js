@@ -1,7 +1,7 @@
 'use strict';
 
 (() => {
-  const BUILD = '20260911150000';
+  const BUILD = '20260911170000';
   const isCaixaRoute = /^\/caixa(?:\/|$)/.test(window.location.pathname);
 
   function ensureReleaseStyles() {
@@ -132,7 +132,7 @@
       appleIcon.rel = 'apple-touch-icon';
       document.head.appendChild(appleIcon);
     }
-    appleIcon.href = '/assets/pwa/caixa/icon-192.png';
+    appleIcon.href = '/assets/pwa/caixa/apple-touch-icon.png';
 
     const theme = document.querySelector('meta[name="theme-color"]');
     if (theme) theme.content = '#00416B';
@@ -151,7 +151,6 @@
       }
     }
 
-    let deferredPrompt = null;
     const button = addInstallButton();
     if (!button || isStandalone()) return;
 
@@ -161,28 +160,49 @@
       return;
     }
 
+    const installState = window.CaixaPwaInstall || {
+      prompt: null,
+      installed: false
+    };
+    window.CaixaPwaInstall = installState;
+
+    const refreshInstallButton = () => {
+      button.classList.toggle(
+        'hidden',
+        !installState.prompt || installState.installed
+      );
+    };
+
+    refreshInstallButton();
+    window.addEventListener('caixa:pwa-install-ready', refreshInstallButton);
+    window.addEventListener('caixa:pwa-installed', refreshInstallButton);
+
+    /* Fallback caso este script seja carregado fora do bootstrap V3. */
     window.addEventListener('beforeinstallprompt', event => {
       event.preventDefault();
-      deferredPrompt = event;
-      button.classList.remove('hidden');
+      installState.prompt = event;
+      refreshInstallButton();
     });
 
     button.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
+      const prompt = installState.prompt;
+      if (!prompt) return;
+
       button.disabled = true;
       try {
-        await deferredPrompt.prompt();
-        await deferredPrompt.userChoice;
+        await prompt.prompt();
+        await prompt.userChoice;
       } finally {
-        deferredPrompt = null;
+        installState.prompt = null;
         button.disabled = false;
-        button.classList.add('hidden');
+        refreshInstallButton();
       }
     });
 
     window.addEventListener('appinstalled', () => {
-      deferredPrompt = null;
-      button.classList.add('hidden');
+      installState.prompt = null;
+      installState.installed = true;
+      refreshInstallButton();
     });
   }
 
