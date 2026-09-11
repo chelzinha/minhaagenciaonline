@@ -1,0 +1,366 @@
+/* ============================================================================
+   agf-header.css - Cabecalho padrao da Plataforma AGF Jose Bonifacio
+   Versao 1.0.1
+   Namespace obrigatorio: .agf-hd-*  (Trava A)
+   Depende de: nada. Nao importa nenhum outro arquivo.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------- 1. TOKENS */
+.agf-hd{
+  --agf-hd-h: 56px;
+  --agf-hd-max: 1180px;
+  --agf-hd-pad: 12px;
+
+  --agf-hd-accent: #0F3057;          /* sobrescrito inline por rota */
+  --agf-hd-ink: #10233D;
+  --agf-hd-ink-2: #2C3E58;
+  --agf-hd-muted: #8A99AC;
+  --agf-hd-icon: #5B6B80;
+  --agf-hd-line: rgba(16,35,61,.12);
+  --agf-hd-hover: rgba(16,35,61,.06);
+  --agf-hd-surface: #FFFFFF;
+  --agf-hd-radius: 8px;
+  --agf-hd-font: "Inter","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+
+  /* intensidade do gloss. Baixar para 4% se o brilho parecer pesado. */
+  --agf-hd-tint-rest: 8%;
+  --agf-hd-tint-scroll: 6%;
+}
+
+/* ------------------------------------------------------------ 2. ESTRUTURA */
+.agf-hd,
+.agf-hd *,
+.agf-hd *::before,
+.agf-hd *::after{ box-sizing: border-box; }
+
+.agf-hd{
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  height: var(--agf-hd-h);
+  font-family: var(--agf-hd-font);
+  line-height: 1.5;
+  background: var(--agf-hd-surface);
+  border-bottom: 1px solid transparent;
+  transition: background-color .22s ease, border-color .22s ease, box-shadow .22s ease;
+  /* gloss em repouso */
+  box-shadow:
+    0 1px 1px rgba(16,35,61,.035),
+    0 8px 24px -10px color-mix(in srgb, var(--agf-hd-accent) 46%, transparent);
+}
+
+/* camada de brilho isolada: permite animar a saida do gloss,
+   porque gradiente e cor chapada nao interpolam entre si em CSS */
+.agf-hd__glow{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity .22s ease;
+  background: linear-gradient(
+    180deg,
+    #FFFFFF 0%,
+    color-mix(in srgb, var(--agf-hd-accent) var(--agf-hd-tint-rest), #FFFFFF) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+/* estado rolado: material translucido tingido pela cor da rota */
+.agf-hd.is-scrolled{
+  background: color-mix(in srgb, var(--agf-hd-accent) var(--agf-hd-tint-scroll), rgba(255,255,255,.92));
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  border-bottom-color: color-mix(in srgb, var(--agf-hd-accent) 22%, #E3E8EF);
+  box-shadow: 0 1px 12px rgba(16,35,61,.06);
+}
+.agf-hd.is-scrolled .agf-hd__glow{ opacity: 0; }
+
+.agf-hd__in{
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  max-width: var(--agf-hd-max);
+  margin: 0 auto;
+  padding: 0 var(--agf-hd-pad);
+  display: flex;
+  align-items: center;
+}
+
+/* ------------------------------------------------------- 3. ZONA A: MARCA */
+.agf-hd__launcher,
+.agf-hd__icon-btn{
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: var(--agf-hd-radius);
+  color: var(--agf-hd-icon);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+}
+.agf-hd__launcher:hover,
+.agf-hd__icon-btn:hover{ background: var(--agf-hd-hover); }
+.agf-hd__launcher svg,
+.agf-hd__icon-btn svg{ width: 20px; height: 20px; display: block; }
+
+.agf-hd__rule{
+  width: 1px;
+  height: 22px;
+  flex: none;
+  margin: 0 10px;
+  background: var(--agf-hd-line);
+}
+
+.agf-hd__brand{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.agf-hd__mark{
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--agf-hd-accent);
+}
+.agf-hd__mark svg{ width: 24px; height: 24px; display: block; }
+
+.agf-hd__titles{
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.agf-hd__title{
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -.008em;
+  line-height: 1.15;
+  color: var(--agf-hd-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.agf-hd__sub{
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  color: var(--agf-hd-muted);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------- 4. ZONA B: ESPACADOR */
+.agf-hd__spacer{ flex: 1 1 auto; min-width: 8px; }
+
+/* -------------------------------------------------- 5. ZONA C: ACOES */
+.agf-hd__actions{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.agf-hd__btn{
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border-radius: var(--agf-hd-radius);
+  font-family: var(--agf-hd-font);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--agf-hd-ink-2);
+  background: rgba(255,255,255,.72);
+  border: 1px solid var(--agf-hd-line);
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.agf-hd__btn:hover{ background: #FFFFFF; border-color: rgba(16,35,61,.2); }
+.agf-hd__btn svg{ width: 15px; height: 15px; flex: none; }
+
+/* ------------------------------------------------- 6. ZONA C: USUARIO */
+.agf-hd__user{ position: relative; flex: none; display: flex; align-items: center; }
+
+.agf-hd__avatar{
+  width: 32px;
+  height: 32px;
+  flex: none;
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  background: #C9D3E0;
+  display: block;
+}
+.agf-hd__avatar img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.agf-hd__enter{
+  height: 32px;
+  margin-left: 8px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--agf-hd-radius);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--agf-hd-font);
+  font-size: 13px;
+  font-weight: 650;
+  color: #FFFFFF;
+  background: var(--agf-hd-accent);
+  cursor: pointer;
+}
+.agf-hd__enter:hover{ filter: brightness(1.08); }
+.agf-hd__enter svg{ width: 15px; height: 15px; flex: none; }
+
+/* --------------------------------------------------------- 7. MENUS */
+.agf-hd__menu{
+  position: absolute;
+  top: calc(100% + 10px);
+  z-index: 950;
+  min-width: 246px;
+  background: #FFFFFF;
+  border: 1px solid #E3E8EF;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(10,37,64,.18);
+  overflow: hidden;
+  display: none;
+}
+.agf-hd__menu[data-open="true"]{ display: block; }
+.agf-hd__menu--user{ right: 0; }
+.agf-hd__menu--apps{ left: 0; width: 288px; max-height: 74vh; overflow-y: auto; }
+
+.agf-hd__menu-head{
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 14px;
+  border-bottom: 1px solid #EEF2F7;
+}
+.agf-hd__menu-head img{ width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex: none; }
+.agf-hd__menu-name{ font-size: 13.5px; font-weight: 700; color: var(--agf-hd-ink); line-height: 1.25; }
+.agf-hd__menu-role{ font-size: 11.5px; color: #6B7C93; line-height: 1.3; }
+
+.agf-hd__menu-item{
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  background: none;
+  font-family: var(--agf-hd-font);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--agf-hd-ink);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.agf-hd__menu-item:hover{ background: #F4F7FB; }
+.agf-hd__menu-item > svg{ width: 17px; height: 17px; flex: none; color: #6B7C93; }
+.agf-hd__menu-mark{ display: flex; flex: none; }
+.agf-hd__menu-mark svg{ width: 19px; height: 19px; display: block; }
+.agf-hd__menu-item--danger{ color: #9F1239; }
+.agf-hd__menu-item--danger > svg{ color: #9F1239; }
+.agf-hd__menu-item[aria-current="page"]{ background: #F4F7FB; font-weight: 700; }
+.agf-hd__menu-sep{ height: 1px; background: #EEF2F7; }
+.agf-hd__menu-label{
+  padding: 12px 14px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--agf-hd-muted);
+}
+.agf-hd__menu-ext{ margin-left: auto; color: var(--agf-hd-muted); }
+.agf-hd__menu-ext svg{ width: 13px; height: 13px; }
+
+/* ------------------------------------------------- 8. CARREGAMENTO */
+.agf-hd__load{
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 2.5px;
+  z-index: 960;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity .2s ease;
+  pointer-events: none;
+}
+.agf-hd__load[data-on="true"]{ opacity: 1; }
+.agf-hd__load i{
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: var(--agf-hd-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: agf-hd-load 2.4s cubic-bezier(.22,.85,.3,1) forwards;
+}
+.agf-hd__load[data-done="true"] i{ animation: agf-hd-done .22s ease forwards; }
+@keyframes agf-hd-load{ 0%{transform:scaleX(0)} 60%{transform:scaleX(.7)} 100%{transform:scaleX(.92)} }
+@keyframes agf-hd-done{ to{ transform: scaleX(1) } }
+
+/* --------------------------------------------------------- 9. FOCO */
+.agf-hd :focus-visible{
+  outline: 2px solid var(--agf-hd-accent);
+  outline-offset: 2px;
+  border-radius: var(--agf-hd-radius);
+}
+
+/* ------------------------------------------------- 10. RESPONSIVO */
+@media (max-width: 640px){
+  .agf-hd{ --agf-hd-h: 52px; --agf-hd-pad: 8px; }
+  .agf-hd__rule{ margin: 0 7px; }
+  .agf-hd__btn{ width: 32px; padding: 0; justify-content: center; }
+  .agf-hd__btn .agf-hd__btn-label{ display: none; }
+  .agf-hd__menu--apps{ width: min(288px, calc(100vw - 16px)); }
+}
+
+/* --------------------------------------- 11. PREFERENCIAS DO SISTEMA */
+@media (prefers-reduced-transparency: reduce){
+  .agf-hd.is-scrolled{
+    background: color-mix(in srgb, var(--agf-hd-accent) var(--agf-hd-tint-scroll), #FFFFFF);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce){
+  .agf-hd,
+  .agf-hd__glow,
+  .agf-hd__load{ transition: none; }
+  .agf-hd__load i{ animation: none; transform: scaleX(.6); }
+}
+
+/* fallback: navegador sem color-mix cai para branco solido, sem quebrar nada */
+@supports not (background: color-mix(in srgb, red 10%, white)){
+  .agf-hd__glow{ background: #FFFFFF; }
+  .agf-hd.is-scrolled{ background: rgba(255,255,255,.96); border-bottom-color: #E3E8EF; }
+  .agf-hd{ box-shadow: 0 1px 1px rgba(16,35,61,.05); }
+}
+
+/* ------------------------------------------------------- 12. IMPRESSAO */
+@media print{
+  .agf-hd{ position: static; box-shadow: none; border-bottom: 1px solid #999; }
+  .agf-hd__glow,
+  .agf-hd__load,
+  .agf-hd__launcher,
+  .agf-hd__icon-btn,
+  .agf-hd__actions,
+  .agf-hd__user{ display: none !important; }
+}

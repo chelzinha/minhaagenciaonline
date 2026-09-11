@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agf-header - página de referência</title>
+<link rel="stylesheet" href="agf-header.css">
+<style>
+  :root{ --shell:1180px; --line:#E3E8EF; --muted:#6B7C93; --ink:#10233D }
+  *{box-sizing:border-box}
+  body{margin:0;background:#F4F6FA;color:var(--ink);line-height:1.5;
+       font-family:"Inter","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif}
+  .shell{max-width:var(--shell);margin:0 auto;padding:26px 12px 140px}
+  h1{font-size:24px;font-weight:700;letter-spacing:-.02em;margin:8px 0 6px}
+  .lead{color:var(--muted);font-size:14.5px;margin:0 0 22px;max-width:80ch}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:26px 0 12px}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+  .card h3{font-size:15px;margin:0 0 5px;font-weight:650}
+  .card p{font-size:13px;color:var(--muted);margin:0}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:18px 0;
+         display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .panel b{width:100%;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .panel button,.panel select{font:inherit;font-size:13px;padding:8px 12px;border-radius:8px;
+         border:1px solid var(--line);background:#fff;cursor:pointer}
+  .band{height:200px;border-radius:14px;margin:22px 0;display:flex;align-items:center;justify-content:center;
+        color:#fff;font-size:14px;font-weight:600;text-align:center;padding:0 24px;
+        background:linear-gradient(115deg,#6D28D9,#0F3057)}
+  @media (max-width:820px){ .grid{grid-template-columns:repeat(2,1fr)} }
+</style>
+</head>
+<body>
+
+<!-- ponto de montagem: uma linha, nada mais -->
+<div data-agf-header data-route="/crm"></div>
+
+<main class="shell">
+  <h1>Página de referência do cabeçalho</h1>
+  <p class="lead">Valida a instalação e serve de gabarito. Role para ver o gloss virar material tingido. Use os controles abaixo para testar rota, sessão e carregamento.</p>
+
+  <div class="panel">
+    <b>Controles de teste</b>
+    <select id="rota"></select>
+    <button id="bSessao">Alternar sessão</button>
+    <button id="bLoadCurto">Carregar 250ms</button>
+    <button id="bLoadLongo">Carregar 2s</button>
+    <button id="bTitulo">Trocar título</button>
+  </div>
+
+  <p class="eyebrow">Conteúdo de apoio</p>
+  <div class="grid" id="g1"></div>
+  <div class="band">O fundo do cabeçalho vai de borda a borda. O conteúdo dele fica travado em 1180px.</div>
+  <p class="eyebrow">Mais conteúdo</p>
+  <div class="grid" id="g2"></div>
+</main>
+
+<script src="agf-header.js"></script>
+<script>
+  var USER = { name:'Rachel', role:'Administrador', photo:null };
+  var comSessao = true;
+  var rotaAtual = '/crm';
+
+  function montar(){
+    AgfHeader.mount({
+      route: rotaAtual,
+      user: comSessao ? USER : null,
+      actions: rotaAtual === '/atende'
+        ? [{ id:'admin', label:'Admin', icon:'shield', onClick:function(){ alert('Gerenciar página'); } }]
+        : rotaAtual === '/cep'
+          ? [{ id:'post', label:'Postagens', icon:'parcel', href:'/app' }]
+          : [],
+      onRefresh: function(){ carregar(900); },
+      onChangePhoto: function(){ alert('Alterar foto'); },
+      onChangePassword: function(){ alert('Alterar senha'); },
+      onLogout: function(){ comSessao = false; montar(); },
+      onLogin: function(){ comSessao = true; montar(); }
+    });
+  }
+
+  function carregar(ms){
+    AgfHeader.loading.start();
+    setTimeout(function(){ AgfHeader.loading.done(); }, ms);
+  }
+
+  var sel = document.getElementById('rota');
+  sel.innerHTML = Object.keys(AgfHeader.ROUTES).map(function(k){
+    return '<option value="'+k+'"'+(k===rotaAtual?' selected':'')+'>'+k+' · '+AgfHeader.ROUTES[k].title+'</option>';
+  }).join('');
+  sel.onchange = function(e){ rotaAtual = e.target.value; montar(); };
+
+  document.getElementById('bSessao').onclick    = function(){ comSessao = !comSessao; montar(); };
+  document.getElementById('bLoadCurto').onclick = function(){ carregar(250); };
+  document.getElementById('bLoadLongo').onclick = function(){ carregar(2000); };
+  document.getElementById('bTitulo').onclick    = function(){ AgfHeader.setTitle('Título trocado em runtime'); };
+
+  ['g1','g2'].forEach(function(id){
+    document.getElementById(id).innerHTML = Object.keys(AgfHeader.ROUTES).slice(0,4).map(function(k){
+      var r = AgfHeader.ROUTES[k];
+      return '<div class="card"><h3>'+r.title+'</h3><p>Bloco de conteúdo de apoio para o material ter o que borrar.</p></div>';
+    }).join('');
+  });
+
+  montar();
+</script>
+</body>
+</html>
