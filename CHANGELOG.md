@@ -2,6 +2,24 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-11 - Correcao da aba Entregas do /app
+
+### Corrigido
+- Registrada a action `painelCliente` no roteador do Apps Script.
+- Implementado o backend que cruza o historico concluido do cliente autenticado com a API Rastro dos Correios.
+- Mantidos os filtros de 30, 60, 90 dias e todo o historico, com deduplicacao por codigo de objeto.
+- A resposta agora entrega os campos esperados pela tela: objeto, servico, destino, valor, postagem, previsao, data e situacao atual.
+
+### Performance e resiliencia
+- Consultas de rastreio usam `UrlFetchApp.fetchAll` em blocos e cache temporario por objeto.
+- Falha em um objeto nao derruba o painel inteiro; esse item aparece sem informacao ate nova tentativa.
+- Nenhuma nova aba, coluna ou migracao de dados foi criada.
+
+### Atencao sensivel
+- A mudanca envolve rastreios, historico de postagens, sessao do cliente e credenciais CWS.
+- O backend filtra por `LOGIN_APP` da sessao e nao devolve tokens, credenciais nem resposta bruta da API ao painel.
+
+
 ## 2026-09-05 - Baseline documental dos modulos da Plataforma AGF
 
 ### Documentado

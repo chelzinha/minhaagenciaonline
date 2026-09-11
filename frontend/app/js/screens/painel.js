@@ -2,8 +2,8 @@
    APP ETIQUETAS — Screen: painel (aba Entregas)
    =====================================================
    Mostra o panorama de entrega dos objetos do cliente logado,
-   cruzando o histórico de postagens com o rastreio já sincronizado
-   pelo backend (aba RASTREIO_OBJETOS).
+   cruzando o histórico de postagens com o rastreio consultado em lote
+   e mantido em cache pelo backend.
 
    REGRA DE ATRASO
      Contada em DIAS ÚTEIS DE ENTREGA do serviço, nunca em dias corridos.

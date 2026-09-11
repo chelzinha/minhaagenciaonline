@@ -31,6 +31,7 @@ const ROUTES = {
   'listarHistorico':        action_listarHistorico_,
   'detalheEtiqueta':        action_detalheEtiqueta_,
   'rastrearObjeto':         action_rastrearObjeto_,
+  'painelCliente':          action_painelCliente_,
   'rastrearPublico':        action_rastrearPublico_,
   'buscarDestinatarios':    action_buscarDestinatarios_,
   'listarDestinatarios':    action_listarDestinatarios_,
