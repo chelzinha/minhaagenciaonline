@@ -113,6 +113,29 @@ function adjusted(data,scope){
   return 0;
 }
 
+function commercialProjectionV6(data,scope){
+
+  if(periodModeV6(data)!=='current')return 0;
+
+  var m=data&&data.metas||{},
+      c=m.config||{},
+      done=n(c.diasUteisRealizados),
+      days=n(c.diasUteisMes);
+
+  if(scope==='balcao'||scope==='metro'){
+
+    var actual=n(
+      m.realizado&&m.realizado[scope]
+    );
+
+    return done>0&&days>0
+      ? actual/done*days
+      : 0;
+  }
+
+  return adjusted(data,scope);
+}
+
 function donutCard(title,rows){
   var all=(rows||[]).filter(function(x){return n(x.valor)>0});
   var sum=all.reduce(function(a,x){return a+n(x.valor)},0);
@@ -180,10 +203,7 @@ function medalMapBody(data){
       return;
     }
 
-    var projection=
-          mode==='current'
-            ? adjusted(data,g[1])
-            : 0,
+    var projection=mode==='current'?commercialProjectionV6(data,g[1]):0,
 
         tiers=tierData(g[1],c),
         st=tierState(actual,tiers),
@@ -399,10 +419,7 @@ function goalCompareBody(data){
 
     var current=mode==='current',
 
-        pr=
-          current
-            ? adjusted(data,x[1])
-            : 0,
+        pr=current?commercialProjectionV6(data,x[1]):0,
 
         scale=
           Math.max(

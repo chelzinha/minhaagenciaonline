@@ -50,6 +50,33 @@ function competenceLabelV6(d){
   );
 }
 
+function commercialProjectionV6(m,d,scope){
+  m=m||{};
+
+  if(periodModeV6(d)!=='current')return 0;
+
+  var c=m.config||{},
+      done=n(c.diasUteisRealizados),
+      days=n(c.diasUteisMes);
+
+  if(scope==='balcao'||scope==='metro'){
+
+    var actual=n(
+      m.realizado&&m.realizado[scope]
+    );
+
+    return done>0&&days>0
+      ? actual/done*days
+      : 0;
+  }
+
+  return adjusted(
+    scope,
+    0,
+    c
+  );
+}
+
 function medalTierData(prefix,c){return['Bronze','Prata','Ouro','Diamante'].map(function(name,i){var key=prefix+name.charAt(0).toUpperCase()+name.slice(1);return{name:name,value:n(c[key]),color:['#B87333','#8D99A6','#D5A100','#5370D9'][i]}})}
 function medalTierState(actual,tiers){var current=null,next=null;tiers.forEach(function(t){if(t.value>0&&actual>=t.value)current=t;else if(!next&&t.value>0&&actual<t.value)next=t});return{current:current,next:next}}
 function medalMapBodyV6(m,d){
@@ -91,10 +118,7 @@ function medalMapBodyV6(m,d){
       return;
     }
 
-    var projection=
-          mode==='current'
-            ? adjusted(g[1],0,c)
-            : 0,
+    var projection=mode==='current'?commercialProjectionV6(m,d,g[1]):0,
 
         tiers=medalTierData(g[1],c),
         st=medalTierState(actual,tiers),
@@ -300,9 +324,7 @@ function goalCompareV6(m,d){
 
     var current=mode==='current',
 
-        pr=current
-          ? adjusted(x[1],0,c)
-          : 0,
+        pr=current?commercialProjectionV6(m,d,x[1]):0,
 
         scale=Math.max(
           x[2],
@@ -518,12 +540,7 @@ function projectionReview(p,r){if(!p||!p.revisaoNecessaria)return'';var sig=(p.s
 
     if(!scope)return;
 
-    var val=
-      adjusted(
-        scope,
-        0,
-        (d.metas&&d.metas.config)||{}
-      );
+    var val=commercialProjectionV6(d.metas||{},d,scope);
 
     if(!val)return;
 
