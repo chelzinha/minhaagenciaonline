@@ -1,7 +1,7 @@
 'use strict';
 
 (() => {
-  const CORE = '/caixa-avista/unit-selector-v3-core.js?v=20260911163000';
+  const CORE = '/caixa-avista/unit-selector-v3-core.js?v=20260911170000';
   const isCaixaRoute = /^\/caixa(?:\/|$)/.test(window.location.pathname);
   const V3_API_URL =
     'https://script.google.com/macros/s/AKfycbxRaTJeaXhGTC0Lbyqf_Osnr_HsOyUnlOWjwtGMvkvPY1d98H0RthjJPCkLJRkP1x8o/exec';
@@ -15,6 +15,29 @@
     try {
       localStorage.setItem('caixa_avista_v3_api_url', V3_API_URL);
     } catch (_) {}
+
+    /*
+     * Captura o prompt de instalação o mais cedo possível. A camada visual da
+     * V3 é carregada depois da autenticação/unidade e pode perder o evento se
+     * o navegador o disparar antes.
+     */
+    const installState = window.CaixaPwaInstall || {
+      prompt: null,
+      installed: false
+    };
+    window.CaixaPwaInstall = installState;
+
+    window.addEventListener('beforeinstallprompt', event => {
+      event.preventDefault();
+      installState.prompt = event;
+      window.dispatchEvent(new Event('caixa:pwa-install-ready'));
+    });
+
+    window.addEventListener('appinstalled', () => {
+      installState.prompt = null;
+      installState.installed = true;
+      window.dispatchEvent(new Event('caixa:pwa-installed'));
+    });
 
     const manifest = document.querySelector('link[rel="manifest"]');
     if (manifest) manifest.href = '/caixa/manifest.webmanifest';
@@ -32,7 +55,7 @@
 
     if ('serviceWorker' in navigator) {
       const register = () => navigator.serviceWorker
-        .register('/caixa/sw.js?v=20260911163000', { scope: '/caixa/' })
+        .register('/caixa/sw.js?v=20260911170000', { scope: '/caixa/' })
         .catch(error => console.warn('[CAIXA_PWA_SW_BOOT]', error));
 
       if (document.readyState === 'complete') register();
