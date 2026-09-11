@@ -57,8 +57,8 @@
   function includePendingPixInSummary(data) {
     if (!data || typeof data !== 'object') return data;
 
-    // A interface não precisa receber a base completa enquanto o cadastro
-    // mestre de clientes não estiver definido.
+    // Enquanto a base mestre não estiver pronta, a interface trabalha somente
+    // com o cliente operacional padrão. O backend V2 continua intacto.
     if (Array.isArray(data.clients)) {
       data.clients = [{ ...DEFAULT_CLIENT }];
     }
@@ -158,8 +158,8 @@
       request.payloads = request.payloads.map(applyDefaultClient);
     }
 
-    // A V3 já homologou a transição de Pix após fechamento. Mantemos todas as
-    // demais operações no backend V2 estável para reduzir superfície de risco.
+    // A V3 já homologou confirmação de Pix após fechamento. As demais ações
+    // permanecem no V2 estável para reduzir a superfície de alteração.
     if (request.action === 'syncPixPayment') {
       request.unitId = selectedUnitId();
 
@@ -169,8 +169,8 @@
       });
     }
 
-    // Só usamos o fechamento V3 quando o bloqueio existente é Pix pendente.
-    // Fechamentos comuns continuam exatamente no fluxo V2 já homologado.
+    // Fechamento V3 é usado somente quando o V2 bloquearia por Pix pendente.
+    // Sem Pix pendente, o fluxo de fechamento continua 100% V2.
     if (request.action === 'closeCash' && shouldUseV3ForClose()) {
       request.unitId = selectedUnitId();
 
@@ -227,16 +227,21 @@
   installBalcaoUi();
   releasePendingPixCloseLock();
 
-  const observer = new MutationObserver(() => {
-    installBalcaoUi();
-    releasePendingPixCloseLock();
-  });
+  const closeState = document.getElementById('closeState');
+  const closeButton = document.getElementById('btnCloseCash');
 
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-    attributes: true,
-    attributeFilter: ['disabled', 'class']
-  });
+  if (closeState) {
+    new MutationObserver(releasePendingPixCloseLock).observe(closeState, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  }
+
+  if (closeButton) {
+    new MutationObserver(releasePendingPixCloseLock).observe(closeButton, {
+      attributes: true,
+      attributeFilter: ['disabled']
+    });
+  }
 })();
