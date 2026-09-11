@@ -43,7 +43,164 @@ function clientDropCard(q){q=q||{};var rows=q.clientes||[];if(!q.disponivel||!ro
 function r5Card(r){r=r||{};var rows=r.clientes||[];if(!r.disponivel||!rows.length)return card('Radar R5','clientes de encomenda acima de R$ 40 mil/mês','<div class="v5i-note">Nenhum cliente recorrente acima do corte.</div>');return card('Radar R5','exposição provável a proposta de postagem industrial','<table class="v5i-table v5i-risk-table"><thead><tr><th>Cliente</th><th class="num">Base mensal</th><th class="num">R2 atual</th><th class="num">R5</th><th class="num">Rem. exposta</th></tr></thead><tbody>'+rows.slice(0,12).map(function(x){return'<tr><td>'+esc(x.cliente)+'</td><td class="num">'+money(x.baseMensal)+'</td><td class="num">'+pct(x.taxaAtual,2)+'</td><td class="num">'+pct(x.taxaR5,2)+'</td><td class="num v5i-fall">'+money(x.remuneracaoExposta)+'</td></tr>'}).join('')+'</tbody></table><div class="v5i-note">Sinal de defesa de receita, não enquadramento automático. O R5 continua sujeito à regra contratual.</div>')}
 function concentrationExpiryCard(r){r=r||{};function section(code,label){var x=r[code]||{},rows=x.top||[];return'<div class="v5i-card"><div class="v5i-head"><strong>'+label+'</strong><span>Top 1 '+pct(x.top1,1)+' · Top 3 '+pct(x.top3,1)+'</span></div><table class="v5i-table"><thead><tr><th>Cliente</th><th class="num">Share</th><th>Natureza</th><th>Até</th></tr></thead><tbody>'+rows.slice(0,5).map(function(c){var cls=c.natureza.indexOf('temporaria')===0?'v5i-expiry':c.natureza==='estrutural'?'v5i-struct':'v5i-unknown';var label2=c.natureza.indexOf('temporaria')===0?'temporária':c.natureza==='estrutural'?'estrutural':'revisar';return'<tr><td>'+esc(c.cliente)+'</td><td class="num">'+pct(c.share,1)+'</td><td><span class="'+cls+'">'+label2+'</span></td><td>'+esc(c.dataFimPrevista?dateBr(c.dataFimPrevista):'—')+'</td></tr>'}).join('')+'</tbody></table></div>'}return'<div class="v5i-grid2">'+section('R2G1','Concentração Mensageria')+section('R2G2','Concentração Encomendas')+'</div>'}
 function captacaoCard(c){c=c||{};if(c.indisponivel||!(c.origem||[]).length)return card('Captação por bairro','de onde vêm os clientes','<div class="v5i-note">Biblioteca CEP → bairro ainda sem carga. Rode a carga DNE/ViaCEP fora do request do dashboard.</div>');var rows=(c.origem||[]).slice(0,15),max=Math.max.apply(null,rows.map(function(x){return n(x.valor)}).concat([1]));return card('Captação por bairro','de onde vêm os clientes','<div class="v5i-bars">'+rows.map(function(x){return'<div class="v5i-row"><span>'+esc(x.bairro+' · '+x.cidade)+'</span><div class="v5i-track"><div class="v5i-fill" style="width:'+Math.max(1,n(x.valor)*100/max)+'%;background:#0B72D9"></div></div><strong class="v5i-money">'+money(x.valor)+'</strong><strong class="v5i-pct">'+pct(x.share,1)+'</strong></div>'}).join('')+'</div><div class="v5i-note" style="margin-top:9px">'+pct(c.cobertura,1)+' das postagens têm CEP resolvido em bairro. '+(n(c.cobertura)<70?'<strong>Abaixo de 70%: não usar para decisão ainda.</strong>':'Cobertura suficiente para leitura exploratória.')+'</div>')}
-function patchData(d){var active=document.querySelector('#viewSwitchRow button.active'),view=active&&active.dataset?active.dataset.view:'',shell=document.querySelector('#dashboardView .v4-shell'),sig=CACHE_KEY+'|'+view;if(view==='table'||!shell)return;if(shell.dataset.v5iSig===sig)return;shell.dataset.v5iSig=sig;var hist=findCard('Faturamento dos últimos 6 meses');if(hist)replaceBody(hist,history(d.evolucao6Meses||[]));if(view==='operacao'){var donuts=document.querySelector('#dashboardView .v4-donuts');if(donuts)donuts.innerHTML=donutMix('Faturamento por Local',d.localGlobal||d.local||[])+donutMix('Mix por Tipo de Serviço',d.tipoServico||[])+donutMix('Canal',d.canais||d.intermediadores||[]);var ranks=document.querySelector('#dashboardView .v4-rank2');if(ranks)ranks.innerHTML=rank('Top Serviços',d.servicos||[],n(d.kpis&&d.kpis.faturamento))+rank('Top Clientes Portal',d.clientesPortal||[],n(d.kpis&&d.kpis.faturamento));return}if(view==='comercial'){patchCommercialProjection(d);var mm=d.metas||{},med=findCard('Mapa de medalhas');if(med)replaceBody(med,medalMapBodyV6(mm));var gc=findCard('Realizado x meta x projeção');if(gc)replaceBody(gc,goalCompareV6(mm));return}if(view!=='gestao'||!manage())return;var opp=findCard('Oportunidade de embalagem');if(opp){var h=opp.querySelector('.v4-head');if(h)h.innerHTML='<strong>Potencial de venda de embalagens</strong><span>conversão, ganho e esforço estimado</span>';replaceBody(opp,opportunity(d.oportunidadeEmbalagem||{}))}var dn=document.querySelector('#dashboardView .v4-donuts');if(dn)dn.innerHTML=donutMix('Faturamento por Local',d.localGlobal||d.local||[])+donutMix('Mix por Tipo de Serviço',d.tipoServico||[])+donutMix('Canal',d.canais||d.intermediadores||[]);var old=document.getElementById('v5i-intelligence');if(old)old.remove();var r=d.remuneracao||{},m=rem(r.mensageria,'m'),e=rem(r.encomendas,'e'),c=(d.metas&&d.metas.config)||{},total=n(d.kpis&&d.kpis.faturamento),box=document.createElement('div');patchBaseRem(r,m,e);box.id='v5i-intelligence';var gm=marg('m'),ge=marg('e'),a=r.alertaDegrau||{},alerta=a.ativo?a:null,pr=d.projecaoReceita||{},isProjected=String(gm.base||'').indexOf('projecao_ajustada')===0;box.innerHTML=healthCard(d.saudeDado||{})+projectionReview(pr,r)+recurringBaseCard(d.baseRecorrente||{})+(alerta?card('Alerta de faixa contratual','projeção ajustada e revisada','<div class="v5i-alert">'+alerta.itens.map(function(i){return'<div style="margin-bottom:6px"><strong>'+esc(i.grupo)+'</strong>: fechamento ajustado em '+money(i.valorProjetado)+', '+(i.sentido==='estoura'?'cruzando do degrau '+i.degrauAtual+' ('+pct(i.percentualAtual,2)+') para o '+i.degrauProjetado+' ('+pct(i.percentualProjetado,2)+'). Excedente de '+money(i.excedenteProjetado)+'.':'recuando do degrau '+i.degrauAtual+' para o '+i.degrauProjetado+' ('+pct(i.percentualProjetado,2)+').')+'</div>'}).join('')+'</div>'):'')+'<div class="v5i-grid2">'+capacity('Mensageria',m,'m',c,'#00A79D',r.mensageriaProjecao,pr.grupos&&pr.grupos.mensageria,r.estouro&&r.estouro.mensageria)+capacity('Encomendas',e,'e',c,'#F97316',r.encomendasProjecao,pr.grupos&&pr.grupos.encomendas,r.estouro&&r.estouro.encomendas)+'</div><div class="v5i-grid2">'+effectiveRateCard(d.taxaEfetiva||{})+bandCard(d.banda||{})+'</div><div class="v5i-grid2">'+decompCard(d.decomposicao||{})+dailyCard(d.diario||{})+'</div><div class="v5i-grid2">'+clientDropCard(d.quedaClientes||{})+r5Card(d.radarR5||{})+'</div>'+concentrationExpiryCard(d.riscoConcentracao||{})+card('Retorno do próximo R$ 1.000','remuneração marginal no '+(isProjected?'fechamento ajustado':'degrau do parcial'),'<div class="v5i-conc"><div><span>Mensageria</span><strong>'+money(1000*gm.p/100)+'</strong></div><div><span>Encomendas</span><strong>'+money(1000*ge.p/100)+'</strong></div><div><span>Diferença</span><strong>'+money(1000*(ge.p-gm.p)/100)+'</strong></div></div>'+(isProjected?'<div class="v5i-insight">Percentual do <strong>fechamento ajustado</strong>: receita recorrente projetada + Campanha/Pontual já realizado. '+(gm.base==='projecao_ajustada_revisar'?'<strong>Há sinal estatístico pendente de revisão manual.</strong>':'Classificação sem sinal estatístico pendente.')+'</div>':'<div class="v5i-note" style="margin-top:9px">Sem projeção ajustada disponível: exibindo o percentual do realizado.</div>'))+attendants(d.atendentesDesempenho||[])+'<div class="v5i-grid2">'+conc('Concentração por Serviço',d.servicos||[],total)+captacaoCard(d.captacao||{})+'</div><div class="v5i-grid2">'+mix('Visão comercial - Tipo de Serviço',d.tipoServico||[])+mix('Visão contratual - Tabela de Remuneração',d.tabela||[])+'</div><div class="v5i-grid2">'+efficiency()+simulator()+'</div>'+audit();document.querySelector('#dashboardView .v4-shell').appendChild(box);setTimeout(function(){sim();aud()},0)}
+
+function patchCalendarKpisV6(d,view){
+  d=d||{};
+
+  var k=d.kpis||{},
+      g=d.gestao||{},
+      m=d.metas||{},
+      c=m.config||{},
+
+      realizados=n(c.diasUteisRealizados),
+      mes=n(c.diasUteisMes),
+
+      movimento=n(g.diasAtivos);
+
+  if(realizados<=0 || mes<=0){
+    return;
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * OPERACAO
+   * ----------------------------------------------------------
+   */
+  if(view==='operacao'){
+
+    var op=findKpi('Ritmo operacional');
+
+    if(op){
+
+      var ov=op.querySelector('.v4-value');
+      var of=op.querySelector('.v4-foot');
+
+      if(ov){
+        ov.textContent=
+          integer(realizados)+' / '+integer(mes);
+
+        ov.title=
+          integer(realizados)+' / '+integer(mes)+' dias úteis';
+      }
+
+      if(of){
+        of.innerHTML=
+          pct(realizados*100/mes,1)+
+          ' dos dias úteis' +
+          (
+            movimento>0
+              ? ' · '+integer(movimento)+' dias com movimento'
+              : ''
+          );
+      }
+    }
+  }
+
+
+  /*
+   * ----------------------------------------------------------
+   * COMERCIAL
+   * ----------------------------------------------------------
+   */
+  if(view==='comercial'){
+
+    var ritmo=findKpi('Ritmo do mês');
+
+    if(ritmo){
+
+      var rv=ritmo.querySelector('.v4-value');
+      var rf=ritmo.querySelector('.v4-foot');
+
+      if(rv){
+        rv.textContent=
+          integer(realizados)+' / '+integer(mes);
+
+        rv.title=
+          integer(realizados)+' / '+integer(mes)+' dias úteis';
+      }
+
+      if(rf){
+        rf.textContent=
+          pct(realizados*100/mes,1)+
+          ' dos dias úteis';
+      }
+    }
+
+
+    /*
+     * Faturamento medio diario =
+     * faturamento acumulado / dias uteis realizados
+     */
+
+    var media =
+      realizados>0
+        ? n(k.faturamento)/realizados
+        : 0;
+
+    var existente =
+      findKpi('Faturamento médio diário');
+
+    if(existente){
+
+      var ev=existente.querySelector('.v4-value');
+      var ef=existente.querySelector('.v4-foot');
+
+      if(ev){
+        ev.textContent=money(media);
+        ev.title=money(media);
+      }
+
+      if(ef){
+        ef.textContent='média por dia útil realizado';
+      }
+
+    }else{
+
+      var ticket=findKpi('Ticket médio');
+
+      if(ticket){
+
+        var html=
+          '<div class="v4-kpi" '+
+            'style="--c:#2563EB;--soft:#EAF4FF">'+
+
+            '<div class="v4-kpi-top">'+
+
+              '<div class="v4-icon">'+
+                '<span class="material-symbols-rounded">'+
+                  'monitoring'+
+                '</span>'+
+              '</div>'+
+
+              '<div>'+
+                '<div class="v4-label">'+
+                  'Faturamento médio diário'+
+                '</div>'+
+
+                '<div class="v4-value" '+
+                  'title="'+esc(money(media))+'">'+
+                  esc(money(media))+
+                '</div>'+
+              '</div>'+
+
+            '</div>'+
+
+            '<div class="v4-foot">'+
+              'média por dia útil realizado'+
+            '</div>'+
+
+          '</div>';
+
+        ticket.insertAdjacentHTML(
+          'afterend',
+          html
+        );
+      }
+    }
+  }
+}
+
+function patchData(d){var active=document.querySelector('#viewSwitchRow button.active'),view=active&&active.dataset?active.dataset.view:'',shell=document.querySelector('#dashboardView .v4-shell'),sig=CACHE_KEY+'|'+view;if(view==='table'||!shell)return;if(shell.dataset.v5iSig===sig)return;shell.dataset.v5iSig=sig;var hist=findCard('Faturamento dos últimos 6 meses');if(hist)replaceBody(hist,history(d.evolucao6Meses||[]));if(view==='operacao'){patchCalendarKpisV6(d,'operacao');var donuts=document.querySelector('#dashboardView .v4-donuts');if(donuts)donuts.innerHTML=donutMix('Faturamento por Local',d.localGlobal||d.local||[])+donutMix('Mix por Tipo de Serviço',d.tipoServico||[])+donutMix('Canal',d.canais||d.intermediadores||[]);var ranks=document.querySelector('#dashboardView .v4-rank2');if(ranks)ranks.innerHTML=rank('Top Serviços',d.servicos||[],n(d.kpis&&d.kpis.faturamento))+rank('Top Clientes Portal',d.clientesPortal||[],n(d.kpis&&d.kpis.faturamento));return}if(view==='comercial'){patchCommercialProjection(d);patchCalendarKpisV6(d,'comercial');var mm=d.metas||{},med=findCard('Mapa de medalhas');if(med)replaceBody(med,medalMapBodyV6(mm));var gc=findCard('Realizado x meta x projeção');if(gc)replaceBody(gc,goalCompareV6(mm));return}if(view!=='gestao'||!manage())return;var opp=findCard('Oportunidade de embalagem');if(opp){var h=opp.querySelector('.v4-head');if(h)h.innerHTML='<strong>Potencial de venda de embalagens</strong><span>conversão, ganho e esforço estimado</span>';replaceBody(opp,opportunity(d.oportunidadeEmbalagem||{}))}var dn=document.querySelector('#dashboardView .v4-donuts');if(dn)dn.innerHTML=donutMix('Faturamento por Local',d.localGlobal||d.local||[])+donutMix('Mix por Tipo de Serviço',d.tipoServico||[])+donutMix('Canal',d.canais||d.intermediadores||[]);var old=document.getElementById('v5i-intelligence');if(old)old.remove();var r=d.remuneracao||{},m=rem(r.mensageria,'m'),e=rem(r.encomendas,'e'),c=(d.metas&&d.metas.config)||{},total=n(d.kpis&&d.kpis.faturamento),box=document.createElement('div');patchBaseRem(r,m,e);box.id='v5i-intelligence';var gm=marg('m'),ge=marg('e'),a=r.alertaDegrau||{},alerta=a.ativo?a:null,pr=d.projecaoReceita||{},isProjected=String(gm.base||'').indexOf('projecao_ajustada')===0;box.innerHTML=healthCard(d.saudeDado||{})+projectionReview(pr,r)+recurringBaseCard(d.baseRecorrente||{})+(alerta?card('Alerta de faixa contratual','projeção ajustada e revisada','<div class="v5i-alert">'+alerta.itens.map(function(i){return'<div style="margin-bottom:6px"><strong>'+esc(i.grupo)+'</strong>: fechamento ajustado em '+money(i.valorProjetado)+', '+(i.sentido==='estoura'?'cruzando do degrau '+i.degrauAtual+' ('+pct(i.percentualAtual,2)+') para o '+i.degrauProjetado+' ('+pct(i.percentualProjetado,2)+'). Excedente de '+money(i.excedenteProjetado)+'.':'recuando do degrau '+i.degrauAtual+' para o '+i.degrauProjetado+' ('+pct(i.percentualProjetado,2)+').')+'</div>'}).join('')+'</div>'):'')+'<div class="v5i-grid2">'+capacity('Mensageria',m,'m',c,'#00A79D',r.mensageriaProjecao,pr.grupos&&pr.grupos.mensageria,r.estouro&&r.estouro.mensageria)+capacity('Encomendas',e,'e',c,'#F97316',r.encomendasProjecao,pr.grupos&&pr.grupos.encomendas,r.estouro&&r.estouro.encomendas)+'</div><div class="v5i-grid2">'+effectiveRateCard(d.taxaEfetiva||{})+bandCard(d.banda||{})+'</div><div class="v5i-grid2">'+decompCard(d.decomposicao||{})+dailyCard(d.diario||{})+'</div><div class="v5i-grid2">'+clientDropCard(d.quedaClientes||{})+r5Card(d.radarR5||{})+'</div>'+concentrationExpiryCard(d.riscoConcentracao||{})+card('Retorno do próximo R$ 1.000','remuneração marginal no '+(isProjected?'fechamento ajustado':'degrau do parcial'),'<div class="v5i-conc"><div><span>Mensageria</span><strong>'+money(1000*gm.p/100)+'</strong></div><div><span>Encomendas</span><strong>'+money(1000*ge.p/100)+'</strong></div><div><span>Diferença</span><strong>'+money(1000*(ge.p-gm.p)/100)+'</strong></div></div>'+(isProjected?'<div class="v5i-insight">Percentual do <strong>fechamento ajustado</strong>: receita recorrente projetada + Campanha/Pontual já realizado. '+(gm.base==='projecao_ajustada_revisar'?'<strong>Há sinal estatístico pendente de revisão manual.</strong>':'Classificação sem sinal estatístico pendente.')+'</div>':'<div class="v5i-note" style="margin-top:9px">Sem projeção ajustada disponível: exibindo o percentual do realizado.</div>'))+attendants(d.atendentesDesempenho||[])+'<div class="v5i-grid2">'+conc('Concentração por Serviço',d.servicos||[],total)+captacaoCard(d.captacao||{})+'</div><div class="v5i-grid2">'+mix('Visão comercial - Tipo de Serviço',d.tipoServico||[])+mix('Visão contratual - Tabela de Remuneração',d.tabela||[])+'</div><div class="v5i-grid2">'+efficiency()+simulator()+'</div>'+audit();document.querySelector('#dashboardView .v4-shell').appendChild(box);setTimeout(function(){sim();aud()},0)}
 function key(){try{return JSON.stringify(window.filterContext?filterContext():{})}catch(_){return''}}function fetchAndPatch(){var k=key();if(CACHE&&CACHE_KEY===k){patchData(CACHE);return}if(BUSY)return;BUSY=true;google.script.run.withSuccessHandler(function(r){BUSY=false;if(!r||!r.ok)return;CACHE=r;CACHE_KEY=k;patchData(r)}).withFailureHandler(function(){BUSY=false}).ATENDE_buscarDashboardV4D1(window.filterContext?filterContext():{},window.AUTH_TOKEN||'')}function schedule(){clearTimeout(TIMER);TIMER=setTimeout(function(){var a=document.querySelector('#viewSwitchRow button.active');if(a&&a.dataset.view!=='table')fetchAndPatch()},120)}function boot(){css();var d=document.getElementById('dashboardView');if(!d){setTimeout(boot,200);return}new MutationObserver(schedule).observe(d,{childList:true,subtree:true});document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#viewSwitchRow button[data-view]');if(b)setTimeout(schedule,150)});schedule();window.ATENDE_DASHBOARD_INTELLIGENCE_V6_READY=true}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script>
