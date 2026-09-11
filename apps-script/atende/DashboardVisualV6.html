@@ -20,6 +20,45 @@ function share(v,t){return t?n(v)*100/n(t):0}
 function role(){try{return String((window.AUTH_USER&&AUTH_USER.role)||'').toLowerCase()}catch(_){return''}}
 function canManage(){return !!window.IS_ADMIN||['admin','manager','gestor','socio','sócio'].indexOf(role())>=0}
 
+function selectedMonthV6(data){
+  return String(
+    data&&data.dashboardV6Meta&&data.dashboardV6Meta.anchorMonth
+      || data&&data.metas&&data.metas.competencia
+      || ''
+  );
+}
+
+function currentMonthV6(){
+  var d=new Date();
+  return d.getFullYear()+'-'+
+    String(d.getMonth()+1).padStart(2,'0');
+}
+
+function periodModeV6(data){
+  var selected=selectedMonthV6(data);
+  var current=currentMonthV6();
+
+  if(!selected)return 'current';
+  if(selected<current)return 'past';
+  if(selected>current)return 'future';
+
+  return 'current';
+}
+
+function competenceLabelV6(data){
+  var v=selectedMonthV6(data);
+
+  if(!/^\d{4}-\d{2}$/.test(v))return '';
+
+  var p=v.split('-');
+  var dt=new Date(Number(p[0]),Number(p[1])-1,1);
+
+  return dt.toLocaleDateString(
+    'pt-BR',
+    {month:'long',year:'numeric'}
+  );
+}
+
 function css(){
   if(document.getElementById('dashboard-visual-v6-css'))return;
   var s=document.createElement('style');
@@ -104,38 +143,385 @@ function tierState(actual,tiers){
 }
 
 function medalMapBody(data){
-  var m=data&&data.metas||{},c=m.config||{},groups=[['Balcão AGF','balcao'],['Metrô','metro']],html='<div class="v6-medal-board">';
+  var m=data&&data.metas||{},
+      c=m.config||{},
+      mode=periodModeV6(data),
+      comp=competenceLabelV6(data),
+      groups=[
+        ['Balcão AGF','balcao'],
+        ['Metrô','metro']
+      ],
+      html='<div class="v6-medal-board">';
+
   groups.forEach(function(g){
-    var actual=n(m.realizado&&m.realizado[g[1]]),projection=adjusted(data,g[1]),tiers=tierData(g[1],c),st=tierState(actual,tiers),pst=tierState(projection,tiers);
-    var lower=st.current?n(st.current.value):0,upper=st.next?n(st.next.value):n(tiers[3]&&tiers[3].value),progress=upper>lower?Math.max(0,Math.min(100,(actual-lower)*100/(upper-lower))):100;
-    html+='<div class="v6-medal-group"><div class="v6-medal-group-top"><div><strong>'+esc(g[0])+'</strong><small>Realizado '+money(actual)+' · projeção '+(projection?money(projection):'aguardando V6')+'</small></div><span class="v6-medal-current">'+esc(st.current?st.current.name:'Abaixo da Bronze')+'</span></div>';
-    html+='<div class="v6-medal-track">'+tiers.map(function(t){
-      var unlocked=t.value>0&&actual>=t.value,current=st.current&&st.current.name===t.name;
-      return'<div class="v6-medal '+(unlocked?'unlocked ':'')+(current?'current':'')+'" style="--medal:'+t.color+'" title="'+esc(t.name+' · a partir de '+money(t.value))+'"><span class="material-symbols-rounded">military_tech</span><b>'+esc(t.name)+'</b><small>'+money(t.value)+'</small>'+(current?'<span class="v6-current-label">ATUAL</span>':'')+'</div>';
-    }).join('')+'</div>';
-    html+='<div class="v6-medal-progress"><span>'+(st.current?st.current.name:'Início')+'</span><div class="v6-medal-progress-track"><i style="width:'+progress+'%"></i></div><span>'+(st.next?'Faltam '+money(Math.max(0,st.next.value-actual))+' para '+st.next.name:'Diamante atingido')+'</span></div>';
-    html+='<div class="v6-visual-note">Projeção V6: <strong>'+(projection?(pst.current?pst.current.name:'abaixo da Bronze'):'indisponível até o backend V6 responder')+'</strong>.</div></div>';
+
+    var actual=n(m.realizado&&m.realizado[g[1]]);
+
+    if(!m.disponivel){
+
+      html+=
+        '<div class="v6-medal-group">'+
+          '<div class="v6-medal-group-top">'+
+            '<div>'+
+              '<strong>'+esc(g[0])+'</strong>'+
+              '<small>Realizado '+money(actual)+'</small>'+
+            '</div>'+
+            '<span class="v6-medal-current">'+
+              'Sem meta histórica'+
+            '</span>'+
+          '</div>'+
+          '<div class="v6-visual-note">'+
+            'As metas de '+esc(comp||'esta competência')+
+            ' não estão cadastradas. '+
+            'Nenhuma medalha foi inferida.'+
+          '</div>'+
+        '</div>';
+
+      return;
+    }
+
+    var projection=
+          mode==='current'
+            ? adjusted(data,g[1])
+            : 0,
+
+        tiers=tierData(g[1],c),
+        st=tierState(actual,tiers),
+        pst=
+          projection
+            ? tierState(projection,tiers)
+            : {current:null,next:null},
+
+        lower=
+          st.current
+            ? n(st.current.value)
+            : 0,
+
+        upper=
+          st.next
+            ? n(st.next.value)
+            : n(tiers[3]&&tiers[3].value),
+
+        progress=
+          upper>lower
+            ? Math.max(
+                0,
+                Math.min(
+                  100,
+                  (actual-lower)*100/(upper-lower)
+                )
+              )
+            : 100;
+
+    var subtitle=
+      mode==='current'
+        ? 'Realizado '+money(actual)+
+          ' · projeção '+(projection?money(projection):'—')
+        : mode==='past'
+          ? 'Resultado final '+money(actual)
+          : 'Realizado '+money(actual)+' · mês futuro';
+
+    html+=
+      '<div class="v6-medal-group">'+
+
+        '<div class="v6-medal-group-top">'+
+
+          '<div>'+
+            '<strong>'+esc(g[0])+'</strong>'+
+            '<small>'+subtitle+'</small>'+
+          '</div>'+
+
+          '<span class="v6-medal-current">'+
+            esc(
+              st.current
+                ? st.current.name
+                : 'Abaixo da Bronze'
+            )+
+          '</span>'+
+        '</div>';
+
+    html+=
+      '<div class="v6-medal-track">'+
+
+      tiers.map(function(t){
+
+        var unlocked=
+              t.value>0&&actual>=t.value,
+
+            current=
+              st.current&&
+              st.current.name===t.name;
+
+        return(
+          '<div class="v6-medal '+
+            (unlocked?'unlocked ':'')+
+            (current?'current':'')+
+            '" style="--medal:'+t.color+'" '+
+            'title="'+
+              esc(
+                t.name+
+                ' · a partir de '+
+                money(t.value)
+              )+
+            '">'+
+
+            '<span class="material-symbols-rounded">'+
+              'military_tech'+
+            '</span>'+
+
+            '<b>'+esc(t.name)+'</b>'+
+            '<small>'+money(t.value)+'</small>'+
+
+            (
+              current
+                ? '<span class="v6-current-label">'+
+                    (mode==='current'?'ATUAL':'FINAL')+
+                  '</span>'
+                : ''
+            )+
+
+          '</div>'
+        );
+
+      }).join('')+
+
+      '</div>';
+
+    html+=
+      '<div class="v6-medal-progress">'+
+
+        '<span>'+
+          (st.current?st.current.name:'Início')+
+        '</span>'+
+
+        '<div class="v6-medal-progress-track">'+
+          '<i style="width:'+progress+'%"></i>'+
+        '</div>'+
+
+        '<span>'+
+          (
+            st.next
+              ? 'Faltam '+
+                money(
+                  Math.max(
+                    0,
+                    st.next.value-actual
+                  )
+                )+
+                ' para '+st.next.name
+              : 'Diamante atingido'
+          )+
+        '</span>'+
+      '</div>';
+
+    if(mode==='current'){
+
+      html+=
+        '<div class="v6-visual-note">'+
+          'Projeção V6: <strong>'+
+            (
+              projection
+                ? (
+                    pst.current
+                      ? pst.current.name
+                      : 'abaixo da Bronze'
+                  )
+                : '—'
+            )+
+          '</strong>. Metas da competência '+esc(comp)+'.'+
+        '</div>';
+
+    }else if(mode==='past'){
+
+      html+=
+        '<div class="v6-visual-note">'+
+          '<strong>Mês encerrado.</strong> '+
+          'Sem projeção. Medalha calculada pelas metas '+
+          'cadastradas para '+esc(comp)+'.'+
+        '</div>';
+
+    }else{
+
+      html+=
+        '<div class="v6-visual-note">'+
+          'Mês futuro. Sem projeção.'+
+        '</div>';
+    }
+
+    html+='</div>';
   });
+
   return html+'</div>';
 }
 
+
 function goalCompareBody(data){
-  var m=data&&data.metas||{},c=m.config||{};
+
+  var m=data&&data.metas||{},
+      c=m.config||{},
+      mode=periodModeV6(data),
+      comp=competenceLabelV6(data);
+
+  if(!m.disponivel){
+
+    return(
+      '<div class="v6-visual-note">'+
+        'Metas de '+esc(comp||'esta competência')+
+        ' não cadastradas. Comparativo suspenso.'+
+      '</div>'
+    );
+  }
+
   var items=[
-    ['Encomendas','encomendas',n(m.realizado&&m.realizado.encomendas),n(c.encomendasMeta)],
-    ['Balcão AGF','balcao',n(m.realizado&&m.realizado.balcao),n(c.balcaoBronze)],
-    ['Metrô','metro',n(m.realizado&&m.realizado.metro),n(c.metroBronze)]
+    [
+      'Encomendas',
+      'encomendas',
+      n(m.realizado&&m.realizado.encomendas),
+      n(c.encomendasMeta)
+    ],
+    [
+      'Balcão AGF',
+      'balcao',
+      n(m.realizado&&m.realizado.balcao),
+      n(c.balcaoBronze)
+    ],
+    [
+      'Metrô',
+      'metro',
+      n(m.realizado&&m.realizado.metro),
+      n(c.metroBronze)
+    ]
   ];
+
   var html='<div class="v6-goal-compare">';
+
   items.forEach(function(x){
-    var pr=adjusted(data,x[1]),scale=Math.max(x[2],x[3],pr,1)*1.06,pa=x[3]?x[2]*100/x[3]:0,pp=x[3]&&pr?pr*100/x[3]:0;
-    var aw=Math.min(100,x[2]*100/scale),pw=pr?Math.min(100,pr*100/scale):0,tw=Math.min(100,x[3]*100/scale);
-    html+='<div class="v6-goal-row"><div class="v6-goal-top"><strong>'+esc(x[0])+'</strong><span>Realizado <b>'+pct(pa,1)+'</b> da meta</span><span>Projeção <b>'+(pr?pct(pp,1):'—')+'</b></span></div>';
-    html+='<div class="v6-goal-bars"><div class="v6-goal-track" style="--actual:'+aw+'%;--proj:'+pw+'%;--target:'+tw+'%"><span class="proj"></span><span class="actual"></span><i class="target" title="Meta: '+esc(money(x[3]))+'"></i></div></div>';
-    html+='<div class="v6-goal-legend"><div class="v6-goal-stat real"><span>Realizado · '+pct(pa,1)+'</span><strong>'+money(x[2])+'</strong></div><div class="v6-goal-stat meta"><span>Meta · 100%</span><strong>'+money(x[3])+'</strong></div><div class="v6-goal-stat proj"><span>Projeção · '+(pr?pct(pp,1):'—')+'</span><strong>'+(pr?money(pr):'Aguardando V6')+'</strong></div></div></div>';
+
+    var current=mode==='current',
+
+        pr=
+          current
+            ? adjusted(data,x[1])
+            : 0,
+
+        scale=
+          Math.max(
+            x[2],
+            x[3],
+            pr,
+            1
+          )*1.06,
+
+        pa=
+          x[3]
+            ? x[2]*100/x[3]
+            : 0,
+
+        pp=
+          current&&x[3]
+            ? pr*100/x[3]
+            : 0,
+
+        aw=
+          Math.min(
+            100,
+            x[2]*100/scale
+          ),
+
+        pw=
+          current
+            ? Math.min(
+                100,
+                pr*100/scale
+              )
+            : 0,
+
+        tw=
+          Math.min(
+            100,
+            x[3]*100/scale
+          );
+
+    html+=
+      '<div class="v6-goal-row">'+
+
+        '<div class="v6-goal-top">'+
+          '<strong>'+esc(x[0])+'</strong>'+
+          '<span>Realizado <b>'+pct(pa,1)+'</b> da meta</span>'+
+          (
+            current
+              ? '<span>Projeção <b>'+pct(pp,1)+'</b></span>'
+              : '<span><b>Mês encerrado</b></span>'
+          )+
+        '</div>'+
+
+        '<div class="v6-goal-bars">'+
+
+          '<div class="v6-goal-track" '+
+            'style="--actual:'+aw+'%;'+
+                   '--proj:'+pw+'%;'+
+                   '--target:'+tw+'%">'+
+
+            (
+              current
+                ? '<span class="proj"></span>'
+                : ''
+            )+
+
+            '<span class="actual"></span>'+
+
+            '<i class="target" title="Meta: '+
+              esc(money(x[3]))+
+            '"></i>'+
+          '</div>'+
+        '</div>'+
+
+        '<div class="v6-goal-legend" '+
+          (
+            current
+              ? ''
+              : 'style="grid-template-columns:repeat(2,1fr)"'
+          )+
+        '>'+
+
+          '<div class="v6-goal-stat real">'+
+            '<span>Realizado · '+pct(pa,1)+'</span>'+
+            '<strong>'+money(x[2])+'</strong>'+
+          '</div>'+
+
+          '<div class="v6-goal-stat meta">'+
+            '<span>Meta · 100%</span>'+
+            '<strong>'+money(x[3])+'</strong>'+
+          '</div>'+
+
+          (
+            current
+              ? '<div class="v6-goal-stat proj">'+
+                  '<span>Projeção · '+pct(pp,1)+'</span>'+
+                  '<strong>'+(pr?money(pr):'—')+'</strong>'+
+                '</div>'
+              : ''
+          )+
+
+        '</div>'+
+      '</div>';
   });
-  return html+'</div><div class="v6-visual-note">Azul = realizado · verde-claro = projeção ajustada · amarelo = meta. A projeção só é exibida quando o backend V6 fornece a projeção corrigida por tipo de receita.</div>';
+
+  html+='</div>';
+
+  html+=
+    '<div class="v6-visual-note">'+
+      (
+        mode==='current'
+          ? 'Azul = realizado · verde-claro = projeção ajustada · amarelo = meta.'
+          : 'Competência '+esc(comp)+
+            ': resultado final e meta histórica. Sem projeção.'
+      )+
+    '</div>';
+
+  return html;
 }
+
 
 function patch(data){
   var active=document.querySelector('#viewSwitchRow button.active'),view=active&&active.dataset?active.dataset.view:'';

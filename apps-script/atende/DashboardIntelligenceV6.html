@@ -11,10 +11,408 @@ function css(){if(document.getElementById('v5i-css'))return;var s=document.creat
 function head(t,sub){return'<div class="v5i-head"><strong>'+esc(t)+'</strong><span>'+esc(sub||'')+'</span></div>'}function card(t,sub,b){return'<section class="v5i-card">'+head(t,sub)+b+'</section>'}
 function mix(t,rows){var all=(rows||[]).filter(function(x){return n(x.valor)>0}),sum=all.reduce(function(a,x){return a+n(x.valor)},0);rows=all.slice(0,8);if(!rows.length)return card(t,'','<div class="v5i-note">Sem dados.</div>');var max=Math.max.apply(null,rows.map(function(x){return n(x.valor)}));return card(t,'valor + participação','<div class="v5i-bars">'+rows.map(function(x,i){return'<div class="v5i-row"><span title="'+esc(x.label)+'">'+esc(x.label)+'</span><div class="v5i-track"><div class="v5i-fill" style="width:'+Math.max(1,n(x.valor)*100/max)+'%;background:'+COLORS[i%COLORS.length]+'"></div></div><strong class="v5i-money">'+money(x.valor)+'</strong><strong class="v5i-pct">'+pct(share(x.valor,sum),1)+'</strong></div>'}).join('')+'</div>')}
 function donutMix(t,rows){var all=(rows||[]).filter(function(x){return n(x.valor)>0}),sum=all.reduce(function(a,x){return a+n(x.valor)},0);if(!all.length)return card(t,'','<div class="v5i-note">Sem dados.</div>');all.sort(function(a,b){return n(b.valor)-n(a.valor)});var shown=all.slice(0,5),rest=all.slice(5);if(rest.length)shown.push({label:'Outros',valor:rest.reduce(function(a,x){return a+n(x.valor)},0)});var start=0,parts=[],legend='';shown.forEach(function(x,i){var p=share(x.valor,sum),end=start+p,c=COLORS[i%COLORS.length];parts.push(c+' '+start.toFixed(2)+'% '+end.toFixed(2)+'%');legend+='<div class="v6-donut-row"><i style="background:'+c+'"></i><b title="'+esc(x.label)+'">'+esc(x.label)+'</b><strong>'+money(x.valor)+'</strong><em>'+pct(p,1)+'</em></div>';start=end});return card(t,'valor + participação','<div class="v6-donut-body"><div class="v6-donut" style="background:conic-gradient('+parts.join(',')+')"><div class="v6-donut-center"><div><strong>'+money(sum)+'</strong><small>Total</small></div></div></div><div class="v6-donut-legend">'+legend+'</div></div>')}
+function selectedMonthV6(d){
+  return String(
+    d&&d.dashboardV6Meta&&d.dashboardV6Meta.anchorMonth
+      || d&&d.metas&&d.metas.competencia
+      || ''
+  );
+}
+
+function currentMonthV6(){
+  var d=new Date();
+  return d.getFullYear()+'-'+
+    String(d.getMonth()+1).padStart(2,'0');
+}
+
+function periodModeV6(d){
+  var selected=selectedMonthV6(d);
+  var current=currentMonthV6();
+
+  if(!selected)return 'current';
+  if(selected<current)return 'past';
+  if(selected>current)return 'future';
+
+  return 'current';
+}
+
+function competenceLabelV6(d){
+  var v=selectedMonthV6(d);
+
+  if(!/^\d{4}-\d{2}$/.test(v))return '';
+
+  var p=v.split('-');
+  var dt=new Date(Number(p[0]),Number(p[1])-1,1);
+
+  return dt.toLocaleDateString(
+    'pt-BR',
+    {month:'long',year:'numeric'}
+  );
+}
+
 function medalTierData(prefix,c){return['Bronze','Prata','Ouro','Diamante'].map(function(name,i){var key=prefix+name.charAt(0).toUpperCase()+name.slice(1);return{name:name,value:n(c[key]),color:['#B87333','#8D99A6','#D5A100','#5370D9'][i]}})}
 function medalTierState(actual,tiers){var current=null,next=null;tiers.forEach(function(t){if(t.value>0&&actual>=t.value)current=t;else if(!next&&t.value>0&&actual<t.value)next=t});return{current:current,next:next}}
-function medalMapBodyV6(m){m=m||{};var c=m.config||{},groups=[['Balcão AGF','balcao'],['Metrô','metro']],html='<div class="v6-medal-board">';groups.forEach(function(g){var actual=n(m.realizado&&m.realizado[g[1]]),projection=adjusted(g[1],0,c),tiers=medalTierData(g[1],c),st=medalTierState(actual,tiers),projState=medalTierState(projection,tiers),lower=st.current?n(st.current.value):0,upper=st.next?n(st.next.value):(tiers[3]&&n(tiers[3].value)),progress=upper>lower?Math.max(0,Math.min(100,(actual-lower)*100/(upper-lower))):100;html+='<div class="v6-medal-group"><div class="v6-medal-group-top"><div><strong>'+esc(g[0])+'</strong><small>Realizado '+money(actual)+' · projeção '+(projection?money(projection):'—')+'</small></div><span class="v6-medal-current">'+esc(st.current?st.current.name:'Abaixo da Bronze')+'</span></div><div class="v6-medal-track">'+tiers.map(function(t){var unlocked=t.value>0&&actual>=t.value,current=st.current&&st.current.name===t.name;return'<div class="v6-medal '+(unlocked?'unlocked ':'')+(current?'current':'')+'" style="--medal:'+t.color+'" title="'+esc(t.name+' · a partir de '+money(t.value))+'"><span class="material-symbols-rounded">military_tech</span><b>'+esc(t.name)+'</b><small>'+money(t.value)+'</small>'+(current?'<span class="v6-current-label">ATUAL</span>':'')+'</div>'}).join('')+'</div><div class="v6-medal-progress"><span>'+(st.current?st.current.name:'Início')+'</span><div class="v6-medal-progress-track"><i style="width:'+progress+'%"></i></div><span>'+(st.next?'Faltam '+money(Math.max(0,st.next.value-actual))+' para '+st.next.name:'Diamante atingido')+'</span></div><div class="v5i-note" style="margin-top:7px">Projeção V6: <strong>'+(projState.current?projState.current.name:'abaixo da Bronze')+'</strong>. A classificação de receita continua sendo considerada antes de projetar.</div></div>'});return html+'</div>'}
-function goalCompareV6(m){m=m||{};var c=m.config||{},items=[['Encomendas','encomendas',n(m.realizado&&m.realizado.encomendas),n(c.encomendasMeta)],['Balcão AGF','balcao',n(m.realizado&&m.realizado.balcao),n(c.balcaoBronze)],['Metrô','metro',n(m.realizado&&m.realizado.metro),n(c.metroBronze)]],html='<div class="v6-goal-compare">';items.forEach(function(x){var pr=adjusted(x[1],0,c),scale=Math.max(x[2],x[3],pr,1)*1.06,pa=x[3]?x[2]*100/x[3]:0,pp=x[3]?pr*100/x[3]:0,aw=Math.min(100,x[2]*100/scale),pw=Math.min(100,pr*100/scale),tw=Math.min(100,x[3]*100/scale);html+='<div class="v6-goal-row"><div class="v6-goal-top"><strong>'+esc(x[0])+'</strong><span>Realizado <b>'+pct(pa,1)+'</b> da meta</span><span>Projeção <b>'+pct(pp,1)+'</b></span></div><div class="v6-goal-bars"><div class="v6-goal-track" style="--actual:'+aw+'%;--proj:'+pw+'%;--target:'+tw+'%"><span class="proj"></span><span class="actual"></span><i class="target" title="Meta: '+esc(money(x[3]))+'"></i></div></div><div class="v6-goal-legend"><div class="v6-goal-stat real"><span>Realizado · '+pct(pa,1)+'</span><strong>'+money(x[2])+'</strong></div><div class="v6-goal-stat meta"><span>Meta · 100%</span><strong>'+money(x[3])+'</strong></div><div class="v6-goal-stat proj"><span>Projeção · '+pct(pp,1)+'</span><strong>'+(pr?money(pr):'—')+'</strong></div></div></div>'});return html+'</div><div class="v5i-note" style="margin-top:9px">Azul = realizado · verde-claro = projeção ajustada · amarelo = meta. A projeção extrapola somente receita recorrente; Campanha/Pontual soma o valor já realizado.</div>'}
+function medalMapBodyV6(m,d){
+  m=m||{};
+
+  var c=m.config||{},
+      mode=periodModeV6(d),
+      comp=competenceLabelV6(d),
+      groups=[
+        ['Balcão AGF','balcao'],
+        ['Metrô','metro']
+      ],
+      html='<div class="v6-medal-board">';
+
+  groups.forEach(function(g){
+
+    var actual=n(m.realizado&&m.realizado[g[1]]);
+
+    if(!m.disponivel){
+
+      html+=
+        '<div class="v6-medal-group">'+
+          '<div class="v6-medal-group-top">'+
+            '<div>'+
+              '<strong>'+esc(g[0])+'</strong>'+
+              '<small>Realizado '+money(actual)+'</small>'+
+            '</div>'+
+            '<span class="v6-medal-current">'+
+              'Sem meta histórica'+
+            '</span>'+
+          '</div>'+
+          '<div class="v5i-note">'+
+            'As metas de '+esc(comp||'esta competência')+
+            ' não estão cadastradas. '+
+            'Nenhuma medalha foi inferida.'+
+          '</div>'+
+        '</div>';
+
+      return;
+    }
+
+    var projection=
+          mode==='current'
+            ? adjusted(g[1],0,c)
+            : 0,
+
+        tiers=medalTierData(g[1],c),
+        st=medalTierState(actual,tiers),
+        projState=
+          projection
+            ? medalTierState(projection,tiers)
+            : {current:null,next:null},
+
+        lower=st.current?n(st.current.value):0,
+        upper=st.next
+          ? n(st.next.value)
+          : n(tiers[3]&&tiers[3].value),
+
+        progress=
+          upper>lower
+            ? Math.max(
+                0,
+                Math.min(
+                  100,
+                  (actual-lower)*100/(upper-lower)
+                )
+              )
+            : 100;
+
+    var subtitle=
+      mode==='current'
+        ? 'Realizado '+money(actual)+
+          ' · projeção '+(projection?money(projection):'—')
+        : mode==='past'
+          ? 'Resultado final '+money(actual)
+          : 'Realizado '+money(actual)+' · mês futuro';
+
+    html+=
+      '<div class="v6-medal-group">'+
+
+        '<div class="v6-medal-group-top">'+
+          '<div>'+
+            '<strong>'+esc(g[0])+'</strong>'+
+            '<small>'+subtitle+'</small>'+
+          '</div>'+
+
+          '<span class="v6-medal-current">'+
+            esc(
+              st.current
+                ? st.current.name
+                : 'Abaixo da Bronze'
+            )+
+          '</span>'+
+        '</div>'+
+
+        '<div class="v6-medal-track">'+
+
+        tiers.map(function(t){
+
+          var unlocked=
+                t.value>0&&actual>=t.value,
+
+              current=
+                st.current&&
+                st.current.name===t.name;
+
+          return(
+            '<div class="v6-medal '+
+              (unlocked?'unlocked ':'')+
+              (current?'current':'')+
+              '" style="--medal:'+t.color+'" '+
+              'title="'+
+                esc(
+                  t.name+
+                  ' · a partir de '+
+                  money(t.value)
+                )+
+              '">'+
+
+              '<span class="material-symbols-rounded">'+
+                'military_tech'+
+              '</span>'+
+
+              '<b>'+esc(t.name)+'</b>'+
+              '<small>'+money(t.value)+'</small>'+
+
+              (
+                current
+                  ? '<span class="v6-current-label">'+
+                      (mode==='current'?'ATUAL':'FINAL')+
+                    '</span>'
+                  : ''
+              )+
+
+            '</div>'
+          );
+
+        }).join('')+
+
+        '</div>'+
+
+        '<div class="v6-medal-progress">'+
+          '<span>'+
+            (st.current?st.current.name:'Início')+
+          '</span>'+
+
+          '<div class="v6-medal-progress-track">'+
+            '<i style="width:'+progress+'%"></i>'+
+          '</div>'+
+
+          '<span>'+
+            (
+              st.next
+                ? 'Faltam '+
+                  money(
+                    Math.max(
+                      0,
+                      st.next.value-actual
+                    )
+                  )+
+                  ' para '+st.next.name
+                : 'Diamante atingido'
+            )+
+          '</span>'+
+        '</div>';
+
+    if(mode==='current'){
+
+      html+=
+        '<div class="v5i-note" style="margin-top:7px">'+
+          'Projeção V6: <strong>'+
+            (
+              projState.current
+                ? projState.current.name
+                : 'abaixo da Bronze'
+            )+
+          '</strong>. '+
+          'Metas da competência '+esc(comp)+'.'+
+        '</div>';
+
+    }else if(mode==='past'){
+
+      html+=
+        '<div class="v5i-note" style="margin-top:7px">'+
+          '<strong>Mês encerrado.</strong> '+
+          'Sem projeção. A medalha acima usa somente '+
+          'as metas cadastradas para '+esc(comp)+'.'+
+        '</div>';
+
+    }else{
+
+      html+=
+        '<div class="v5i-note" style="margin-top:7px">'+
+          'Mês futuro. Sem projeção de fechamento.'+
+        '</div>';
+    }
+
+    html+='</div>';
+  });
+
+  return html+'</div>';
+}
+
+
+function goalCompareV6(m,d){
+  m=m||{};
+
+  var c=m.config||{},
+      mode=periodModeV6(d),
+      comp=competenceLabelV6(d);
+
+  if(!m.disponivel){
+
+    return(
+      '<div class="v5i-note">'+
+        'Metas de '+esc(comp||'esta competência')+
+        ' não cadastradas. '+
+        'O realizado foi preservado, mas o comparativo '+
+        'de meta foi suspenso.'+
+      '</div>'
+    );
+  }
+
+  var items=[
+    [
+      'Encomendas',
+      'encomendas',
+      n(m.realizado&&m.realizado.encomendas),
+      n(c.encomendasMeta)
+    ],
+    [
+      'Balcão AGF',
+      'balcao',
+      n(m.realizado&&m.realizado.balcao),
+      n(c.balcaoBronze)
+    ],
+    [
+      'Metrô',
+      'metro',
+      n(m.realizado&&m.realizado.metro),
+      n(c.metroBronze)
+    ]
+  ];
+
+  var html='<div class="v6-goal-compare">';
+
+  items.forEach(function(x){
+
+    var current=mode==='current',
+
+        pr=current
+          ? adjusted(x[1],0,c)
+          : 0,
+
+        scale=Math.max(
+          x[2],
+          x[3],
+          pr,
+          1
+        )*1.06,
+
+        pa=x[3]
+          ? x[2]*100/x[3]
+          : 0,
+
+        pp=
+          current&&x[3]
+            ? pr*100/x[3]
+            : 0,
+
+        aw=Math.min(
+          100,
+          x[2]*100/scale
+        ),
+
+        pw=
+          current
+            ? Math.min(100,pr*100/scale)
+            : 0,
+
+        tw=Math.min(
+          100,
+          x[3]*100/scale
+        );
+
+    html+=
+      '<div class="v6-goal-row">'+
+
+        '<div class="v6-goal-top">'+
+          '<strong>'+esc(x[0])+'</strong>'+
+          '<span>Realizado <b>'+pct(pa,1)+'</b> da meta</span>'+
+          (
+            current
+              ? '<span>Projeção <b>'+pct(pp,1)+'</b></span>'
+              : '<span><b>Mês encerrado</b></span>'
+          )+
+        '</div>'+
+
+        '<div class="v6-goal-bars">'+
+          '<div class="v6-goal-track" '+
+            'style="--actual:'+aw+'%;'+
+                   '--proj:'+pw+'%;'+
+                   '--target:'+tw+'%">'+
+
+            (
+              current
+                ? '<span class="proj"></span>'
+                : ''
+            )+
+
+            '<span class="actual"></span>'+
+            '<i class="target" title="Meta: '+
+              esc(money(x[3]))+
+            '"></i>'+
+          '</div>'+
+        '</div>'+
+
+        '<div class="v6-goal-legend" '+
+          (
+            current
+              ? ''
+              : 'style="grid-template-columns:repeat(2,1fr)"'
+          )+
+        '>'+
+
+          '<div class="v6-goal-stat real">'+
+            '<span>Realizado · '+pct(pa,1)+'</span>'+
+            '<strong>'+money(x[2])+'</strong>'+
+          '</div>'+
+
+          '<div class="v6-goal-stat meta">'+
+            '<span>Meta · 100%</span>'+
+            '<strong>'+money(x[3])+'</strong>'+
+          '</div>'+
+
+          (
+            current
+              ? '<div class="v6-goal-stat proj">'+
+                  '<span>Projeção · '+pct(pp,1)+'</span>'+
+                  '<strong>'+(pr?money(pr):'—')+'</strong>'+
+                '</div>'
+              : ''
+          )+
+
+        '</div>'+
+      '</div>';
+  });
+
+  html+='</div>';
+
+  html+=
+    '<div class="v5i-note" style="margin-top:9px">'+
+      (
+        mode==='current'
+          ? 'Azul = realizado · verde-claro = projeção ajustada · amarelo = meta.'
+          : 'Competência '+esc(comp)+
+            ': resultado final e meta histórica. Sem projeção.'
+      )+
+    '</div>';
+
+  return html;
+}
+
 function rank(t,rows,total){rows=(rows||[]).slice(0,7);var max=Math.max.apply(null,rows.map(function(x){return n(x.valor)}).concat([1]));return card(t,'por faturamento','<div class="v5i-bars">'+rows.map(function(x){return'<div class="v5i-row"><span>'+esc(x.label)+'</span><div class="v5i-track"><div class="v5i-fill" style="width:'+Math.max(1,n(x.valor)*100/max)+'%;background:#0B72D9"></div></div><strong class="v5i-money">'+money(x.valor)+'</strong><strong class="v5i-pct">'+pct(share(x.valor,total),1)+'</strong></div>'}).join('')+'</div>')}
 function history(rows){rows=(rows||[]).filter(function(x){return n(x.valor)>0});var max=Math.max.apply(null,rows.map(function(x){return n(x.valor)}).concat([1]));return'<div class="v5i-history">'+rows.map(function(x){return'<div class="v5i-hrow"><span>'+esc(x.label)+'</span><div class="v5i-track"><div class="v5i-fill" style="width:'+n(x.valor)*100/max+'%;background:#0B72D9"></div></div><strong>'+money(x.valor)+'</strong></div>'}).join('')+'</div>'}
 function findCard(title){var cards=document.querySelectorAll('#dashboardView .v4-card');for(var i=0;i<cards.length;i++){var h=cards[i].querySelector('.v4-head strong');if(h&&h.textContent.trim()===title)return cards[i]}return null}function replaceBody(c,html){if(!c)return;c.querySelectorAll(':scope > :not(.v4-head)').forEach(function(x){x.remove()});c.insertAdjacentHTML('beforeend',html);c.dataset.v5='1'}
@@ -29,7 +427,124 @@ function simulator(){return card('Simulador: e se crescer?','efeito no degrau e 
 function sim(){var b=document.getElementById('v5i-simr'),v=document.getElementById('v5i-simv'),l=document.getElementById('v5i-siml');if(!b||!CACHE)return;var add=Math.max(0,n(v.value)),type=l.value,r=CACHE.remuneracao||{};if(type==='r5'){b.innerHTML='<div class="v5i-rgrid"><div><span>Valor adicional</span><strong>'+money(add)+'</strong></div><div><span>Percentual</span><strong>8,52%</strong></div><div><span>Remuneração adicional</span><strong>'+money(add*.0852)+'</strong></div></div>';return}var before=rem(type==='m'?r.mensageria:r.encomendas,type),after=calc(before.v+add,type);if(!after){b.innerHTML='<div class="v5i-alert">Tabela contratual por vigência indisponível. O simulador foi bloqueado para evitar cálculo com regra hardcoded.</div>';return}var inc=after.total-before.total;b.innerHTML='<div class="v5i-rgrid"><div><span>Remuneração adicional</span><strong>'+money(inc)+'</strong></div><div><span>Retorno do incremento</span><strong>'+pct(add?inc*100/add:0,2)+'</strong></div><div><span>Degrau antes</span><strong>'+before.d+' · '+pct(before.p,2)+'</strong></div><div><span>Degrau depois</span><strong>'+after.d+' · '+pct(after.p,2)+'</strong></div></div>'+(before.d!==after.d?'<div class="v5i-insight">A simulação cruza a faixa e considera o novo degrau e o novo ajuste contratual.</div>':'')}window.ATENDE_V6_sim=sim;
 function audit(){return card('Conferência do relatório ECT','faturamento × percentual + ajuste','<div class="v5i-form"><div><label>Pago ECT - Mensageria</label><input class="v5i-input" id="v5i-am" type="number" step="0.01" placeholder="Opcional"></div><div><label>Pago ECT - Encomendas</label><input class="v5i-input" id="v5i-ae" type="number" step="0.01" placeholder="Opcional"></div><button class="v5i-btn" onclick="window.ATENDE_V6_audit()">Conferir</button></div><div class="v5i-result" id="v5i-ar"></div><div class="v5i-note" style="margin-top:8px">Diferença absoluta acima de R$ 0,02 merece conferência do relatório.</div>')}
 function aud(){var b=document.getElementById('v5i-ar'),im=document.getElementById('v5i-am'),ie=document.getElementById('v5i-ae');if(!b||!CACHE)return;var r=CACHE.remuneracao||{},m=rem(r.mensageria,'m'),e=rem(r.encomendas,'e'),vm=im&&im.value!==''?n(im.value):null,ve=ie&&ie.value!==''?n(ie.value):null;function st(v,c){if(v===null)return'aguardando valor ECT';var d=v-c;return Math.abs(d)<=.02?'✓ confere':'⚠ diferença '+money(d)}b.innerHTML='<div class="v5i-rgrid"><div><span>Calculado Mensageria</span><strong>'+money(m.total)+'</strong></div><div><span>Status</span><strong>'+st(vm,m.total)+'</strong></div><div><span>Calculado Encomendas</span><strong>'+money(e.total)+'</strong></div><div><span>Status</span><strong>'+st(ve,e.total)+'</strong></div></div>'}window.ATENDE_V6_audit=aud;
-function projectionReview(p,r){if(!p||!p.revisaoNecessaria)return'';var sig=(p.sinaisEventual||[]).slice(0,6);return card('Projeção em revisão','estatística apenas sinaliza; classificação manual decide','<div class="v5i-alert">O V6 não transforma automaticamente nenhum cliente em pontual. Enquanto houver concentração atípica sem classificação, o alerta de mudança de degrau do grupo afetado fica suspenso.</div><div class="v6-review">'+sig.map(function(x){var hist=x.media3Meses?money(x.media3Meses):'sem histórico';return'<div class="v6-review-row"><div><strong>'+esc(x.cliente)+'</strong><div class="v5i-note">'+esc(x.grupo)+' · '+esc((x.motivos||[]).join(', '))+'</div></div><span>'+money(x.valorAtual)+'</span><span>média 3m '+hist+'</span><span class="v6-tag">'+pct(x.participacao,1)+'</span></div>'}).join('')+'</div><div class="v5i-note" style="margin-top:8px">Revise em Admin &gt; Metas &gt; Tipo de receita e marque Recorrente, Campanha ou Pontual. Campanha/Pontual entra no fechamento apenas pelo valor já realizado.</div>')}function findKpi(label){var nodes=document.querySelectorAll('#dashboardView .v4-kpi');for(var i=0;i<nodes.length;i++){var l=nodes[i].querySelector('.v4-label');if(l&&l.textContent.trim()===label)return nodes[i]}return null}function patchCommercialProjection(d){var p=d&&d.projecaoReceita;if(!p||!p.disponivel)return;var k=findKpi('Projeção do mês');if(k){var v=k.querySelector('.v4-value'),f=k.querySelector('.v4-foot');if(v){v.textContent=money(p.projetado);v.title=money(p.projetado)}if(f)f.innerHTML=(p.revisaoNecessaria?'<span class="v6-tag">revisar classificação</span>':'projeção ajustada por tipo de receita')}var goals=document.querySelectorAll('#dashboardView .v4-goal');goals.forEach(function(g){var t=g.querySelector('.v4-goal-title strong');if(!t)return;var scope=t.textContent.trim()==='Encomendas'?'encomendas':t.textContent.trim()==='Balcão AGF'?'balcao':t.textContent.trim()==='Metrô'?'metro':'';if(!scope)return;var val=adjusted(scope,0,(d.metas&&d.metas.config)||{});if(!val)return;g.querySelectorAll('.v4-mini').forEach(function(mi){var sp=mi.querySelector('span'),st=mi.querySelector('strong');if(sp&&st&&sp.textContent.trim()==='Projeção')st.textContent=money(val)})})}function patchBaseRem(r,m,e){var ppcc=n(r&&r.ppcc),fonte=String((r&&r.fonte)||'');function body(x){return'<div class="v4-rem-main">'+money(x.v)+'</div><div class="v4-rem-meta"><div class="v4-mini"><span>Degrau</span><strong>'+integer(x.d)+'</strong></div><div class="v4-mini"><span>Percentual</span><strong>'+pct(x.p,2)+'</strong></div><div class="v4-mini"><span>Ajuste</span><strong>'+money(x.a)+'</strong></div></div><div class="v4-next">Remuneração contratual estimada<b>'+money(x.total)+'</b></div><div class="v4-note">'+money(x.v)+' × '+pct(x.p,2)+' + '+money(x.a)+'. '+(ppcc?'PPCC '+ppcc.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'. ':'')+esc(fonte)+'</div>'}var cm=findCard('Mensageria - R2 G1'),ce=findCard('Encomendas - R2 G2'),ct=findCard('Remuneração estimada do período');if(cm)replaceBody(cm,body(m));if(ce)replaceBody(ce,body(e));if(ct){var total=n(m.total)+n(e.total),pa=total?n(m.total)*100/total:0,pb=100-pa;replaceBody(ct,'<div class="v4-rem-total">'+money(total)+'</div><div class="v4-stacked"><span style="width:'+pa+'%;background:#00A79D"></span><span style="width:'+pb+'%;background:#F97316"></span></div><div class="v4-note">Mensageria '+pct(pa,1)+' · Encomendas '+pct(pb,1)+'. Fonte contratual carregada do backend por vigência.</div>')}}
+function projectionReview(p,r){if(!p||!p.revisaoNecessaria)return'';var sig=(p.sinaisEventual||[]).slice(0,6);return card('Projeção em revisão','estatística apenas sinaliza; classificação manual decide','<div class="v5i-alert">O V6 não transforma automaticamente nenhum cliente em pontual. Enquanto houver concentração atípica sem classificação, o alerta de mudança de degrau do grupo afetado fica suspenso.</div><div class="v6-review">'+sig.map(function(x){var hist=x.media3Meses?money(x.media3Meses):'sem histórico';return'<div class="v6-review-row"><div><strong>'+esc(x.cliente)+'</strong><div class="v5i-note">'+esc(x.grupo)+' · '+esc((x.motivos||[]).join(', '))+'</div></div><span>'+money(x.valorAtual)+'</span><span>média 3m '+hist+'</span><span class="v6-tag">'+pct(x.participacao,1)+'</span></div>'}).join('')+'</div><div class="v5i-note" style="margin-top:8px">Revise em Admin &gt; Metas &gt; Tipo de receita e marque Recorrente, Campanha ou Pontual. Campanha/Pontual entra no fechamento apenas pelo valor já realizado.</div>')}function findKpi(label){var nodes=document.querySelectorAll('#dashboardView .v4-kpi');for(var i=0;i<nodes.length;i++){var l=nodes[i].querySelector('.v4-label');if(l&&l.textContent.trim()===label)return nodes[i]}return null}function patchCommercialProjection(d){
+
+  var mode=periodModeV6(d),
+      p=d&&d.projecaoReceita,
+      k=
+        findKpi('Projeção do mês')||
+        findKpi('Fechamento do mês');
+
+  if(mode!=='current'){
+
+    if(k){
+
+      var label=k.querySelector('.v4-label'),
+          value=k.querySelector('.v4-value'),
+          foot=k.querySelector('.v4-foot');
+
+      if(label){
+        label.textContent=
+          mode==='past'
+            ? 'Fechamento do mês'
+            : 'Mês futuro';
+      }
+
+      if(value){
+        value.textContent=
+          mode==='past'
+            ? money(d&&d.kpis&&d.kpis.faturamento)
+            : '—';
+
+        value.title=value.textContent;
+      }
+
+      if(foot){
+        foot.textContent=
+          mode==='past'
+            ? 'mês encerrado · sem projeção'
+            : 'sem projeção';
+      }
+    }
+
+    return;
+  }
+
+  if(!p||!p.disponivel)return;
+
+  if(k){
+
+    var label=k.querySelector('.v4-label'),
+        v=k.querySelector('.v4-value'),
+        f=k.querySelector('.v4-foot');
+
+    if(label)label.textContent='Projeção do mês';
+
+    if(v){
+      v.textContent=money(p.projetado);
+      v.title=money(p.projetado);
+    }
+
+    if(f){
+      f.innerHTML=
+        p.revisaoNecessaria
+          ? '<span class="v6-tag">revisar classificação</span>'
+          : 'projeção ajustada por tipo de receita';
+    }
+  }
+
+  var goals=
+    document.querySelectorAll(
+      '#dashboardView .v4-goal'
+    );
+
+  goals.forEach(function(g){
+
+    var t=
+      g.querySelector(
+        '.v4-goal-title strong'
+      );
+
+    if(!t)return;
+
+    var scope=
+      t.textContent.trim()==='Encomendas'
+        ? 'encomendas'
+        : t.textContent.trim()==='Balcão AGF'
+          ? 'balcao'
+          : t.textContent.trim()==='Metrô'
+            ? 'metro'
+            : '';
+
+    if(!scope)return;
+
+    var val=
+      adjusted(
+        scope,
+        0,
+        (d.metas&&d.metas.config)||{}
+      );
+
+    if(!val)return;
+
+    g.querySelectorAll('.v4-mini')
+      .forEach(function(mi){
+
+        var sp=mi.querySelector('span'),
+            st=mi.querySelector('strong');
+
+        if(
+          sp&&
+          st&&
+          sp.textContent.trim()==='Projeção'
+        ){
+          st.textContent=money(val);
+        }
+      });
+  });
+}
+
+function patchBaseRem(r,m,e){var ppcc=n(r&&r.ppcc),fonte=String((r&&r.fonte)||'');function body(x){return'<div class="v4-rem-main">'+money(x.v)+'</div><div class="v4-rem-meta"><div class="v4-mini"><span>Degrau</span><strong>'+integer(x.d)+'</strong></div><div class="v4-mini"><span>Percentual</span><strong>'+pct(x.p,2)+'</strong></div><div class="v4-mini"><span>Ajuste</span><strong>'+money(x.a)+'</strong></div></div><div class="v4-next">Remuneração contratual estimada<b>'+money(x.total)+'</b></div><div class="v4-note">'+money(x.v)+' × '+pct(x.p,2)+' + '+money(x.a)+'. '+(ppcc?'PPCC '+ppcc.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'. ':'')+esc(fonte)+'</div>'}var cm=findCard('Mensageria - R2 G1'),ce=findCard('Encomendas - R2 G2'),ct=findCard('Remuneração estimada do período');if(cm)replaceBody(cm,body(m));if(ce)replaceBody(ce,body(e));if(ct){var total=n(m.total)+n(e.total),pa=total?n(m.total)*100/total:0,pb=100-pa;replaceBody(ct,'<div class="v4-rem-total">'+money(total)+'</div><div class="v4-stacked"><span style="width:'+pa+'%;background:#00A79D"></span><span style="width:'+pb+'%;background:#F97316"></span></div><div class="v4-note">Mensageria '+pct(pa,1)+' · Encomendas '+pct(pb,1)+'. Fonte contratual carregada do backend por vigência.</div>')}}
 
 function dateBr(v){var m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]:String(v||'')}
 function monthBr(v){var m=String(v||'').match(/^(\d{4})-(\d{2})$/);return m?m[2]+'/'+m[1]:String(v||'')}
@@ -200,7 +715,7 @@ function patchCalendarKpisV6(d,view){
   }
 }
 
-function patchData(d){var active=document.querySelector('#viewSwitchRow button.active'),view=active&&active.dataset?active.dataset.view:'',shell=document.querySelector('#dashboardView .v4-shell'),sig=CACHE_KEY+'|'+view;if(view==='table'||!shell)return;if(shell.dataset.v5iSig===sig)return;shell.dataset.v5iSig=sig;var hist=findCard('Faturamento dos últimos 6 meses');if(hist)replaceBody(hist,history(d.evolucao6Meses||[]));if(view==='operacao'){patchCalendarKpisV6(d,'operacao');var donuts=document.querySelector('#dashboardView .v4-donuts');if(donuts)donuts.innerHTML=donutMix('Faturamento por Local',d.localGlobal||d.local||[])+donutMix('Mix por Tipo de Serviço',d.tipoServico||[])+donutMix('Canal',d.canais||d.intermediadores||[]);var ranks=document.querySelector('#dashboardView .v4-rank2');if(ranks)ranks.innerHTML=rank('Top Serviços',d.servicos||[],n(d.kpis&&d.kpis.faturamento))+rank('Top Clientes Portal',d.clientesPortal||[],n(d.kpis&&d.kpis.faturamento));return}if(view==='comercial'){patchCommercialProjection(d);patchCalendarKpisV6(d,'comercial');var mm=d.metas||{},med=findCard('Mapa de medalhas');if(med)replaceBody(med,medalMapBodyV6(mm));var gc=findCard('Realizado x meta x projeção');if(gc)replaceBody(gc,goalCompareV6(mm));return}if(view!=='gestao'||!manage())return;var opp=findCard('Oportunidade de embalagem');if(opp){var h=opp.querySelector('.v4-head');if(h)h.innerHTML='<strong>Potencial de venda de embalagens</strong><span>conversão, ganho e esforço estimado</span>';replaceBody(opp,opportunity(d.oportunidadeEmbalagem||{}))}var dn=document.querySelector('#dashboardView .v4-donuts');if(dn)dn.innerHTML=donutMix('Faturamento por Local',d.localGlobal||d.local||[])+donutMix('Mix por Tipo de Serviço',d.tipoServico||[])+donutMix('Canal',d.canais||d.intermediadores||[]);var old=document.getElementById('v5i-intelligence');if(old)old.remove();var r=d.remuneracao||{},m=rem(r.mensageria,'m'),e=rem(r.encomendas,'e'),c=(d.metas&&d.metas.config)||{},total=n(d.kpis&&d.kpis.faturamento),box=document.createElement('div');patchBaseRem(r,m,e);box.id='v5i-intelligence';var gm=marg('m'),ge=marg('e'),a=r.alertaDegrau||{},alerta=a.ativo?a:null,pr=d.projecaoReceita||{},isProjected=String(gm.base||'').indexOf('projecao_ajustada')===0;box.innerHTML=healthCard(d.saudeDado||{})+projectionReview(pr,r)+recurringBaseCard(d.baseRecorrente||{})+(alerta?card('Alerta de faixa contratual','projeção ajustada e revisada','<div class="v5i-alert">'+alerta.itens.map(function(i){return'<div style="margin-bottom:6px"><strong>'+esc(i.grupo)+'</strong>: fechamento ajustado em '+money(i.valorProjetado)+', '+(i.sentido==='estoura'?'cruzando do degrau '+i.degrauAtual+' ('+pct(i.percentualAtual,2)+') para o '+i.degrauProjetado+' ('+pct(i.percentualProjetado,2)+'). Excedente de '+money(i.excedenteProjetado)+'.':'recuando do degrau '+i.degrauAtual+' para o '+i.degrauProjetado+' ('+pct(i.percentualProjetado,2)+').')+'</div>'}).join('')+'</div>'):'')+'<div class="v5i-grid2">'+capacity('Mensageria',m,'m',c,'#00A79D',r.mensageriaProjecao,pr.grupos&&pr.grupos.mensageria,r.estouro&&r.estouro.mensageria)+capacity('Encomendas',e,'e',c,'#F97316',r.encomendasProjecao,pr.grupos&&pr.grupos.encomendas,r.estouro&&r.estouro.encomendas)+'</div><div class="v5i-grid2">'+effectiveRateCard(d.taxaEfetiva||{})+bandCard(d.banda||{})+'</div><div class="v5i-grid2">'+decompCard(d.decomposicao||{})+dailyCard(d.diario||{})+'</div><div class="v5i-grid2">'+clientDropCard(d.quedaClientes||{})+r5Card(d.radarR5||{})+'</div>'+concentrationExpiryCard(d.riscoConcentracao||{})+card('Retorno do próximo R$ 1.000','remuneração marginal no '+(isProjected?'fechamento ajustado':'degrau do parcial'),'<div class="v5i-conc"><div><span>Mensageria</span><strong>'+money(1000*gm.p/100)+'</strong></div><div><span>Encomendas</span><strong>'+money(1000*ge.p/100)+'</strong></div><div><span>Diferença</span><strong>'+money(1000*(ge.p-gm.p)/100)+'</strong></div></div>'+(isProjected?'<div class="v5i-insight">Percentual do <strong>fechamento ajustado</strong>: receita recorrente projetada + Campanha/Pontual já realizado. '+(gm.base==='projecao_ajustada_revisar'?'<strong>Há sinal estatístico pendente de revisão manual.</strong>':'Classificação sem sinal estatístico pendente.')+'</div>':'<div class="v5i-note" style="margin-top:9px">Sem projeção ajustada disponível: exibindo o percentual do realizado.</div>'))+attendants(d.atendentesDesempenho||[])+'<div class="v5i-grid2">'+conc('Concentração por Serviço',d.servicos||[],total)+captacaoCard(d.captacao||{})+'</div><div class="v5i-grid2">'+mix('Visão comercial - Tipo de Serviço',d.tipoServico||[])+mix('Visão contratual - Tabela de Remuneração',d.tabela||[])+'</div><div class="v5i-grid2">'+efficiency()+simulator()+'</div>'+audit();document.querySelector('#dashboardView .v4-shell').appendChild(box);setTimeout(function(){sim();aud()},0)}
+function patchData(d){var active=document.querySelector('#viewSwitchRow button.active'),view=active&&active.dataset?active.dataset.view:'',shell=document.querySelector('#dashboardView .v4-shell'),sig=CACHE_KEY+'|'+view;if(view==='table'||!shell)return;if(shell.dataset.v5iSig===sig)return;shell.dataset.v5iSig=sig;var hist=findCard('Faturamento dos últimos 6 meses');if(hist)replaceBody(hist,history(d.evolucao6Meses||[]));if(view==='operacao'){patchCalendarKpisV6(d,'operacao');var donuts=document.querySelector('#dashboardView .v4-donuts');if(donuts)donuts.innerHTML=donutMix('Faturamento por Local',d.localGlobal||d.local||[])+donutMix('Mix por Tipo de Serviço',d.tipoServico||[])+donutMix('Canal',d.canais||d.intermediadores||[]);var ranks=document.querySelector('#dashboardView .v4-rank2');if(ranks)ranks.innerHTML=rank('Top Serviços',d.servicos||[],n(d.kpis&&d.kpis.faturamento))+rank('Top Clientes Portal',d.clientesPortal||[],n(d.kpis&&d.kpis.faturamento));return}if(view==='comercial'){patchCommercialProjection(d);patchCalendarKpisV6(d,'comercial');var mm=d.metas||{},med=findCard('Mapa de medalhas');if(med)replaceBody(med,medalMapBodyV6(mm,d));var gc=findCard('Realizado x meta x projeção');if(gc)replaceBody(gc,goalCompareV6(mm,d));return}if(view!=='gestao'||!manage())return;var opp=findCard('Oportunidade de embalagem');if(opp){var h=opp.querySelector('.v4-head');if(h)h.innerHTML='<strong>Potencial de venda de embalagens</strong><span>conversão, ganho e esforço estimado</span>';replaceBody(opp,opportunity(d.oportunidadeEmbalagem||{}))}var dn=document.querySelector('#dashboardView .v4-donuts');if(dn)dn.innerHTML=donutMix('Faturamento por Local',d.localGlobal||d.local||[])+donutMix('Mix por Tipo de Serviço',d.tipoServico||[])+donutMix('Canal',d.canais||d.intermediadores||[]);var old=document.getElementById('v5i-intelligence');if(old)old.remove();var r=d.remuneracao||{},m=rem(r.mensageria,'m'),e=rem(r.encomendas,'e'),c=(d.metas&&d.metas.config)||{},total=n(d.kpis&&d.kpis.faturamento),box=document.createElement('div');patchBaseRem(r,m,e);box.id='v5i-intelligence';var gm=marg('m'),ge=marg('e'),a=r.alertaDegrau||{},alerta=a.ativo?a:null,pr=d.projecaoReceita||{},isProjected=String(gm.base||'').indexOf('projecao_ajustada')===0;box.innerHTML=healthCard(d.saudeDado||{})+projectionReview(pr,r)+recurringBaseCard(d.baseRecorrente||{})+(alerta?card('Alerta de faixa contratual','projeção ajustada e revisada','<div class="v5i-alert">'+alerta.itens.map(function(i){return'<div style="margin-bottom:6px"><strong>'+esc(i.grupo)+'</strong>: fechamento ajustado em '+money(i.valorProjetado)+', '+(i.sentido==='estoura'?'cruzando do degrau '+i.degrauAtual+' ('+pct(i.percentualAtual,2)+') para o '+i.degrauProjetado+' ('+pct(i.percentualProjetado,2)+'). Excedente de '+money(i.excedenteProjetado)+'.':'recuando do degrau '+i.degrauAtual+' para o '+i.degrauProjetado+' ('+pct(i.percentualProjetado,2)+').')+'</div>'}).join('')+'</div>'):'')+'<div class="v5i-grid2">'+capacity('Mensageria',m,'m',c,'#00A79D',r.mensageriaProjecao,pr.grupos&&pr.grupos.mensageria,r.estouro&&r.estouro.mensageria)+capacity('Encomendas',e,'e',c,'#F97316',r.encomendasProjecao,pr.grupos&&pr.grupos.encomendas,r.estouro&&r.estouro.encomendas)+'</div><div class="v5i-grid2">'+effectiveRateCard(d.taxaEfetiva||{})+bandCard(d.banda||{})+'</div><div class="v5i-grid2">'+decompCard(d.decomposicao||{})+dailyCard(d.diario||{})+'</div><div class="v5i-grid2">'+clientDropCard(d.quedaClientes||{})+r5Card(d.radarR5||{})+'</div>'+concentrationExpiryCard(d.riscoConcentracao||{})+card('Retorno do próximo R$ 1.000','remuneração marginal no '+(isProjected?'fechamento ajustado':'degrau do parcial'),'<div class="v5i-conc"><div><span>Mensageria</span><strong>'+money(1000*gm.p/100)+'</strong></div><div><span>Encomendas</span><strong>'+money(1000*ge.p/100)+'</strong></div><div><span>Diferença</span><strong>'+money(1000*(ge.p-gm.p)/100)+'</strong></div></div>'+(isProjected?'<div class="v5i-insight">Percentual do <strong>fechamento ajustado</strong>: receita recorrente projetada + Campanha/Pontual já realizado. '+(gm.base==='projecao_ajustada_revisar'?'<strong>Há sinal estatístico pendente de revisão manual.</strong>':'Classificação sem sinal estatístico pendente.')+'</div>':'<div class="v5i-note" style="margin-top:9px">Sem projeção ajustada disponível: exibindo o percentual do realizado.</div>'))+attendants(d.atendentesDesempenho||[])+'<div class="v5i-grid2">'+conc('Concentração por Serviço',d.servicos||[],total)+captacaoCard(d.captacao||{})+'</div><div class="v5i-grid2">'+mix('Visão comercial - Tipo de Serviço',d.tipoServico||[])+mix('Visão contratual - Tabela de Remuneração',d.tabela||[])+'</div><div class="v5i-grid2">'+efficiency()+simulator()+'</div>'+audit();document.querySelector('#dashboardView .v4-shell').appendChild(box);setTimeout(function(){sim();aud()},0)}
 function key(){try{return JSON.stringify(window.filterContext?filterContext():{})}catch(_){return''}}function fetchAndPatch(){var k=key();if(CACHE&&CACHE_KEY===k){patchData(CACHE);return}if(BUSY)return;BUSY=true;google.script.run.withSuccessHandler(function(r){BUSY=false;if(!r||!r.ok)return;CACHE=r;CACHE_KEY=k;patchData(r)}).withFailureHandler(function(){BUSY=false}).ATENDE_buscarDashboardV4D1(window.filterContext?filterContext():{},window.AUTH_TOKEN||'')}function schedule(){clearTimeout(TIMER);TIMER=setTimeout(function(){var a=document.querySelector('#viewSwitchRow button.active');if(a&&a.dataset.view!=='table')fetchAndPatch()},120)}function boot(){css();var d=document.getElementById('dashboardView');if(!d){setTimeout(boot,200);return}new MutationObserver(schedule).observe(d,{childList:true,subtree:true});document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#viewSwitchRow button[data-view]');if(b)setTimeout(schedule,150)});schedule();window.ATENDE_DASHBOARD_INTELLIGENCE_V6_READY=true}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script>
