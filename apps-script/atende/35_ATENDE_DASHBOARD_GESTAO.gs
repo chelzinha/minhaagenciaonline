@@ -8,7 +8,7 @@ function ATENDE_buscarDashboardGestaoD1(params) {
   const query = ['view=dashboard'];
   ATENDE_adicionarContextoFiltroQuery_(query, params);
   const startedAt = Date.now();
-  const response = ATENDE_fetchD1V6Test_('/atende?' + query.join('&'), { method: 'get' });
+  const response = ATENDE_fetchD1_('/atende?' + query.join('&'), { method: 'get' });
 
   return {
     ok: response && response.ok !== false,

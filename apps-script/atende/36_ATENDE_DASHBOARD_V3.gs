@@ -8,7 +8,7 @@ function ATENDE_buscarDashboardGestaoV3D1(params) {
   const query = ['view=dashboard'];
   ATENDE_adicionarContextoFiltroQuery_(query, params);
   const startedAt = Date.now();
-  const response = ATENDE_fetchD1V6Test_('/atende?' + query.join('&'), { method: 'get' });
+  const response = ATENDE_fetchD1_('/atende?' + query.join('&'), { method: 'get' });
 
   return {
     ok: response && response.ok !== false,
@@ -71,9 +71,9 @@ function ATENDE_buscarDashboardGestaoV3D1(params) {
 function ATENDE_adminBuscarMetasDashboard(platformToken, competencia) {
   const mes = String(competencia || '').trim();
   if (!/^\d{4}-\d{2}$/.test(mes)) throw new Error('Competência inválida. Use AAAA-MM.');
-  return ATENDE_adminGetV6Test_(platformToken, '/admin/dashboard-targets?competencia=' + encodeURIComponent(mes));
+  return ATENDE_adminGetV6_(platformToken, '/admin/dashboard-targets?competencia=' + encodeURIComponent(mes));
 }
 
 function ATENDE_adminSalvarMetasDashboard(platformToken, payload) {
-  return ATENDE_adminPostV6Test_(platformToken, '/admin/dashboard-targets', payload || {});
+  return ATENDE_adminPostV6_(platformToken, '/admin/dashboard-targets', payload || {});
 }
