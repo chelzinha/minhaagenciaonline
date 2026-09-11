@@ -35,11 +35,14 @@ function normalizeRastroResponse_(raw, fallbackCodigo) {
   const statusLabel = atual ? atual.descricao : sanitize_(obj.descricao || 'Sem atualização');
   const statusClass = inferRastroStatusClass_(statusLabel);
   const localAtual = atual ? joinCidadeUf_(atual.cidade, atual.uf) : '';
+  const previsaoIso = sanitize_(obj.dtPrevista || obj.dataPrevista || obj.previsaoEntrega || '');
 
   return {
     codigoObjeto: codigoObjeto,
     statusLabel: statusLabel || 'Sem atualização',
     statusClass: statusClass,
+    previsao: formatRastroDataHora_(previsaoIso),
+    previsaoIso: previsaoIso,
     ultimaAtualizacao: atual ? atual.dataHora : '',
     ultimaAtualizacaoIso: atual ? atual.dataHoraIso : '',
     localAtual: localAtual,
@@ -98,6 +101,132 @@ function joinCidadeUf_(cidade, uf) {
   const u = sanitize_(uf);
   if (c && u) return c + '/' + u;
   return c || u || '';
+}
+
+function painelClienteDataMs_(value) {
+  if (value instanceof Date) return value.getTime();
+  const s = sanitize_(value);
+  if (!s) return 0;
+  const br = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s);
+  if (br) return new Date(Number(br[3]), Number(br[2]) - 1, Number(br[1])).getTime();
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? 0 : d.getTime();
+}
+
+function painelClienteRastroSeguro_(norm) {
+  return {
+    codigoObjeto: sanitize_(norm && norm.codigoObjeto),
+    situacao: sanitize_(norm && norm.statusLabel),
+    previsao: sanitize_(norm && (norm.previsao || norm.previsaoIso)),
+    dataSituacao: sanitize_(norm && (norm.ultimaAtualizacao || norm.ultimaAtualizacaoIso))
+  };
+}
+
+function painelClienteCacheKey_(codigo) {
+  return 'PAINEL_RASTRO_' + upper_(sanitize_(codigo)).replace(/\s+/g, '');
+}
+
+function painelClienteGetRastros_(client, codigos) {
+  const cache = CacheService.getScriptCache();
+  const keys = codigos.map(painelClienteCacheKey_);
+  const cached = keys.length ? cache.getAll(keys) : {};
+  const rastros = {};
+  const faltantes = [];
+
+  codigos.forEach(function (codigo, i) {
+    const hit = cached[keys[i]];
+    if (hit) {
+      try {
+        rastros[codigo] = JSON.parse(hit);
+        return;
+      } catch (e) {}
+    }
+    faltantes.push(codigo);
+  });
+
+  if (faltantes.length) {
+    const consultados = cwsRastroConsultarObjetosEmLote_(client, faltantes, { resultado: 'T' });
+    const cacheOk = {};
+    const cacheFalha = {};
+
+    consultados.forEach(function (item) {
+      const codigo = item.codigoObjeto;
+      if (item.ok) {
+        const safe = painelClienteRastroSeguro_(normalizeRastroResponse_(item.raw, codigo));
+        rastros[codigo] = safe;
+        cacheOk[painelClienteCacheKey_(codigo)] = JSON.stringify(safe);
+      } else {
+        const safe = { codigoObjeto: codigo, situacao: '', previsao: '', dataSituacao: '' };
+        rastros[codigo] = safe;
+        cacheFalha[painelClienteCacheKey_(codigo)] = JSON.stringify(safe);
+      }
+    });
+
+    if (Object.keys(cacheOk).length) cache.putAll(cacheOk, 900);
+    if (Object.keys(cacheFalha).length) cache.putAll(cacheFalha, 120);
+  }
+
+  return rastros;
+}
+
+/**
+ * ACAO: painelCliente
+ * Retorna somente postagens concluidas pertencentes ao cliente da sessao.
+ * dias aceitos: 30, 60, 90 ou 0 (todo o historico carregado pelo backend).
+ */
+function action_painelCliente_(params) {
+  ensureHistoricoHeaders_();
+  const sessionClient = getSessionClient_(params.sessionToken);
+  const client = getFullClientFromSession_(params.sessionToken);
+  const diasInformados = Number(params.dias);
+  const dias = [0, 30, 60, 90].indexOf(diasInformados) >= 0 ? diasInformados : 60;
+  const limiteHistorico = dias === 0 ? 10000 : 3000;
+  const corteMs = dias ? Date.now() - dias * 86400000 : 0;
+  const vistos = {};
+
+  const registros = readSheetTailAsObjects_(CFG.SHEETS.HIST, limiteHistorico)
+    .filter(function (r) {
+      if (sanitize_(r.LOGIN_APP) !== sessionClient.LOGIN_APP) return false;
+      if (upper_(r.STATUS) !== 'CONCLUIDO') return false;
+      const codigo = upper_(sanitize_(r.CODIGO_OBJETO)).replace(/\s+/g, '');
+      if (!/^[A-Z]{2}[0-9]{9}[A-Z]{2}$/.test(codigo)) return false;
+      const dataMs = painelClienteDataMs_(r.DATA_HORA);
+      return !corteMs || (dataMs && dataMs >= corteMs);
+    })
+    .sort(function (a, b) {
+      return painelClienteDataMs_(b.DATA_HORA) - painelClienteDataMs_(a.DATA_HORA);
+    })
+    .filter(function (r) {
+      const codigo = upper_(sanitize_(r.CODIGO_OBJETO)).replace(/\s+/g, '');
+      if (vistos[codigo]) return false;
+      vistos[codigo] = true;
+      return true;
+    });
+
+  const codigos = registros.map(function (r) {
+    return upper_(sanitize_(r.CODIGO_OBJETO)).replace(/\s+/g, '');
+  });
+  const rastros = painelClienteGetRastros_(client, codigos);
+
+  return {
+    dias: dias,
+    total: registros.length,
+    linhas: registros.map(function (r) {
+      const codigo = upper_(sanitize_(r.CODIGO_OBJETO)).replace(/\s+/g, '');
+      const rastreio = rastros[codigo] || {};
+      return {
+        objeto: codigo,
+        servico: upper_(r.SERVICO),
+        cidade: sanitize_(r.DEST_CIDADE),
+        uf: upper_(r.DEST_UF),
+        valor: historicoMoneyNumber_(r.PRECO_COTADO),
+        postagem: sanitize_(r.DATA_HORA),
+        previsao: sanitize_(rastreio.previsao),
+        dataSituacao: sanitize_(rastreio.dataSituacao),
+        situacao: sanitize_(rastreio.situacao)
+      };
+    })
+  };
 }
 
 /**

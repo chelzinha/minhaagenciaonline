@@ -175,7 +175,8 @@ Actions com impacto direto em planilhas:
 - criarEtiqueta e criarEtiquetaDireta gravam/atualizam HISTORICO_ETIQUETAS e podem salvar PDFs no Drive.
 - buscarDestinatarios, listarDestinatarios, salvarDestinatario, excluirDestinatario e importarDestinatariosCsv dependem de DESTINATARIOS.
 - testarTokenCws e diagnostico consultam cadastro/configuracoes do cliente e dados Correios/CWS.
-- cotar, cotarTodos, cep e rastrearObjeto usam dados do cliente para chamadas Correios/CWS e nao devem gravar dados operacionais sem necessidade.
+- cotar, cotarTodos, cep, rastrearObjeto e painelCliente usam dados do cliente para chamadas Correios/CWS e nao devem gravar dados operacionais sem necessidade.
+- painelCliente le somente o historico do cliente autenticado, consulta rastreios em lote e usa cache temporario; nao cria nova aba nem altera cabecalhos da planilha.
 - parseNfePdf usa PDF externo e pode alimentar payload de destinatario, NF-e e declaracao antes de salvar ou emitir.
 
 Dados sensiveis por grupo de action:
