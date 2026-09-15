@@ -163,7 +163,7 @@ async function buildDashboardV6(url, env) {
   ]);
 
   const contract = contractForMonth(contractCatalog, anchorMonth);
-  const targetBundle = await loadTargetBundle(anchorMonth, env, allHolidays);
+  const targetBundle = await loadTargetBundle(anchorMonth, env, allHolidays, state);
   const setupMs = Date.now() - v6StartedAt;
 
   const temposMs = {};
@@ -273,7 +273,7 @@ async function buildDashboardV6(url, env) {
 // Metas e dias uteis
 // ---------------------------------------------------------------------------
 
-async function loadTargetBundle(competencia, env, holidays) {
+async function loadTargetBundle(competencia, env, holidays, state) {
   const range = monthRange(competencia);
 
   // Para ultima data e quantidade de dias distintos nao precisamos
@@ -304,10 +304,50 @@ async function loadTargetBundle(competencia, env, holidays) {
 
   const row = rowResult?.results?.[0] || null;
   const last = lastResult?.results?.[0] || {};
-  const calc = calculatedDays(competencia, clean(last?.ultima_data), holidays);
+  const lastImported = clean(last?.ultima_data);
+
+  // Quando o usuário analisa do primeiro dia da competência até
+  // uma DATA FIM específica, essa DATA FIM funciona como trava.
+  // Nunca avançamos além da última data efetivamente importada.
+  const filterStart = clean(state?.dataInicio);
+  const filterEnd = clean(state?.dataFim);
+
+  const monthToDateFilter =
+    filterStart === range.start &&
+    filterEnd >= range.start &&
+    filterEnd <= range.end;
+
+  const calculatedCutoff =
+    monthToDateFilter &&
+    lastImported &&
+    filterEnd < lastImported
+      ? filterEnd
+      : lastImported;
+
+  const calc = calculatedDays(
+    competencia,
+    calculatedCutoff,
+    holidays
+  );
   const overrideReal = nullableInt(row?.dias_uteis_realizados_override);
   const overrideMes = nullableInt(row?.dias_uteis_mes_override);
-  const efetivoReal = overrideReal === null ? calc.realizados : overrideReal;
+  let efetivoReal =
+    overrideReal === null
+      ? calc.realizados
+      : overrideReal;
+
+  if (monthToDateFilter) {
+    const diasAteFiltro = businessDaysBetween(
+      range.start,
+      filterEnd,
+      holidays
+    );
+
+    efetivoReal = Math.min(
+      efetivoReal,
+      diasAteFiltro
+    );
+  }
   const efetivoMes = overrideMes === null ? calc.mes : overrideMes;
   const config = normalizeTargetRowV6(row, competencia, {
     calcReal:calc.realizados, calcMes:calc.mes,
@@ -573,8 +613,25 @@ function stepInfo(valor, escada) {
 async function buildClientAnalytics(competencia, state, env, config) {
   const currentState=cloneState(state);
   const range=monthRange(competencia);
+
+  const requestedStart=clean(state?.dataInicio);
+  const requestedEnd=clean(state?.dataFim);
+
+  const monthToDateFilter=
+    requestedStart===range.start &&
+    requestedEnd>=range.start &&
+    requestedEnd<=range.end;
+
   currentState.dataInicio=range.start;
-  currentState.dataFim=range.end;
+
+  // Para análise do dia 01 até uma DATA FIM escolhida,
+  // o realizado comercial para exatamente nessa DATA FIM.
+  // Nos demais casos preservamos o comportamento mensal anterior.
+  currentState.dataFim=
+    monthToDateFilter
+      ? requestedEnd
+      : range.end;
+
   const current=buildWhere(currentState);
 
   const histStart=monthAdd(competencia,-3);
