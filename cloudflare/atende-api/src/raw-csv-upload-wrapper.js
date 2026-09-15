@@ -401,7 +401,7 @@ function parseCsv(text, delimiter) {
       continue;
     }
 
-    if (ch === '"') {
+    if (ch === '"' && field === '') {
       quoted = true;
       continue;
     }
