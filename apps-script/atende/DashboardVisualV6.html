@@ -7,8 +7,7 @@ var COLORS=['#0B72D9','#00A79D','#F2B500','#7C3AED','#F97316','#16A34A','#E85D75
 var MEDALS=[
   {name:'Bronze',color:'#B87333'},
   {name:'Prata',color:'#8D99A6'},
-  {name:'Ouro',color:'#D5A100'},
-  {name:'Diamante',color:'#5370D9'}
+  {name:'Ouro',color:'#D5A100'}
 ];
 
 function n(v){v=Number(v||0);return Number.isFinite(v)?v:0}
@@ -74,7 +73,7 @@ function css(){
 .v6-medal-board{display:grid;gap:12px}.v6-medal-group{border:1px solid #E6ECF2;border-radius:13px;padding:12px;background:linear-gradient(180deg,#fff,#FBFCFD)}
 .v6-medal-group-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}.v6-medal-group-top strong{font-size:11px;color:#173650}.v6-medal-group-top small{display:block;margin-top:3px;font-size:8px;color:#8290A0}
 .v6-medal-current{font-size:9px;font-weight:900;border-radius:999px;padding:5px 8px;background:#EEF4FF;color:#2563EB;white-space:nowrap}
-.v6-medal-track{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.v6-medal{position:relative;border:1px solid #E8EDF2;border-radius:11px;padding:10px 6px 8px;text-align:center;background:#F8FAFC;color:#8290A0;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+.v6-medal-track{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.v6-medal{position:relative;border:1px solid #E8EDF2;border-radius:11px;padding:10px 6px 8px;text-align:center;background:#F8FAFC;color:#8290A0;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
 .v6-medal:hover{transform:translateY(-2px);box-shadow:0 7px 16px rgba(31,50,71,.09)}.v6-medal.unlocked{background:#fff;border-color:var(--medal)}.v6-medal.current{box-shadow:0 0 0 2px rgba(11,114,217,.12),0 8px 18px rgba(31,50,71,.08);transform:translateY(-1px)}
 .v6-medal .material-symbols-rounded{display:block;font-size:25px;color:var(--medal);font-variation-settings:'FILL' 1,'wght' 500}.v6-medal b{display:block;margin-top:4px;font-size:9px;color:#28465F}.v6-medal small{display:block;margin-top:2px;font-size:7.5px;color:#8290A0}.v6-medal .v6-current-label{display:inline-flex;margin-top:5px;border-radius:999px;padding:2px 5px;background:var(--medal);color:#fff;font-size:7px;font-weight:900}
 .v6-medal-progress{margin-top:10px;display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}.v6-medal-progress span{font-size:8px;color:#718096}.v6-medal-progress-track{height:8px;background:#EDF2F6;border-radius:999px;overflow:hidden}.v6-medal-progress-track i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#0B72D9,#00A79D)}
@@ -114,25 +113,7 @@ function adjusted(data,scope){
 }
 
 function commercialProjectionV6(data,scope){
-
   if(periodModeV6(data)!=='current')return 0;
-
-  var m=data&&data.metas||{},
-      c=m.config||{},
-      done=n(c.diasUteisRealizados),
-      days=n(c.diasUteisMes);
-
-  if(scope==='balcao'||scope==='metro'){
-
-    var actual=n(
-      m.realizado&&m.realizado[scope]
-    );
-
-    return done>0&&days>0
-      ? actual/done*days
-      : 0;
-  }
-
   return adjusted(data,scope);
 }
 
@@ -165,12 +146,146 @@ function tierState(actual,tiers){
   return{current:current,next:next};
 }
 
+function localFilterExcludes(scope){
+  if(scope!=='balcao' && scope!=='metro')return false;
+
+  var f={};
+
+  try{
+    if(typeof window.filterContext==='function'){
+      f=window.filterContext()||{};
+    }
+  }catch(_){}
+
+  var values=f.locais || [];
+
+  if(!Array.isArray(values)){
+    values=values?[values]:[];
+  }
+
+  values=values.map(function(v){
+    return String(v||'')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .toUpperCase()
+      .trim();
+  }).filter(Boolean);
+
+  if(!values.length)return false;
+
+  if(scope==='metro'){
+    return values.indexOf('METRO')<0;
+  }
+
+  return values.indexOf('AGF')<0 &&
+         values.indexOf('BALCAO AGF')<0;
+}
+
+function commercialGoalCards(data){
+  var m=data&&data.metas||{},
+      c=m.config||{},
+      current=periodModeV6(data)==='current',
+      groups=[
+        ['Encomendas','encomendas','#C46A1A'],
+        ['Balcão AGF','balcao','#7890A7'],
+        ['Metrô','metro','#D8A400']
+      ];
+
+  return groups.map(function(g){
+    var excluded=localFilterExcludes(g[1]),
+        actual=excluded?0:n(m.realizado&&m.realizado[g[1]]),
+        projection=excluded?0:(current?commercialProjectionV6(data,g[1]):0),
+        tiers=tierData(g[1],c),
+        state=tierState(actual,tiers),
+        projectedState=projection?tierState(projection,tiers):{current:null,next:null},
+        base=n(tiers[0]&&tiers[0].value),
+        progress=base?Math.min(100,actual*100/base):0,
+        currentLabel=excluded
+          ? 'Fora do filtro'
+          : 'Atual: '+(state.current?state.current.name:'Abaixo da Bronze'),
+        projectedLabel=excluded
+          ? 'Fora do filtro'
+          : (
+              current
+                ? 'Projeção: '+(
+                    projectedState.current
+                      ? projectedState.current.name
+                      : 'Abaixo da Bronze'
+                  )
+                : (
+                    periodModeV6(data)==='past'
+                      ? 'Mês encerrado'
+                      : 'Mês futuro'
+                  )
+            ),
+        nextText=excluded
+          ? 'Este grupo não participa do recorte atual.'
+          : (
+              state.next
+                ? 'Falta para '+state.next.name
+                : 'Ouro atingido'
+            ),
+        nextValue=excluded
+          ? ''
+          : (
+              state.next
+                ? money(Math.max(0,n(state.next.value)-actual))
+                : '🏆 Ouro'
+            );
+
+    return ''+
+      '<section class="v4-card v4-goal" style="--goal:'+g[2]+'">'+
+        '<div class="v4-goal-title">'+
+          '<strong>'+esc(g[0])+'</strong>'+
+          '<span class="v4-badge" style="--badge:'+g[2]+';--badge-bg:#F5F8FA">'+
+            esc(currentLabel)+
+          '</span>'+
+        '</div>'+
+
+        '<div class="v4-goal-main">'+
+          '<div>'+
+            '<div class="v4-goal-value">'+money(actual)+'</div>'+
+            '<div class="v4-note">meta Bronze '+(base?money(base):'não cadastrada')+'</div>'+
+          '</div>'+
+          '<div class="v4-goal-pct">'+
+            (base?pct(actual*100/base,1):'—')+
+          '</div>'+
+        '</div>'+
+
+        '<div class="v4-progress">'+
+          '<span style="width:'+progress+'%"></span>'+
+        '</div>'+
+
+        '<div class="v4-goal-meta">'+
+          '<div class="v4-mini">'+
+            '<span>Dias úteis</span>'+
+            '<strong>'+n(c.diasUteisRealizados)+' / '+n(c.diasUteisMes)+'</strong>'+
+          '</div>'+
+          '<div class="v4-mini">'+
+            '<span>Projeção V6</span>'+
+            '<strong>'+(current?money(projection):'—')+'</strong>'+
+          '</div>'+
+          '<div class="v4-mini">'+
+            '<span>Faixa projetada</span>'+
+            '<strong>'+esc(projectedLabel)+'</strong>'+
+          '</div>'+
+        '</div>'+
+
+        '<div class="v4-next">'+
+          esc(nextText)+
+          (nextValue?'<b>'+esc(nextValue)+'</b>':'')+
+        '</div>'+
+      '</section>';
+  }).join('');
+}
+
 function medalMapBody(data){
   var m=data&&data.metas||{},
       c=m.config||{},
       mode=periodModeV6(data),
       comp=competenceLabelV6(data),
       groups=[
+        ['Encomendas','encomendas'],
         ['Balcão AGF','balcao'],
         ['Metrô','metro']
       ],
@@ -179,7 +294,24 @@ function medalMapBody(data){
   groups.forEach(function(g){
 
     var actual=n(m.realizado&&m.realizado[g[1]]);
+    var excluded=localFilterExcludes(g[1]);
 
+    if(excluded){
+      html+=
+        '<div class="v6-medal-group">'+
+          '<div class="v6-medal-group-top">'+
+            '<div>'+
+              '<strong>'+esc(g[0])+'</strong>'+
+              '<small>Realizado '+money(0)+'</small>'+
+            '</div>'+
+            '<span class="v6-medal-current">Fora do filtro</span>'+
+          '</div>'+
+          '<div class="v6-visual-note">'+
+            'O filtro de Local atual exclui este grupo.'+
+          '</div>'+
+        '</div>';
+      return;
+    }
     if(!m.disponivel){
 
       html+=
@@ -329,7 +461,7 @@ function medalMapBody(data){
                   )
                 )+
                 ' para '+st.next.name
-              : 'Diamante atingido'
+              : 'Ouro atingido'
           )+
         '</span>'+
       '</div>';
@@ -397,7 +529,7 @@ function goalCompareBody(data){
       'Encomendas',
       'encomendas',
       n(m.realizado&&m.realizado.encomendas),
-      n(c.encomendasMeta)
+      n(c.encomendasBronze)
     ],
     [
       'Balcão AGF',
@@ -553,6 +685,19 @@ function patch(data){
     if(donuts)donuts.innerHTML=donutCard('Faturamento por Local',data.localGlobal||data.local||[])+donutCard('Mix por Tipo de Serviço',data.tipoServico||[])+donutCard('Canal',data.canais||data.intermediadores||[]);
   }
   if(view==='comercial'){
+    var goals=document.querySelector('#dashboardView .v4-goals');
+
+    if(goals){
+      goals.querySelectorAll('.v4-goal').forEach(function(x){
+        x.remove();
+      });
+
+      goals.insertAdjacentHTML(
+        'afterbegin',
+        commercialGoalCards(data)
+      );
+    }
+
     var medal=findCard('Mapa de medalhas');
     if(medal)replaceBody(medal,medalMapBody(data));
     var compare=findCard('Realizado x meta x projeção');

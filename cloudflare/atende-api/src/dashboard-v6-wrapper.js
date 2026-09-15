@@ -128,7 +128,7 @@ export default {
         extras.metas = {
           ...(body.metas || {}),
           ...extras.metas,
-          realizado:(body.metas && body.metas.realizado) || extras.metas.realizado || {}
+          realizado:extras.metas.realizado || (body.metas && body.metas.realizado) || {}
         };
       }
 
@@ -226,7 +226,23 @@ async function buildDashboardV6(url, env) {
       disponivel:targetBundle.found,
       competencia:anchorMonth,
       config:targetBundle.config,
-      realizado:{}
+      realizado:{
+        encomendas:round2(
+          projection.grupos &&
+          projection.grupos.encomendas &&
+          projection.grupos.encomendas.realizado || 0
+        ),
+        balcao:round2(
+          projection.locais &&
+          projection.locais.agf &&
+          projection.locais.agf.realizado || 0
+        ),
+        metro:round2(
+          projection.locais &&
+          projection.locais.metro &&
+          projection.locais.metro.realizado || 0
+        )
+      }
     },
     projecaoReceita:projection,
     remuneracao:remuneration,
@@ -330,42 +346,98 @@ async function saveTargetsV6(request, env) {
   if (efetivoReal < 0 || efetivoReal > efetivoMes) return json({ok:false,error:'dias_uteis_realizados_invalid'},400);
 
   const cfg = {
-    encomendasMeta:num(body.encomendasMeta),
-    balcaoBronze:num(body.balcaoBronze), balcaoPrata:num(body.balcaoPrata), balcaoOuro:num(body.balcaoOuro), balcaoDiamante:num(body.balcaoDiamante),
-    metroBronze:num(body.metroBronze), metroPrata:num(body.metroPrata), metroOuro:num(body.metroOuro), metroDiamante:num(body.metroDiamante)
+    encomendasBronze:num(body.encomendasBronze),
+    encomendasPrata:num(body.encomendasPrata),
+    encomendasOuro:num(body.encomendasOuro),
+
+    balcaoBronze:num(body.balcaoBronze),
+    balcaoPrata:num(body.balcaoPrata),
+    balcaoOuro:num(body.balcaoOuro),
+
+    metroBronze:num(body.metroBronze),
+    metroPrata:num(body.metroPrata),
+    metroOuro:num(body.metroOuro)
   };
   const validation = validateTargets(cfg);
   if (validation) return json({ok:false,error:validation},400);
 
   const user = clean(request.headers.get('X-AGF-Admin-User')) || 'admin';
-  const old = await env.DB.prepare(`SELECT * FROM atende_dashboard_metas_mensais WHERE competencia=?`).bind(competencia).first();
+
+  const old = await env.DB
+    .prepare(`SELECT * FROM atende_dashboard_metas_mensais WHERE competencia=?`)
+    .bind(competencia)
+    .first();
+
   await env.DB.prepare(`
     INSERT INTO atende_dashboard_metas_mensais(
-      competencia,dias_uteis_realizados,dias_uteis_mes,
-      dias_uteis_realizados_override,dias_uteis_mes_override,
-      encomendas_meta,balcao_bronze,balcao_prata,balcao_ouro,balcao_diamante,
-      metro_bronze,metro_prata,metro_ouro,metro_diamante,atualizado_por,atualizado_em
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))
+      competencia,
+      dias_uteis_realizados,
+      dias_uteis_mes,
+      dias_uteis_realizados_override,
+      dias_uteis_mes_override,
+
+      encomendas_meta,
+      encomendas_bronze,
+      encomendas_prata,
+      encomendas_ouro,
+
+      balcao_bronze,
+      balcao_prata,
+      balcao_ouro,
+
+      metro_bronze,
+      metro_prata,
+      metro_ouro,
+
+      atualizado_por,
+      atualizado_em
+    )
+    VALUES(
+      ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,
+      datetime('now')
+    )
     ON CONFLICT(competencia) DO UPDATE SET
       dias_uteis_realizados=excluded.dias_uteis_realizados,
       dias_uteis_mes=excluded.dias_uteis_mes,
       dias_uteis_realizados_override=excluded.dias_uteis_realizados_override,
       dias_uteis_mes_override=excluded.dias_uteis_mes_override,
+
       encomendas_meta=excluded.encomendas_meta,
+      encomendas_bronze=excluded.encomendas_bronze,
+      encomendas_prata=excluded.encomendas_prata,
+      encomendas_ouro=excluded.encomendas_ouro,
+
       balcao_bronze=excluded.balcao_bronze,
       balcao_prata=excluded.balcao_prata,
       balcao_ouro=excluded.balcao_ouro,
-      balcao_diamante=excluded.balcao_diamante,
+
       metro_bronze=excluded.metro_bronze,
       metro_prata=excluded.metro_prata,
       metro_ouro=excluded.metro_ouro,
-      metro_diamante=excluded.metro_diamante,
+
       atualizado_por=excluded.atualizado_por,
       atualizado_em=datetime('now')
   `).bind(
-    competencia,efetivoReal,efetivoMes,realOverride,mesOverride,
-    cfg.encomendasMeta,cfg.balcaoBronze,cfg.balcaoPrata,cfg.balcaoOuro,cfg.balcaoDiamante,
-    cfg.metroBronze,cfg.metroPrata,cfg.metroOuro,cfg.metroDiamante,user
+    competencia,
+    efetivoReal,
+    efetivoMes,
+    realOverride,
+    mesOverride,
+
+    cfg.encomendasBronze,
+    cfg.encomendasBronze,
+    cfg.encomendasPrata,
+    cfg.encomendasOuro,
+
+    cfg.balcaoBronze,
+    cfg.balcaoPrata,
+    cfg.balcaoOuro,
+
+    cfg.metroBronze,
+    cfg.metroPrata,
+    cfg.metroOuro,
+
+    user
   ).run();
   await audit(env,'dashboard_meta',competencia,'config',old||{},body,user);
   const after = await loadTargetBundle(competencia, env, holidays);
@@ -384,20 +456,51 @@ function normalizeTargetRowV6(row, competencia, d) {
     diasComMovimento:d.diasMovimento,
     ultimaDataComMovimento:d.ultimaData,
     diasDivergencia:(d.overrideReal!==null&&d.overrideReal!==d.calcReal)||(d.overrideMes!==null&&d.overrideMes!==d.calcMes),
-    encomendasMeta:num(row?.encomendas_meta),
-    balcaoBronze:num(row?.balcao_bronze),balcaoPrata:num(row?.balcao_prata),balcaoOuro:num(row?.balcao_ouro),balcaoDiamante:num(row?.balcao_diamante),
-    metroBronze:num(row?.metro_bronze),metroPrata:num(row?.metro_prata),metroOuro:num(row?.metro_ouro),metroDiamante:num(row?.metro_diamante),
+    encomendasMeta:num(row?.encomendas_bronze) || num(row?.encomendas_meta),
+
+    encomendasBronze:num(row?.encomendas_bronze) || num(row?.encomendas_meta),
+    encomendasPrata:num(row?.encomendas_prata),
+    encomendasOuro:num(row?.encomendas_ouro),
+
+    balcaoBronze:num(row?.balcao_bronze),
+    balcaoPrata:num(row?.balcao_prata),
+    balcaoOuro:num(row?.balcao_ouro),
+    balcaoDiamante:0,
+
+    metroBronze:num(row?.metro_bronze),
+    metroPrata:num(row?.metro_prata),
+    metroOuro:num(row?.metro_ouro),
+    metroDiamante:0,
     atualizadoPor:clean(row?.atualizado_por),atualizadoEm:clean(row?.atualizado_em)
   };
 }
 
 function validateTargets(c) {
-  if (c.encomendasMeta <= 0) return 'encomendas_meta_invalid';
-  if (!strictIncreasing([c.balcaoBronze,c.balcaoPrata,c.balcaoOuro,c.balcaoDiamante])) return 'balcao_metas_invalid';
-  if (!strictIncreasing([c.metroBronze,c.metroPrata,c.metroOuro,c.metroDiamante])) return 'metro_metas_invalid';
+  if (!strictIncreasing([
+    c.encomendasBronze,
+    c.encomendasPrata,
+    c.encomendasOuro
+  ])) return 'encomendas_metas_invalid';
+
+  if (!strictIncreasing([
+    c.balcaoBronze,
+    c.balcaoPrata,
+    c.balcaoOuro
+  ])) return 'balcao_metas_invalid';
+
+  if (!strictIncreasing([
+    c.metroBronze,
+    c.metroPrata,
+    c.metroOuro
+  ])) return 'metro_metas_invalid';
+
   return '';
 }
-function strictIncreasing(a){return a.length===4&&a.every((v,i)=>v>0&&(i===0||v>a[i-1]));}
+
+function strictIncreasing(a){
+  return a.length===3 &&
+    a.every((v,i)=>v>0 && (i===0 || v>a[i-1]));
+}
 
 // ---------------------------------------------------------------------------
 // Contrato por PPCC / vigencia

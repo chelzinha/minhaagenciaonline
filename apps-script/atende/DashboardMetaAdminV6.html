@@ -38,7 +38,7 @@ function esc(v){
 }
 
 function tierInputs(prefix){
-  return ['Bronze','Prata','Ouro','Diamante'].map(function(x){
+  return ['Bronze','Prata','Ouro'].map(function(x){
     return '<label>'+x+' (R$)<input id="db'+prefix+x+'" inputmode="decimal"></label>';
   }).join('');
 }
@@ -88,14 +88,13 @@ function loadMeta(){
         (c.diasUteisMesOverride===null||c.diasUteisMesOverride===undefined)
           ? '' : c.diasUteisMesOverride;
       renderCalculado(c);
-      document.getElementById('dbEncomendasMeta').value=
-        c.encomendasMeta?money(c.encomendasMeta):'';
 
       [
+        ['Encomendas','encomendas'],
         ['Balcao','balcao'],
         ['Metro','metro']
       ].forEach(function(p){
-        ['Bronze','Prata','Ouro','Diamante'].forEach(function(x){
+        ['Bronze','Prata','Ouro'].forEach(function(x){
           var key=p[1]+x.charAt(0).toUpperCase()+x.slice(1);
           var el=document.getElementById('db'+p[0]+x);
           if(el)el.value=c[key]?money(c[key]):'';
@@ -265,17 +264,15 @@ function saveMeta(){
   var p={
     competencia:mes,
     diasUteisRealizadosOverride:overrideValue('dbDiasRealizados'),
-    diasUteisMesOverride:overrideValue('dbDiasMes'),
-    encomendasMeta:parseNum(
-      document.getElementById('dbEncomendasMeta').value
-    )
+    diasUteisMesOverride:overrideValue('dbDiasMes')
   };
 
   [
+    ['Encomendas','encomendas'],
     ['Balcao','balcao'],
     ['Metro','metro']
   ].forEach(function(a){
-    ['Bronze','Prata','Ouro','Diamante'].forEach(function(x){
+    ['Bronze','Prata','Ouro'].forEach(function(x){
       p[a[1]+x.charAt(0).toUpperCase()+x.slice(1)] =
         parseNum(document.getElementById('db'+a[0]+x).value);
     });
@@ -456,9 +453,10 @@ function install(){
             '<input id="dbDiasMes" type="number" min="1" step="1" placeholder="automático">'+
           '</label>'+
           '<div id="dbDiasCalculado" class="db-calc" style="grid-column:1/-1"></div>'+
-          '<label style="grid-column:1/-1">Meta Encomendas (R$)'+
-            '<input id="dbEncomendasMeta" inputmode="decimal">'+
-          '</label>'+
+          '<div style="grid-column:1/-1;font-size:9px;font-weight:900;color:var(--nv);margin-top:2px">Metas de Encomendas</div>'+
+          '<label>Bronze (R$)<input id="dbEncomendasBronze" inputmode="decimal"></label>'+
+          '<label>Prata (R$)<input id="dbEncomendasPrata" inputmode="decimal"></label>'+
+          '<label>Ouro (R$)<input id="dbEncomendasOuro" inputmode="decimal"></label>'+
         '</div>'+
       '</section>'+
 

@@ -77,7 +77,7 @@ function commercialProjectionV6(m,d,scope){
   );
 }
 
-function medalTierData(prefix,c){return['Bronze','Prata','Ouro','Diamante'].map(function(name,i){var key=prefix+name.charAt(0).toUpperCase()+name.slice(1);return{name:name,value:n(c[key]),color:['#B87333','#8D99A6','#D5A100','#5370D9'][i]}})}
+function medalTierData(prefix,c){return['Bronze','Prata','Ouro'].map(function(name,i){var key=prefix+name.charAt(0).toUpperCase()+name.slice(1);return{name:name,value:n(c[key]),color:['#B87333','#8D99A6','#D5A100'][i]}})}
 function medalTierState(actual,tiers){var current=null,next=null;tiers.forEach(function(t){if(t.value>0&&actual>=t.value)current=t;else if(!next&&t.value>0&&actual<t.value)next=t});return{current:current,next:next}}
 function medalMapBodyV6(m,d){
   m=m||{};
@@ -235,7 +235,7 @@ function medalMapBodyV6(m,d){
                     )
                   )+
                   ' para '+st.next.name
-                : 'Diamante atingido'
+                : 'Ouro atingido'
             )+
           '</span>'+
         '</div>';
@@ -302,7 +302,7 @@ function goalCompareV6(m,d){
       'Encomendas',
       'encomendas',
       n(m.realizado&&m.realizado.encomendas),
-      n(c.encomendasMeta)
+      n(c.encomendasBronze)
     ],
     [
       'Balcão AGF',
