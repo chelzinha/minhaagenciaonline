@@ -81,6 +81,179 @@ function css(){
 .v6-goal-bars{position:relative;margin-top:9px;padding:2px 0}.v6-goal-track{height:18px;border-radius:999px;background:#E9EFF4;position:relative;overflow:hidden}.v6-goal-track .proj{position:absolute;inset:0 auto 0 0;width:var(--proj);background:#BEEDE1;border-radius:999px}.v6-goal-track .actual{position:absolute;left:0;top:4px;bottom:4px;width:var(--actual);background:#0B72D9;border-radius:999px}.v6-goal-track .target{position:absolute;top:-3px;bottom:-3px;left:var(--target);width:2px;background:#F2B500;box-shadow:0 0 0 1px #fff}
 .v6-goal-legend{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px}.v6-goal-stat{border-radius:9px;background:#fff;border:1px solid #E8EDF2;padding:7px 8px}.v6-goal-stat span{display:block;font-size:7.5px;text-transform:uppercase;color:#8290A0;font-weight:850}.v6-goal-stat strong{display:block;margin-top:3px;font-size:10px;color:#28465F}.v6-goal-stat.real strong{color:#0B72D9}.v6-goal-stat.proj strong{color:#08775A}.v6-goal-stat.meta strong{color:#A06B00}
 .v6-visual-note{margin-top:9px;font-size:9.5px;line-height:1.45;color:#7B8999}
+
+/* Comercial V6 - layout consolidado */
+.v6-commercial-main{
+  display:grid;
+  grid-template-columns:minmax(0,3fr) minmax(340px,1.12fr);
+  gap:12px;
+  align-items:stretch;
+  margin-bottom:12px
+}
+
+.v6-commercial-cards{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  align-items:stretch
+}
+
+.v6-commercial-cards>.v4-card{
+  min-width:0;
+  height:100%;
+  display:flex;
+  flex-direction:column
+}
+
+.v6-commercial-compare-card{
+  min-width:0;
+  height:100%
+}
+
+.v6-commercial-metrics{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+  margin-top:10px
+}
+
+.v6-commercial-metric{
+  border:1px solid #E6ECF2;
+  border-radius:10px;
+  padding:8px 9px;
+  background:#FBFCFD;
+  min-width:0
+}
+
+.v6-commercial-metric span{
+  display:block;
+  font-size:7.5px;
+  line-height:1.2;
+  text-transform:uppercase;
+  letter-spacing:.15px;
+  color:#8290A0;
+  font-weight:850
+}
+
+.v6-commercial-metric strong{
+  display:block;
+  margin-top:4px;
+  font-size:10.5px;
+  line-height:1.25;
+  color:#28465F;
+  overflow-wrap:anywhere
+}
+
+.v6-commercial-metric.daily strong{
+  color:#0B72D9
+}
+
+.v6-commercial-metric.expected strong{
+  color:#A06B00
+}
+
+.v6-commercial-metric.projection strong{
+  color:#08775A
+}
+
+.v6-inline-medals{
+  margin-top:12px;
+  padding-top:11px;
+  border-top:1px solid #E6ECF2
+}
+
+.v6-inline-medals-title{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  margin-bottom:8px
+}
+
+.v6-inline-medals-title span{
+  font-size:8px;
+  text-transform:uppercase;
+  font-weight:900;
+  color:#8290A0
+}
+
+.v6-inline-medals-title strong{
+  font-size:9px;
+  color:#28465F
+}
+
+.v6-inline-medals .v6-medal{
+  padding:8px 4px 7px
+}
+
+.v6-inline-medals .v6-medal .material-symbols-rounded{
+  font-size:21px
+}
+
+.v6-inline-medals .v6-medal b{
+  font-size:8.5px
+}
+
+.v6-inline-medals .v6-medal small{
+  font-size:7px
+}
+
+.v6-inline-medals .v6-medal-progress{
+  margin-top:9px
+}
+
+.v6-commercial-compare-card .v6-goal-compare{
+  gap:10px
+}
+
+.v6-commercial-compare-card .v6-goal-row{
+  padding:10px
+}
+
+.v6-goal-row.is-excluded{
+  opacity:.62
+}
+
+.v6-goal-excluded{
+  margin-top:8px;
+  border-radius:9px;
+  background:#F2F5F8;
+  padding:9px 10px;
+  font-size:9px;
+  color:#718096
+}
+
+@media(max-width:1450px){
+  .v6-commercial-main{
+    grid-template-columns:minmax(0,2.45fr) minmax(310px,1fr)
+  }
+}
+
+@media(max-width:1180px){
+  .v6-commercial-main{
+    grid-template-columns:1fr
+  }
+
+  .v6-commercial-cards{
+    grid-template-columns:repeat(3,minmax(0,1fr))
+  }
+}
+
+@media(max-width:900px){
+  .v6-commercial-cards{
+    grid-template-columns:1fr
+  }
+
+  .v6-commercial-metrics{
+    grid-template-columns:repeat(2,minmax(0,1fr))
+  }
+}
+
+@media(max-width:520px){
+  .v6-commercial-metrics{
+    grid-template-columns:1fr
+  }
+}
 @media(max-width:900px){.v6-donut-body{grid-template-columns:112px minmax(0,1fr)}.v6-donut{width:108px;height:108px}.v6-goal-top{grid-template-columns:1fr}.v6-goal-legend{grid-template-columns:1fr}.v6-medal-track{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.v6-donut-body{grid-template-columns:1fr}.v6-donut{margin:0 auto}.v6-donut-row{grid-template-columns:9px minmax(0,1fr) auto}.v6-donut-row strong{display:none}.v6-medal-track{grid-template-columns:1fr 1fr}.v6-medal-progress{grid-template-columns:1fr}.v6-medal-progress>span:last-child{text-align:right}}
 `;
@@ -181,10 +354,131 @@ function localFilterExcludes(scope){
          values.indexOf('BALCAO AGF')<0;
 }
 
+function inlineMedals(data,scope){
+  var m=data&&data.metas||{},
+      c=m.config||{},
+      excluded=localFilterExcludes(scope),
+      actual=excluded?0:n(m.realizado&&m.realizado[scope]);
+
+  if(excluded){
+    return ''+
+      '<div class="v6-inline-medals">'+
+        '<div class="v6-inline-medals-title">'+
+          '<span>Faixas</span>'+
+          '<strong>Fora do filtro</strong>'+
+        '</div>'+
+        '<div class="v6-goal-excluded">'+
+          'Este grupo não participa do recorte atual.'+
+        '</div>'+
+      '</div>';
+  }
+
+  if(!m.disponivel){
+    return ''+
+      '<div class="v6-inline-medals">'+
+        '<div class="v6-inline-medals-title">'+
+          '<span>Faixas</span>'+
+          '<strong>Sem metas cadastradas</strong>'+
+        '</div>'+
+      '</div>';
+  }
+
+  var tiers=tierData(scope,c),
+      st=tierState(actual,tiers),
+      lower=st.current?n(st.current.value):0,
+      last=tiers[tiers.length-1],
+      upper=st.next
+        ? n(st.next.value)
+        : n(last&&last.value),
+      progress=upper>lower
+        ? Math.max(
+            0,
+            Math.min(
+              100,
+              (actual-lower)*100/(upper-lower)
+            )
+          )
+        : 100;
+
+  return ''+
+    '<div class="v6-inline-medals">'+
+
+      '<div class="v6-inline-medals-title">'+
+        '<span>Faixas</span>'+
+        '<strong>'+
+          esc(st.current?st.current.name:'Abaixo da Bronze')+
+        '</strong>'+
+      '</div>'+
+
+      '<div class="v6-medal-track">'+
+        tiers.map(function(t){
+          var unlocked=
+                t.value>0&&actual>=t.value,
+
+              isCurrent=
+                st.current&&
+                st.current.name===t.name;
+
+          return ''+
+            '<div class="v6-medal '+
+              (unlocked?'unlocked ':'')+
+              (isCurrent?'current':'')+
+              '" style="--medal:'+t.color+'">'+
+
+              '<span class="material-symbols-rounded">'+
+                'military_tech'+
+              '</span>'+
+
+              '<b>'+esc(t.name)+'</b>'+
+              '<small>'+money(t.value)+'</small>'+
+
+              (
+                isCurrent
+                  ? '<span class="v6-current-label">ATUAL</span>'
+                  : ''
+              )+
+
+            '</div>';
+        }).join('')+
+      '</div>'+
+
+      '<div class="v6-medal-progress">'+
+
+        '<span>'+
+          (st.current?esc(st.current.name):'Início')+
+        '</span>'+
+
+        '<div class="v6-medal-progress-track">'+
+          '<i style="width:'+progress+'%"></i>'+
+        '</div>'+
+
+        '<span>'+
+          (
+            st.next
+              ? 'Faltam '+
+                money(
+                  Math.max(
+                    0,
+                    n(st.next.value)-actual
+                  )
+                )+
+                ' para '+esc(st.next.name)
+              : 'Ouro atingido'
+          )+
+        '</span>'+
+
+      '</div>'+
+
+    '</div>';
+}
+
+
 function commercialGoalCards(data){
   var m=data&&data.metas||{},
       c=m.config||{},
       current=periodModeV6(data)==='current',
+      done=n(c.diasUteisRealizados),
+      days=n(c.diasUteisMes),
       groups=[
         ['Encomendas','encomendas','#C46A1A'],
         ['Balcão AGF','balcao','#7890A7'],
@@ -192,63 +486,111 @@ function commercialGoalCards(data){
       ];
 
   return groups.map(function(g){
+
     var excluded=localFilterExcludes(g[1]),
-        actual=excluded?0:n(m.realizado&&m.realizado[g[1]]),
-        projection=excluded?0:(current?commercialProjectionV6(data,g[1]):0),
+
+        actual=
+          excluded
+            ? 0
+            : n(m.realizado&&m.realizado[g[1]]),
+
+        projection=
+          excluded
+            ? 0
+            : (
+                current
+                  ? commercialProjectionV6(data,g[1])
+                  : 0
+              ),
+
         tiers=tierData(g[1],c),
+
         state=tierState(actual,tiers),
-        projectedState=projection?tierState(projection,tiers):{current:null,next:null},
+
+        projectedState=
+          projection
+            ? tierState(projection,tiers)
+            : {current:null,next:null},
+
         base=n(tiers[0]&&tiers[0].value),
-        progress=base?Math.min(100,actual*100/base):0,
-        currentLabel=excluded
-          ? 'Fora do filtro'
-          : 'Atual: '+(state.current?state.current.name:'Abaixo da Bronze'),
-        projectedLabel=excluded
-          ? 'Fora do filtro'
-          : (
-              current
-                ? 'Projeção: '+(
-                    projectedState.current
-                      ? projectedState.current.name
-                      : 'Abaixo da Bronze'
-                  )
-                : (
-                    periodModeV6(data)==='past'
-                      ? 'Mês encerrado'
-                      : 'Mês futuro'
-                  )
-            ),
-        nextText=excluded
-          ? 'Este grupo não participa do recorte atual.'
-          : (
-              state.next
-                ? 'Falta para '+state.next.name
-                : 'Ouro atingido'
-            ),
-        nextValue=excluded
-          ? ''
-          : (
-              state.next
-                ? money(Math.max(0,n(state.next.value)-actual))
-                : '🏆 Ouro'
-            );
+
+        progress=
+          base
+            ? Math.min(100,actual*100/base)
+            : 0,
+
+        dailyActual=
+          done
+            ? actual/done
+            : 0,
+
+        dailyExpected=
+          days&&base
+            ? base/days
+            : 0,
+
+        currentLabel=
+          excluded
+            ? 'Fora do filtro'
+            : (
+                'Atual: '+
+                (
+                  state.current
+                    ? state.current.name
+                    : 'Abaixo da Bronze'
+                )
+              ),
+
+        projectedLabel=
+          excluded
+            ? 'Fora do filtro'
+            : (
+                current
+                  ? (
+                      projectedState.current
+                        ? projectedState.current.name
+                        : 'Abaixo da Bronze'
+                    )
+                  : (
+                      periodModeV6(data)==='past'
+                        ? 'Mês encerrado'
+                        : 'Mês futuro'
+                    )
+              );
 
     return ''+
-      '<section class="v4-card v4-goal" style="--goal:'+g[2]+'">'+
+
+      '<section class="v4-card v4-goal" '+
+        'style="--goal:'+g[2]+'">'+
+
         '<div class="v4-goal-title">'+
           '<strong>'+esc(g[0])+'</strong>'+
-          '<span class="v4-badge" style="--badge:'+g[2]+';--badge-bg:#F5F8FA">'+
+          '<span class="v4-badge" '+
+            'style="--badge:'+g[2]+';--badge-bg:#F5F8FA">'+
             esc(currentLabel)+
           '</span>'+
         '</div>'+
 
         '<div class="v4-goal-main">'+
           '<div>'+
-            '<div class="v4-goal-value">'+money(actual)+'</div>'+
-            '<div class="v4-note">meta Bronze '+(base?money(base):'não cadastrada')+'</div>'+
+            '<div class="v4-goal-value">'+
+              money(actual)+
+            '</div>'+
+            '<div class="v4-note">'+
+              'meta Bronze '+
+              (
+                base
+                  ? money(base)
+                  : 'não cadastrada'
+              )+
+            '</div>'+
           '</div>'+
           '<div class="v4-goal-pct">'+
-            (base?pct(actual*100/base,1):'—')+
+            (
+              base
+                ? pct(actual*100/base,1)
+                : '—'
+            )+
           '</div>'+
         '</div>'+
 
@@ -256,26 +598,54 @@ function commercialGoalCards(data){
           '<span style="width:'+progress+'%"></span>'+
         '</div>'+
 
-        '<div class="v4-goal-meta">'+
-          '<div class="v4-mini">'+
-            '<span>Dias úteis</span>'+
-            '<strong>'+n(c.diasUteisRealizados)+' / '+n(c.diasUteisMes)+'</strong>'+
+        '<div class="v6-commercial-metrics">'+
+
+          '<div class="v6-commercial-metric daily">'+
+            '<span>Média diária realizada</span>'+
+            '<strong>'+
+              (
+                excluded
+                  ? money(0)
+                  : money(dailyActual)
+              )+
+            '</strong>'+
           '</div>'+
-          '<div class="v4-mini">'+
+
+          '<div class="v6-commercial-metric expected">'+
+            '<span>Média diária esperada</span>'+
+            '<strong>'+
+              (
+                base&&days
+                  ? money(dailyExpected)
+                  : '—'
+              )+
+            '</strong>'+
+          '</div>'+
+
+          '<div class="v6-commercial-metric projection">'+
             '<span>Projeção V6</span>'+
-            '<strong>'+(current?money(projection):'—')+'</strong>'+
+            '<strong>'+
+              (
+                current
+                  ? money(projection)
+                  : '—'
+              )+
+            '</strong>'+
           '</div>'+
-          '<div class="v4-mini">'+
+
+          '<div class="v6-commercial-metric">'+
             '<span>Faixa projetada</span>'+
-            '<strong>'+esc(projectedLabel)+'</strong>'+
+            '<strong>'+
+              esc(projectedLabel)+
+            '</strong>'+
           '</div>'+
+
         '</div>'+
 
-        '<div class="v4-next">'+
-          esc(nextText)+
-          (nextValue?'<b>'+esc(nextValue)+'</b>':'')+
-        '</div>'+
+        inlineMedals(data,g[1])+
+
       '</section>';
+
   }).join('');
 }
 
@@ -549,9 +919,29 @@ function goalCompareBody(data){
 
   items.forEach(function(x){
 
+    var excluded=localFilterExcludes(x[1]);
+
+    if(excluded){
+
+      html+=
+        '<div class="v6-goal-row is-excluded">'+
+          '<div class="v6-goal-top">'+
+            '<strong>'+esc(x[0])+'</strong>'+
+            '<span><b>Fora do filtro</b></span>'+
+          '</div>'+
+          '<div class="v6-goal-excluded">'+
+            'O filtro de Local atual exclui este grupo.'+
+          '</div>'+
+        '</div>';
+
+      return;
+    }
+
     var current=mode==='current',
 
-        pr=current?commercialProjectionV6(data,x[1]):0,
+        pr=current
+          ? commercialProjectionV6(data,x[1])
+          : 0,
 
         scale=
           Math.max(
@@ -592,16 +982,31 @@ function goalCompareBody(data){
           );
 
     html+=
+
       '<div class="v6-goal-row">'+
 
         '<div class="v6-goal-top">'+
-          '<strong>'+esc(x[0])+'</strong>'+
-          '<span>Realizado <b>'+pct(pa,1)+'</b> da meta</span>'+
+
+          '<strong>'+
+            esc(x[0])+
+          '</strong>'+
+
+          '<span>'+
+            'Realizado <b>'+
+              pct(pa,1)+
+            '</b> da meta'+
+          '</span>'+
+
           (
             current
-              ? '<span>Projeção <b>'+pct(pp,1)+'</b></span>'
+              ? '<span>'+
+                  'Projeção <b>'+
+                    pct(pp,1)+
+                  '</b>'+
+                '</span>'
               : '<span><b>Mês encerrado</b></span>'
           )+
+
         '</div>'+
 
         '<div class="v6-goal-bars">'+
@@ -622,7 +1027,9 @@ function goalCompareBody(data){
             '<i class="target" title="Meta: '+
               esc(money(x[3]))+
             '"></i>'+
+
           '</div>'+
+
         '</div>'+
 
         '<div class="v6-goal-legend" '+
@@ -647,12 +1054,19 @@ function goalCompareBody(data){
             current
               ? '<div class="v6-goal-stat proj">'+
                   '<span>Projeção · '+pct(pp,1)+'</span>'+
-                  '<strong>'+(pr?money(pr):'—')+'</strong>'+
+                  '<strong>'+
+                    (
+                      pr
+                        ? money(pr)
+                        : '—'
+                    )+
+                  '</strong>'+
                 '</div>'
               : ''
           )+
 
         '</div>'+
+
       '</div>';
   });
 
@@ -685,23 +1099,52 @@ function patch(data){
     if(donuts)donuts.innerHTML=donutCard('Faturamento por Local',data.localGlobal||data.local||[])+donutCard('Mix por Tipo de Serviço',data.tipoServico||[])+donutCard('Canal',data.canais||data.intermediadores||[]);
   }
   if(view==='comercial'){
-    var goals=document.querySelector('#dashboardView .v4-goals');
+
+    var goals=
+      document.querySelector(
+        '#dashboardView .v4-goals'
+      );
 
     if(goals){
-      goals.querySelectorAll('.v4-goal').forEach(function(x){
-        x.remove();
-      });
+
+      var oldGrid=
+        goals.nextElementSibling;
+
+      var html=
+        '<div class="v6-commercial-main">'+
+
+          '<div class="v6-commercial-cards">'+
+            commercialGoalCards(data)+
+          '</div>'+
+
+          '<section class="v4-card v6-commercial-compare-card">'+
+
+            '<div class="v4-head">'+
+              '<strong>Realizado x meta x projeção</strong>'+
+              '<span>por grupo</span>'+
+            '</div>'+
+
+            goalCompareBody(data)+
+
+          '</section>'+
+
+        '</div>';
 
       goals.insertAdjacentHTML(
-        'afterbegin',
-        commercialGoalCards(data)
+        'beforebegin',
+        html
       );
-    }
 
-    var medal=findCard('Mapa de medalhas');
-    if(medal)replaceBody(medal,medalMapBody(data));
-    var compare=findCard('Realizado x meta x projeção');
-    if(compare)replaceBody(compare,goalCompareBody(data));
+      goals.remove();
+
+      if(
+        oldGrid&&
+        oldGrid.classList&&
+        oldGrid.classList.contains('v4-grid2')
+      ){
+        oldGrid.remove();
+      }
+    }
   }
 }
 
