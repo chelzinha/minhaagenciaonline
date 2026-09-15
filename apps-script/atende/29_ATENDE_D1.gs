@@ -10,10 +10,13 @@ const ATENDE_D1_CFG = Object.freeze({
   PROCESSED_META_PROP: 'ATENDE_D1_RAW_PROCESSED_META_V2', // legado; pasta PROCESSADA passa a ser o estado visual
   INPUT_FOLDER_NAME: 'ENTRADA',
   PROCESSED_FOLDER_NAME: 'PROCESSADA',
-  CHUNK_ROWS: 1000,
+  CHUNK_ROWS: 400,
+  MAX_FILES_PER_RUN: 1,
   MAX_EXECUTION_MS: 270000,
   SAFETY_MARGIN_MS: 20000,
-  TIMEOUT_LOCK_MS: 25000
+  TIMEOUT_LOCK_MS: 25000,
+  IMPORT_HISTORY_PROP: 'ATENDE_D1_IMPORT_HISTORY_V1',
+  IMPORT_HISTORY_LIMIT: 20
 });
 
 function ATENDE_getD1Config_() {
@@ -178,52 +181,270 @@ function ATENDE_statusD1() {
   }
 }
 
+function ATENDE_lerCsvD1Leve_(file) {
+  const decoded = ATENDE_lerTextoCsv_(file);
+  let text = String(decoded.text || '');
+
+  if (!text.trim()) {
+    throw new Error('O arquivo CSV esta vazio: ' + file.getName());
+  }
+
+  const fileHash = ATENDE_sha256_(text);
+  const matrix = Utilities.parseCsv(text, ';');
+
+  // O hash ja foi calculado. Nao precisamos manter outra copia do texto
+  // durante todo o envio ao D1.
+  decoded.text = '';
+  text = '';
+
+  if (!matrix || matrix.length < 2) {
+    throw new Error('O CSV nao possui linhas de dados: ' + file.getName());
+  }
+
+  const headers = matrix[0].map(function(value) {
+    return ATENDE_cleanCsvValue_(value).trim().toUpperCase();
+  });
+
+  const sourceType = ATENDE_detectarFonteCsv_(headers);
+
+  if (!sourceType) {
+    throw new Error(
+      'CSV com estrutura inesperada. Nao foi possivel identificar ATENDE ou CONSOLIDADOR pelos cabecalhos.'
+    );
+  }
+
+  if (sourceType === 'ATENDE') {
+    const missing = ATENDE_CSV_DIARIO_CFG.REQUIRED_HEADERS.filter(function(header) {
+      return headers.indexOf(header) < 0;
+    });
+
+    if (missing.length) {
+      throw new Error(
+        'CSV ATENDE com estrutura inesperada. Cabecalhos ausentes: ' +
+        missing.join(', ')
+      );
+    }
+  } else {
+    const missingCons = ATENDE_validarHeadersConsolidador_(headers);
+
+    if (missingCons.length) {
+      throw new Error(
+        'CSV CONSOLIDADOR com estrutura inesperada. Cabecalhos ausentes: ' +
+        missingCons.join(', ')
+      );
+    }
+  }
+
+  // Reaproveita a propria matriz retornada pelo parseCsv.
+  // Em vez de criar rawRows + rows para o arquivo inteiro, compactamos
+  // as linhas validas dentro do mesmo array.
+  let writeIndex = 0;
+
+  for (let i = 1; i < matrix.length; i++) {
+    let row = matrix[i];
+
+    if (sourceType === 'CONSOLIDADOR') {
+      row = ATENDE_repararLinhaConsolidador_(row, headers);
+    }
+
+    let hasValue = false;
+
+    for (let j = 0; j < row.length; j++) {
+      if (String(row[j] == null ? '' : row[j]) !== '') {
+        hasValue = true;
+        break;
+      }
+    }
+
+    if (!hasValue) continue;
+
+    if (
+      sourceType === 'CONSOLIDADOR' &&
+      ATENDE_linhaTotalConsolidador_(row, headers)
+    ) {
+      continue;
+    }
+
+    matrix[writeIndex] = row;
+    writeIndex++;
+  }
+
+  matrix.length = writeIndex;
+
+  return {
+    encoding: decoded.encoding,
+    headers: headers,
+    rows: matrix,
+    sourceType: sourceType,
+    fileHash: fileHash
+  };
+}
+
+function ATENDE_criarChunkD1_(parsed, offset, limit) {
+  const source = parsed.rows || [];
+  const headers = parsed.headers || [];
+  const end = Math.min(source.length, offset + limit);
+  const result = new Array(Math.max(0, end - offset));
+
+  for (let i = offset; i < end; i++) {
+    const sourceRow = source[i] || [];
+    const obj = {};
+
+    for (let j = 0; j < headers.length; j++) {
+      const value = sourceRow[j];
+      obj[headers[j]] =
+        value === null || value === undefined ? '' : String(value);
+    }
+
+    result[i - offset] = obj;
+  }
+
+  return result;
+}
+
+function ATENDE_getD1ImportHistory_() {
+  try {
+    const raw = PropertiesService
+      .getScriptProperties()
+      .getProperty(ATENDE_D1_CFG.IMPORT_HISTORY_PROP);
+
+    const parsed = raw ? JSON.parse(raw) : [];
+
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.slice(0, ATENDE_D1_CFG.IMPORT_HISTORY_LIMIT);
+  } catch (_) {
+    return [];
+  }
+}
+
+function ATENDE_registrarHistoricoImportacaoD1_(result) {
+  if (!result) return;
+
+  const fileId = String(result.fileId || '');
+  const fileName = String(result.fileName || '');
+
+  const item = {
+    fileId: fileId,
+    fileName: fileName,
+    status: String(result.status || ''),
+    totalRows: Number(result.totalRows || 0),
+    importedRows: Number(
+      result.stored ||
+      (result.completed ? result.totalRows : 0) ||
+      0
+    ),
+    insertedThisRun: Number(result.insertedThisRun || 0),
+    sentThisRun: Number(result.sentThisRun || 0),
+    invalid: Number(result.invalid || 0),
+    completed: result.completed === true,
+    error: String(result.error || ''),
+    importedAt: new Date().toISOString()
+  };
+
+  let history = ATENDE_getD1ImportHistory_();
+
+  history = history.filter(function(old) {
+    if (fileId) return String(old.fileId || '') !== fileId;
+    return String(old.fileName || '') !== fileName;
+  });
+
+  history.unshift(item);
+
+  if (history.length > ATENDE_D1_CFG.IMPORT_HISTORY_LIMIT) {
+    history = history.slice(0, ATENDE_D1_CFG.IMPORT_HISTORY_LIMIT);
+  }
+
+  PropertiesService
+    .getScriptProperties()
+    .setProperty(
+      ATENDE_D1_CFG.IMPORT_HISTORY_PROP,
+      JSON.stringify(history)
+    );
+}
 function ATENDE_importarArquivoCsvD1_(file, processada, deadlineMs) {
-  const parsed = ATENDE_lerCsv_(file);
+  const parsed = ATENDE_lerCsvD1Leve_(file);
+
   const fileId = file.getId();
-  const fileHash = ATENDE_sha256_(parsed.text);
-  const rawRows = parsed.rawRows || parsed.rows || [];
-  const totalRows = rawRows.length;
+  const fileHash = parsed.fileHash;
+  const totalRows = parsed.rows.length;
   const modifiedAt = file.getLastUpdated().toISOString();
 
   const check = ATENDE_fetchD1_(
-    '/imports/check?fileId=' + encodeURIComponent(fileId) + '&hash=' + encodeURIComponent(fileHash),
+    '/imports/check?fileId=' +
+      encodeURIComponent(fileId) +
+      '&hash=' +
+      encodeURIComponent(fileHash),
     { method: 'get' }
   );
 
   if (check.completed) {
     file.moveTo(processada);
+
     return {
+      fileId: fileId,
       fileName: file.getName(),
       status: 'already_complete_moved_to_processed',
       totalRows: totalRows,
       sentThisRun: 0,
-      stored: Number(check.import && check.import.gravadas || totalRows),
+      insertedThisRun: 0,
+      stored: Number(
+        check.import && check.import.gravadas || totalRows
+      ),
+      invalid: 0,
+      requests: 0,
       completed: true
     };
   }
 
-  let offset = Math.max(0, Number(check.import && check.import.recebidas || 0));
+  let offset = Math.max(
+    0,
+    Number(check.import && check.import.recebidas || 0)
+  );
+
   if (offset > totalRows) offset = 0;
-  // Se uma execucao anterior enviou tudo, mas caiu antes de marcar o lote como
-  // concluido, reenvia apenas o ultimo chunk com final=true. INSERT OR IGNORE
-  // preserva idempotencia e permite concluir o controle da importacao.
+
+  // Se uma execucao anterior enviou tudo mas nao concluiu o lote,
+  // reenvia somente o ultimo chunk com final=true.
   if (offset >= totalRows && totalRows > 0) {
-    offset = Math.max(0, totalRows - ATENDE_D1_CFG.CHUNK_ROWS);
+    offset = Math.max(
+      0,
+      totalRows - ATENDE_D1_CFG.CHUNK_ROWS
+    );
   }
 
   let sentThisRun = 0;
   let insertedThisRun = 0;
   let invalid = 0;
   let requests = 0;
-  let stored = Number(check.import && check.import.gravadas || 0);
+
+  let stored = Number(
+    check.import && check.import.gravadas || 0
+  );
+
   let completed = false;
 
-  for (; offset < totalRows; offset += ATENDE_D1_CFG.CHUNK_ROWS) {
-    if (Date.now() >= deadlineMs - ATENDE_D1_CFG.SAFETY_MARGIN_MS) break;
+  for (
+    ;
+    offset < totalRows;
+    offset += ATENDE_D1_CFG.CHUNK_ROWS
+  ) {
+    if (
+      Date.now() >=
+      deadlineMs - ATENDE_D1_CFG.SAFETY_MARGIN_MS
+    ) {
+      break;
+    }
 
-    const rows = rawRows.slice(offset, offset + ATENDE_D1_CFG.CHUNK_ROWS);
-    const final = offset + rows.length >= totalRows;
+    const rows = ATENDE_criarChunkD1_(
+      parsed,
+      offset,
+      ATENDE_D1_CFG.CHUNK_ROWS
+    );
+
+    const final =
+      offset + rows.length >= totalRows;
+
     const payload = {
       fileId: fileId,
       fileName: file.getName(),
@@ -235,11 +456,20 @@ function ATENDE_importarArquivoCsvD1_(file, processada, deadlineMs) {
       rows: rows
     };
 
+    let payloadText = JSON.stringify(payload);
+
+    // A partir daqui o array de objetos fica somente dentro
+    // do texto JSON enviado ao Worker.
+    payload.rows = [];
+
     const result = ATENDE_fetchD1_('/ingest', {
       method: 'post',
       contentType: 'application/json',
-      payload: JSON.stringify(payload)
+      payload: payloadText
     });
+
+    payloadText = '';
+    rows.length = 0;
 
     if (result.duplicateFile && result.completed) {
       stored = totalRows;
@@ -259,20 +489,42 @@ function ATENDE_importarArquivoCsvD1_(file, processada, deadlineMs) {
 
   if (completed) {
     if (stored !== totalRows) {
-      throw new Error('Integridade RAW falhou: CSV=' + totalRows + ', D1=' + stored + '. O arquivo permanecera em ENTRADA.');
+      throw new Error(
+        'Integridade RAW falhou: CSV=' +
+        totalRows +
+        ', D1=' +
+        stored +
+        '. O arquivo permanecera em ENTRADA.'
+      );
     }
+
     file.moveTo(processada);
+
     return {
-      fileName: file.getName(), status: 'processed', totalRows: totalRows,
-      sentThisRun: sentThisRun, insertedThisRun: insertedThisRun, stored: stored,
-      invalid: invalid, requests: requests, completed: true
+      fileId: fileId,
+      fileName: file.getName(),
+      status: 'processed',
+      totalRows: totalRows,
+      sentThisRun: sentThisRun,
+      insertedThisRun: insertedThisRun,
+      stored: stored,
+      invalid: invalid,
+      requests: requests,
+      completed: true
     };
   }
 
   return {
-    fileName: file.getName(), status: 'partial_waiting_next_run', totalRows: totalRows,
-    sentThisRun: sentThisRun, insertedThisRun: insertedThisRun, stored: stored,
-    invalid: invalid, requests: requests, completed: false
+    fileId: fileId,
+    fileName: file.getName(),
+    status: 'partial_waiting_next_run',
+    totalRows: totalRows,
+    sentThisRun: sentThisRun,
+    insertedThisRun: insertedThisRun,
+    stored: stored,
+    invalid: invalid,
+    requests: requests,
+    completed: false
   };
 }
 
@@ -306,12 +558,20 @@ function ATENDE_importarCsvDriveD1Agora() {
     let sent = 0;
     let inserted = 0;
 
-    for (let i = 0; i < arquivos.length; i++) {
+    const arquivosDaRodada = arquivos.slice(
+      0,
+      ATENDE_D1_CFG.MAX_FILES_PER_RUN
+    );
+
+    for (let i = 0; i < arquivosDaRodada.length; i++) {
       if (Date.now() >= deadlineMs - ATENDE_D1_CFG.SAFETY_MARGIN_MS) break;
 
-      const file = arquivos[i];
+      const file = arquivosDaRodada[i];
       try {
         const result = ATENDE_importarArquivoCsvD1_(file, folders.processada, deadlineMs);
+
+        ATENDE_registrarHistoricoImportacaoD1_(result);
+
         files.push(result);
         sent += Number(result.sentThisRun || 0);
         inserted += Number(result.insertedThisRun || 0);
@@ -323,12 +583,31 @@ function ATENDE_importarCsvDriveD1Agora() {
           break;
         }
       } catch (fileErr) {
+        const message =
+          fileErr && fileErr.message
+            ? fileErr.message
+            : String(fileErr);
+
+        ATENDE_registrarHistoricoImportacaoD1_({
+          fileId: file.getId(),
+          fileName: file.getName(),
+          status: 'error',
+          totalRows: 0,
+          stored: 0,
+          insertedThisRun: 0,
+          sentThisRun: 0,
+          invalid: 0,
+          completed: false,
+          error: message
+        });
+
         errors.push({
           fileName: file.getName(),
-          error: fileErr && fileErr.message ? fileErr.message : String(fileErr)
+          error: message
         });
+
         ATENDE_registrarErroCsv_(fileErr);
-        // O arquivo permanece em ENTRADA. Continua nos demais se ainda houver tempo.
+        // O arquivo permanece em ENTRADA.
       }
     }
 

@@ -680,6 +680,7 @@ window.addEventListener('load',function(){
     var pending = Number(r.pending || 0);
     var trigger = r.trigger || {};
     var files = Array.isArray(r.files) ? r.files : [];
+    var recent = Array.isArray(r.recent) ? r.recent : [];
 
     var summary = document.getElementById('adminImportSummary');
 
@@ -689,41 +690,107 @@ window.addEventListener('load',function(){
         (pending === 1 ? '' : 's') + ' pendente' +
         (pending === 1 ? '' : 's') + '</b>' +
         '<br>Entrada: <b>' + importEsc(r.entrada || '-') + '</b>' +
-        ' &nbsp; | &nbsp; Processada: <b>' + importEsc(r.processada || '-') + '</b>' +
-        '<br>Automação: <b>' + importEsc(trigger.cadence || 'Não informada') + '</b>' +
-        (trigger.installed ? ' - gatilho ativo' : ' - gatilho não encontrado');
+        ' &nbsp; | &nbsp; Processada: <b>' +
+        importEsc(r.processada || '-') + '</b>' +
+        '<br>Automação: <b>' +
+        importEsc(trigger.cadence || 'Não informada') + '</b>' +
+        (trigger.installed
+          ? ' - gatilho ativo'
+          : ' - gatilho não encontrado') +
+        '<br>Modo seguro: <b>1 arquivo por execução</b>';
     }
 
     var box = document.getElementById('adminImportFiles');
 
     if(!box) return;
 
+    var pendingHtml = '';
+
     if(!files.length){
-      box.innerHTML =
-        '<div class="admin-note" style="background:#f0fdf4;color:#166534">' +
-        '<b>Nenhum CSV aguardando processamento.</b>' +
+      pendingHtml =
+        '<div class="admin-note">' +
+        'Nenhum CSV aguardando na pasta de entrada.' +
         '</div>';
-      return;
+    }else{
+      pendingHtml =
+        '<table class="admin-table">' +
+        '<thead><tr>' +
+        '<th>Arquivo</th>' +
+        '<th>Tamanho</th>' +
+        '<th>Atualizado</th>' +
+        '<th>Status</th>' +
+        '</tr></thead>' +
+        '<tbody>' +
+        files.map(function(f){
+          return '<tr>' +
+            '<td><b>' + importEsc(f.name || '') + '</b></td>' +
+            '<td>' + importEsc(importSize(f.size)) + '</td>' +
+            '<td>' + importEsc(importDate(f.updatedAt)) + '</td>' +
+            '<td>' + importEsc(f.status || 'AGUARDANDO') + '</td>' +
+            '</tr>';
+        }).join('') +
+        '</tbody></table>';
     }
 
-    box.innerHTML =
-      '<table class="admin-table">' +
-      '<thead><tr>' +
-      '<th>Arquivo</th>' +
-      '<th>Tamanho</th>' +
-      '<th>Atualizado</th>' +
-      '<th>Status</th>' +
-      '</tr></thead>' +
-      '<tbody>' +
-      files.map(function(f){
-        return '<tr>' +
-          '<td><b>' + importEsc(f.name || '') + '</b></td>' +
-          '<td>' + importEsc(importSize(f.size)) + '</td>' +
-          '<td>' + importEsc(importDate(f.updatedAt)) + '</td>' +
-          '<td>' + importEsc(f.status || 'AGUARDANDO') + '</td>' +
-        '</tr>';
-      }).join('') +
-      '</tbody></table>';
+    var recentHtml = '';
+
+    if(recent.length){
+      function resultLabel(f){
+        if(f.status === 'processed') return 'CONCLUÍDO';
+        if(f.status === 'already_complete_moved_to_processed')
+          return 'JÁ IMPORTADO';
+        if(f.status === 'partial_waiting_next_run')
+          return 'PARCIAL';
+        if(f.status === 'error')
+          return 'ERRO';
+        return String(f.status || '-').toUpperCase();
+      }
+
+      recentHtml =
+        '<div style="height:10px"></div>' +
+        '<div class="admin-note">' +
+        '<b>Importações recentes</b><br>' +
+        'A coluna <b>Importadas no D1</b> mostra quantas linhas do arquivo ' +
+        'já estão armazenadas na base.' +
+        '</div>' +
+        '<table class="admin-table">' +
+        '<thead><tr>' +
+        '<th>Arquivo</th>' +
+        '<th>Linhas</th>' +
+        '<th>Importadas no D1</th>' +
+        '<th>Novas nesta execução</th>' +
+        '<th>Situação</th>' +
+        '<th>Processado em</th>' +
+        '</tr></thead>' +
+        '<tbody>' +
+        recent.slice(0,10).map(function(f){
+          var status = resultLabel(f);
+          var statusTitle =
+            f.error ? ' title="' + importEsc(f.error) + '"' : '';
+
+          return '<tr>' +
+            '<td><b>' + importEsc(f.fileName || '') + '</b></td>' +
+            '<td>' +
+              Number(f.totalRows || 0).toLocaleString('pt-BR') +
+            '</td>' +
+            '<td><b>' +
+              Number(f.importedRows || 0).toLocaleString('pt-BR') +
+            '</b></td>' +
+            '<td>' +
+              Number(f.insertedThisRun || 0).toLocaleString('pt-BR') +
+            '</td>' +
+            '<td' + statusTitle + '>' +
+              importEsc(status) +
+            '</td>' +
+            '<td>' +
+              importEsc(importDate(f.importedAt)) +
+            '</td>' +
+            '</tr>';
+        }).join('') +
+        '</tbody></table>';
+    }
+
+    box.innerHTML = pendingHtml + recentHtml;
   }
 
   window.ATENDE_loadAdminImportacoes = function(){

@@ -27,6 +27,9 @@ function ATENDE_adminProcessarImportacoes(platformToken) {
     run: run || {},
     pending: Number(status.pending || 0),
     files: status.files || [],
+    recent: status.recent || [],
+    entrada: status.entrada || ATENDE_D1_CFG.INPUT_FOLDER_NAME,
+    processada: status.processada || ATENDE_D1_CFG.PROCESSED_FOLDER_NAME,
     trigger: status.trigger || {},
     canContinueAutomatically: Number(status.pending || 0) > 0 && errors.length === 0,
     elapsedMs: Date.now() - startedAt
@@ -52,6 +55,10 @@ function ATENDE_adminStatusImportacoesInterno_() {
     ok: true,
     pending: files.length,
     files: files,
+    recent:
+      typeof ATENDE_getD1ImportHistory_ === 'function'
+        ? ATENDE_getD1ImportHistory_()
+        : [],
     entrada: ATENDE_D1_CFG.INPUT_FOLDER_NAME,
     processada: ATENDE_D1_CFG.PROCESSED_FOLDER_NAME,
     trigger: triggerInfo
