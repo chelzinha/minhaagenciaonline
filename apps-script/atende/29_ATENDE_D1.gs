@@ -363,168 +363,135 @@ function ATENDE_registrarHistoricoImportacaoD1_(result) {
     );
 }
 function ATENDE_importarArquivoCsvD1_(file, processada, deadlineMs) {
-  const parsed = ATENDE_lerCsvD1Leve_(file);
+  const cfg = ATENDE_getD1Config_();
 
-  const fileId = file.getId();
-  const fileHash = parsed.fileHash;
-  const totalRows = parsed.rows.length;
-  const modifiedAt = file.getLastUpdated().toISOString();
+  const blob = file.getBlob();
 
-  const check = ATENDE_fetchD1_(
-    '/imports/check?fileId=' +
-      encodeURIComponent(fileId) +
-      '&hash=' +
-      encodeURIComponent(fileHash),
-    { method: 'get' }
-  );
-
-  if (check.completed) {
-    file.moveTo(processada);
-
-    return {
-      fileId: fileId,
-      fileName: file.getName(),
-      status: 'already_complete_moved_to_processed',
-      totalRows: totalRows,
-      sentThisRun: 0,
-      insertedThisRun: 0,
-      stored: Number(
-        check.import && check.import.gravadas || totalRows
-      ),
-      invalid: 0,
-      requests: 0,
-      completed: true
-    };
-  }
-
-  let offset = Math.max(
-    0,
-    Number(check.import && check.import.recebidas || 0)
-  );
-
-  if (offset > totalRows) offset = 0;
-
-  // Se uma execucao anterior enviou tudo mas nao concluiu o lote,
-  // reenvia somente o ultimo chunk com final=true.
-  if (offset >= totalRows && totalRows > 0) {
-    offset = Math.max(
-      0,
-      totalRows - ATENDE_D1_CFG.CHUNK_ROWS
-    );
-  }
-
-  let sentThisRun = 0;
-  let insertedThisRun = 0;
-  let invalid = 0;
-  let requests = 0;
-
-  let stored = Number(
-    check.import && check.import.gravadas || 0
-  );
-
-  let completed = false;
-
-  for (
-    ;
-    offset < totalRows;
-    offset += ATENDE_D1_CFG.CHUNK_ROWS
-  ) {
-    if (
-      Date.now() >=
-      deadlineMs - ATENDE_D1_CFG.SAFETY_MARGIN_MS
-    ) {
-      break;
-    }
-
-    const rows = ATENDE_criarChunkD1_(
-      parsed,
-      offset,
-      ATENDE_D1_CFG.CHUNK_ROWS
-    );
-
-    const final =
-      offset + rows.length >= totalRows;
-
-    const payload = {
-      fileId: fileId,
-      fileName: file.getName(),
-      fileHash: fileHash,
-      fileModifiedAt: modifiedAt,
-      totalRows: totalRows,
-      offset: offset,
-      final: final,
-      rows: rows
-    };
-
-    let payloadText = JSON.stringify(payload);
-
-    // A partir daqui o array de objetos fica somente dentro
-    // do texto JSON enviado ao Worker.
-    payload.rows = [];
-
-    const result = ATENDE_fetchD1_('/ingest', {
+  const response = UrlFetchApp.fetch(
+    cfg.apiUrl + '/ingest-csv-raw',
+    {
       method: 'post',
-      contentType: 'application/json',
-      payload: payloadText
-    });
+      contentType: 'application/octet-stream',
+      payload: blob,
+      muteHttpExceptions: true,
+      headers: {
+        Authorization:
+          'Bearer ' + cfg.token,
 
-    payloadText = '';
-    rows.length = 0;
+        'X-AGF-File-Id':
+          file.getId(),
 
-    if (result.duplicateFile && result.completed) {
-      stored = totalRows;
-      completed = true;
-      break;
+        'X-AGF-File-Name':
+          encodeURIComponent(
+            file.getName()
+          ),
+
+        'X-AGF-File-Modified-At':
+          file
+            .getLastUpdated()
+            .toISOString()
+      }
     }
+  );
 
-    sentThisRun += Number(result.received || 0);
-    insertedThisRun += Number(result.inserted || 0);
-    invalid += Number(result.invalid || 0);
-    stored = Number(result.stored || stored || 0);
-    completed = result.completed === true;
-    requests++;
+  const code =
+    response.getResponseCode();
 
-    if (completed) break;
+  const text =
+    response.getContentText();
+
+  let result = null;
+
+  try {
+    result = text
+      ? JSON.parse(text)
+      : {};
+  } catch (_) {
+    result = {
+      raw: text
+    };
   }
+
+  if (
+    code < 200 ||
+    code >= 300 ||
+    !result ||
+    result.ok !== true
+  ) {
+    const detail =
+      result &&
+      (
+        result.error ||
+        result.raw
+      )
+        ? (
+            result.error ||
+            result.raw
+          )
+        : text;
+
+    throw new Error(
+      'D1 RAW HTTP ' +
+      code +
+      ': ' +
+      detail
+    );
+  }
+
+  const completed =
+    result.completed === true;
 
   if (completed) {
-    if (stored !== totalRows) {
-      throw new Error(
-        'Integridade RAW falhou: CSV=' +
-        totalRows +
-        ', D1=' +
-        stored +
-        '. O arquivo permanecera em ENTRADA.'
-      );
-    }
-
     file.moveTo(processada);
-
-    return {
-      fileId: fileId,
-      fileName: file.getName(),
-      status: 'processed',
-      totalRows: totalRows,
-      sentThisRun: sentThisRun,
-      insertedThisRun: insertedThisRun,
-      stored: stored,
-      invalid: invalid,
-      requests: requests,
-      completed: true
-    };
   }
 
   return {
-    fileId: fileId,
+    fileId: file.getId(),
     fileName: file.getName(),
-    status: 'partial_waiting_next_run',
-    totalRows: totalRows,
-    sentThisRun: sentThisRun,
-    insertedThisRun: insertedThisRun,
-    stored: stored,
-    invalid: invalid,
-    requests: requests,
-    completed: false
+
+    status:
+      completed
+        ? (
+            result.duplicateFile
+              ? 'already_complete_moved_to_processed'
+              : 'processed'
+          )
+        : 'partial_waiting_next_run',
+
+    sourceType:
+      result.sourceType || '',
+
+    totalRows:
+      Number(
+        result.totalRows || 0
+      ),
+
+    sentThisRun:
+      Number(
+        result.sentThisRun || 0
+      ),
+
+    insertedThisRun:
+      Number(
+        result.insertedThisRun || 0
+      ),
+
+    stored:
+      Number(
+        result.stored || 0
+      ),
+
+    invalid:
+      Number(
+        result.invalid || 0
+      ),
+
+    requests:
+      Number(
+        result.requests || 0
+      ),
+
+    completed: completed
   };
 }
 
