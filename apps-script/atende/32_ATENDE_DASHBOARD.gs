@@ -10,7 +10,8 @@ function ATENDE_dashboardAddonJs() {
     'DashboardTabsV4',
     'DashboardIntelligenceV6',
     'DashboardVisualV6',
-    'DashboardMetaAdminV6'
+    'DashboardMetaAdminV6',
+    'DashboardBalcaoWeeklyAdminV1'
   ];
 
   return arquivos.map(function(nome) {
