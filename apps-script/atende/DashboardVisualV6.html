@@ -107,7 +107,7 @@ function adjusted(data,scope){
   if(!p||!p.disponivel)return 0;
   if(scope==='encomendas')return n(p.grupos&&p.grupos.encomendas&&p.grupos.encomendas.projetado);
   if(scope==='mensageria')return n(p.grupos&&p.grupos.mensageria&&p.grupos.mensageria.projetado);
-  if(scope==='balcao')return n((p.locais&&((p.locais.agf)||(p.locais.balcao))||{}).projetado);
+  if(scope==='balcao')return n((p.locais&&p.locais.balcao||{}).projetado);
   if(scope==='metro')return n((p.locais&&p.locais.metro||{}).projetado);
   return 0;
 }
@@ -177,7 +177,7 @@ function localFilterExcludes(scope){
     return values.indexOf('METRO')<0;
   }
 
-  return values.indexOf('AGF')<0 &&
+  return values.indexOf('BALCAO')<0 &&
          values.indexOf('BALCAO AGF')<0;
 }
 
