@@ -21,6 +21,9 @@ function ATENDE_buscarDashboardV4D1(params, platformToken) {
   // A remuneracao contratual e sensivel e nao deve chegar ao browser de usuarios comuns.
   if (!gestaoPermitida) {
     base.remuneracao = {};
+    base.taxaEfetiva = { serie: [], atual: null, ultimoFechado: null };
+    base.decomposicao = { disponivel: false };
+    base.banda = { disponivel: false };
   }
 
   return base;

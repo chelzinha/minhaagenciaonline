@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "agf-atende-api",
-  "main": "src/balcao-weekly-wrapper.js",
+  "main": "src/ranking-balcao-wrapper.js",
   "compatibility_date": "2026-09-05",
   "limits": {
     "cpu_ms": 300000
@@ -17,7 +17,7 @@
   "env": {
     "v6test": {
       "name": "agf-atende-api-v6test",
-      "main": "src/balcao-weekly-wrapper.js",
+      "main": "src/ranking-balcao-wrapper.js",
       "d1_databases": [
         {
           "binding": "DB",
