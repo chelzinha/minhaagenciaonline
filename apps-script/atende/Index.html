@@ -119,6 +119,1356 @@ button:focus-visible,input:focus-visible{outline:2px solid #0B72D9;outline-offse
 @media(max-width:900px){.query-row{grid-template-columns:1fr}.query-period{grid-column:1/-1}.query-summary{justify-content:space-between;flex-wrap:wrap}.query-search{grid-column:1/-1}}
 @media(max-width:700px){.query-period{grid-template-columns:1fr;gap:8px}.date-range{grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr)}.query-period .query-date{grid-column:auto!important}.query-period .query-month{grid-column:auto!important}.query-period .date-field input{height:42px!important;min-height:42px!important;padding:0!important}.query-period .date-field{height:44px}.query-summary{grid-column:1/-1;display:grid;justify-items:start;gap:4px}.query-summary .summary-pill{min-height:0!important;height:auto!important;padding:4px 8px!important;text-align:left}.query-summary .total-value{font-size:24px!important;min-height:0!important}.query-month .month-nav{grid-template-columns:36px minmax(0,1fr) 36px!important}.query-month .month-current{font-size:13px!important}.ms-search input{font-size:16px}.query-summary>span{display:block}.period-shortcuts button{min-height:32px}}
 </style>
+
+<style id="agf-periodo-04-safe-skin">
+/*
+ * ============================================================
+ * AGF - BARRA COMPACTA DE PERIODO
+ * Implementacao segura no Atende
+ *
+ * CSS ONLY.
+ *
+ * NAO altera:
+ * - dataInicio
+ * - dataFim
+ * - handleManualDateChange()
+ * - shiftMonth()
+ * - selectMonth()
+ * - selectCurrentMonth()
+ * - clearAllDates()
+ * - openMonthPicker()
+ * - MAX_DATA_AVAILABLE
+ * - consultas
+ * - filtros
+ * ============================================================
+ */
+
+.query-period{
+  display:grid!important;
+  grid-template-columns:
+    38px
+    minmax(300px,1fr)
+    34px
+    38px
+    auto
+    auto!important;
+  grid-template-rows:40px auto!important;
+  column-gap:7px!important;
+  row-gap:4px!important;
+  align-items:center!important;
+  min-width:0!important;
+}
+
+.query-period .query-month,
+.query-period .month-nav,
+.query-period .period-shortcuts{
+  display:contents!important;
+}
+
+.query-period .query-date>label,
+.query-period .query-month>label{
+  display:none!important;
+}
+
+
+/* ==========================
+   SETA MES ANTERIOR
+   ========================== */
+
+.query-period .month-nav .month-arrow:first-child{
+  grid-column:1!important;
+  grid-row:1!important;
+}
+
+
+/* ==========================
+   INTERVALO DE DATAS
+   ========================== */
+
+.query-period .date-range{
+  grid-column:2!important;
+  grid-row:1!important;
+
+  display:grid!important;
+  grid-template-columns:
+    minmax(125px,1fr)
+    18px
+    minmax(125px,1fr)!important;
+
+  gap:0!important;
+  align-items:center!important;
+
+  height:40px!important;
+  min-width:0!important;
+
+  border:1px solid var(--line2)!important;
+  border-radius:8px!important;
+
+  background:#fff!important;
+  overflow:hidden!important;
+
+  transition:
+    border-color .16s ease,
+    box-shadow .16s ease!important;
+}
+
+.query-period .date-range:focus-within{
+  border-color:#7895b4!important;
+  box-shadow:0 0 0 2px rgba(0,65,107,.08)!important;
+}
+
+.query-period .query-date{
+  min-width:0!important;
+}
+
+.query-period .date-field{
+  height:38px!important;
+  min-height:38px!important;
+
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+
+  border:0!important;
+  border-radius:0!important;
+
+  background:transparent!important;
+  padding:0 7px!important;
+
+  outline:0!important;
+  box-shadow:none!important;
+}
+
+.query-period .query-date:first-child .date-field{
+  padding-left:9px!important;
+}
+
+.query-period .date-field:focus-within{
+  outline:0!important;
+  box-shadow:none!important;
+}
+
+.query-period .date-field>.material-symbols-rounded{
+  color:var(--nv)!important;
+  font-size:17px!important;
+  flex:0 0 auto!important;
+}
+
+.query-period .date-range .query-date:nth-of-type(2) .material-symbols-rounded{
+  display:none!important;
+}
+
+.query-period .query-date .date-field input{
+  width:100%!important;
+
+  height:38px!important;
+  min-height:38px!important;
+
+  margin:0!important;
+  padding:0!important;
+
+  border:0!important;
+  outline:0!important;
+  border-radius:0!important;
+
+  background:transparent!important;
+
+  color:var(--nv)!important;
+
+  font-family:var(--ff)!important;
+  font-size:11px!important;
+  font-weight:750!important;
+
+  font-variant-numeric:tabular-nums!important;
+}
+
+.query-period .date-range-arrow{
+  height:38px!important;
+
+  display:grid!important;
+  place-items:center!important;
+
+  color:var(--muted)!important;
+
+  font-size:10px!important;
+  font-weight:600!important;
+}
+
+
+/* ==========================
+   CHEVRON / SELETOR DE MES
+   Mantem openMonthPicker()
+   ========================== */
+
+.query-period .month-current{
+  grid-column:3!important;
+  grid-row:1!important;
+
+  width:34px!important;
+  min-width:34px!important;
+  height:40px!important;
+
+  padding:0!important;
+
+  border:1px solid var(--line2)!important;
+  border-radius:8px!important;
+
+  background:#fff!important;
+  color:var(--nv)!important;
+
+  font-size:0!important;
+
+  overflow:visible!important;
+}
+
+.query-period .month-current::before{
+  content:"expand_more";
+
+  font-family:"Material Symbols Rounded";
+  font-size:19px;
+  font-weight:500;
+  line-height:1;
+}
+
+.query-period .month-current:hover{
+  background:#eef5fa!important;
+  border-color:#7895b4!important;
+}
+
+
+/* ==========================
+   SETA PROXIMO MES
+   ========================== */
+
+.query-period #nextMonthBtn{
+  grid-column:4!important;
+  grid-row:1!important;
+}
+
+.query-period .month-arrow{
+  width:38px!important;
+  min-width:38px!important;
+  height:40px!important;
+
+  padding:0!important;
+
+  border:1px solid var(--line2)!important;
+  border-radius:8px!important;
+
+  background:#fff!important;
+  color:var(--nv)!important;
+
+  font-size:22px!important;
+  font-weight:700!important;
+
+  display:grid!important;
+  place-items:center!important;
+}
+
+.query-period .month-arrow:hover:not(:disabled){
+  background:#eef5fa!important;
+  border-color:#7895b4!important;
+}
+
+.query-period .month-arrow:disabled{
+  opacity:.35!important;
+  background:#f5f7fa!important;
+}
+
+
+/* ==========================
+   ATALHOS
+   ========================== */
+
+.query-period .month-today{
+  grid-column:5!important;
+  grid-row:1!important;
+
+  height:40px!important;
+
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+
+  padding:0 9px!important;
+
+  border:0!important;
+  border-left:1px solid #d5dfe9!important;
+  border-radius:0!important;
+
+  background:transparent!important;
+
+  color:var(--nv)!important;
+
+  font-size:10px!important;
+  font-weight:750!important;
+
+  white-space:nowrap!important;
+}
+
+.query-period .month-today::before{
+  content:"calendar_today";
+
+  font-family:"Material Symbols Rounded";
+  font-size:17px;
+  font-weight:500;
+  line-height:1;
+}
+
+.query-period .month-all{
+  grid-column:6!important;
+  grid-row:1!important;
+
+  height:40px!important;
+
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+
+  padding:0 5px!important;
+
+  border:0!important;
+  border-radius:0!important;
+
+  background:transparent!important;
+
+  color:var(--nv)!important;
+
+  font-size:10px!important;
+  font-weight:750!important;
+
+  white-space:nowrap!important;
+}
+
+.query-period .month-all::before{
+  content:"history";
+
+  font-family:"Material Symbols Rounded";
+  font-size:18px;
+  font-weight:500;
+  line-height:1;
+}
+
+.query-period .month-today:hover,
+.query-period .month-all:hover{
+  background:transparent!important;
+  text-decoration:underline!important;
+}
+
+
+/* ==========================
+   INPUT MONTH ORIGINAL
+   Continua existindo e funcionando
+   ========================== */
+
+.query-period .month-picker-hidden{
+  position:absolute!important;
+
+  width:1px!important;
+  height:1px!important;
+
+  opacity:0!important;
+  pointer-events:none!important;
+}
+
+
+/* ==========================
+   LIMITE DA BASE
+   ========================== */
+
+.query-period .period-limit{
+  grid-column:1/-1!important;
+  grid-row:2!important;
+
+  margin:0!important;
+  padding-left:45px!important;
+
+  color:var(--muted)!important;
+
+  font-size:9px!important;
+  line-height:1.35!important;
+}
+
+
+/* ==========================
+   ACESSIBILIDADE
+   ========================== */
+
+.query-period button:focus-visible,
+.query-period input:focus-visible{
+  outline:2px solid #0B72D9!important;
+  outline-offset:2px!important;
+}
+
+
+/* ==========================
+   RESPONSIVO
+   ========================== */
+
+@media(max-width:900px){
+
+  .query-period{
+    grid-template-columns:
+      38px
+      minmax(0,1fr)
+      34px
+      38px!important;
+
+    grid-template-rows:
+      40px
+      34px
+      auto!important;
+  }
+
+  .query-period .month-today{
+    grid-column:1/3!important;
+    grid-row:2!important;
+
+    justify-self:start!important;
+
+    border-left:0!important;
+    padding-left:0!important;
+  }
+
+  .query-period .month-all{
+    grid-column:3/5!important;
+    grid-row:2!important;
+
+    justify-self:end!important;
+  }
+
+  .query-period .period-limit{
+    grid-column:1/-1!important;
+    grid-row:3!important;
+
+    padding-left:0!important;
+  }
+}
+
+
+@media(max-width:560px){
+
+  .query-period{
+    column-gap:5px!important;
+  }
+
+  .query-period .date-range{
+    grid-template-columns:
+      minmax(0,1fr)
+      14px
+      minmax(0,1fr)!important;
+  }
+
+  .query-period .query-date .date-field{
+    padding:0 5px!important;
+  }
+
+  .query-period .date-field>.material-symbols-rounded{
+    display:none!important;
+  }
+
+  .query-period .query-date .date-field input{
+    font-size:10px!important;
+  }
+}
+
+</style>
+
+<style id="agf-periodo-04-refine-v2">
+
+/*
+ * ============================================================
+ * REFINAMENTO V2 DA BARRA DE PERIODO
+ *
+ * CSS ONLY
+ *
+ * Objetivos:
+ * - alinhar com Busca e Local
+ * - limitar largura do intervalo
+ * - reduzir altura
+ * - aumentar area clicavel do date picker
+ * - manter TODAS as funcoes originais
+ * ============================================================
+ */
+
+
+/* ============================================================
+   DESKTOP
+   ============================================================ */
+
+@media(min-width:901px){
+
+  .query-period{
+    grid-template-columns:
+      32px
+      360px
+      32px
+      32px
+      auto
+      auto!important;
+
+    grid-template-rows:
+      32px
+      auto!important;
+
+    column-gap:6px!important;
+    row-gap:3px!important;
+
+    width:max-content!important;
+    max-width:100%!important;
+
+    /*
+     * Compensa os labels Busca geral / Local
+     * existentes na mesma linha.
+     */
+    padding-top:16px!important;
+
+    align-self:start!important;
+  }
+
+
+  /* ==========================
+     BLOCO CENTRAL DAS DATAS
+     ========================== */
+
+  .query-period .date-range{
+    width:360px!important;
+    min-width:360px!important;
+    max-width:360px!important;
+
+    height:32px!important;
+
+    grid-template-columns:
+      minmax(0,1fr)
+      18px
+      minmax(0,1fr)!important;
+
+    border:1px solid #CBD5E1!important;
+    border-radius:8px!important;
+
+    background:#FFFFFF!important;
+
+    box-shadow:
+      0 1px 2px rgba(15,23,42,.025)!important;
+  }
+
+
+  .query-period .date-field{
+    height:30px!important;
+    min-height:30px!important;
+
+    padding:0 7px!important;
+
+    background:transparent!important;
+  }
+
+
+  .query-period .query-date .date-field input{
+    height:30px!important;
+    min-height:30px!important;
+
+    font-size:10px!important;
+    font-weight:700!important;
+
+    cursor:pointer!important;
+  }
+
+
+  .query-period .date-range-arrow{
+    height:30px!important;
+
+    font-size:9px!important;
+    color:#64748B!important;
+  }
+
+
+  .query-period .date-field>.material-symbols-rounded{
+    font-size:15px!important;
+  }
+
+
+  /* ==========================
+     SETAS E CHEVRON
+     ========================== */
+
+  .query-period .month-arrow,
+  .query-period .month-current{
+    width:32px!important;
+    min-width:32px!important;
+
+    height:32px!important;
+    min-height:32px!important;
+
+    border-radius:7px!important;
+  }
+
+
+  .query-period .month-arrow{
+    font-size:20px!important;
+  }
+
+
+  .query-period .month-current::before{
+    font-size:18px!important;
+  }
+
+
+  /* ==========================
+     ATALHOS
+     ========================== */
+
+  .query-period .month-today,
+  .query-period .month-all{
+    height:32px!important;
+    min-height:32px!important;
+
+    font-size:9px!important;
+
+    padding-top:0!important;
+    padding-bottom:0!important;
+  }
+
+
+  .query-period .month-today{
+    padding-left:9px!important;
+    padding-right:7px!important;
+  }
+
+
+  .query-period .month-all{
+    padding-left:3px!important;
+    padding-right:3px!important;
+  }
+
+
+  .query-period .month-today::before{
+    font-size:15px!important;
+  }
+
+
+  .query-period .month-all::before{
+    font-size:16px!important;
+  }
+
+
+  /* ==========================
+     TEXTO DA ULTIMA IMPORTACAO
+     ========================== */
+
+  .query-period .period-limit{
+    grid-row:2!important;
+
+    padding-left:38px!important;
+
+    font-size:8px!important;
+
+    white-space:nowrap!important;
+  }
+
+}
+
+
+/* ============================================================
+   DATE PICKER
+
+   Chrome / Edge mostram um indicador nativo muito pequeno.
+   Este CSS expande a area desse indicador por todo o input.
+
+   Resultado:
+   clicar praticamente em qualquer ponto da DATA abre
+   o calendario nativo, sem JavaScript adicional.
+   ============================================================ */
+
+.query-period input[type="date"]{
+  position:relative!important;
+  cursor:pointer!important;
+}
+
+
+/*
+ * Chromium:
+ * o indicador fica invisivel visualmente,
+ * mas ocupa toda a area interna do input.
+ */
+
+.query-period input[type="date"]::-webkit-calendar-picker-indicator{
+  position:absolute!important;
+
+  inset:0!important;
+
+  width:100%!important;
+  height:100%!important;
+
+  margin:0!important;
+  padding:0!important;
+
+  opacity:0!important;
+
+  cursor:pointer!important;
+}
+
+
+/*
+ * Mantemos nosso icone visual.
+ */
+
+.query-period .date-field{
+  cursor:pointer!important;
+}
+
+
+/* ==========================
+   FOCO MAIS LIMPO
+   ========================== */
+
+.query-period .date-range:focus-within{
+  border-color:#7895B4!important;
+
+  box-shadow:
+    0 0 0 2px rgba(0,65,107,.07)!important;
+}
+
+
+/* ============================================================
+   TELAS MENORES
+   Mantemos a estrutura responsiva existente.
+   Apenas controlamos a largura central.
+   ============================================================ */
+
+@media(max-width:900px){
+
+  .query-period{
+    padding-top:0!important;
+  }
+
+  .query-period .date-range{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+  }
+
+}
+
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media(max-width:560px){
+
+  .query-period .date-range{
+    height:38px!important;
+  }
+
+  .query-period .date-field,
+  .query-period .query-date .date-field input{
+    height:36px!important;
+    min-height:36px!important;
+  }
+
+}
+
+</style>
+
+<style id="agf-periodo-04-refine-v3">
+
+/*
+ * ============================================================
+ * PERIODO V3
+ *
+ * - mesma altura dos campos Busca / Local
+ * - largura central moderada
+ * - remove texto auxiliar
+ * - estado visual de Mês atual / Todo período
+ * ============================================================
+ */
+
+
+/* Remove somente a exibicao.
+   O elemento continua no DOM para a logica existente. */
+.query-period .period-limit{
+  display:none!important;
+}
+
+
+/* ============================================================
+   ALTURA PADRAO = BUSCA GERAL
+   ============================================================ */
+
+.query-period .date-range{
+  height:42px!important;
+  min-height:42px!important;
+
+  border-radius:10px!important;
+}
+
+
+.query-period .date-field{
+  height:40px!important;
+  min-height:40px!important;
+
+  padding-top:0!important;
+  padding-bottom:0!important;
+}
+
+
+.query-period .query-date .date-field input{
+  height:40px!important;
+  min-height:40px!important;
+
+  font-size:11px!important;
+  font-weight:700!important;
+
+  cursor:pointer!important;
+}
+
+
+.query-period .date-range-arrow{
+  height:40px!important;
+}
+
+
+.query-period .month-arrow,
+.query-period .month-current{
+  width:42px!important;
+  min-width:42px!important;
+
+  height:42px!important;
+  min-height:42px!important;
+
+  border-radius:10px!important;
+}
+
+
+.query-period .month-arrow{
+  font-size:22px!important;
+}
+
+
+.query-period .month-current::before{
+  font-size:20px!important;
+}
+
+
+.query-period .month-today,
+.query-period .month-all{
+  height:42px!important;
+  min-height:42px!important;
+
+  padding-top:0!important;
+  padding-bottom:0!important;
+
+  border-radius:8px!important;
+
+  font-size:10px!important;
+
+  text-decoration:none!important;
+}
+
+
+/* ============================================================
+   DESKTOP
+   ============================================================ */
+
+@media(min-width:1101px){
+
+  .query-period{
+    grid-template-columns:
+      42px
+      400px
+      42px
+      42px
+      auto
+      auto!important;
+
+    grid-template-rows:42px!important;
+
+    column-gap:7px!important;
+    row-gap:0!important;
+
+    width:max-content!important;
+    max-width:100%!important;
+
+    /*
+     * Alinha com o campo Busca geral, que possui label acima.
+     */
+    padding-top:16px!important;
+
+    align-self:start!important;
+  }
+
+
+  .query-period .date-range{
+    width:400px!important;
+    min-width:400px!important;
+    max-width:400px!important;
+  }
+
+}
+
+
+/* Em layouts que quebram a barra para outra linha,
+   ela nao precisa da compensacao vertical. */
+@media(max-width:1100px){
+
+  .query-period{
+    padding-top:0!important;
+  }
+
+}
+
+
+/* ============================================================
+   ÁREA CLICÁVEL DO CALENDÁRIO
+   ============================================================ */
+
+.query-period input[type="date"]{
+  position:relative!important;
+  cursor:pointer!important;
+}
+
+
+/*
+ * Chrome / Edge:
+ * transforma toda a área interna do campo em acionador
+ * do date picker nativo.
+ */
+.query-period input[type="date"]::-webkit-calendar-picker-indicator{
+  position:absolute!important;
+
+  inset:0!important;
+
+  width:100%!important;
+  height:100%!important;
+
+  margin:0!important;
+  padding:0!important;
+
+  opacity:0!important;
+
+  cursor:pointer!important;
+}
+
+
+.query-period .date-field{
+  cursor:pointer!important;
+}
+
+
+/* ============================================================
+   ATALHOS
+   ============================================================ */
+
+.query-period .month-today,
+.query-period .month-all{
+  transition:
+    background-color .14s ease,
+    box-shadow .14s ease,
+    color .14s ease!important;
+}
+
+
+.query-period .month-today:hover,
+.query-period .month-all:hover{
+  background:#F1F6FA!important;
+  text-decoration:none!important;
+}
+
+
+/*
+ * Estado realmente selecionado.
+ */
+.query-period .month-today.agf-period-active,
+.query-period .month-all.agf-period-active{
+  background:#E6F1FB!important;
+
+  color:#00416B!important;
+
+  box-shadow:
+    inset 0 0 0 1px #B8D5E8!important;
+
+  text-decoration:none!important;
+
+  font-weight:850!important;
+}
+
+
+/*
+ * Pequeno reforço visual para o item ativo.
+ */
+.query-period .month-today.agf-period-active::before,
+.query-period .month-all.agf-period-active::before{
+  color:#0078D4!important;
+}
+
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media(max-width:560px){
+
+  .query-period .date-range{
+    height:42px!important;
+  }
+
+  .query-period .date-field,
+  .query-period .query-date .date-field input{
+    height:40px!important;
+    min-height:40px!important;
+  }
+
+}
+
+</style>
+
+
+<script id="agf-period-active-state-v3">
+(function(){
+  'use strict';
+
+  if(window.__AGF_PERIOD_ACTIVE_STATE_V3__){
+    return;
+  }
+
+  window.__AGF_PERIOD_ACTIVE_STATE_V3__=true;
+
+
+  function pad2(value){
+    return String(value).padStart(2,'0');
+  }
+
+
+  function expectedCurrentMonthRange(){
+
+    var now=new Date();
+
+    var ym=
+      now.getFullYear()+
+      '-'+
+      pad2(now.getMonth()+1);
+
+    var maxData=
+      typeof MAX_DATA_AVAILABLE!=='undefined'
+        ? String(MAX_DATA_AVAILABLE||'')
+        : '';
+
+    if(
+      /^\d{4}-\d{2}-\d{2}$/.test(maxData) &&
+      ym>maxData.slice(0,7)
+    ){
+      ym=maxData.slice(0,7);
+    }
+
+    var parts=
+      ym.split('-');
+
+    var lastDay=
+      new Date(
+        Number(parts[0]),
+        Number(parts[1]),
+        0
+      ).getDate();
+
+    var end=
+      ym+
+      '-'+
+      pad2(lastDay);
+
+    if(
+      /^\d{4}-\d{2}-\d{2}$/.test(maxData) &&
+      maxData.slice(0,7)===ym &&
+      maxData<end
+    ){
+      end=maxData;
+    }
+
+    return {
+      start:ym+'-01',
+      end:end
+    };
+  }
+
+
+  function syncPeriodShortcutState(){
+
+    var inicio=
+      document.getElementById('dataInicio');
+
+    var fim=
+      document.getElementById('dataFim');
+
+    var monthButton=
+      document.querySelector(
+        '.query-period .month-today'
+      );
+
+    var allButton=
+      document.querySelector(
+        '.query-period .month-all'
+      );
+
+    if(
+      !inicio ||
+      !fim ||
+      !monthButton ||
+      !allButton
+    ){
+      return;
+    }
+
+    var a=
+      String(inicio.value||'');
+
+    var b=
+      String(fim.value||'');
+
+    var allActive=
+      !a &&
+      !b;
+
+    var expected=
+      expectedCurrentMonthRange();
+
+    var monthActive=
+      a===expected.start &&
+      b===expected.end;
+
+
+    monthButton.classList.toggle(
+      'agf-period-active',
+      monthActive
+    );
+
+    allButton.classList.toggle(
+      'agf-period-active',
+      allActive
+    );
+
+
+    monthButton.setAttribute(
+      'aria-pressed',
+      monthActive ? 'true' : 'false'
+    );
+
+    allButton.setAttribute(
+      'aria-pressed',
+      allActive ? 'true' : 'false'
+    );
+  }
+
+
+  function scheduleSync(){
+
+    setTimeout(
+      syncPeriodShortcutState,
+      0
+    );
+  }
+
+
+  document.addEventListener(
+    'DOMContentLoaded',
+    function(){
+
+      syncPeriodShortcutState();
+
+      setTimeout(
+        syncPeriodShortcutState,
+        250
+      );
+
+      setTimeout(
+        syncPeriodShortcutState,
+        1000
+      );
+
+
+      var label=
+        document.getElementById(
+          'monthLabel'
+        );
+
+      if(label){
+
+        new MutationObserver(
+          syncPeriodShortcutState
+        ).observe(
+          label,
+          {
+            childList:true,
+            subtree:true,
+            characterData:true
+          }
+        );
+      }
+
+
+      var fim=
+        document.getElementById(
+          'dataFim'
+        );
+
+      if(fim){
+
+        new MutationObserver(
+          syncPeriodShortcutState
+        ).observe(
+          fim,
+          {
+            attributes:true,
+            attributeFilter:['max']
+          }
+        );
+      }
+
+    }
+  );
+
+
+  document.addEventListener(
+    'change',
+    function(event){
+
+      if(
+        event.target &&
+        (
+          event.target.id==='dataInicio' ||
+          event.target.id==='dataFim'
+        )
+      ){
+        scheduleSync();
+      }
+    }
+  );
+
+
+  document.addEventListener(
+    'click',
+    function(event){
+
+      if(
+        event.target &&
+        event.target.closest &&
+        event.target.closest('.query-period')
+      ){
+        scheduleSync();
+      }
+    }
+  );
+
+})();
+</script>
+
+<style id="agf-periodo-shortcuts-v4">
+
+/* Mês atual e Todo período */
+
+.query-period .month-today,
+.query-period .month-all{
+  box-sizing:border-box!important;
+
+  height:42px!important;
+  min-height:42px!important;
+
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+
+  gap:7px!important;
+
+  padding:0 13px!important;
+
+  border:1px solid #C9D7E6!important;
+  border-radius:8px!important;
+
+  background:#FFFFFF!important;
+  color:#00416B!important;
+
+  font-family:var(--ff)!important;
+  font-size:10px!important;
+  font-weight:750!important;
+
+  line-height:1!important;
+  white-space:nowrap!important;
+
+  cursor:pointer!important;
+
+  text-decoration:none!important;
+
+  transition:
+    background-color .14s ease,
+    border-color .14s ease,
+    box-shadow .14s ease!important;
+}
+
+
+.query-period .month-today::before,
+.query-period .month-all::before{
+  flex:0 0 auto!important;
+
+  margin:0!important;
+
+  font-size:16px!important;
+  line-height:1!important;
+
+  color:#0069A8!important;
+}
+
+
+.query-period .month-today:hover,
+.query-period .month-all:hover{
+  background:#F5F9FC!important;
+  border-color:#9FB9CC!important;
+  text-decoration:none!important;
+}
+
+
+/* Atalho selecionado */
+
+.query-period .month-today.agf-period-active,
+.query-period .month-all.agf-period-active{
+  background:#E5F2FA!important;
+
+  border-color:#A8CDE3!important;
+
+  color:#00416B!important;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(0,105,168,.04)!important;
+
+  font-weight:800!important;
+}
+
+
+.query-period .month-today.agf-period-active::before,
+.query-period .month-all.agf-period-active::before{
+  color:#0078D4!important;
+}
+
+
+/* Remove qualquer borda lateral herdada */
+
+.query-period .month-today{
+  border-left:1px solid #C9D7E6!important;
+}
+
+
+/* Em telas menores mantém conforto de toque */
+
+@media(max-width:900px){
+
+  .query-period .month-today,
+  .query-period .month-all{
+    padding-left:12px!important;
+    padding-right:12px!important;
+  }
+
+}
+
+</style>
 </head>
 <body>
 <!-- ATENDE_CLIENTE_PORTAL_LOCAIS_UI_V2 -->
