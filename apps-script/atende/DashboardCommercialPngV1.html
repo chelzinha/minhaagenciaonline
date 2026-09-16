@@ -1,0 +1,1340 @@
+<script id="atende-commercial-png-v1">
+(function(){
+'use strict';
+
+var TOOLS_ID='commercialPngToolsV1';
+var STYLE_ID='commercialPngStyleV1';
+var CFG=null;
+
+var CARD_CSS = '\n/* ===== TOKENS (marca AGF v1.0) ===== */\n.png-root{\n  --azul-profundo:#0B2D58; --azul:#0078D4; --amarelo:#FFD100;\n  --branco:#FFFFFF; --cinza-50:#F5F7FA; --cinza-100:#E5E7EB; --cinza-400:#9CA3AF; --cinza-500:#6B7280; --grafite:#374151;\n  --azul-fundo:#E6F1FB; --amarelo-fundo:#FFF6CC; --trilho:#E9EDF2;\n  --verde:#22C55E; --verde-tinta:#15803D; --verde-fundo:#EAFBF0;\n  --coral:#F97316; --coral-tinta:#C2410C; --coral-fundo:#FFF1E6;\n  --vermelho:#EF4444; --vermelho-tinta:#B91C1C; --vermelho-fundo:#FDECEC;\n  --ouro:#E0A800; --ouro-escuro:#9A6B00; --prata:#A3ACB8; --prata-escuro:#5E6673; --bronze:#C07A45; --bronze-escuro:#7A4520;\n  --f-titulo:\'Poppins\',\'Segoe UI\',Arial,sans-serif;\n  --f-texto:\'Inter\',\'Segoe UI\',Roboto,Arial,sans-serif;\n  --r-sm:6px; --r-md:10px; --pill:999px;\n  --pagina:#E9EEF4; --pagina-texto:#0B2D58;\n}\n\n/* ===== BASE ===== */\n.png-root,.png-root *{box-sizing:border-box}\n.png-root{width:600px;height:600px;margin:0;font:400 12px/1.35 var(--f-texto);color:var(--grafite);-webkit-font-smoothing:antialiased}\n.png-root svg{display:block}\n.png-root .num{font-family:var(--f-titulo);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}\n/* ===== CARD 600x600 ===== */\n.card{\n  width:600px;height:600px;flex:none;overflow:hidden;position:relative;\n  background:var(--branco);border-radius:14px;padding:24px 20px 14px;\n  display:flex;flex-direction:column;gap:8px;\n}\n.card::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:var(--cor-status)}\n.escala{width:600px;height:600px}\n\n/* Cabeçalho */\n.head{display:flex;justify-content:space-between;align-items:center;gap:12px;height:68px;flex:none}\n.titulo-bloco{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0}\n.titulo-linha{display:flex;align-items:center;gap:10px;flex-wrap:wrap}\n.status-chip-row{display:flex;align-items:center;min-height:18px}\n.head h2{font:800 30px/1.05 var(--f-titulo);color:var(--azul-profundo);margin:0}\n.chip-data{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:var(--pill);background:var(--azul-profundo);color:#fff;font:600 12.5px var(--f-titulo);white-space:nowrap;box-shadow:0 0 0 2px var(--amarelo)}\n.chip-data svg{width:14px;height:14px;color:var(--amarelo)}\n.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:var(--pill);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}\n.chip svg{width:12px;height:12px}\n.s-otimo{background:var(--verde-fundo);color:var(--verde-tinta)}\n.s-linha{background:var(--azul-fundo);color:var(--azul)}\n.s-atencao{background:var(--coral-fundo);color:var(--coral-tinta)}\n.s-critico{background:var(--vermelho-fundo);color:var(--vermelho-tinta)}\n.gauge{width:124px;text-align:center;flex:none;display:flex;flex-direction:column;align-items:center}\n.gauge > svg{width:108px;height:58px}\n.gauge-val{margin-top:-21px;font-size:20px;color:var(--azul-profundo);line-height:1}\n\n/* KPIs */\n.kpis{display:grid;grid-template-columns:1fr 1.08fr 1fr 1.08fr;gap:6px;flex:none}\n.kpi{border:1px solid var(--cinza-100);border-radius:var(--r-md);padding:7px 9px}\n.kpi-lbl{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--cinza-500);white-space:nowrap}\n.kpi-lbl svg{width:13px;height:13px;color:var(--azul);flex:none}\n.kpi-val{font-size:14.5px;color:var(--azul-profundo);margin-top:2px;white-space:nowrap}\n.kpi-sub{font-size:10px;color:var(--cinza-500);display:flex;align-items:center;gap:3px;white-space:nowrap}\n.kpi-sub svg{width:11px;height:11px}\n.kpi.destaque{background:var(--azul-profundo);border-color:var(--azul-profundo)}\n.kpi.destaque .kpi-lbl,.kpi.destaque .kpi-sub{color:#C9D6E6}\n.kpi.destaque .kpi-lbl svg{color:var(--amarelo)}\n.kpi.destaque .kpi-val{color:#fff}\n.up{color:var(--verde-tinta)!important} .down{color:var(--vermelho-tinta)!important}\n\n/* Painéis */\n.painel{border:1px solid var(--cinza-100);border-radius:var(--r-md);padding:8px 10px;min-width:0}\n.painel-tit{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px}\n.painel-tit h3{margin:0;font:600 12px var(--f-titulo);color:var(--azul-profundo);display:flex;align-items:center;gap:5px;white-space:nowrap}\n.painel-tit h3 svg{width:14px;height:14px;color:var(--azul)}\n.painel-tit > span{font-size:10px;color:var(--cinza-500);white-space:nowrap}\n.duo{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:none}\n\n/* Rota do mês */\n.rota{position:relative;height:66px;margin:0 6px}\n.rota-trilho,.rota-fill{position:absolute;left:0;top:30px;height:5px;border-radius:var(--pill)}\n.rota-trilho{right:0;background:var(--trilho)}\n.rota-fill{background:var(--azul)}\n.rota-parada{position:absolute;top:32.5px;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#fff;border:1.5px solid var(--cinza-400)}\n.rota-parada.feita{border-color:var(--azul-profundo);background:var(--azul-profundo)}\n.rota-parada.origem{width:12px;height:12px;margin:-6px 0 0 -6px;background:var(--azul-profundo);border-color:var(--azul-profundo)}\n.rota-parada.destino{width:16px;height:16px;margin:-8px 0 0 -8px;background:var(--amarelo);border:2.5px solid #fff;box-shadow:0 0 0 2px var(--amarelo)}\n.pino{position:absolute;display:flex;flex-direction:column;align-items:center;transform:translateX(-50%);white-space:nowrap}\n.pino-vendas{top:0}\n.pino-vendas .etq{background:var(--azul);color:#fff;border-radius:5px;padding:1px 7px;font:600 11px/1.5 var(--f-titulo)}\n.pino-vendas i{border:5px solid transparent;border-top-color:var(--azul)}\n.pino-hoje{top:40px}\n.pino-hoje i{width:2px;height:6px;background:var(--azul-profundo)}\n.pino-hoje .etq{font:600 11px/1.3 var(--f-titulo);color:var(--azul-profundo)}\n.pino-hoje .etq small{font:500 9.5px var(--f-texto);color:var(--cinza-500)}\n.rota-legenda{display:flex;justify-content:space-between;font-size:9.5px;color:var(--cinza-500)}\n.desvio{display:inline-flex;align-items:center;gap:3px;font-weight:600;font-size:11px;padding:2px 8px;border-radius:var(--pill)}\n.desvio svg{width:12px;height:12px}\n\n/* Ritmo */\n.barra-top{display:flex;justify-content:space-between;font-size:10.5px;margin:4px 0 3px}\n.barra-top span{color:var(--cinza-500)}\n.barra-top b{font:600 11.5px var(--f-titulo);color:var(--azul-profundo)}\n.barra{height:9px;border-radius:var(--pill);background:var(--trilho);overflow:hidden}\n.barra i{display:block;height:100%;border-radius:var(--pill)}\n.veredito{display:flex;gap:5px;align-items:center;padding:5px 7px;border-radius:var(--r-sm);font-size:10.5px;margin-top:7px}\n.veredito svg{width:13px;height:13px;flex:none}\n\n/* Faixas */\n.faixas{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}\n.faixa{text-align:center;min-width:0}\n.faixa svg{width:30px;height:30px;margin:0 auto 1px}\n.faixa b{display:block;font:600 10.5px var(--f-titulo);color:var(--azul-profundo);line-height:1.2}\n.faixa .fv{font-size:9.5px;color:var(--cinza-500);white-space:nowrap}\n.faixa .fs{display:inline-block;margin-top:2px;font-size:9px;font-weight:600;padding:1px 6px;border-radius:var(--pill);white-space:nowrap}\n.faixa.bloq svg{opacity:.35;filter:grayscale(1)}\n.proj{position:relative;height:12px;border-radius:4px;background:var(--trilho);margin:17px 0 3px}\n.proj-real{position:absolute;inset:0 auto 0 0;background:var(--azul-profundo);border-radius:4px 0 0 4px}\n.proj-proj{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,#66AEE6 0 4px,#9CCBF0 4px 8px);border-radius:0 4px 4px 0}\n.proj-marca{position:absolute;top:-4px;bottom:-4px;width:2px;transform:translateX(-50%)}\n.proj-marca span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:9px;font-weight:600;white-space:nowrap}\n.proj-leg{display:flex;gap:10px;font-size:9.5px;color:var(--cinza-500)}\n.proj-leg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:3px;vertical-align:-1px}\n\n/* Ranking */\n.rank{display:grid;gap:4px}\n.rank-item{display:grid;grid-template-columns:22px 1fr 96px;gap:8px;align-items:center}\n.rank-item svg{width:22px;height:22px}\n.rank-nome{display:flex;justify-content:space-between;font-weight:600;color:var(--azul-profundo);font-size:11px;line-height:1.2}\n.rank-nome span{font-weight:500;color:var(--cinza-500)}\n.rank-barra{height:5px;border-radius:var(--pill);background:var(--trilho);overflow:hidden;margin-top:2px}\n.rank-barra i{display:block;height:100%;background:var(--azul)}\n.rank-valor{text-align:right;font-size:11.5px;color:var(--azul-profundo)}\n\n/* Leitura */\n.leitura{display:grid;gap:6px;flex:1;min-height:0}\n.bloco{border-radius:var(--r-md);padding:7px 9px;min-width:0}\n.bloco h4{margin:0 0 2px;display:flex;align-items:center;gap:4px;font:600 10px var(--f-texto);text-transform:uppercase;letter-spacing:.05em}\n.bloco h4 svg{width:12px;height:12px}\n.bloco p{margin:0;font-size:11.5px;line-height:1.35;color:var(--grafite)}\n.b-conc{background:var(--azul-fundo)} .b-conc h4{color:var(--azul)}\n.b-passo{background:var(--amarelo-fundo)} .b-passo h4{color:var(--azul-profundo)}\n.b-risco{background:var(--coral-fundo)} .b-risco h4{color:var(--coral-tinta)}\n\n/* Modo compacto (cards com ranking) */\n.card.compacto{gap:6px}\n.card.compacto .head{height:58px}\n.card.compacto .head h2{font-size:26px}\n.card.compacto .gauge > svg{width:100px;height:52px}\n.card.compacto .gauge{width:124px}\n.card.compacto .gauge-val{font-size:18px;margin-top:-18px}\n.card.compacto .kpi{padding:6px 9px}\n.card.compacto .rota{height:56px}\n.card.compacto .rota-trilho,.card.compacto .rota-fill{top:25px}\n.card.compacto .rota-parada{top:27.5px}\n.card.compacto .pino-hoje{top:34px}\n.card.compacto .painel{padding:6px 10px}\n.card.compacto .faixa svg{width:24px;height:24px}\n.card.compacto .proj{margin-top:14px}\n.card.compacto .veredito{margin-top:5px;padding:4px 7px}\n.card.compacto .rank{gap:2px}\n.card.compacto .leitura{grid-template-columns:1fr!important;align-content:start;gap:5px}\n.card.compacto .bloco{display:flex;align-items:center;gap:8px;padding:5px 9px}\n.card.compacto .bloco h4{margin:0;flex:none}\n.card.compacto .bloco p{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.card.compacto .b-conc{display:none}\n';
+
+function n(v){
+  v=Number(v||0);
+  return Number.isFinite(v)?v:0;
+}
+function clean(v){ return String(v==null?'':v).trim(); }
+function dashboardData(){
+  try{
+    if(typeof window.ATENDE_getDashboardDataV4==='function') return window.ATENDE_getDashboardDataV4()||{};
+  }catch(_){}
+  return {};
+}
+function titleName(value){
+  value=clean(value).toLowerCase();
+  return value ? value.charAt(0).toUpperCase()+value.slice(1) : '';
+}
+function readEndDate(data){
+  var input=document.getElementById('dataFim');
+  var value=clean(input&&input.value);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  var ranking=data&&data.rankingBalcao;
+  value=clean(ranking&&ranking.periodo&&ranking.periodo.fim);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  return '';
+}
+function dateBr(value){
+  var m=clean(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? m[3]+'/'+m[2]+'/'+m[1] : clean(value);
+}
+function buildCfg(){
+  var data=dashboardData();
+  var metas=data.metas||{};
+  var config=metas.config||{};
+  var realizado=metas.realizado||{};
+  var rank=data.rankingBalcao||{};
+  var linhas=Array.isArray(rank.linhas)?rank.linhas:[];
+  var ranking=linhas.map(function(row){
+    return {nome:titleName(row.nome),valor:n(row.realizado)};
+  });
+  return {
+    dataRef: dateBr(readEndDate(data)) || clean(metas.competencia) || '',
+    diasUteisMes:n(config.diasUteisMes),
+    diasUteisRealizados:n(config.diasUteisRealizados),
+    status:{otimo:10,linha:-2,atencao:-10},
+    unidades:[
+      {id:'metro',nome:'Metrô',realizado:n(realizado.metro),faixas:{bronze:n(config.metroBronze)||null,prata:n(config.metroPrata)||null,ouro:n(config.metroOuro)||null},ranking:null,nota:'Folga pequena sobre a Bronze. Um ou dois dias fracos tiram a unidade da linha da meta.'},
+      {id:'encomendas',nome:'Encomendas',realizado:n(realizado.encomendas),faixas:{bronze:n(config.encomendasBronze)||null,prata:n(config.encomendasPrata)||null,ouro:n(config.encomendasOuro)||null},ranking:null,nota:'A projeção supõe ritmo constante. Lotes grandes pontuais inflam a estimativa de fechamento.'},
+      {id:'balcao',nome:'Balcão AGF',realizado:n(realizado.balcao),faixas:{bronze:n(config.balcaoBronze)||null,prata:n(config.balcaoPrata)||null,ouro:n(config.balcaoOuro)||null},ranking:ranking,semResponsavel:n(rank.naoAtribuido),nota:null}
+    ]
+  };
+}
+
+function addStyle(){
+  if(document.getElementById(STYLE_ID)) return;
+  var style=document.createElement('style');
+  style.id=STYLE_ID;
+  style.textContent='.commercial-png-tools-v1{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:-4px 0 14px;flex-wrap:wrap}.commercial-png-tools-v1 select{height:36px;min-width:145px;border:1px solid #D7E0E8;border-radius:9px;background:#fff;color:#173650;padding:0 10px;font:inherit;font-size:10px;font-weight:750}.commercial-png-tools-v1 button{height:36px;border:0;border-radius:9px;background:#0B72D9;color:#fff;padding:0 13px;font:inherit;font-size:10px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 10px rgba(11,114,217,.16)}.commercial-png-tools-v1 button:disabled{opacity:.6;cursor:wait}.commercial-png-tools-v1 .material-symbols-rounded{font-size:17px}';
+  document.head.appendChild(style);
+}
+function commercialTitle(){
+  var title=document.querySelector('#dashboardView .v4-title');
+  if(!title) return null;
+  return clean(title.textContent).toLowerCase().indexOf('comercial')===0 ? title : null;
+}
+function removeTools(){ var old=document.getElementById(TOOLS_ID); if(old) old.remove(); }
+function mount(){
+  addStyle();
+  var title=commercialTitle();
+  if(!title){ removeTools(); return; }
+  if(document.getElementById(TOOLS_ID)) return;
+  var box=document.createElement('div');
+  box.id=TOOLS_ID;
+  box.className='commercial-png-tools-v1';
+  box.innerHTML='<select id="commercialPngScopeV1" aria-label="Grupo do PNG"><option value="encomendas">Encomendas</option><option value="balcao">Balcão AGF</option><option value="metro">Metrô</option></select><button type="button" id="commercialPngSaveV1"><span class="material-symbols-rounded">download</span><span>Salvar PNG</span></button>';
+  title.insertAdjacentElement('afterend',box);
+  var select=document.getElementById('commercialPngScopeV1');
+  var button=document.getElementById('commercialPngSaveV1');
+  button.addEventListener('click',function(){ exportPng(select.value,button); });
+}
+
+
+const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const DEC = v => v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const PCT = v => DEC(v) + '%';
+const PP = v => (v > 0 ? '+' : v < 0 ? '-' : '') + DEC(Math.abs(v)) + ' p.p.';
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const ICON = {
+  alvo: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  carteira: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  bandeira: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>',
+  grafico: '<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>',
+  sobe: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+  desce: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+  tendSobe: '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  tendDesce: '<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>',
+  calendario: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  rota: '<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',
+  medalha: '<path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><circle cx="12" cy="17" r="5"/>',
+  equipe: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  check: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/>',
+  alerta: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
+  lampada: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5M9 18h6M10 22h4"/>',
+  seta: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>'
+};
+const ic = n => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
+
+const TIER = {
+  ouro: { nome: 'Ouro', c1: 'var(--ouro)', c2: 'var(--ouro-escuro)' },
+  prata: { nome: 'Prata', c1: 'var(--prata)', c2: 'var(--prata-escuro)' },
+  bronze: { nome: 'Bronze', c1: 'var(--bronze)', c2: 'var(--bronze-escuro)' }
+};
+function medalha(tier, label = '') {
+  const t = TIER[tier];
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" aria-hidden="true">
+    <path d="M14 2h8l6 16h-8z" fill="var(--azul)"/><path d="M34 2h-8l-6 16h8z" fill="var(--azul-profundo)"/>
+    <circle cx="24" cy="30" r="15" fill="${t.c2}"/><circle cx="24" cy="30" r="12" fill="${t.c1}"/>
+    ${label
+      ? `<text x="24" y="35" text-anchor="middle" font-family="Poppins,Arial" font-weight="800" font-size="14" fill="#fff">${label}</text>`
+      : '<path d="M24 22.5l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7z" fill="#fff" opacity=".9"/>'}
+  </svg>`;
+}
+
+/* ================= SERVICES ================= */
+function buildMetricas(u) {
+  const total = CFG.diasUteisMes, feitos = CFG.diasUteisRealizados, restantes = Math.max(0, total - feitos);
+  const meta = u.faixas.bronze;
+  const pctMeta = meta > 0 ? (u.realizado / meta) * 100 : 0;
+  const pctTempo = total > 0 ? (feitos / total) * 100 : 0;
+  const desvio = pctMeta - pctTempo;
+  const media = feitos > 0 ? u.realizado / feitos : 0;
+  const projecao = media * total;
+  const falta = Math.max(0, meta - u.realizado);
+  const necessario = restantes > 0 ? falta / restantes : falta;
+  const variacaoRitmo = media > 0 ? ((necessario / media) - 1) * 100 : 0;
+  const projVsMeta = meta > 0 ? ((projecao / meta) - 1) * 100 : 0;
+  const s = CFG.status;
+  const status = desvio >= s.otimo ? 'otimo' : desvio >= s.linha ? 'linha' : desvio >= s.atencao ? 'atencao' : 'critico';
+  return { total, feitos, restantes, meta, pctMeta, pctTempo, desvio, media, projecao, falta, necessario, variacaoRitmo, projVsMeta, status };
+}
+
+const STATUS = {
+  otimo:   { rot: 'Muito acima do ritmo', cls: 's-otimo',   cor: 'var(--verde)',    icone: 'tendSobe' },
+  linha:   { rot: 'Na linha da meta',     cls: 's-linha',   cor: 'var(--azul)',     icone: 'check' },
+  atencao: { rot: 'Abaixo, recuperável',  cls: 's-atencao', cor: 'var(--coral)',    icone: 'alerta' },
+  critico: { rot: 'Abaixo, crítico',      cls: 's-critico', cor: 'var(--vermelho)', icone: 'tendDesce' }
+};
+
+function buildLeitura(u, m) {
+  const v = DEC(Math.abs(m.variacaoRitmo));
+  let conclusao, passo;
+  if (m.falta === 0) {
+    conclusao = 'Bronze atingida antes do fim do mês.';
+    passo = 'Manter a média diária e mirar a próxima faixa.';
+  } else if (m.variacaoRitmo <= 0) {
+    conclusao = `${DEC(Math.abs(m.desvio))} p.p. à frente do calendário. No ritmo atual, fecha em ${BRL.format(m.projecao)}.`;
+    passo = `Garantir ${BRL.format(m.necessario)} por dia útil. A média pode cair até ${v}% sem perder a Bronze.`;
+  } else {
+    conclusao = `${DEC(Math.abs(m.desvio))} p.p. atrás do calendário. No ritmo atual, fecha ${BRL.format(m.meta - m.projecao)} abaixo da Bronze.`;
+    passo = `Subir a média para ${BRL.format(m.necessario)} por dia (+${v}%) nos ${m.restantes} dias úteis.`;
+  }
+  let risco = u.nota;
+  if (!risco && m.falta > 0 && m.variacaoRitmo > 0) {
+    risco = `Cada dia abaixo de ${BRL.format(m.necessario)} aumenta a meta diária dos dias seguintes.`;
+  }
+  return { conclusao, passo, risco };
+}
+
+/* ================= UI ================= */
+function renderGauge(m, st) {
+  const ponto = (f, r) => { const a = Math.PI * (1 - f); return [60 + r * Math.cos(a), 60 - r * Math.sin(a)]; };
+  const f = clamp(m.pctTempo / 100, 0, 1);
+  const [x1, y1] = ponto(f, 41), [x2, y2] = ponto(f, 57);
+  return `<div class="gauge" role="img" aria-label="${PCT(m.pctMeta)} da meta Bronze">
+    <svg viewBox="0 0 120 66">
+      <path d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="var(--trilho)" stroke-width="11" stroke-linecap="round"/>
+      <path d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="${st.cor}" stroke-width="11" stroke-linecap="round" pathLength="100" stroke-dasharray="${clamp(m.pctMeta, 0, 100)} 100"/>
+      <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--azul-profundo)" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    <div class="gauge-val num">${PCT(m.pctMeta)}</div>
+  </div>`;
+}
+
+function renderKpis(u, m) {
+  const up = m.projVsMeta >= 0;
+  return `<div class="kpis">
+    <div class="kpi"><div class="kpi-lbl">${ic('alvo')}Meta Bronze</div><div class="kpi-val num">${BRL.format(m.meta)}</div><div class="kpi-sub">${m.total} dias úteis</div></div>
+    <div class="kpi destaque"><div class="kpi-lbl">${ic('carteira')}Realizado</div><div class="kpi-val num">${BRL.format(u.realizado)}</div><div class="kpi-sub">média ${BRL.format(m.media)}/dia</div></div>
+    <div class="kpi"><div class="kpi-lbl">${ic('bandeira')}Falta p/ Bronze</div><div class="kpi-val num">${BRL.format(m.falta)}</div><div class="kpi-sub">em ${m.restantes} dias úteis</div></div>
+    <div class="kpi"><div class="kpi-lbl">${ic('tendSobe')}Projeção linear</div><div class="kpi-val num">${BRL.format(m.projecao)}</div><div class="kpi-sub ${up ? 'up' : 'down'}">${ic(up ? 'sobe' : 'desce')}${PCT(Math.abs(m.projVsMeta))} vs Bronze</div></div>
+  </div>`;
+}
+
+function renderRota(m, st) {
+  let paradas = '';
+  for (let i = 0; i <= m.total; i++) {
+    const cls = i === 0 ? 'origem' : i === m.total ? 'destino' : i <= m.feitos ? 'feita' : '';
+    paradas += `<span class="rota-parada ${cls}" style="left:${(i / m.total) * 100}%"></span>`;
+  }
+  const vendas = clamp(m.pctMeta, 0, 100);
+  const pos = v => `clamp(34px, ${v}%, calc(100% - 34px))`;
+  return `<div class="painel">
+    <div class="painel-tit"><h3>${ic('rota')}Rota do mês</h3><span class="desvio ${st.cls}">${ic(m.desvio >= 0 ? 'sobe' : 'desce')}${PP(m.desvio)} vs calendário</span></div>
+    <div class="rota" role="img" aria-label="Vendas ${PCT(m.pctMeta)}, calendário ${PCT(m.pctTempo)}">
+      <div class="rota-trilho"></div><div class="rota-fill" style="width:${vendas}%"></div>${paradas}
+      <div class="pino pino-vendas" style="left:${pos(vendas)}"><div class="etq">Vendas ${PCT(m.pctMeta)}</div><i></i></div>
+      <div class="pino pino-hoje" style="left:${pos(m.pctTempo)}"><i></i><div class="etq">Hoje ${PCT(m.pctTempo)} <small>· dia ${m.feitos} de ${m.total}</small></div></div>
+    </div>
+    <div class="rota-legenda"><span>Início do mês</span><span>Meta Bronze</span></div>
+  </div>`;
+}
+
+function renderRitmo(m) {
+  const max = Math.max(m.media, m.necessario) || 1;
+  const sobe = m.variacaoRitmo > 0;
+  const v = DEC(Math.abs(m.variacaoRitmo));
+  const ver = m.falta === 0 ? ['s-otimo', 'check', 'Bronze já garantida.']
+    : sobe ? ['s-atencao', 'sobe', `Precisa <b>subir ${v}%</b> por dia.`]
+           : ['s-otimo', 'check', `Folga de <b>${v}%</b> por dia.`];
+  return `<div class="painel">
+    <div class="painel-tit"><h3>${ic('grafico')}Ritmo diário</h3><span>por dia útil</span></div>
+    <div class="barra-top"><span>Média realizada</span><b>${BRL.format(m.media)}</b></div>
+    <div class="barra"><i style="width:${(m.media / max) * 100}%;background:var(--azul)"></i></div>
+    <div class="barra-top"><span>Necessário p/ Bronze</span><b>${BRL.format(m.necessario)}</b></div>
+    <div class="barra"><i style="width:${(m.necessario / max) * 100}%;background:${sobe ? 'var(--coral)' : 'var(--verde)'}"></i></div>
+    <div class="veredito ${ver[0]}">${ic(ver[1])}<span>${ver[2]}</span></div>
+  </div>`;
+}
+
+function renderFaixas(u, m) {
+  const ordem = ['bronze', 'prata', 'ouro'];
+  const cards = ordem.map(t => {
+    const valor = u.faixas[t];
+    if (valor == null) return `<div class="faixa bloq">${medalha(t)}<b>${TIER[t].nome}</b><div class="fv">não cadastrada</div></div>`;
+    const s = u.realizado >= valor ? ['Atingida', 's-otimo'] : m.projecao >= valor ? ['Na projeção', 's-linha'] : ['Fora da projeção', 's-atencao'];
+    return `<div class="faixa">${medalha(t)}<b>${TIER[t].nome}</b><div class="fv num">${BRL.format(valor)}</div><span class="fs ${s[1]}">${s[0]}</span></div>`;
+  }).join('');
+  const conhecidas = ordem.filter(t => u.faixas[t] != null);
+  const escala = Math.max(m.projecao, ...conhecidas.map(t => u.faixas[t])) * 1.06;
+  const pR = (u.realizado / escala) * 100, pP = (m.projecao / escala) * 100;
+  const marcas = conhecidas.map(t => `<div class="proj-marca" style="left:${(u.faixas[t] / escala) * 100}%;background:${TIER[t].c2}"></div>`).join('');
+  return `<div class="painel">
+    <div class="painel-tit"><h3>${ic('medalha')}Faixas de meta</h3></div>
+    <div class="faixas">${cards}</div>
+    <div class="proj" role="img" aria-label="Realizado e projeção frente às faixas">
+      <div class="proj-real" style="width:${pR}%"></div><div class="proj-proj" style="left:${pR}%;width:${Math.max(0, pP - pR)}%"></div>${marcas}
+    </div>
+    <div class="proj-leg"><span><i style="background:var(--azul-profundo)"></i>Realizado</span><span><i style="background:#66AEE6"></i>Projeção dia ${m.total}</span></div>
+  </div>`;
+}
+
+function renderRanking(u) {
+  if (!u.ranking || !u.ranking.length) return '';
+  const lista = [...u.ranking].sort((a, b) => b.valor - a.valor);
+  const soma = lista.reduce((s, r) => s + r.valor, 0);
+  const tiers = ['ouro', 'prata', 'bronze'];
+  const itens = lista.slice(0, 3).map((r, i) => {
+    const share = u.realizado > 0 ? (r.valor / u.realizado) * 100 : 0;
+    return `<div class="rank-item">${medalha(tiers[i], String(i + 1))}
+      <div><div class="rank-nome">${esc(r.nome)}<span>${PCT(share)}</span></div><div class="rank-barra"><i style="width:${share}%"></i></div></div>
+      <div class="rank-valor num">${BRL.format(r.valor)}</div></div>`;
+  }).join('');
+  return `<div class="painel" style="flex:none">
+    <div class="painel-tit"><h3>${ic('equipe')}Ranking da equipe</h3><span>Atribuído ${PCT(u.realizado > 0 ? (soma / u.realizado) * 100 : 0)} · sem responsável ${BRL.format(u.semResponsavel || 0)}</span></div>
+    <div class="rank">${itens}</div>
+  </div>`;
+}
+
+function renderLeitura(lei) {
+  const blocos = [
+    `<div class="bloco b-conc"><h4>${ic('lampada')}Leitura</h4><p>${lei.conclusao}</p></div>`,
+    `<div class="bloco b-passo"><h4>${ic('seta')}Próximo passo</h4><p>${lei.passo}</p></div>`
+  ];
+  if (lei.risco) blocos.push(`<div class="bloco b-risco"><h4>${ic('alerta')}Atenção</h4><p>${esc(lei.risco)}</p></div>`);
+  return `<div class="leitura" style="grid-template-columns:repeat(${blocos.length},1fr)">${blocos.join('')}</div>`;
+}
+
+function renderCard(u) {
+  const m = buildMetricas(u), st = STATUS[m.status];
+  return `<div class="escala"><article class="card${u.ranking && u.ranking.length ? ' compacto' : ''}" id="card-${u.id}" style="--cor-status:${st.cor}" aria-label="Resultado comercial ${esc(u.nome)}">
+    <div class="head">
+      <div class="titulo-bloco">
+        <div class="titulo-linha">
+          <h2>${esc(u.nome)}</h2>
+          <span class="chip-data">${ic('calendario')}Até ${CFG.dataRef}</span>
+        </div>
+        <div class="status-chip-row">
+          <span class="chip ${st.cls}">${ic(st.icone)}${st.rot}</span>
+        </div>
+      </div>
+      ${renderGauge(m, st)}
+    </div>
+    ${renderKpis(u, m)}
+    ${renderRota(m, st)}
+    <div class="duo">${renderRitmo(m)}${renderFaixas(u, m)}</div>
+    ${renderRanking(u)}
+    ${renderLeitura(buildLeitura(u, m))}
+  </article></div>`;
+}
+
+
+
+function ensureHtml2Canvas(){
+  return new Promise(function(resolve,reject){
+
+    if(typeof window.html2canvas==='function'){
+      resolve(window.html2canvas);
+      return;
+    }
+
+    var old=document.getElementById('atende-html2canvas-lib');
+
+    if(old){
+      old.remove();
+    }
+
+    var script=document.createElement('script');
+
+    script.id='atende-html2canvas-lib';
+    script.src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+    script.async=true;
+
+    script.onload=function(){
+
+      if(typeof window.html2canvas==='function'){
+        resolve(window.html2canvas);
+        return;
+      }
+
+      reject(
+        new Error(
+          'html2canvas carregou, mas nao ficou disponivel.'
+        )
+      );
+    };
+
+    script.onerror=function(){
+      reject(
+        new Error(
+          'Nao foi possivel carregar o motor de captura.'
+        )
+      );
+    };
+
+    document.head.appendChild(script);
+  });
+}
+
+
+function createRenderFrame(scope){
+  return new Promise(function(resolve,reject){
+
+    CFG=buildCfg();
+
+    var unit=
+      CFG.unidades.find(
+        function(u){
+          return u.id===scope;
+        }
+      ) ||
+      CFG.unidades[1];
+
+    var frame=
+      document.createElement('iframe');
+
+    frame.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+
+    frame.style.position='fixed';
+    frame.style.left='-10000px';
+    frame.style.top='0';
+    frame.style.width='600px';
+    frame.style.height='600px';
+    frame.style.border='0';
+    frame.style.margin='0';
+    frame.style.padding='0';
+    frame.style.pointerEvents='none';
+    frame.style.background='#FFFFFF';
+
+    frame.onload=function(){
+
+      try{
+
+        var doc=
+          frame.contentDocument;
+
+        if(!doc){
+          throw new Error(
+            'Documento de renderizacao indisponivel.'
+          );
+        }
+
+        var card=
+          doc.querySelector('.card');
+
+        if(!card){
+          throw new Error(
+            'Card 600x600 nao encontrado.'
+          );
+        }
+
+        resolve(frame);
+
+      }catch(err){
+
+        reject(err);
+      }
+    };
+
+    frame.onerror=function(){
+      reject(
+        new Error(
+          'Falha ao montar o card para captura.'
+        )
+      );
+    };
+
+    var html=
+      '<!doctype html>'+
+      '<html lang="pt-BR">'+
+      '<head>'+
+        '<meta charset="UTF-8">'+
+        '<meta name="viewport" content="width=600,initial-scale=1">'+
+        '<style>'+
+          'html,body{'+
+            'margin:0;'+
+            'padding:0;'+
+            'width:600px;'+
+            'height:600px;'+
+            'overflow:hidden;'+
+            'background:#FFFFFF;'+
+          '}'+
+          CARD_CSS+
+        '</style>'+
+      '</head>'+
+      '<body>'+
+        '<div class="png-root">'+
+          renderCard(unit)+
+        '</div>'+
+      '</body>'+
+      '</html>';
+
+    frame.srcdoc=html;
+
+    document.body.appendChild(frame);
+  });
+}
+
+
+function ensureHtml2CanvasInFrame(frame){
+  return new Promise(function(resolve,reject){
+
+    var win=frame.contentWindow;
+    var doc=frame.contentDocument;
+
+    if(!win||!doc){
+      reject(
+        new Error(
+          'Iframe de renderizacao indisponivel.'
+        )
+      );
+      return;
+    }
+
+    if(typeof win.html2canvas==='function'){
+      resolve(win.html2canvas);
+      return;
+    }
+
+    var script=doc.createElement('script');
+
+    script.src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+    script.async=true;
+
+    script.onload=function(){
+
+      if(typeof win.html2canvas==='function'){
+        resolve(win.html2canvas);
+        return;
+      }
+
+      reject(
+        new Error(
+          'html2canvas nao ficou disponivel dentro do iframe.'
+        )
+      );
+    };
+
+    script.onerror=function(){
+
+      reject(
+        new Error(
+          'Nao foi possivel carregar html2canvas dentro do iframe.'
+        )
+      );
+    };
+
+    doc.head.appendChild(script);
+  });
+}
+
+function canvasToBlob(canvas){
+  return new Promise(function(resolve,reject){
+
+    canvas.toBlob(
+      function(blob){
+
+        if(blob){
+          resolve(blob);
+          return;
+        }
+
+        reject(
+          new Error(
+            'O navegador nao conseguiu criar o arquivo PNG.'
+          )
+        );
+      },
+      'image/png'
+    );
+  });
+}
+
+
+async function exportPng(scope,button){
+
+  if(button){
+    button.disabled=true;
+  }
+
+  var frame=null;
+  var downloadUrl=null;
+
+  try{
+
+    frame=
+      await createRenderFrame(scope);
+
+    var doc=
+      frame.contentDocument;
+
+    var card=
+      doc.querySelector('.card');
+
+    var capture=
+      await ensureHtml2CanvasInFrame(frame);
+
+    if(
+      doc.fonts &&
+      doc.fonts.ready
+    ){
+      try{
+        await doc.fonts.ready;
+      }catch(_){}
+    }
+
+    await new Promise(
+      function(resolve){
+        setTimeout(resolve,250);
+      }
+    );
+
+    var canvas=
+      await capture(
+        card,
+        {
+          backgroundColor:'#FFFFFF',
+          scale:1,
+          width:600,
+          height:600,
+          windowWidth:600,
+          windowHeight:600,
+          useCORS:false,
+          allowTaint:false,
+          logging:false,
+          removeContainer:true
+        }
+      );
+
+    if(
+      canvas.width!==600 ||
+      canvas.height!==600
+    ){
+
+      var finalCanvas=
+        document.createElement('canvas');
+
+      finalCanvas.width=600;
+      finalCanvas.height=600;
+
+      var finalCtx=
+        finalCanvas.getContext('2d');
+
+      finalCtx.fillStyle='#FFFFFF';
+      finalCtx.fillRect(
+        0,
+        0,
+        600,
+        600
+      );
+
+      finalCtx.drawImage(
+        canvas,
+        0,
+        0,
+        600,
+        600
+      );
+
+      canvas=finalCanvas;
+    }
+
+    var blob=
+      await canvasToBlob(canvas);
+
+    downloadUrl=
+      URL.createObjectURL(blob);
+
+    var date=
+      (
+        CFG &&
+        CFG.dataRef
+      )
+        ? CFG.dataRef.replace(/\//g,'-')
+        : 'periodo';
+
+    var link=
+      document.createElement('a');
+
+    link.download=
+      'resultado-comercial-'+
+      scope+
+      '-'+
+      date+
+      '.png';
+
+    link.href=
+      downloadUrl;
+
+    document.body.appendChild(
+      link
+    );
+
+    link.click();
+    link.remove();
+
+  }catch(err){
+
+    console.error(
+      'ATENDE PNG:',
+      err
+    );
+
+    alert(
+      'Não foi possível gerar o PNG: '+
+      (
+        err &&
+        err.message
+          ? err.message
+          : String(err)
+      )
+    );
+
+  }finally{
+
+    if(frame){
+      frame.remove();
+    }
+
+    if(downloadUrl){
+
+      setTimeout(
+        function(){
+          URL.revokeObjectURL(
+            downloadUrl
+          );
+        },
+        1000
+      );
+    }
+
+    if(button){
+      button.disabled=false;
+    }
+  }
+}
+
+/* ATENDE_SVG_CLEAN_RENDERER_V1
+ *
+ * Renderizacao nativa:
+ *
+ * HTML aprovado
+ *   -> XHTML serializado
+ *   -> SVG foreignObject autocontido
+ *   -> Image
+ *   -> Canvas 600x600
+ *   -> Blob PNG
+ *
+ * Nao usa html2canvas.
+ * Nao usa fontes ou imagens externas.
+ */
+
+function ATENDE_buildSelfContainedSvgV1(scope){
+
+  CFG=buildCfg();
+
+  var unit=
+    CFG.unidades.find(
+      function(u){
+        return u.id===scope;
+      }
+    );
+
+  if(!unit){
+    unit=CFG.unidades[0];
+  }
+
+  if(!unit){
+    throw new Error(
+      'Unidade comercial nao encontrada.'
+    );
+  }
+
+  var root=
+    document.createElement('div');
+
+  root.className='png-root';
+
+  root.innerHTML=
+    renderCard(unit);
+
+  var serializer=
+    new XMLSerializer();
+
+  var serializedRoot=
+    serializer.serializeToString(root);
+
+  /*
+   * IMPORTANTE:
+   * nenhuma fonte externa aqui.
+   *
+   * Os PNGs de referencia aprovados tambem funcionam
+   * corretamente com estas fontes locais.
+   */
+  var safeCss=
+    CARD_CSS+
+    '\n'+
+    '.png-root{'+
+      '--f-titulo:"Segoe UI",Arial,sans-serif;'+
+      '--f-texto:"Segoe UI",Arial,sans-serif;'+
+    '}'+
+    '\n'+
+    '.png-root svg{display:block;}';
+
+  var svg=
+    '<svg '+
+      'xmlns="http://www.w3.org/2000/svg" '+
+      'xmlns:xlink="http://www.w3.org/1999/xlink" '+
+      'width="600" '+
+      'height="600" '+
+      'viewBox="0 0 600 600">'+
+
+      '<foreignObject '+
+        'x="0" '+
+        'y="0" '+
+        'width="600" '+
+        'height="600">'+
+
+        '<div '+
+          'xmlns="http://www.w3.org/1999/xhtml" '+
+          'style="'+
+            'width:600px;'+
+            'height:600px;'+
+            'margin:0;'+
+            'padding:0;'+
+            'overflow:hidden;'+
+            'background:#FFFFFF;'+
+          '">'+
+
+          '<style>'+
+            safeCss+
+          '</style>'+
+
+          serializedRoot+
+
+        '</div>'+
+
+      '</foreignObject>'+
+
+    '</svg>';
+
+  return svg;
+}
+
+
+function ATENDE_loadSvgImageV1(svg){
+
+  return new Promise(
+    function(resolve,reject){
+
+      var blob=
+        new Blob(
+          [svg],
+          {
+            type:'image/svg+xml;charset=utf-8'
+          }
+        );
+
+      var url=
+        URL.createObjectURL(blob);
+
+      var image=
+        new Image();
+
+      image.onload=function(){
+
+        resolve({
+          image:image,
+          url:url
+        });
+      };
+
+      image.onerror=function(){
+
+        URL.revokeObjectURL(url);
+
+        reject(
+          new Error(
+            'O navegador nao conseguiu rasterizar o card comercial.'
+          )
+        );
+      };
+
+      image.src=url;
+    }
+  );
+}
+
+
+function ATENDE_canvasBlobV1(canvas){
+
+  return new Promise(
+    function(resolve,reject){
+
+      try{
+
+        canvas.toBlob(
+          function(blob){
+
+            if(!blob){
+
+              reject(
+                new Error(
+                  'O navegador nao conseguiu criar o arquivo PNG.'
+                )
+              );
+
+              return;
+            }
+
+            resolve(blob);
+          },
+          'image/png'
+        );
+
+      }catch(err){
+
+        reject(err);
+      }
+    }
+  );
+}
+
+
+async function ATENDE_exportPngSvgCleanV1(scope,button){
+
+  if(button){
+    button.disabled=true;
+  }
+
+  var svgObject=null;
+  var downloadUrl=null;
+
+  try{
+
+    var svg=
+      ATENDE_buildSelfContainedSvgV1(
+        scope
+      );
+
+    svgObject=
+      await ATENDE_loadSvgImageV1(
+        svg
+      );
+
+    var canvas=
+      document.createElement('canvas');
+
+    canvas.width=600;
+    canvas.height=600;
+
+    var ctx=
+      canvas.getContext(
+        '2d',
+        {
+          alpha:false
+        }
+      );
+
+    if(!ctx){
+      throw new Error(
+        'Canvas 2D indisponivel.'
+      );
+    }
+
+    ctx.fillStyle='#FFFFFF';
+
+    ctx.fillRect(
+      0,
+      0,
+      600,
+      600
+    );
+
+    ctx.drawImage(
+      svgObject.image,
+      0,
+      0,
+      600,
+      600
+    );
+
+    /*
+     * Aqui ocorre a verificacao real de seguranca.
+     *
+     * Como o SVG e totalmente autocontido,
+     * o canvas deve continuar origin-clean.
+     */
+    var pngBlob=
+      await ATENDE_canvasBlobV1(
+        canvas
+      );
+
+    downloadUrl=
+      URL.createObjectURL(
+        pngBlob
+      );
+
+    var date=
+      (
+        CFG &&
+        CFG.dataRef
+      )
+        ? CFG.dataRef.replace(/\//g,'-')
+        : 'periodo';
+
+    var link=
+      document.createElement('a');
+
+    link.download=
+      'resultado-comercial-'+
+      scope+
+      '-'+
+      date+
+      '.png';
+
+    link.href=
+      downloadUrl;
+
+    document.body.appendChild(
+      link
+    );
+
+    link.click();
+
+    link.remove();
+
+  }catch(err){
+
+    console.error(
+      'ATENDE PNG SVG CLEAN:',
+      err
+    );
+
+    alert(
+      'Não foi possível gerar o PNG: '+
+      (
+        err &&
+        err.message
+          ? err.message
+          : String(err)
+      )
+    );
+
+  }finally{
+
+    if(
+      svgObject &&
+      svgObject.url
+    ){
+
+      URL.revokeObjectURL(
+        svgObject.url
+      );
+    }
+
+    if(downloadUrl){
+
+      setTimeout(
+        function(){
+
+          URL.revokeObjectURL(
+            downloadUrl
+          );
+
+        },
+        1000
+      );
+    }
+
+    if(button){
+      button.disabled=false;
+    }
+  }
+}
+
+
+/*
+ * Sobrescreve somente o motor de exportacao.
+ *
+ * Todo o restante:
+ * - botao
+ * - seletor
+ * - dados
+ * - layout
+ * - calculos
+ *
+ * permanece exatamente igual.
+ */
+exportPng=ATENDE_exportPngSvgCleanV1;
+
+
+/* ============================================================
+ * EXPORTACAO FINAL
+ *
+ * O navegador NAO rasteriza o HTML.
+ *
+ * 1. monta o mesmo card HTML aprovado;
+ * 2. envia ao Apps Script server-side;
+ * 3. Apps Script envia ao Browser Run;
+ * 4. Chrome gera o PNG;
+ * 5. Base64 volta somente para download.
+ * ============================================================
+ */
+
+function ATENDE_buildBrowserRunHtmlV1(scope){
+
+  CFG=buildCfg();
+
+  var unit=
+    CFG.unidades.find(
+      function(item){
+        return item.id===scope;
+      }
+    );
+
+  if(!unit){
+    throw new Error(
+      'Grupo comercial nao encontrado: '+
+      scope
+    );
+  }
+
+  return [
+    '<!doctype html>',
+    '<html lang="pt-BR">',
+    '<head>',
+      '<meta charset="UTF-8">',
+      '<meta name="viewport" content="width=600,initial-scale=1">',
+      '<style>',
+        'html,body{',
+          'width:600px;',
+          'height:600px;',
+          'margin:0;',
+          'padding:0;',
+          'overflow:hidden;',
+          'background:#ffffff;',
+        '}',
+        CARD_CSS,
+        '.proj-marca span{display:none!important;}',
+        '.png-root{',
+          'width:600px;',
+          'height:600px;',
+          'margin:0;',
+          'padding:0;',
+          'overflow:hidden;',
+        '}',
+      '</style>',
+    '</head>',
+    '<body>',
+      '<div class="png-root">',
+        renderCard(unit),
+      '</div>',
+    '</body>',
+    '</html>'
+  ].join('');
+}
+
+
+function ATENDE_base64ToBlobV1(
+  base64,
+  mimeType
+){
+
+  var binary=
+    atob(base64);
+
+  var bytes=
+    new Uint8Array(
+      binary.length
+    );
+
+  for(
+    var index=0;
+    index<binary.length;
+    index++
+  ){
+    bytes[index]=
+      binary.charCodeAt(index);
+  }
+
+  return new Blob(
+    [bytes],
+    {
+      type:
+        mimeType ||
+        'image/png'
+    }
+  );
+}
+
+
+function ATENDE_downloadServerPngV1(
+  response
+){
+
+  if(
+    !response ||
+    response.ok!==true ||
+    !response.base64
+  ){
+    throw new Error(
+      'Resposta PNG invalida.'
+    );
+  }
+
+  var blob=
+    ATENDE_base64ToBlobV1(
+      response.base64,
+      response.mimeType
+    );
+
+  var url=
+    URL.createObjectURL(blob);
+
+  var link=
+    document.createElement('a');
+
+  link.download=
+    response.filename ||
+    'resultado-comercial.png';
+
+  link.href=url;
+
+  document.body.appendChild(
+    link
+  );
+
+  link.click();
+  link.remove();
+
+  setTimeout(
+    function(){
+      URL.revokeObjectURL(url);
+    },
+    1500
+  );
+}
+
+
+function ATENDE_exportViaServerV1(
+  scope,
+  button
+){
+
+  if(button){
+    button.disabled=true;
+  }
+
+  try{
+
+    var html=
+      ATENDE_buildBrowserRunHtmlV1(
+        scope
+      );
+
+    var date=
+      (
+        CFG &&
+        CFG.dataRef
+      )
+        ? CFG.dataRef.replace(/\//g,'-')
+        : 'periodo';
+
+    var filename=
+      'resultado-comercial-'+
+      scope+
+      '-'+
+      date+
+      '.png';
+
+    google.script.run
+      .withSuccessHandler(
+        function(response){
+
+          try{
+
+            ATENDE_downloadServerPngV1(
+              response
+            );
+
+          }catch(err){
+
+            console.error(
+              'ATENDE PNG:',
+              err
+            );
+
+            alert(
+              'Não foi possível baixar o PNG: '+
+              (
+                err &&
+                err.message
+                  ? err.message
+                  : String(err)
+              )
+            );
+
+          }finally{
+
+            if(button){
+              button.disabled=false;
+            }
+          }
+        }
+      )
+      .withFailureHandler(
+        function(err){
+
+          console.error(
+            'ATENDE PNG SERVER:',
+            err
+          );
+
+          alert(
+            'Não foi possível gerar o PNG: '+
+            (
+              err &&
+              err.message
+                ? err.message
+                : String(err)
+            )
+          );
+
+          if(button){
+            button.disabled=false;
+          }
+        }
+      )
+      .ATENDE_renderCommercialPngV1({
+        html: html,
+        filename: filename
+      });
+
+  }catch(err){
+
+    console.error(
+      'ATENDE PNG:',
+      err
+    );
+
+    alert(
+      'Não foi possível preparar o PNG: '+
+      (
+        err &&
+        err.message
+          ? err.message
+          : String(err)
+      )
+    );
+
+    if(button){
+      button.disabled=false;
+    }
+  }
+}
+
+
+/*
+ * Esta atribuicao vem por ultimo de proposito.
+ * Ela substitui todos os motores experimentais anteriores
+ * existentes no backup sem precisar alterar o layout.
+ */
+exportPng=
+  ATENDE_exportViaServerV1;
+
+function startObserver(){
+  var target=document.getElementById('dashboardView');
+  if(!target){ setTimeout(startObserver,250); return; }
+  var observer=new MutationObserver(function(){ setTimeout(mount,0); });
+  observer.observe(target,{childList:true,subtree:true});
+  mount();
+}
+window.ATENDE_exportCommercialPngV1=function(scope){ exportPng(scope||'encomendas',null); };
+window.ATENDE_mountCommercialPngV1=mount;
+startObserver();
+})();
+</script>

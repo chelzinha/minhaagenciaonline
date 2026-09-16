@@ -2,6 +2,13 @@
 (function(){
   'use strict';
   var VIEW='table', DATA=null, SEQ=0;
+
+/*
+ * Leitura do payload corrente para addons do Dashboard V4.
+ */
+window.ATENDE_getDashboardDataV4=function(){
+  return DATA||{};
+};
   var COLORS=['#0B72D9','#00A79D','#F2B500','#7C3AED','#F97316','#16A34A','#E85D75','#2563EB'];
   var ADJ_MENS={1:0,2:15015,3:24255,4:31904.95,5:38218.95,6:44429,7:49256.90,8:59151.40,9:69192.20,10:78505.35,11:88061.05,12:99437.80};
   var ADJ_ENC={1:0,2:63143.85,3:92742.65,4:119669.55,5:138345.90,6:165677.05,7:208427.45,8:238796.25,9:352917.95};
