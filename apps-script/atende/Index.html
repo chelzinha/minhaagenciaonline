@@ -1572,7 +1572,7 @@ var ADVANCED_KEYS=['servicoTabelas','servicoSubgrupos','servicos','contratoClien
 var MULTI_LABELS={tiposObjeto:'Objeto',servicos:'Serviço',servicoTipos:'Tipo serviço',servicoSubgrupos:'Subgrupo',servicoTabelas:'Tabela',clientesPortal:'Cliente Portal',contratoClientes:'Raz\u00E3o Social',contratoTipos:'Tipo',intermediadores:'Intermediador',sistemas:'Sistema',estornos:'Estorno',atendentes:'Atendente',modalidadesPagamento:'Modalidade',formasPagamento:'Forma pagamento',locais:'Local'};
 var MULTI={};MULTI_KEYS.forEach(function(k){MULTI[k]={options:[],applied:[],draft:[]}});
 
-window.onload=function(){initMultiUi();bindAdminTabs();renderActiveChips();updateMonthLabel();loadDataAvailability();loadPage(1);loadFilterOptions();requestAuth();setTimeout(requestAuth,500);setTimeout(requestAuth,1500)};
+window.onload=function(){initMultiUi();bindAdminTabs();renderActiveChips();updateMonthLabel();loadInitialCurrentPeriod();requestAuth();setTimeout(requestAuth,500);setTimeout(requestAuth,1500)};
 window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='agf:auth-context'&&d.token)applyAuth(d);else if(d.type==='agf:open-admin'){if(d.token)applyAuth(d);setTimeout(openAdmin,20)}});
 window.addEventListener('resize',closeMulti);
 document.addEventListener('click',function(e){if(!OPEN_MULTI)return;var menu=document.getElementById('ms-menu-'+OPEN_MULTI),host=document.querySelector('[data-ms="'+OPEN_MULTI+'"]');if(menu&&!menu.contains(e.target)&&host&&!host.contains(e.target))closeMulti()});
@@ -1740,6 +1740,82 @@ function applyDataAvailability(iso){
   clampDatesToAvailable();
   updateMonthLabel();
   updateFreshnessIndicator();
+}
+
+function loadInitialCurrentPeriod(){
+  var finish=function(){
+    loadPage(1);
+    loadFilterOptions();
+  };
+
+  google.script.run
+    .withSuccessHandler(function(r){
+
+      if(
+        !r ||
+        !r.ok ||
+        !Array.isArray(r.rows) ||
+        !r.rows.length
+      ){
+        var note=document.getElementById('periodLimit');
+
+        if(note){
+          note.textContent='Nenhuma data importada disponível.';
+        }
+
+        finish();
+        return;
+      }
+
+      var iso=brDateToIso(r.rows[0].DATA);
+
+      if(!iso){
+        finish();
+        return;
+      }
+
+      /*
+       * Mantém todas as travas já existentes:
+       * max dos campos, calendário e MAX_DATA_AVAILABLE.
+       */
+      applyDataAvailability(iso);
+
+      var inicio=document.getElementById('dataInicio');
+      var fim=document.getElementById('dataFim');
+
+      /*
+       * Só define o default se nenhum período já estiver preenchido.
+       * Isso evita sobrescrever qualquer estado explícito.
+       */
+      if(
+        inicio &&
+        fim &&
+        !inicio.value &&
+        !fim.value
+      ){
+        inicio.value=iso.slice(0,7)+'-01';
+        fim.value=iso;
+
+        updateMonthLabel();
+        renderActiveChips();
+      }
+
+      finish();
+    })
+    .withFailureHandler(function(){
+      /*
+       * Falha ao descobrir última data não impede o Atende
+       * de abrir. Nesse caso mantém o fallback antigo:
+       * Todo período.
+       */
+      finish();
+    })
+    .ATENDE_buscarDadosD1({
+      page:1,
+      pageSize:1,
+      sortKey:'DATA',
+      sortDir:'desc'
+    });
 }
 function loadDataAvailability(){
   google.script.run
