@@ -1,14 +1,21 @@
-# Atende
+# Visão 360
 
 **Module ID:** `atende`  
+**Nome público:** `Visão 360`  
+**Identidade técnica preservada:** `atende` / `ATENDE_*`  
 **Tipo:** interno operacional  
 **Rota:** `/atende`  
 **Frontend:** `frontend/atende`  
+**Hospedagem do frontend:** Cloudflare  
 **Backend:** `apps-script/atende`  
 **Autenticacao:** AGF_ACCESS no frontend  
 **Dados sensiveis:** SIM  
 **Fonte operacional principal:** aba `Postagens`  
 **Fonte automatica adicional:** CSV diario salvo na pasta `_Atende Diario`
+
+> A rota técnica `/atende` foi preservada por segurança de regressão. O nome visível do produto é **Visão 360**. A mudança de branding não autoriza renomear banco, Worker, funções, tabelas ou chaves técnicas.
+
+> O deploy do frontend principal deve seguir `docs/DEPLOY.md`. Netlify não é o destino de produção deste módulo.
 
 ## 1. Finalidade
 
