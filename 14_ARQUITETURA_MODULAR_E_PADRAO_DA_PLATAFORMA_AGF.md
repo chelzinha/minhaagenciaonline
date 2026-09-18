@@ -146,9 +146,18 @@ A hospedagem atual do site e dos frontends da Plataforma AGF deve ser tratada co
 Cloudflare
 ```
 
-Sempre que algum documento mencionar Netlify como hospedagem atual, deve ser revisado conforme o estado real do projeto.
+Sempre que algum documento mencionar Netlify como hospedagem atual da plataforma principal, ele deve ser considerado desatualizado e revisado conforme o estado real do projeto.
 
-Netlify pode existir como histórico, preview, legado ou ambiente anterior, mas a documentação atual deve deixar claro o que está realmente em produção.
+Regra canônica:
+
+```text
+Cloudflare = produção do frontend principal
+Netlify = histórico, legado ou projeto isolado explicitamente documentado
+```
+
+A existência de `netlify.toml`, deploy previews antigos ou checks do GitHub com prefixo `netlify/` não altera essa regra e não deve ser usada para decidir o destino de deploy.
+
+O fluxo operacional de publicação está em `docs/DEPLOY.md`.
 
 ## 6.2. Código fonte
 
