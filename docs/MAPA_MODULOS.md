@@ -4,7 +4,9 @@
 **Plataforma:** `www.minhaagenciaonline.com.br`  
 **Frontend principal:** Cloudflare  
 **Código fonte:** Git/GitHub  
-**Backends principais:** Google Apps Script
+**Backends principais:** Google Apps Script  
+**Nome público do módulo técnico `atende`:** Visão 360  
+**Rota técnica preservada:** `/atende`
 
 ## 1. Objetivo
 
