@@ -91,7 +91,11 @@ async function ingestCsvRaw(request, env, ctx) {
   // SHA-256 do TEXTO decodificado em UTF-8.
   const fileHash = await sha256Text(text);
 
-  const matrix = parseCsv(text, ';');
+  const detected = detectCsvLayout(text);
+
+  const matrix = detected.matrix;
+  const headers = detected.headers;
+  const sourceType = detected.sourceType;
 
   if (!matrix.length || matrix.length < 2) {
     return json({
@@ -100,17 +104,18 @@ async function ingestCsvRaw(request, env, ctx) {
     }, 400);
   }
 
-  const headers = matrix[0].map(normalizeHeader);
-
-  const sourceType = detectSource(headers);
-
   if (!sourceType) {
     return json({
       ok:false,
-      error:'csv_source_not_detected'
+      error:'csv_source_not_detected',
+      detail:{
+        delimiter:detected.delimiter || '',
+        headers:(detected.headers || []).slice(0, 20),
+        attemptedDelimiters:
+          detected.attemptedDelimiters || []
+      }
     }, 400);
   }
-
   validateHeaders(headers, sourceType);
 
   let writeIndex = 0;
@@ -337,6 +342,121 @@ async function ingestCsvRaw(request, env, ctx) {
       : 'partial_waiting_next_run',
     elapsedMs:Date.now() - startedAt
   });
+}
+
+function detectCsvLayout(text) {
+  let body = String(
+    text == null ? '' : text
+  );
+
+  body = body.replace(
+    /^(?:[ \t]*\r?\n)+/,
+    ''
+  );
+
+  let declaredDelimiter = '';
+
+  const sepMatch = body.match(
+    /^sep=(;|,|\t)[ \t]*(?:\r?\n|$)/i
+  );
+
+  if (sepMatch) {
+    declaredDelimiter = sepMatch[1];
+
+    body = body.slice(
+      sepMatch[0].length
+    );
+  }
+
+  const delimiters = [
+    declaredDelimiter,
+    ';',
+    ',',
+    '\t'
+  ].filter(
+    (value, index, all) =>
+      !!value &&
+      all.indexOf(value) === index
+  );
+
+  let fallback = {
+    matrix:[],
+    headers:[],
+    sourceType:'',
+    delimiter:'',
+    attemptedDelimiters:
+      delimiters.map(
+        value =>
+          value === '\t'
+            ? 'TAB'
+            : value
+      )
+  };
+
+  for (
+    let i = 0;
+    i < delimiters.length;
+    i++
+  ) {
+    const delimiter = delimiters[i];
+
+    const matrix = parseCsv(
+      body,
+      delimiter
+    );
+
+    while (
+      matrix.length &&
+      isBlankRow(matrix[0])
+    ) {
+      matrix.shift();
+    }
+
+    const headers =
+      matrix.length
+        ? matrix[0].map(normalizeHeader)
+        : [];
+
+    const sourceType =
+      detectSource(headers);
+
+    if (
+      headers.length >
+      fallback.headers.length
+    ) {
+      fallback = {
+        matrix,
+        headers,
+        sourceType:'',
+        delimiter,
+        attemptedDelimiters:
+          delimiters.map(
+            value =>
+              value === '\t'
+                ? 'TAB'
+                : value
+          )
+      };
+    }
+
+    if (sourceType) {
+      return {
+        matrix,
+        headers,
+        sourceType,
+        delimiter,
+        attemptedDelimiters:
+          delimiters.map(
+            value =>
+              value === '\t'
+                ? 'TAB'
+                : value
+          )
+      };
+    }
+  }
+
+  return fallback;
 }
 
 function rowsToObjects(
