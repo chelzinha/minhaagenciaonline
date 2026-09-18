@@ -31,7 +31,7 @@ const AGF_AUTH_CFG = Object.freeze({
     Object.freeze({ key: 'manuais', label: 'Manuais', path: '/intra/manuais/', category: 'Operação da agência', protected: true, defaultEnabled: false, roles: Object.freeze(['admin', 'manager', 'user']) }),
     Object.freeze({ key: 'crm', label: 'CRM', path: '/crm/', category: 'Gestão comercial', protected: true, defaultEnabled: false, roles: Object.freeze(['admin', 'manager', 'user']) }),
     Object.freeze({ key: 'balcao', label: 'Balcão', path: '/balcao/', category: 'Operação da agência', protected: true, roles: Object.freeze(['admin', 'manager', 'user']) }),
-    Object.freeze({ key: 'atende', label: 'Atende', path: '/atende/', category: 'Operação da agência', protected: true, roles: Object.freeze(['admin', 'manager', 'user']) }),
+    Object.freeze({ key: 'atende', label: 'Visão 360', path: '/atende/', category: 'Operação da agência', protected: true, roles: Object.freeze(['admin', 'manager', 'user']) }),
     Object.freeze({ key: 'cep', label: 'Consulta de CEP', path: '/cep/', category: 'Operação da agência', protected: false, roles: Object.freeze(['admin', 'manager', 'user']) }),
     Object.freeze({ key: 'sla', label: 'SLA', path: '/sla/', category: 'Operação da agência', protected: true, roles: Object.freeze(['admin', 'manager', 'user']) }),
     Object.freeze({ key: 'caixa', label: 'Caixa', path: '/caixa/', category: 'Operação da agência', protected: true, roles: Object.freeze(['admin', 'manager', 'user']) }),
