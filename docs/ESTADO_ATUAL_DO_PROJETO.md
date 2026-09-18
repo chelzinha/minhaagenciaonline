@@ -20,7 +20,9 @@ Site principal:
 
 Hospedagem:
 
-- Netlify conectado ao GitHub
+- Cloudflare como hospedagem oficial do frontend principal
+- GitHub como fonte oficial do código
+- Netlify apenas como histórico/legado ou para projetos isolados explicitamente documentados
 
 ## 2. Estrutura local usada por Rachel
 
@@ -66,9 +68,27 @@ Frontend versionado em:
 
 Status:
 
-- publicado via Netlify a partir da branch main
+- publicado no Cloudflare
+- branch de produção do código: main
+- alterações de frontend devem seguir o fluxo oficial descrito em docs/DEPLOY.md
 - preservar estrutura atual antes de qualquer refatoracao
 - revisar UX/UI e mobile antes de mudancas visuais
+
+## 4.1. Regra de hospedagem
+
+O status `netlify/agfjb/deploy-preview`, arquivos `netlify.toml` ou referências históricas ao Netlify não representam o destino atual de produção da plataforma principal.
+
+Regra vigente:
+
+```text
+Frontend principal -> Cloudflare
+Worker/API -> Cloudflare quando aplicável
+D1 -> Cloudflare quando aplicável
+Apps Script -> backend complementar
+Netlify -> legado/histórico ou projeto isolado explicitamente documentado
+```
+
+Consultar `docs/DEPLOY.md` antes de qualquer publicação.
 
 ## 5. Apps Script
 

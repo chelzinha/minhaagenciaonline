@@ -1,81 +1,193 @@
-﻿# DEPLOY
+# DEPLOY
 
 ## 1. Objetivo
 
-Este documento registra o fluxo de publicacao do projeto minhaagenciaonline.
+Este documento registra o fluxo oficial de publicação do projeto `minhaagenciaonline`.
 
-## 2. Status atual
+Ele deve ser tratado como a referência canônica para evitar que configurações históricas de hospedagem sejam confundidas com o ambiente atual de produção.
 
-O site www.minhaagenciaonline.com.br esta hospedado no Netlify.
+## 2. Estado atual da produção
 
-Em 2026-06-16, o fluxo de deploy foi migrado de deploy manual para GitHub integrado ao Netlify.
+A Plataforma Digital AGF usa atualmente:
 
-## 3. Fluxo anterior
+- **Git/GitHub** como fonte oficial do código;
+- **branch `main`** como branch de produção;
+- **Cloudflare** como hospedagem oficial do frontend principal;
+- **Cloudflare Pages** para publicação do conteúdo estático da pasta `frontend`;
+- **Cloudflare Workers** para APIs e wrappers que usam Worker;
+- **Cloudflare D1** para os bancos dos módulos que já foram migrados para D1;
+- **Google Apps Script** como backend complementar dos módulos que ainda dependem dele.
 
-Antes da migracao:
+Domínio principal:
 
-1. O frontend era preparado localmente.
-2. O deploy era feito manualmente no Netlify.
-3. O GitHub nao era a fonte viva do codigo.
+```text
+www.minhaagenciaonline.com.br
+```
 
-## 4. Fluxo atual
+Diretório principal do frontend:
 
-A partir da migracao:
+```text
+frontend/
+```
 
-1. O frontend fica versionado no GitHub.
-2. O Netlify esta conectado ao repositorio chelzinha/minhaagenciaonline.
-3. A branch de producao e main.
-4. A pasta publicada e frontend.
-5. Alteracoes enviadas para main podem gerar deploy automatico no Netlify.
+## 3. Regra obrigatória de hospedagem
 
-## 5. Configuracao Netlify
+Para a plataforma principal:
 
-Branch de producao: main
+```text
+PRODUÇÃO DO FRONTEND = CLOUDFLARE
+```
 
-Publish directory: frontend
+**Netlify não é o destino de deploy da plataforma principal.**
 
-Build command: vazio
+Arquivos como `netlify.toml`, referências históricas em changelogs ou um status de integração como `netlify/agfjb/deploy-preview` não devem ser interpretados como indicação do ambiente atual de produção.
 
-Arquivo de configuracao: netlify.toml
+Esses vestígios podem existir por três motivos:
 
-Conteudo esperado:
+1. histórico de uma hospedagem anterior;
+2. configuração ainda conectada a um projeto antigo;
+3. projetos isolados que continuam usando Netlify fora do frontend principal.
 
-[build]
-  publish = "frontend"
+Antes de qualquer deploy, a hospedagem atual deve ser confirmada por esta documentação e pela configuração efetiva do Cloudflare.
 
-[dev]
-  publish = "frontend"
+## 4. Exceções isoladas
 
-## 6. Cuidados importantes
+Alguns projetos ou rotas podem continuar apontando para aplicações independentes hospedadas fora do Cloudflare principal.
 
-1. Nao fazer push direto na main sem revisar as alteracoes.
-2. Preservar o frontend que esta funcionando.
-3. Validar visualmente o site apos cada deploy.
-4. Antes de mudancas maiores, criar branch de trabalho.
-5. Nao subir tokens, senhas, chaves ou arquivos .env.
-6. Nao substituir a pasta frontend sem backup ou validacao.
+Exemplos documentados no repositório incluem redirecionamentos para projetos isolados de DC-e ou Logística Reversa.
 
-## 7. Checklist apos deploy
+Essas exceções:
 
-Verificar:
+- não transformam Netlify em hospedagem principal;
+- não autorizam deploy do diretório `frontend` principal no Netlify;
+- devem ser tratadas projeto a projeto.
 
-1. Pagina inicial abre.
-2. CSS carrega corretamente.
-3. Imagens e logos carregam.
-4. Links principais funcionam.
-5. Modulos principais abrem.
-6. Nao ha pagina branca.
-7. Nao ha erro 404 em arquivos principais.
-8. Mobile continua utilizavel.
+## 5. Fluxo oficial de publicação do frontend
 
-## 8. Registro da migracao inicial
+Fluxo esperado:
 
-Data: 2026-06-16
+```text
+alteração controlada
+-> branch de trabalho
+-> validação
+-> pull request
+-> merge em main
+-> deploy no Cloudflare Pages
+-> validação pós-deploy
+-> documentação/registro
+```
 
-Tipo: Migracao de deploy manual para GitHub + Netlify
+### Regra de segurança
 
-Repositorio: chelzinha/minhaagenciaonline
+Não inventar nome de projeto Cloudflare, Account ID, Project Name ou comando de produção.
 
-Dominio: www.minhaagenciaonline.com.br
+Quando o nome real do projeto Pages não estiver documentado ou confirmado no ambiente autenticado, primeiro descobrir/confirmar a configuração e somente depois executar o deploy.
 
-Status: Deploy publicado com sucesso pelo Netlify apos inclusao do frontend no GitHub.
+Exemplo de comando, **somente depois de confirmar o project name real**:
+
+```powershell
+npx wrangler pages deploy frontend --project-name <PROJECT_NAME_CONFIRMADO>
+```
+
+Se o projeto estiver configurado para deploy automático pelo GitHub no Cloudflare Pages, validar o deployment gerado pela `main` em vez de disparar um segundo deploy manual desnecessário.
+
+## 6. Publicação por tipo de alteração
+
+### Somente frontend estático
+
+Publicar no **Cloudflare Pages**.
+
+Exemplos:
+
+- `frontend/agf`;
+- `frontend/atende`;
+- CSS compartilhado;
+- manifest;
+- service worker;
+- shell visual.
+
+### Google Apps Script
+
+Usar o projeto Apps Script correto:
+
+```text
+clasp push
+clasp deploy -i <deploymentId-existente>
+```
+
+Nunca inventar ou trocar o deployment ID de produção.
+
+### Cloudflare Worker
+
+Executar a partir da pasta do Worker correspondente.
+
+No módulo técnico Atende/Visão 360:
+
+```text
+cloudflare/atende-api
+```
+
+Publicação:
+
+```powershell
+npx wrangler deploy
+```
+
+Quando houver ambientes separados, declarar explicitamente o ambiente correto.
+
+### Cloudflare D1
+
+Aplicar migrations somente quando a alteração realmente exigir schema novo.
+
+Sempre validar a base alvo antes de executar migration remota.
+
+## 7. Visão 360
+
+O nome público atual do módulo é:
+
+```text
+Visão 360
+```
+
+Por segurança de regressão, permanecem técnicos:
+
+```text
+rota: /atende/
+app key: atende
+apps-script/atende/
+ATENDE_*
+agf-atende-api
+tabelas atende_*
+```
+
+Troca de nome visual não autoriza renomear essas estruturas técnicas.
+
+## 8. Checklist pós-deploy do frontend
+
+Validar pelo menos:
+
+1. domínio principal responde;
+2. Portal AGF abre;
+3. CSS e assets carregam;
+4. autenticação continua funcionando;
+5. módulo alterado abre sem erro;
+6. service worker não mantém versão obsoleta;
+7. desktop e mobile continuam utilizáveis;
+8. rotas protegidas continuam protegidas;
+9. nenhum dado sensível foi exposto;
+10. Git local e `origin/main` permanecem sincronizados.
+
+## 9. Histórico do Netlify
+
+O repositório contém documentação histórica de uma fase em que o site foi publicado via Netlify e integrado ao GitHub.
+
+Esse registro deve ser preservado apenas como histórico.
+
+A partir do estado arquitetural atual:
+
+```text
+Cloudflare = produção da plataforma principal
+Netlify = histórico, legado ou projeto isolado quando explicitamente documentado
+```
+
+Nenhum status automático do Netlify deve substituir essa regra de verdade documental.

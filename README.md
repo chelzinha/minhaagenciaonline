@@ -5,6 +5,12 @@ Projeto tecnico da Plataforma Digital AGF Jose Bonifacio.
 Dominio principal:
 www.minhaagenciaonline.com.br
 
+Hospedagem oficial do frontend:
+Cloudflare
+
+Regra de deploy:
+consultar `docs/DEPLOY.md`. Netlify nao e o destino de producao do frontend principal.
+
 ## Objetivo
 
 Organizar os modulos digitais da AGF, incluindo frontends, Apps Script, documentacao tecnica, previews e releases.

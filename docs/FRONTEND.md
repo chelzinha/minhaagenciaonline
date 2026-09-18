@@ -1,5 +1,15 @@
 # FRONTEND
 
+## Hospedagem oficial do frontend principal
+
+A hospedagem oficial do frontend principal de `www.minhaagenciaonline.com.br` é **Cloudflare**.
+
+Referências a Netlify neste documento só valem para projetos isolados explicitamente identificados, como aplicações externas ainda acessadas por redirecionamento.
+
+Elas não autorizam deploy da pasta `frontend` principal no Netlify.
+
+O procedimento canônico de publicação está em `docs/DEPLOY.md`.
+
 Documento tecnico em preparacao.
 
 ## Rota /dce
