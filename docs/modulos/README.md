@@ -6,6 +6,14 @@
 **Hospedagem atual do frontend principal:** Cloudflare  
 **Backends principais:** Google Apps Script
 
+## Regra de hospedagem e deploy
+
+O frontend principal da Plataforma AGF está em **Cloudflare**.
+
+Netlify deve ser tratado apenas como histórico, legado ou hospedagem de projeto isolado quando isso estiver explicitamente documentado no módulo correspondente.
+
+Antes de publicar qualquer frontend, consultar `docs/DEPLOY.md`.
+
 ## Finalidade
 
 Este diretório consolida a documentação técnica por módulo de `www.minhaagenciaonline.com.br`, seguindo os documentos 13, 14 e 15 da Plataforma AGF.
@@ -40,7 +48,7 @@ Regra de verdade documental:
 - `logistica-interna/README.md` - `/intra/logistica`.
 - `caixa/README.md` - Caixa oficial em `/caixa`; a antiga rota `/intra/caixa` foi removida definitivamente.
 - `manuais/README.md` - `/intra/manuais`.
-- `atende/README.md` - `/atende`.
+- `atende/README.md` - **Visão 360**, rota técnica preservada em `/atende`.
 - `sla/README.md` - SLA.
 - `balcao/README.md` - `/balcao`.
 - `superfrete-admin/README.md` - `/superfrete-admin`.
