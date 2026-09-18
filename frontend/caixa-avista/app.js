@@ -10,7 +10,7 @@
 
   const loadApplication = () => {
     const script = document.createElement('script');
-    script.src = '/caixa-avista/app-v2.js?v=20260904230000';
+    script.src = '/caixa-avista/app-v2.js?v=20260918154500';
     script.async = false;
     script.onerror = () => {
       showLoadError('Não foi possível carregar o Caixa Balcão.');

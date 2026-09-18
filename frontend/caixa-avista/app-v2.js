@@ -6,6 +6,11 @@
   const DEFAULT_API_URL =
     'https://script.google.com/macros/s/AKfycbxH-9PPg_R5i5YGYuZOgizOK-_i9XssRvvoA21XFnxt0nZr9SF87jFysf4s3bhNVSIe/exec';
 
+  const DEFAULT_CLIENT = Object.freeze({
+    id: 'cliente-balcao',
+    name: 'Cliente de Balcão'
+  });
+
   const STORAGE = {
     API: 'caixa_avista_v2_api_url',
     LOCAL: 'caixa_avista_v2_local_data',
@@ -1458,8 +1463,9 @@
     const payment = selectedPayment();
 
     const client =
+      state.type === 'RECEITA' &&
       state.mode === 'ATENDIMENTO'
-        ? resolveAttendanceClient()
+        ? (resolveAttendanceClient() || DEFAULT_CLIENT)
         : null;
 
     return {
@@ -1499,18 +1505,6 @@
       return status(
         'launchStatus',
         'Selecione tipo e pagamento.',
-        'warning'
-      );
-    }
-
-    if (
-      state.type === 'RECEITA' &&
-      state.mode === 'ATENDIMENTO' &&
-      !resolveAttendanceClient()
-    ) {
-      return status(
-        'launchStatus',
-        'Selecione ou cadastre o cliente.',
         'warning'
       );
     }
