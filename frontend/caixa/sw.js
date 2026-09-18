@@ -1,5 +1,5 @@
 /* AGF José Bonifácio — Caixa — recuperação de cache após rollback V3. */
-const CACHE = 'agf-caixa-recovery-v4';
+const CACHE = 'agf-caixa-production-v5';
 const STATIC = [
   '/caixa/',
   '/caixa/index.html',
