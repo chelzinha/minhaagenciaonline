@@ -1,6 +1,6 @@
 {
-  "name": "AGF José Bonifácio — Atendimento",
-  "short_name": "AGF Atende",
+  "name": "AGF José Bonifácio — Visão 360",
+  "short_name": "Visão 360",
   "start_url": "/atende/?source=pwa",
   "scope": "/atende/",
   "display": "standalone",
