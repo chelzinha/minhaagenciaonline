@@ -1,4 +1,4 @@
-# Atende - Regra de imutabilidade dos dados dos Correios
+# Visão 360 - Regra de imutabilidade dos dados dos Correios
 
 ## Regra principal
 
@@ -11,6 +11,18 @@ Na camada RAW do Cloudflare D1:
 - repeticoes de SRO, atendimento, produto, servico ou qualquer outro campo sao mantidas;
 - uma reimportacao da mesma versao do mesmo arquivo nao cria outra copia tecnica da mesma linha, usando `import_key + numero_linha` apenas para idempotencia da ingestao;
 - os 26 campos originais sao armazenados como texto e nao sao alterados depois da insercao.
+
+## Identidade do módulo
+
+O nome público do módulo é **Visão 360**.
+
+Para reduzir risco de regressão, permanecem técnicos:
+
+- rota `/atende`;
+- prefixos `ATENDE_*`;
+- `apps-script/atende`;
+- Worker `agf-atende-api`;
+- tabelas `atende_*`.
 
 ## Infraestrutura oficial do modulo
 
@@ -28,7 +40,7 @@ Cloudflare Worker
 Cloudflare D1
 ```
 
-Netlify nao faz parte do fluxo atual de producao deste modulo.
+Netlify nao faz parte do fluxo atual de producao deste modulo. O procedimento oficial de publicação está em `docs/DEPLOY.md`.
 
 ## Fluxo das pastas do Drive
 
