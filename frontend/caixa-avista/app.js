@@ -20,7 +20,7 @@
 
   const loadSafePatch = () => {
     const script = document.createElement('script');
-    script.src = '/caixa-avista/v21-safe-patch.js?v=20260920173000';
+    script.src = '/caixa-avista/v21-safe-patch.js?v=20260920193500';
     script.async = false;
     script.onload = loadApplication;
     script.onerror = () => {
