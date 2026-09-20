@@ -120,6 +120,59 @@
     ).trim() === 'Pix pendente';
   }
 
+  function parseDisplayedMoneyToCents(value) {
+    const normalized = String(value || '')
+      .replace(/R\$/gi, '')
+      .replace(/\s/g, '')
+      .replace(/\./g, '')
+      .replace(',', '.')
+      .replace(/[^\d.-]/g, '');
+
+    const amount = Number(normalized);
+
+    return Number.isFinite(amount)
+      ? Math.round(amount * 100)
+      : 0;
+  }
+
+  function expectedCashCentsFromUi() {
+    return parseDisplayedMoneyToCents(
+      document.getElementById('closeExpected')?.textContent || ''
+    );
+  }
+
+  function formatCentsForInput(cents) {
+    return (Number(cents || 0) / 100)
+      .toFixed(2)
+      .replace('.', ',');
+  }
+
+  function syncExpectedCashConfirmation() {
+    const closeState = String(
+      document.getElementById('closeState')?.textContent || ''
+    ).trim();
+
+    if (closeState === 'Fechado') {
+      return;
+    }
+
+    const input = document.getElementById('countedCash');
+
+    if (!input) {
+      return;
+    }
+
+    const expectedCents = expectedCashCentsFromUi();
+    const nextValue = formatCentsForInput(expectedCents);
+
+    if (input.value !== nextValue) {
+      input.value = nextValue;
+      input.dispatchEvent(
+        new Event('input', { bubbles: true })
+      );
+    }
+  }
+
   window.fetch = async function patchedCaixaFetch(input, init = {}) {
     const target =
       typeof input === 'string'
@@ -156,6 +209,21 @@
 
     if (request.action === 'saveBatch' && Array.isArray(request.payloads)) {
       request.payloads = request.payloads.map(applyDefaultClient);
+    }
+
+    /*
+     * Regra operacional V2.1:
+     * o checkbox "Conferi e contei o numerário" confirma exatamente o valor
+     * esperado na gaveta. O atendente não precisa digitar esse mesmo valor.
+     *
+     * Mantemos o backend V2 estável, mas enviamos explicitamente o valor
+     * esperado para impedir regressão do campo manual.
+     */
+    if (request.action === 'closeCash') {
+      request.payload = {
+        ...(request.payload || {}),
+        countedCashCents: expectedCashCentsFromUi()
+      };
     }
 
     // A V3 já homologou confirmação de Pix após fechamento. As demais ações
@@ -198,7 +266,10 @@
     if (!style) {
       style = document.createElement('style');
       style.id = 'caixaV21SafeStyles';
-      style.textContent = '#clientSection{display:none!important;}';
+      style.textContent = [
+        '#clientSection{display:none!important;}',
+        '.caixa-v21-auto-count{display:none!important;}'
+      ].join('');
       document.head.appendChild(style);
     }
 
@@ -209,6 +280,21 @@
     if (observation) {
       observation.placeholder = 'Nome do cliente ou observação (opcional)';
     }
+
+    const countedCash = document.getElementById('countedCash');
+    const countedCashLabel = countedCash?.closest('label');
+
+    if (countedCashLabel) {
+      countedCashLabel.classList.add('caixa-v21-auto-count');
+      countedCashLabel.setAttribute('aria-hidden', 'true');
+    }
+
+    const closingNotes = document.getElementById('closingNotes');
+    if (closingNotes) {
+      closingNotes.placeholder = 'Opcional';
+    }
+
+    syncExpectedCashConfirmation();
   }
 
   function releasePendingPixCloseLock() {
@@ -229,6 +315,31 @@
 
   const closeState = document.getElementById('closeState');
   const closeButton = document.getElementById('btnCloseCash');
+  const closeExpected = document.getElementById('closeExpected');
+  const closeDeclaration = document.getElementById('closeDeclaration');
+
+  if (closeExpected) {
+    new MutationObserver(syncExpectedCashConfirmation).observe(closeExpected, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  }
+
+  if (closeDeclaration) {
+    closeDeclaration.addEventListener(
+      'change',
+      syncExpectedCashConfirmation
+    );
+  }
+
+  if (closeButton) {
+    closeButton.addEventListener(
+      'click',
+      syncExpectedCashConfirmation,
+      true
+    );
+  }
 
   if (closeState) {
     new MutationObserver(releasePendingPixCloseLock).observe(closeState, {
