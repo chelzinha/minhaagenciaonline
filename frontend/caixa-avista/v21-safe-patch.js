@@ -148,14 +148,6 @@
   }
 
   function syncExpectedCashConfirmation() {
-    const closeState = String(
-      document.getElementById('closeState')?.textContent || ''
-    ).trim();
-
-    if (closeState === 'Fechado') {
-      return;
-    }
-
     const input = document.getElementById('countedCash');
 
     if (!input) {
