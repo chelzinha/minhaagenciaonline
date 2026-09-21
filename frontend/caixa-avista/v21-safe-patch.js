@@ -380,6 +380,9 @@
       applySupplementState({
         hasBaseClosure: true,
         pendingCount: 0,
+        pendingEntryCount: 0,
+        pendingWithdrawalCount: 0,
+        pendingWithdrawalCents: 0,
         pendingRevenueCents: 0,
         pendingExpenseCents: 0,
         pendingNetCents: 0,
@@ -420,6 +423,9 @@
           applySupplementState(data.supplementState);
         } else {
           supplementRuntime.pendingCount = 0;
+          supplementRuntime.pendingEntryCount = 0;
+          supplementRuntime.pendingWithdrawalCount = 0;
+          supplementRuntime.pendingWithdrawalCents = 0;
           supplementRuntime.pendingRevenueCents = 0;
           supplementRuntime.pendingExpenseCents = 0;
           supplementRuntime.pendingNetCents = 0;
