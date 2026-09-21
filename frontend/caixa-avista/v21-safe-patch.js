@@ -4,8 +4,7 @@
   const V2_API =
     'https://script.google.com/macros/s/AKfycbxH-9PPg_R5i5YGYuZOgizOK-_i9XssRvvoA21XFnxt0nZr9SF87jFysf4s3bhNVSIe/exec';
 
-  const V3_API =
-    'https://script.google.com/macros/s/AKfycbxRaTJeaXhGTC0Lbyqf_Osnr_HsOyUnlOWjwtGMvkvPY1d98H0RthjJPCkLJRkP1x8o/exec';
+  const V3_API = '/caixa-v3';
 
   const DEFAULT_CLIENT = Object.freeze({
     id: 'cliente-balcao',
