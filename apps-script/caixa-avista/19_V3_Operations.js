@@ -642,7 +642,22 @@ function v3WithdrawalsForClosure_(env, closureId) {
       );
     })
     .map(function(item) {
-      return v2RowWithdrawal_(item._row);
+      return {
+        id: String(item.withdrawal_id || ''),
+        date: v2SheetDateIso_(item.date_iso),
+        createdAt: v2Iso_(item.created_at),
+        unitId: String(item.unit_id || ''),
+        operatorId: String(item.operator_id || ''),
+        operatorName: String(item.operator_name || ''),
+        amountCents: Number(item.amount_cents || 0),
+        balanceBeforeCents:
+          Number(item.balance_before_cents || 0),
+        balanceAfterCents:
+          Number(item.balance_after_cents || 0),
+        closureId: String(item.closure_id || ''),
+        pdfStatus: String(item.pdf_status || ''),
+        pdfUrl: String(item.pdf_url || '')
+      };
     });
 }
 
