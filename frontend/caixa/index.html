@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,600,1,0" rel="stylesheet">
-  <link rel="stylesheet" href="/caixa-avista/styles-v2.css">
+  <link rel="stylesheet" href="/caixa-avista/styles-v2.css?v=20260920210000">
   <link rel="manifest" href="/caixa/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/assets/pwa/caixa/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/caixa/favicon-32.png">
@@ -47,8 +47,7 @@
       <section class="cash-strip">
         <div class="cash-stat"><span class="material-symbols-rounded">account_balance_wallet</span><small>Inicial</small><strong id="cashOpening">R$ 0,00</strong></div>
         <div class="cash-stat main"><span class="material-symbols-rounded">payments</span><small>Dinheiro em caixa</small><strong id="cashExpected">R$ 0,00</strong></div>
-        <div class="cash-stat"><span class="material-symbols-rounded">outbox</span><small>Sangrias</small><strong id="cashWithdrawals">R$ 0,00</strong></div>
-        <button class="cash-action" id="btnOpenWithdrawal" type="button" title="Nova sangria" aria-label="Nova sangria"><span class="material-symbols-rounded">move_up</span></button>
+        <button class="cash-stat cash-stat-action" id="btnOpenWithdrawal" type="button" title="Registrar sangria" aria-label="Registrar sangria"><span class="material-symbols-rounded">outbox</span><small>Sangrias</small><strong id="cashWithdrawals">R$ 0,00</strong></button>
       </section>
 
       <nav class="main-nav">
@@ -155,8 +154,6 @@
           <div class="field-grid">
             <label><span class="material-symbols-rounded">payments</span><span>Dinheiro contado</span><input id="countedCash" inputmode="decimal" placeholder="0,00"></label>
             <label><span class="material-symbols-rounded">outbox</span><span>Sangria no fechamento</span><input id="closingWithdrawal" inputmode="decimal" placeholder="0,00"></label>
-            <label><span class="material-symbols-rounded">location_on</span><span>Destino</span><input id="closingDestination" placeholder="Financeiro"></label>
-            <label class="wide"><span class="material-symbols-rounded">edit_note</span><span>Justificativa / observação</span><textarea id="closingNotes" placeholder="Obrigatória somente se houver diferença"></textarea></label>
           </div>
           <div class="closing-result"><div><small>Diferença</small><strong id="closeDifference">R$ 0,00</strong></div><div><small>Ficará no caixa</small><strong id="closeCarryover">R$ 0,00</strong></div></div>
           <label class="declaration"><input type="checkbox" id="closeDeclaration"><span><strong>Conferi e contei o numerário.</strong><small>Confirmo os valores registrados e a eventual sangria.</small></span></label>
@@ -173,12 +170,9 @@
       <header><h3><span class="material-symbols-rounded">move_up</span>Sangria</h3><button type="button" data-close="withdrawalModal"><span class="material-symbols-rounded">close</span></button></header>
       <div class="modal-body">
         <div class="withdrawal-balance"><small>Disponível</small><strong id="withdrawalAvailable">R$ 0,00</strong></div>
-        <label class="modal-field"><span>Valor</span><input id="withdrawalAmount" inputmode="decimal" placeholder="0,00"></label>
-        <label class="modal-field"><span>Destino</span><input id="withdrawalDestination" placeholder="Financeiro"></label>
-        <label class="modal-field"><span>Observação</span><textarea id="withdrawalNotes" placeholder="Opcional"></textarea></label>
+        <label class="modal-field"><span>Valor a retirar</span><input id="withdrawalAmount" inputmode="decimal" placeholder="0,00"></label>
         <div class="withdrawal-result"><span>Restará</span><strong id="withdrawalRemaining">R$ 0,00</strong></div>
-        <label class="declaration"><input type="checkbox" id="withdrawalDeclaration"><span><strong>Conferi o valor da sangria.</strong><small>Confirmo que o numerário separado corresponde ao valor informado.</small></span></label>
-        <button id="btnSaveWithdrawal" class="danger-action" type="button"><span class="material-symbols-rounded">picture_as_pdf</span><span>Registrar e gerar PDF</span></button>
+        <button id="btnSaveWithdrawal" class="primary-action" type="button"><span class="material-symbols-rounded">move_up</span><span>Registrar sangria</span></button>
         <div id="withdrawalStatus" class="status-box"></div>
       </div>
     </section>
@@ -314,7 +308,7 @@
 
   <div id="loadingOverlay" class="loading-overlay hidden"><div><span class="spinner"></span><strong id="loadingText">Carregando...</strong></div></div>
   <script src="/caixa-avista/vendor/qrcode.min.js?v=20260902102544"></script>
-  <script src="/caixa-avista/unit-selector.js?v=20260920193500"></script>
+  <script src="/caixa-avista/unit-selector.js?v=20260920210000"></script>
   <script src="/shared/ui/agf-ui.js"></script>
   <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/caixa/sw.js?v=20260918154500',{scope:'/caixa/'}).catch(error=>console.warn('[CAIXA_PWA_SW]',error)));</script>
 </body>

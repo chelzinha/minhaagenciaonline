@@ -174,7 +174,7 @@
 
     const script = document.createElement('script');
 
-    script.src = '/caixa-avista/app.js?v=20260920193500';
+    script.src = '/caixa-avista/app.js?v=20260920210000';
     script.async = false;
     script.dataset.caixaApplication = 'true';
 
@@ -248,7 +248,8 @@
         height: 68px;
         align-items: center;
         justify-content: center;
-        margin-bottom: 14px;
+        align-self: center;
+        margin: 0 auto 14px;
         border-radius: 22px;
         background: #0f6ee8;
         color: #ffffff;

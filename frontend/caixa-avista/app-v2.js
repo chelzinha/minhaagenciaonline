@@ -77,9 +77,7 @@
 
   function stableWithdrawalId() {
     const fingerprint = JSON.stringify({
-      amount: String($('withdrawalAmount')?.value || ''),
-      destination: String($('withdrawalDestination')?.value || '').trim(),
-      notes: String($('withdrawalNotes')?.value || '').trim()
+      amount: String($('withdrawalAmount')?.value || '')
     });
 
     if (
@@ -1232,7 +1230,7 @@
       .textContent = saveLabel;
   }
   function renderSummary(){
-    const s=state.summary||{};$('cashOpening').textContent=money(s.openingCashCents);$('cashExpected').textContent=money(state.closure?state.closure.carryoverCents:s.expectedCashCents);$('cashWithdrawals').textContent=money(s.withdrawalsCents);
+    const s=state.summary||{};$('cashOpening').textContent=money(s.openingCashCents);$('cashExpected').textContent=money(s.expectedCashCents);$('cashWithdrawals').textContent=money(s.withdrawalsCents);
     $('summaryRevenue').textContent=money(s.revenueCents);$('summaryExpense').textContent=money(s.expenseCents);$('summaryNet').textContent=money(s.netCents);
     $('paymentSummary').innerHTML=(state.library?.payments||[]).map(p=>`<div class="payment-chip"><small>${escapeHtml(p.name)}</small><strong>${money(s.byPayment?.[p.id]||0)}</strong></div>`).join('');
   }
@@ -1269,11 +1267,7 @@
                 <article class="movement-item withdrawal">
                   <div>
                     <h4>
-                      Sangria ·
-                      ${escapeHtml(
-                        withdrawal.destination ||
-                        'Financeiro'
-                      )}
+                      Sangria
                     </h4>
 
                     <p>
@@ -2355,6 +2349,7 @@
 
   async function saveWithdrawal(){
     const amount=parseMoney($('withdrawalAmount').value);
+    const available=Number(state.summary?.expectedCashCents||0);
 
     if(!(amount>0)){
       return status(
@@ -2364,10 +2359,10 @@
       );
     }
 
-    if(!$('withdrawalDeclaration').checked){
+    if(amount>available){
       return status(
         'withdrawalStatus',
-        'Confirme a contagem da sangria.',
+        'A sangria não pode ser maior que o dinheiro disponível.',
         'warning'
       );
     }
@@ -2384,8 +2379,8 @@
             withdrawalId,
             date:currentDate(),
             amountCents:amount,
-            destination:$('withdrawalDestination').value.trim()||'Financeiro',
-            notes:$('withdrawalNotes').value.trim(),
+            destination:'Financeiro',
+            notes:'',
             confirmed:true
           }
         }
@@ -2461,8 +2456,8 @@
             date:currentDate(),
             countedCashCents:counted,
             closingWithdrawalCents:closing,
-            withdrawalDestination:$('closingDestination').value.trim()||'Financeiro',
-            notes:$('closingNotes').value.trim(),
+            withdrawalDestination:'Financeiro',
+            notes:'',
             declarationConfirmed:true
           }
         }
@@ -2857,21 +2852,10 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
 
     $('clientInput').addEventListener('input',renderClientSuggestions);$('clientInput').addEventListener('focus',renderClientSuggestions);$('clientSuggestions').addEventListener('click',e=>{const b=e.target.closest('[data-client-id]');if(b)selectClient(state.clients.find(c=>c.id===b.dataset.clientId));});$('btnAddClient').addEventListener('click',addClient);
     $('btnOpenWithdrawal').addEventListener('click',()=>{
-      if(state.closure){
-        return status(
-          'launchStatus',
-          'O caixa de hoje já foi fechado.',
-          'warning'
-        );
-      }
-
       state.pendingWithdrawalId='';
       state.pendingWithdrawalFingerprint='';
       $('withdrawalAvailable').textContent=money(state.summary?.expectedCashCents||0);
       $('withdrawalAmount').value='';
-      $('withdrawalDestination').value='Financeiro';
-      $('withdrawalNotes').value='';
-      $('withdrawalDeclaration').checked=false;
       updateWithdrawalMath();
       clearStatus('withdrawalStatus');
       openModal('withdrawalModal');

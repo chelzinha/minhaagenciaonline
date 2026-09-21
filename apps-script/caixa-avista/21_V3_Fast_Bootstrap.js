@@ -370,6 +370,7 @@ function v3FastWithdrawal_(item) {
     balanceBeforeCents: Number(item.balance_before_cents || 0),
     balanceAfterCents: Number(item.balance_after_cents || 0),
     confirmed: v2Bool_(item.confirmed),
+    closureId: String(item.closure_id || ''),
     pdfStatus: String(item.pdf_status || ''),
     pdfUrl: String(item.pdf_url || '')
   };
@@ -489,6 +490,39 @@ function v3FastQueueStatus_(queueRows, closureId) {
   return 'PENDENTE';
 }
 
+function v3FastSupplementRows_(sheet) {
+  if (!sheet) return [];
+
+  var last = sheet.getLastRow();
+  if (last < 2) return [];
+
+  var width = Math.min(
+    sheet.getMaxColumns(),
+    CAIXA_V3_SUPPLEMENT_HEADERS.length
+  );
+
+  var values = sheet
+    .getRange(2, 1, last - 1, width)
+    .getValues();
+
+  return values.map(function(row, rowIndex) {
+    var item = {};
+
+    CAIXA_V3_SUPPLEMENT_HEADERS.forEach(
+      function(key, index) {
+        item[key] =
+          index < row.length
+            ? row[index]
+            : '';
+      }
+    );
+
+    item._row = row;
+    item._sheetRow = rowIndex + 2;
+    return item;
+  });
+}
+
 function v3FastSupplementHistory_(supplementRows, queueRows, date, unitId) {
   return supplementRows
     .filter(function(item) {
@@ -510,8 +544,12 @@ function v3FastSupplementHistory_(supplementRows, queueRows, date, unitId) {
         expenseCents: Number(item.expense_cents || 0),
         netCents: Number(item.net_cents || 0),
         expectedCashCents: Number(item.expected_cash_cents || 0),
+        closingWithdrawalCents:
+          Number(item.closing_withdrawal_cents || 0),
         carryoverCents: Number(item.carryover_cents || 0),
         notes: String(item.notes || ''),
+        pdfStatus: String(item.pdf_status || ''),
+        pdfUrl: String(item.pdf_url || ''),
         contaAzulStatus: v3FastQueueStatus_(
           queueRows,
           item.supplement_id
@@ -616,9 +654,8 @@ function v3FastInit_(dateValue, user) {
   })[0] || null;
   var baseClosure = v3FastClosure_(baseClosureRow);
 
-  var supplementRows = env.supplements
-    ? v2ReadObjects_(env.supplements, CAIXA_V3_SUPPLEMENT_HEADERS)
-    : [];
+  var supplementRows =
+    v3FastSupplementRows_(env.supplements);
 
   var relevantSupplementRows = supplementRows.filter(function(item) {
     return (
@@ -641,12 +678,27 @@ function v3FastInit_(dateValue, user) {
   var unclosedEntries = todayEntries.filter(function(entry) {
     return !String(entry.closureId || '').trim();
   });
+
+  var unclosedWithdrawals = withdrawals.filter(function(withdrawal) {
+    return !String(withdrawal.closureId || '').trim();
+  });
+
   var delta = v3DeltaSummary_(unclosedEntries);
+
+  var pendingWithdrawalCents = unclosedWithdrawals.reduce(
+    function(total, withdrawal) {
+      return total + Number(withdrawal.amountCents || 0);
+    },
+    0
+  );
 
   var supplementState = baseClosure
     ? {
         hasBaseClosure: true,
-        pendingCount: unclosedEntries.length,
+        pendingCount: unclosedEntries.length + unclosedWithdrawals.length,
+        pendingEntryCount: unclosedEntries.length,
+        pendingWithdrawalCount: unclosedWithdrawals.length,
+        pendingWithdrawalCents: pendingWithdrawalCents,
         pendingRevenueCents: delta.revenueCents,
         pendingExpenseCents: delta.expenseCents,
         pendingNetCents: delta.netCents,
@@ -656,6 +708,9 @@ function v3FastInit_(dateValue, user) {
     : {
         hasBaseClosure: false,
         pendingCount: 0,
+        pendingEntryCount: 0,
+        pendingWithdrawalCount: 0,
+        pendingWithdrawalCents: 0,
         pendingRevenueCents: 0,
         pendingExpenseCents: 0,
         pendingNetCents: 0,

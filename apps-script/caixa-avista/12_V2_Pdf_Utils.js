@@ -5,11 +5,7 @@ function v2GenerateWithdrawalPdf_(env,withdrawalId,context) {
     var folder=v2PdfFolder_(context.unit,'Sangrias',String(w.date_iso));
     var doc=DocumentApp.create('TEMP_SANGRIA_'+withdrawalId),body=doc.getBody();
     v2DocHeader_(body,'COMPROVANTE DE SANGRIA',String(context.unit.name||context.unit.unit_id),String(w.date_iso),String(w.operator_name),v2Iso_(w.created_at));
-    body.appendTable([['Informação','Valor'],['Saldo antes',v2Money_(w.balance_before_cents)],['Valor da sangria',v2Money_(w.amount_cents)],['Saldo após',v2Money_(w.balance_after_cents)],['Destino',String(w.destination||'')],['Observação',String(w.notes||'')]]);
-    body.appendParagraph('DECLARAÇÃO DE CONFERÊNCIA').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-    body.appendParagraph(String(w.declaration_text||CAIXA_V2_CFG.WITHDRAWAL_DECLARATION));
-    body.appendParagraph('☑ Confirmação registrada no sistema');
-    body.appendParagraph('Confirmado por: '+String(w.operator_name)+' | Usuário: '+String(w.operator_id)+' | Data/hora: '+v2Iso_(w.confirmed_at));
+    body.appendTable([['Informação','Valor'],['Saldo antes',v2Money_(w.balance_before_cents)],['Valor da sangria',v2Money_(w.amount_cents)],['Saldo após',v2Money_(w.balance_after_cents)]]);
     doc.saveAndClose();
     var file=DriveApp.getFileById(doc.getId()),name=String(w.date_iso)+'_'+String(context.unit.unit_id)+'_Sangria_'+withdrawalId.slice(0,8)+'.pdf',pdf=folder.createFile(file.getAs(MimeType.PDF).setName(name));file.setTrashed(true);
     return {status:'GERADO',id:pdf.getId(),url:pdf.getUrl()};
@@ -41,6 +37,176 @@ function v2GenerateClosingPdf_(env,closureId,context) {
   }catch(error){return {status:'ERRO',error:String(error.message||error)};}
 }
 
+
+function v3SupplementRecord_(env,supplementId) {
+  var sheet=v3SupplementSheet_(env);
+  return v2ReadObjects_(
+    sheet,
+    CAIXA_V3_SUPPLEMENT_HEADERS
+  ).filter(function(item){
+    return String(item.supplement_id||'')===String(supplementId||'');
+  })[0]||null;
+}
+
+function v3GenerateSupplementPdf_(env,supplementId,context) {
+  var c=v3SupplementRecord_(env,supplementId);
+  if(!c)return {status:'ERRO',error:'Fechamento complementar não encontrado'};
+
+  try{
+    var date=String(c.date_iso);
+    var unitId=String(c.unit_id);
+    var sequence=Number(c.sequence||0);
+    var folder=v2PdfFolder_(context.unit,'Fechamentos',date);
+    var entries=v3EntriesForClosure_(env,supplementId);
+    var withdrawals=v3WithdrawalsForClosure_(env,supplementId);
+    var revenueList=entries.filter(function(e){return e.type==='RECEITA';});
+    var expenseList=entries.filter(function(e){return e.type==='DESPESA';});
+    var withdrawalTotal=withdrawals.reduce(function(total,w){
+      return total+Number(w.amountCents||0);
+    },0);
+
+    var doc=DocumentApp.create('TEMP_FECHAMENTO_COMPLEMENTAR_'+supplementId);
+    var body=doc.getBody();
+
+    v2DocHeader_(
+      body,
+      'FECHAMENTO COMPLEMENTAR DE CAIXA',
+      String(c.unit_name||unitId),
+      date,
+      String(c.created_by_name||''),
+      v2Iso_(c.created_at)
+    );
+
+    body.appendParagraph(
+      'Complemento nº '+String(sequence||1)+' do fechamento diário.'
+    );
+
+    body.appendParagraph('RESUMO DO COMPLEMENTO')
+      .setHeading(DocumentApp.ParagraphHeading.HEADING2);
+
+    body.appendTable([
+      ['Movimento','Quantidade','Total'],
+      ['Receitas novas',String(revenueList.length),v2Money_(c.revenue_cents)],
+      ['Despesas novas',String(expenseList.length),v2Money_(c.expense_cents)],
+      ['Resultado líquido dos novos lançamentos','',v2Money_(c.net_cents)],
+      ['Sangrias consolidadas',String(withdrawals.length),v2Money_(withdrawalTotal)],
+      ['Dinheiro em caixa após o complemento','',v2Money_(c.carryover_cents)]
+    ]);
+
+    if(revenueList.length){
+      body.appendParagraph('RECEITAS DO COMPLEMENTO')
+        .setHeading(DocumentApp.ParagraphHeading.HEADING2);
+
+      var rt=[['Hora','Meio','Cliente/Origem','Modo','Objetos','Valor']];
+      revenueList.forEach(function(e){
+        rt.push([
+          v2Time_(e.createdAt),
+          e.paymentName||e.paymentId||'',
+          e.clientName||'Sem cliente',
+          e.mode||'',
+          String(e.objectCount||''),
+          v2Money_(e.amountCents)
+        ]);
+      });
+      body.appendTable(rt);
+    }
+
+    if(expenseList.length){
+      body.appendParagraph('DESPESAS DO COMPLEMENTO')
+        .setHeading(DocumentApp.ParagraphHeading.HEADING2);
+
+      var et=[['Hora','Categoria','Descrição','Pagamento','Valor']];
+      expenseList.forEach(function(e){
+        et.push([
+          v2Time_(e.createdAt),
+          e.categoryContaAzulName||e.categoryId||'',
+          e.description||'',
+          e.paymentName||e.paymentId||'',
+          v2Money_(e.amountCents)
+        ]);
+      });
+      body.appendTable(et);
+    }
+
+    if(withdrawals.length){
+      body.appendParagraph('SANGRIAS CONSOLIDADAS NESTE COMPLEMENTO')
+        .setHeading(DocumentApp.ParagraphHeading.HEADING2);
+
+      var wt=[['Hora','Responsável','Valor','Saldo antes','Saldo após']];
+      withdrawals.forEach(function(w){
+        wt.push([
+          v2Time_(w.createdAt),
+          w.operatorName||'',
+          v2Money_(w.amountCents),
+          v2Money_(w.balanceBeforeCents),
+          v2Money_(w.balanceAfterCents)
+        ]);
+      });
+      body.appendTable(wt);
+    }
+
+    body.appendParagraph('DECLARAÇÃO DE CONFERÊNCIA')
+      .setHeading(DocumentApp.ParagraphHeading.HEADING2);
+    body.appendParagraph(String(CAIXA_V2_CFG.CASH_DECLARATION));
+    body.appendParagraph('☑ Confirmação registrada no sistema');
+    body.appendParagraph(
+      'Confirmado por: '+
+      String(c.created_by_name||'')+
+      ' | Usuário: '+
+      String(c.created_by||'')+
+      ' | Data/hora: '+
+      v2Iso_(c.created_at)
+    );
+
+    doc.saveAndClose();
+
+    var file=DriveApp.getFileById(doc.getId());
+    var seq=('0'+String(sequence||1)).slice(-2);
+    var name=
+      date+'_'+unitId+
+      '_Fechamento_Complementar_'+seq+'_'+
+      String(supplementId).slice(0,8)+'.pdf';
+    var pdf=folder.createFile(
+      file.getAs(MimeType.PDF).setName(name)
+    );
+
+    file.setTrashed(true);
+
+    return {
+      status:'GERADO',
+      id:pdf.getId(),
+      url:pdf.getUrl()
+    };
+  }catch(error){
+    return {
+      status:'ERRO',
+      error:String(error.message||error)
+    };
+  }
+}
+
+function v3UpdateSupplementPdf_(env,id,pdf) {
+  var sheet=v3SupplementSheet_(env);
+  var rows=v2ReadObjects_(sheet,CAIXA_V3_SUPPLEMENT_HEADERS);
+  var statusIndex=CAIXA_V3_SUPPLEMENT_HEADERS.indexOf('pdf_status');
+
+  for(var i=0;i<rows.length;i++){
+    if(String(rows[i].supplement_id||'')===String(id||'')){
+      sheet.getRange(
+        rows[i]._sheetRow,
+        statusIndex+1,
+        1,
+        3
+      ).setValues([[
+        pdf.status,
+        pdf.id||'',
+        pdf.url||''
+      ]]);
+      break;
+    }
+  }
+}
+
 function v2PdfFolder_(unit,kind,date) {
   var rootId=String(unit.drive_root_folder_id||'').trim();if(!rootId)throw new Error('Configure drive_root_folder_id na Biblioteca_Unidades.');
   var root=DriveApp.getFolderById(rootId),year=date.slice(0,4),month=date.slice(5,7)+' - '+v2MonthName_(Number(date.slice(5,7)));
@@ -54,7 +220,78 @@ function v2DocHeader_(body,title,unit,date,operator,timestamp){body.appendParagr
 function v2UpdateWithdrawalPdf_(env,id,pdf){var rows=v2ReadObjects_(env.withdrawals,CAIXA_V2_CFG.HEADERS.WITHDRAWALS);for(var i=0;i<rows.length;i++)if(String(rows[i].withdrawal_id)===id){env.withdrawals.getRange(i+2,17,1,3).setValues([[pdf.status,pdf.id||'',pdf.url||'']]);break;}}
 function v2UpdateClosurePdf_(env,id,pdf){var rows=v2ReadObjects_(env.closures,CAIXA_V2_CFG.HEADERS.CLOSURES);for(var i=0;i<rows.length;i++)if(String(rows[i].closure_id)===id){env.closures.getRange(i+2,30,1,3).setValues([[pdf.status,pdf.id||'',pdf.url||'']]);break;}}
 
-function retryPendingPdfsV2(){var env=v2Environment_(),units=v2ReadObjects_(env.units,CAIXA_V2_CFG.HEADERS.UNITS),count=0;v2ReadObjects_(env.withdrawals,CAIXA_V2_CFG.HEADERS.WITHDRAWALS).forEach(function(w){if(String(w.pdf_status)==='GERADO')return;var unit=units.filter(function(u){return String(u.unit_id)===String(w.unit_id);})[0];if(!unit)return;var pdf=v2GenerateWithdrawalPdf_(env,String(w.withdrawal_id),{unit:unit});v2UpdateWithdrawalPdf_(env,String(w.withdrawal_id),pdf);count++;});v2ReadObjects_(env.closures,CAIXA_V2_CFG.HEADERS.CLOSURES).forEach(function(c){if(String(c.pdf_status)==='GERADO')return;var unit=units.filter(function(u){return String(u.unit_id)===String(c.unit_id);})[0];if(!unit)return;var pdf=v2GenerateClosingPdf_(env,String(c.closure_id),{unit:unit});v2UpdateClosurePdf_(env,String(c.closure_id),pdf);count++;});return {ok:true,processed:count};}
+function retryPendingPdfsV2(){
+  var env=v2Environment_();
+  var units=v2ReadObjects_(env.units,CAIXA_V2_CFG.HEADERS.UNITS);
+  var count=0;
+  var supplementsProcessed=0;
+
+  v2ReadObjects_(
+    env.withdrawals,
+    CAIXA_V2_CFG.HEADERS.WITHDRAWALS
+  ).forEach(function(w){
+    if(String(w.pdf_status)==='GERADO')return;
+    var unit=units.filter(function(u){
+      return String(u.unit_id)===String(w.unit_id);
+    })[0];
+    if(!unit)return;
+    var pdf=v2GenerateWithdrawalPdf_(
+      env,
+      String(w.withdrawal_id),
+      {unit:unit}
+    );
+    v2UpdateWithdrawalPdf_(env,String(w.withdrawal_id),pdf);
+    count++;
+  });
+
+  v2ReadObjects_(
+    env.closures,
+    CAIXA_V2_CFG.HEADERS.CLOSURES
+  ).forEach(function(c){
+    if(String(c.pdf_status)==='GERADO')return;
+    var unit=units.filter(function(u){
+      return String(u.unit_id)===String(c.unit_id);
+    })[0];
+    if(!unit)return;
+    var pdf=v2GenerateClosingPdf_(
+      env,
+      String(c.closure_id),
+      {unit:unit}
+    );
+    v2UpdateClosurePdf_(env,String(c.closure_id),pdf);
+    count++;
+  });
+
+  var supplementSheet=v3SupplementSheet_(env);
+  v2ReadObjects_(
+    supplementSheet,
+    CAIXA_V3_SUPPLEMENT_HEADERS
+  ).forEach(function(c){
+    if(String(c.pdf_status)==='GERADO')return;
+    var unit=units.filter(function(u){
+      return String(u.unit_id)===String(c.unit_id);
+    })[0];
+    if(!unit)return;
+    var pdf=v3GenerateSupplementPdf_(
+      env,
+      String(c.supplement_id),
+      {unit:unit}
+    );
+    v3UpdateSupplementPdf_(
+      env,
+      String(c.supplement_id),
+      pdf
+    );
+    count++;
+    supplementsProcessed++;
+  });
+
+  return {
+    ok:true,
+    processed:count,
+    supplementsProcessed:supplementsProcessed
+  };
+}
 
 function v2Money_(cents){return 'R$ '+(Number(cents||0)/100).toFixed(2).replace('.',',');}
 function v2Today_(){return Utilities.formatDate(new Date(),CAIXA_V2_CFG.TIMEZONE,'yyyy-MM-dd');}

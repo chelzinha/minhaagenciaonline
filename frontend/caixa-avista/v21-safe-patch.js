@@ -4,8 +4,7 @@
   const V2_API =
     'https://script.google.com/macros/s/AKfycbxH-9PPg_R5i5YGYuZOgizOK-_i9XssRvvoA21XFnxt0nZr9SF87jFysf4s3bhNVSIe/exec';
 
-  const V3_API =
-    'https://script.google.com/macros/s/AKfycbxRaTJeaXhGTC0Lbyqf_Osnr_HsOyUnlOWjwtGMvkvPY1d98H0RthjJPCkLJRkP1x8o/exec';
+  const V3_API = '/caixa-v3';
 
   const DEFAULT_CLIENT = Object.freeze({
     id: 'cliente-balcao',
@@ -15,13 +14,18 @@
   const supplementRuntime = {
     hasBaseClosure: false,
     pendingCount: 0,
+    pendingEntryCount: 0,
+    pendingWithdrawalCount: 0,
+    pendingWithdrawalCents: 0,
     pendingRevenueCents: 0,
     pendingExpenseCents: 0,
     pendingNetCents: 0,
     supplementCount: 0,
+    history: [],
     busy: false
   };
 
+  const supplementPdfRepairAttempted = new Set();
   const previousFetch = window.fetch.bind(window);
 
   function selectedUnitId() {
@@ -144,6 +148,30 @@
     );
   }
 
+  function activeUnclosedWithdrawals(withdrawals) {
+    return (Array.isArray(withdrawals) ? withdrawals : []).filter(
+      withdrawal =>
+        Object.prototype.hasOwnProperty.call(
+          withdrawal || {},
+          'closureId'
+        ) &&
+        !String(withdrawal?.closureId || '').trim()
+    );
+  }
+
+  function withdrawalDelta(withdrawals) {
+    const pending = activeUnclosedWithdrawals(withdrawals);
+
+    return {
+      count: pending.length,
+      cents: pending.reduce(
+        (total, withdrawal) =>
+          total + Number(withdrawal?.amountCents || 0),
+        0
+      )
+    };
+  }
+
   function applySupplementState(state) {
     const next = state && typeof state === 'object'
       ? state
@@ -154,6 +182,15 @@
 
     supplementRuntime.pendingCount =
       Number(next.pendingCount || 0);
+
+    supplementRuntime.pendingEntryCount =
+      Number(next.pendingEntryCount || 0);
+
+    supplementRuntime.pendingWithdrawalCount =
+      Number(next.pendingWithdrawalCount || 0);
+
+    supplementRuntime.pendingWithdrawalCents =
+      Number(next.pendingWithdrawalCents || 0);
 
     supplementRuntime.pendingRevenueCents =
       Number(next.pendingRevenueCents || 0);
@@ -167,7 +204,14 @@
     supplementRuntime.supplementCount =
       Number(next.supplementCount || 0);
 
+    if (Array.isArray(next.history)) {
+      supplementRuntime.history = next.history;
+    } else if (!supplementRuntime.hasBaseClosure) {
+      supplementRuntime.history = [];
+    }
+
     queueSupplementUi();
+    queueSupplementPdfRepair();
   }
 
   function captureSupplementState(data) {
@@ -181,6 +225,9 @@
       applySupplementState({
         hasBaseClosure: false,
         pendingCount: 0,
+        pendingEntryCount: 0,
+        pendingWithdrawalCount: 0,
+        pendingWithdrawalCents: 0,
         pendingRevenueCents: 0,
         pendingExpenseCents: 0,
         pendingNetCents: 0,
@@ -193,10 +240,14 @@
       applySupplementState(data.supplementState);
     } else {
       const delta = deltaFromEntries(data.entries);
+      const withdrawals = withdrawalDelta(data.withdrawals);
 
       applySupplementState({
         hasBaseClosure: true,
-        pendingCount: delta.count,
+        pendingCount: delta.count + withdrawals.count,
+        pendingEntryCount: delta.count,
+        pendingWithdrawalCount: withdrawals.count,
+        pendingWithdrawalCents: withdrawals.cents,
         pendingRevenueCents: delta.revenueCents,
         pendingExpenseCents: delta.expenseCents,
         pendingNetCents: delta.netCents,
@@ -231,6 +282,10 @@
       includePendingPixInSummary(data);
       captureSupplementState(data);
 
+      if (data.closure) {
+        refreshSupplementStateFromV3(data);
+      }
+
       const headers = new Headers(response.headers);
       headers.set('Content-Type', 'application/json;charset=utf-8');
 
@@ -242,12 +297,6 @@
     } catch (_) {
       return response;
     }
-  }
-
-  function shouldUseV3ForClose() {
-    return String(
-      document.getElementById('closeState')?.textContent || ''
-    ).trim() === 'Pix pendente';
   }
 
   function baseClosureExists() {
@@ -342,6 +391,9 @@
       applySupplementState({
         hasBaseClosure: true,
         pendingCount: 0,
+        pendingEntryCount: 0,
+        pendingWithdrawalCount: 0,
+        pendingWithdrawalCents: 0,
         pendingRevenueCents: 0,
         pendingExpenseCents: 0,
         pendingNetCents: 0,
@@ -358,6 +410,25 @@
           Number(data.summary.expectedCashCents || 0)
         ),
         0
+      );
+    }
+  }
+
+  async function refreshSupplementStateFromV3(data) {
+    try {
+      await postV3(
+        'summary',
+        {
+          date:
+            data?.serverDate ||
+            data?.summary?.date ||
+            ''
+        }
+      );
+    } catch (error) {
+      console.warn(
+        '[CAIXA_SUPPLEMENT_STATE]',
+        error
       );
     }
   }
@@ -382,6 +453,9 @@
           applySupplementState(data.supplementState);
         } else {
           supplementRuntime.pendingCount = 0;
+          supplementRuntime.pendingEntryCount = 0;
+          supplementRuntime.pendingWithdrawalCount = 0;
+          supplementRuntime.pendingWithdrawalCents = 0;
           supplementRuntime.pendingRevenueCents = 0;
           supplementRuntime.pendingExpenseCents = 0;
           supplementRuntime.pendingNetCents = 0;
@@ -497,6 +571,17 @@
       request.payloads = request.payloads.map(applyDefaultClient);
     }
 
+    if (request.action === 'createWithdrawal') {
+      request.unitId = selectedUnitId();
+
+      const response = await previousFetch(V3_API, {
+        ...init,
+        body: JSON.stringify(request)
+      });
+
+      return observeV3Response(request.action, response);
+    }
+
     /*
      * Depois do fechamento principal, somente as gravações novas são
      * encaminhadas ao backend V3, que permite lançamentos pós-fechamento e
@@ -546,10 +631,11 @@
     }
 
     /*
-     * O fechamento V3 continua sendo usado quando há Pix pendente.
-     * Sem Pix pendente, o primeiro fechamento permanece no V2 estável.
+     * O bootstrap permanece V2, mas todo fechamento usa o backend V3 seguro.
+     * Assim o fechamento principal e os complementos compartilham a mesma
+     * regra de closure_id para lançamentos e sangrias, sem promover o init V3.
      */
-    if (request.action === 'closeCash' && shouldUseV3ForClose()) {
+    if (request.action === 'closeCash') {
       request.unitId = selectedUnitId();
 
       const response = await previousFetch(V3_API, {
@@ -631,20 +717,127 @@
   function supplementSummaryText() {
     const count = supplementRuntime.pendingCount;
     const net = supplementRuntime.pendingNetCents;
+    const withdrawalCents =
+      supplementRuntime.pendingWithdrawalCents;
 
-    return (
+    let text =
       count +
       ' novo' +
       (count === 1 ? '' : 's') +
       ' movimento' +
       (count === 1 ? '' : 's') +
       ' · adicional líquido ' +
-      formatMoney(net)
-    );
+      formatMoney(net);
+
+    if (withdrawalCents > 0) {
+      text +=
+        ' · sangrias ' +
+        formatMoney(withdrawalCents);
+    }
+
+    return text;
   }
 
   function queueSupplementUi() {
     window.setTimeout(renderSupplementUi, 0);
+  }
+
+  function queueSupplementPdfRepair() {
+    window.setTimeout(repairMissingSupplementPdf, 0);
+  }
+
+  async function repairMissingSupplementPdf() {
+    const pending = (
+      Array.isArray(supplementRuntime.history)
+        ? supplementRuntime.history
+        : []
+    ).find(item => {
+      const id = String(item?.id || '').trim();
+      const generated =
+        String(item?.pdfStatus || '').toUpperCase() ===
+          'GERADO' &&
+        Boolean(String(item?.pdfUrl || '').trim());
+
+      return (
+        id &&
+        !generated &&
+        !supplementPdfRepairAttempted.has(id)
+      );
+    });
+
+    if (!pending) {
+      return;
+    }
+
+    const id = String(pending.id || '').trim();
+    supplementPdfRepairAttempted.add(id);
+
+    try {
+      await postV3(
+        'repairSupplementPdf',
+        { supplementId: id }
+      );
+    } catch (error) {
+      console.warn(
+        '[CAIXA_SUPPLEMENT_PDF]',
+        error
+      );
+    }
+  }
+
+  function renderSupplementPdfLinks() {
+    const container =
+      document.getElementById('closeLinks');
+
+    if (!container) {
+      return;
+    }
+
+    container
+      .querySelectorAll(
+        '.caixa-supplement-pdf-link'
+      )
+      .forEach(node => node.remove());
+
+    (
+      Array.isArray(supplementRuntime.history)
+        ? supplementRuntime.history
+        : []
+    )
+      .filter(item =>
+        String(item?.pdfStatus || '').toUpperCase() ===
+          'GERADO' &&
+        Boolean(String(item?.pdfUrl || '').trim())
+      )
+      .forEach(item => {
+        const link = document.createElement('a');
+        link.className =
+          'caixa-supplement-pdf-link';
+        link.href = String(item.pdfUrl);
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+
+        const icon =
+          document.createElement('span');
+        icon.className =
+          'material-symbols-rounded';
+        icon.textContent = 'picture_as_pdf';
+
+        const label =
+          document.createTextNode(
+            ' PDF complementar ' +
+            String(item.sequence || '')
+          );
+
+        link.appendChild(icon);
+        link.appendChild(label);
+        container.appendChild(link);
+      });
+
+    container.classList.toggle(
+      'hidden',
+      !container.querySelector('a')
+    );
   }
 
   function renderSupplementUi() {
@@ -653,6 +846,8 @@
     if (!original) {
       return;
     }
+
+    renderSupplementPdfLinks();
 
     let info = document.getElementById('v21SupplementInfo');
     let button = document.getElementById('btnV21Supplement');
@@ -714,7 +909,16 @@
       );
     }
 
-    button.disabled = supplementRuntime.busy;
+    const declaration =
+      document.getElementById('closeDeclaration');
+
+    if (declaration) {
+      declaration.disabled = false;
+    }
+
+    button.disabled =
+      supplementRuntime.busy ||
+      !Boolean(declaration?.checked);
   }
 
   async function updateSupplement() {
@@ -723,6 +927,23 @@
     );
 
     if (!count || supplementRuntime.busy) {
+      return;
+    }
+
+    const declaration =
+      document.getElementById('closeDeclaration');
+
+    if (!declaration?.checked) {
+      const info =
+        document.getElementById('v21SupplementInfo');
+
+      if (info) {
+        info.textContent =
+          'Confirme a conferência do numerário para atualizar o fechamento.';
+        info.className =
+          'status-box show warning';
+      }
+
       return;
     }
 
@@ -763,7 +984,7 @@
             countedCashCents: expectedCashCentsFromUi(),
             closingWithdrawalCents: 0,
             withdrawalDestination: 'Financeiro',
-            notes: 'Fechamento complementar'
+            notes: ''
           }
         }
       );
@@ -771,14 +992,27 @@
       const dispatchOk =
         result?.contaAzulDispatch?.ok !== false;
 
-      if (info) {
-        info.textContent = dispatchOk
-          ? 'Fechamento atualizado. Os novos movimentos foram enviados para processamento no Conta Azul.'
-          : 'Fechamento atualizado. O envio ao Conta Azul ficou pendente para nova tentativa.';
+      const pdfOk =
+        result?.supplementPdf?.status ===
+        'GERADO';
 
-        info.className = dispatchOk
-          ? 'status-box show success'
-          : 'status-box show warning';
+      if (info) {
+        if (pdfOk && dispatchOk) {
+          info.textContent =
+            'Fechamento atualizado e PDF complementar gerado. Os novos movimentos foram enviados para processamento no Conta Azul.';
+          info.className =
+            'status-box show success';
+        } else if (!pdfOk) {
+          info.textContent =
+            'Fechamento atualizado. O PDF complementar ficou pendente e será tentado novamente.';
+          info.className =
+            'status-box show warning';
+        } else {
+          info.textContent =
+            'Fechamento atualizado e PDF complementar gerado. O envio ao Conta Azul ficou pendente para nova tentativa.';
+          info.className =
+            'status-box show warning';
+        }
       }
 
       window.setTimeout(
@@ -818,7 +1052,10 @@
   if (closeDeclaration) {
     closeDeclaration.addEventListener(
       'change',
-      syncExpectedCashConfirmation
+      () => {
+        syncExpectedCashConfirmation();
+        queueSupplementUi();
+      }
     );
   }
 

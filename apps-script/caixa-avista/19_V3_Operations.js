@@ -13,7 +13,7 @@
  */
 
 var CAIXA_V3_SUPPLEMENT_SHEET = 'Fechamentos_Complementares';
-var CAIXA_V3_SUPPLEMENT_HEADERS = [
+var CAIXA_V3_SUPPLEMENT_LEGACY_HEADERS = [
   'supplement_id',
   'date_iso',
   'unit_id',
@@ -37,6 +37,13 @@ var CAIXA_V3_SUPPLEMENT_HEADERS = [
   'entry_ids_json'
 ];
 
+var CAIXA_V3_SUPPLEMENT_HEADERS =
+  CAIXA_V3_SUPPLEMENT_LEGACY_HEADERS.concat([
+    'pdf_status',
+    'pdf_file_id',
+    'pdf_url'
+  ]);
+
 function v3SupplementSheet_(env) {
   var sheet = env.ss.getSheetByName(CAIXA_V3_SUPPLEMENT_SHEET);
 
@@ -45,15 +52,65 @@ function v3SupplementSheet_(env) {
     sheet.getRange(1, 1, 1, CAIXA_V3_SUPPLEMENT_HEADERS.length)
       .setValues([CAIXA_V3_SUPPLEMENT_HEADERS]);
     sheet.setFrozenRows(1);
+    return sheet;
   }
 
+  var legacyWidth = CAIXA_V3_SUPPLEMENT_LEGACY_HEADERS.length;
   var width = CAIXA_V3_SUPPLEMENT_HEADERS.length;
-  var current = sheet.getRange(1, 1, 1, width).getValues()[0];
 
-  if (current.join('|') !== CAIXA_V3_SUPPLEMENT_HEADERS.join('|')) {
+  if (sheet.getMaxColumns() < width) {
+    sheet.insertColumnsAfter(
+      sheet.getMaxColumns(),
+      width - sheet.getMaxColumns()
+    );
+  }
+
+  var legacy = sheet
+    .getRange(1, 1, 1, legacyWidth)
+    .getValues()[0];
+
+  if (
+    legacy.join('|') !==
+    CAIXA_V3_SUPPLEMENT_LEGACY_HEADERS.join('|')
+  ) {
     throw appError_(
       'A estrutura de Fechamentos_Complementares está diferente da versão esperada.',
       'V3_SUPPLEMENT_SCHEMA_MISMATCH'
+    );
+  }
+
+  var pdfHeaders = sheet
+    .getRange(
+      1,
+      legacyWidth + 1,
+      1,
+      width - legacyWidth
+    )
+    .getValues()[0];
+
+  var expectedPdfHeaders =
+    CAIXA_V3_SUPPLEMENT_HEADERS.slice(legacyWidth);
+
+  if (
+    pdfHeaders.every(function(value) {
+      return !String(value || '').trim();
+    })
+  ) {
+    sheet
+      .getRange(
+        1,
+        legacyWidth + 1,
+        1,
+        expectedPdfHeaders.length
+      )
+      .setValues([expectedPdfHeaders]);
+  } else if (
+    pdfHeaders.join('|') !==
+    expectedPdfHeaders.join('|')
+  ) {
+    throw appError_(
+      'As colunas de PDF de Fechamentos_Complementares estão diferentes da versão esperada.',
+      'V3_SUPPLEMENT_PDF_SCHEMA_MISMATCH'
     );
   }
 
@@ -141,6 +198,12 @@ function v3UnclosedEntries_(env, date, unitId) {
   });
 }
 
+function v3UnclosedWithdrawals_(env, date, unitId) {
+  return v2WithdrawalsByDate_(env, date, unitId).filter(function(withdrawal) {
+    return !String(withdrawal.closureId || '').trim();
+  });
+}
+
 function v3DeltaSummary_(entries) {
   var delta = {
     revenueCents: 0,
@@ -218,8 +281,11 @@ function v3SupplementHistory_(env, date, unitId) {
         expenseCents: Number(row[11] || 0),
         netCents: Number(row[12] || 0),
         expectedCashCents: Number(row[15] || 0),
+        closingWithdrawalCents: Number(row[17] || 0),
         carryoverCents: Number(row[18] || 0),
         notes: String(row[19] || ''),
+        pdfStatus: String(row[21] || ''),
+        pdfUrl: String(row[23] || ''),
         contaAzulStatus: v3QueueStatusForClosure_(env, row[0])
       };
     })
@@ -231,6 +297,9 @@ function v3SupplementState_(env, date, unitId, baseClosure) {
     return {
       hasBaseClosure: false,
       pendingCount: 0,
+      pendingEntryCount: 0,
+      pendingWithdrawalCount: 0,
+      pendingWithdrawalCents: 0,
       pendingRevenueCents: 0,
       pendingExpenseCents: 0,
       pendingNetCents: 0,
@@ -239,12 +308,19 @@ function v3SupplementState_(env, date, unitId, baseClosure) {
   }
 
   var entries = v3UnclosedEntries_(env, date, unitId);
+  var withdrawals = v3UnclosedWithdrawals_(env, date, unitId);
   var delta = v3DeltaSummary_(entries);
+  var pendingWithdrawalCents = withdrawals.reduce(function(total, withdrawal) {
+    return total + Number(withdrawal.amountCents || 0);
+  }, 0);
   var history = v3SupplementHistory_(env, date, unitId);
 
   return {
     hasBaseClosure: true,
-    pendingCount: entries.length,
+    pendingCount: entries.length + withdrawals.length,
+    pendingEntryCount: entries.length,
+    pendingWithdrawalCount: withdrawals.length,
+    pendingWithdrawalCents: pendingWithdrawalCents,
     pendingRevenueCents: delta.revenueCents,
     pendingExpenseCents: delta.expenseCents,
     pendingNetCents: delta.netCents,
@@ -499,6 +575,50 @@ function v3MarkEntriesWithClosure_(env, entryIds, closureId) {
   }
 }
 
+function v3MarkWithdrawalsWithClosure_(env, withdrawalIds, closureId) {
+  if (!withdrawalIds.length) return;
+
+  var wanted = {};
+  withdrawalIds.forEach(function(id) {
+    wanted[String(id)] = true;
+  });
+
+  var last = env.withdrawals.getLastRow();
+  if (last < 2) return;
+
+  var headers = CAIXA_V2_CFG.HEADERS.WITHDRAWALS;
+  var closureIndex = headers.indexOf('closure_id');
+
+  if (closureIndex < 0) {
+    throw appError_(
+      'Estrutura de Sangrias sem closure_id.',
+      'WITHDRAWAL_SCHEMA_MISMATCH'
+    );
+  }
+
+  var values = env.withdrawals
+    .getRange(2, 1, last - 1, headers.length)
+    .getValues();
+
+  var changed = false;
+
+  values.forEach(function(row) {
+    if (
+      wanted[String(row[0])] &&
+      !String(row[closureIndex] || '').trim()
+    ) {
+      row[closureIndex] = closureId;
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    env.withdrawals
+      .getRange(2, 1, values.length, headers.length)
+      .setValues(values);
+  }
+}
+
 function v3EntriesForClosure_(env, closureId) {
   return v2ReadObjects_(env.entries, CAIXA_V2_CFG.HEADERS.ENTRIES)
     .filter(function(item) {
@@ -508,6 +628,37 @@ function v3EntriesForClosure_(env, closureId) {
       );
     })
     .map(function(item) { return v2RowEntry_(item._row); });
+}
+
+function v3WithdrawalsForClosure_(env, closureId) {
+  return v2ReadObjects_(
+    env.withdrawals,
+    CAIXA_V2_CFG.HEADERS.WITHDRAWALS
+  )
+    .filter(function(item) {
+      return (
+        String(item.closure_id || '') ===
+        String(closureId || '')
+      );
+    })
+    .map(function(item) {
+      return {
+        id: String(item.withdrawal_id || ''),
+        date: v2SheetDateIso_(item.date_iso),
+        createdAt: v2Iso_(item.created_at),
+        unitId: String(item.unit_id || ''),
+        operatorId: String(item.operator_id || ''),
+        operatorName: String(item.operator_name || ''),
+        amountCents: Number(item.amount_cents || 0),
+        balanceBeforeCents:
+          Number(item.balance_before_cents || 0),
+        balanceAfterCents:
+          Number(item.balance_after_cents || 0),
+        closureId: String(item.closure_id || ''),
+        pdfStatus: String(item.pdf_status || ''),
+        pdfUrl: String(item.pdf_url || '')
+      };
+    });
 }
 
 function v3WriteSupplement_(env, data) {
@@ -533,7 +684,10 @@ function v3WriteSupplement_(env, data) {
     data.closingWithdrawalCents,
     data.carryoverCents,
     data.notes,
-    JSON.stringify(data.entryIds)
+    JSON.stringify(data.entryIds),
+    'PENDENTE',
+    '',
+    ''
   ]);
 }
 
