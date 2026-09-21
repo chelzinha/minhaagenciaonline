@@ -15,6 +15,9 @@
   const supplementRuntime = {
     hasBaseClosure: false,
     pendingCount: 0,
+    pendingEntryCount: 0,
+    pendingWithdrawalCount: 0,
+    pendingWithdrawalCents: 0,
     pendingRevenueCents: 0,
     pendingExpenseCents: 0,
     pendingNetCents: 0,
