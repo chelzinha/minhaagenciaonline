@@ -147,6 +147,7 @@ function doPost(e) {
       case 'setOpeningBalance': return jsonOutput_(v2SetOpeningBalance_(request.date, request.amountCents, user));
       case 'createWithdrawal': return jsonOutput_(v2CreateWithdrawal_(request.payload, user));
       case 'closeCash': return jsonOutput_(v3CloseCashSafe_(request.payload, user));
+      case 'repairSupplementPdf': return jsonOutput_(v3RepairSupplementPdf_(request.supplementId, user));
       case 'processContaAzulQueue': return jsonOutput_(processContaAzulQueueV2(request.limit));
       case 'syncContaAzulLibrary': return jsonOutput_(syncContaAzulLibraryV2());
       case 'retryPdfs': return jsonOutput_(retryPendingPdfsV2());
