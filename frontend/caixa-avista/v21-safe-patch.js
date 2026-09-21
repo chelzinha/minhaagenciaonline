@@ -147,6 +147,25 @@
     );
   }
 
+  function activeUnclosedWithdrawals(withdrawals) {
+    return (Array.isArray(withdrawals) ? withdrawals : []).filter(
+      withdrawal => !String(withdrawal?.closureId || '').trim()
+    );
+  }
+
+  function withdrawalDelta(withdrawals) {
+    const pending = activeUnclosedWithdrawals(withdrawals);
+
+    return {
+      count: pending.length,
+      cents: pending.reduce(
+        (total, withdrawal) =>
+          total + Number(withdrawal?.amountCents || 0),
+        0
+      )
+    };
+  }
+
   function applySupplementState(state) {
     const next = state && typeof state === 'object'
       ? state
