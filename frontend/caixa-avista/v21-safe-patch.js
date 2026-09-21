@@ -177,6 +177,15 @@
     supplementRuntime.pendingCount =
       Number(next.pendingCount || 0);
 
+    supplementRuntime.pendingEntryCount =
+      Number(next.pendingEntryCount || 0);
+
+    supplementRuntime.pendingWithdrawalCount =
+      Number(next.pendingWithdrawalCount || 0);
+
+    supplementRuntime.pendingWithdrawalCents =
+      Number(next.pendingWithdrawalCents || 0);
+
     supplementRuntime.pendingRevenueCents =
       Number(next.pendingRevenueCents || 0);
 
@@ -203,6 +212,9 @@
       applySupplementState({
         hasBaseClosure: false,
         pendingCount: 0,
+        pendingEntryCount: 0,
+        pendingWithdrawalCount: 0,
+        pendingWithdrawalCents: 0,
         pendingRevenueCents: 0,
         pendingExpenseCents: 0,
         pendingNetCents: 0,
