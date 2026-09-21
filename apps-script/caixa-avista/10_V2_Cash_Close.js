@@ -221,11 +221,18 @@ function v2CreateWithdrawal_(payload,user) {
         idempotent:true,
         withdrawal:{
           id:String(existing.withdrawal_id),
+          date:v2SheetDateIso_(existing.date_iso),
+          createdAt:v2Iso_(existing.created_at),
+          unitId:String(existing.unit_id || ''),
+          operatorId:String(existing.operator_id || ''),
+          operatorName:String(existing.operator_name || ''),
           amountCents:Number(existing.amount_cents || 0),
           balanceBeforeCents:Number(existing.balance_before_cents || 0),
           balanceAfterCents:Number(existing.balance_after_cents || 0),
-          destination:String(existing.destination || ''),
+          destination:String(existing.destination || 'Financeiro'),
           notes:String(existing.notes || ''),
+          closureId:String(existing.closure_id || ''),
+          confirmed:v2Bool_(existing.confirmed),
           pdfStatus:String(existing.pdf_status || ''),
           pdfUrl:String(existing.pdf_url || '')
         },
@@ -316,7 +323,10 @@ function v2Close_(payload,user) {
 
     var summary = v2BuildSummary_(env,date,unitId);
 
-    if ((summary.revenueCount + summary.expenseCount) === 0) {
+    if (
+      (summary.revenueCount + summary.expenseCount) === 0 &&
+      Number(summary.withdrawalsCents || 0) === 0
+    ) {
       throw appError_('Não há movimentos para fechar.','NO_ENTRIES');
     }
 
@@ -386,6 +396,24 @@ function v2Close_(payload,user) {
     ]);
 
     v2MarkEntriesClosed_(env,date,unitId,closureId);
+
+    if (typeof v3MarkWithdrawalsWithClosure_ === 'function') {
+      var withdrawalIdsToClose =
+        v2WithdrawalsByDate_(env,date,unitId)
+          .filter(function(withdrawal) {
+            return !String(withdrawal.closureId || '').trim();
+          })
+          .map(function(withdrawal) {
+            return withdrawal.id;
+          });
+
+      v3MarkWithdrawalsWithClosure_(
+        env,
+        withdrawalIdsToClose,
+        closureId
+      );
+    }
+
     v2UpdateDailyBalanceClose_(
       env,date,unitId,summary,counted,difference,
       closingWithdrawal,carryover,user
