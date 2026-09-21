@@ -775,7 +775,16 @@
       );
     }
 
-    button.disabled = supplementRuntime.busy;
+    const declaration =
+      document.getElementById('closeDeclaration');
+
+    if (declaration) {
+      declaration.disabled = false;
+    }
+
+    button.disabled =
+      supplementRuntime.busy ||
+      !Boolean(declaration?.checked);
   }
 
   async function updateSupplement() {
@@ -784,6 +793,23 @@
     );
 
     if (!count || supplementRuntime.busy) {
+      return;
+    }
+
+    const declaration =
+      document.getElementById('closeDeclaration');
+
+    if (!declaration?.checked) {
+      const info =
+        document.getElementById('v21SupplementInfo');
+
+      if (info) {
+        info.textContent =
+          'Confirme a conferência do numerário para atualizar o fechamento.';
+        info.className =
+          'status-box show warning';
+      }
+
       return;
     }
 
@@ -824,7 +850,7 @@
             countedCashCents: expectedCashCentsFromUi(),
             closingWithdrawalCents: 0,
             withdrawalDestination: 'Financeiro',
-            notes: 'Fechamento complementar'
+            notes: ''
           }
         }
       );
@@ -879,7 +905,10 @@
   if (closeDeclaration) {
     closeDeclaration.addEventListener(
       'change',
-      syncExpectedCashConfirmation
+      () => {
+        syncExpectedCashConfirmation();
+        queueSupplementUi();
+      }
     );
   }
 
