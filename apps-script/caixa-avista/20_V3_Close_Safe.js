@@ -35,12 +35,13 @@ function v3CloseCashSafe_(payload, user) {
     var baseClosure = v2FindClosure_(env, date, unitId);
     var summaryBefore = v3BuildSummary_(env, date, unitId);
     var newEntries = v3UnclosedEntries_(env, date, unitId);
+    var newWithdrawals = v3UnclosedWithdrawals_(env, date, unitId);
 
-    if (!baseClosure && !newEntries.length) {
+    if (!baseClosure && !newEntries.length && !newWithdrawals.length) {
       throw appError_('Não há movimentos para fechar.', 'NO_ENTRIES');
     }
 
-    if (baseClosure && !newEntries.length) {
+    if (baseClosure && !newEntries.length && !newWithdrawals.length) {
       return {
         ok: true,
         alreadyClosed: true,
@@ -85,6 +86,17 @@ function v3CloseCashSafe_(payload, user) {
     var entryIds = newEntries.map(function(entry) {
       return entry.id;
     });
+
+    var withdrawalIds = newWithdrawals.map(function(withdrawal) {
+      return withdrawal.id;
+    });
+
+    var pendingWithdrawalCents = newWithdrawals.reduce(
+      function(total, withdrawal) {
+        return total + Number(withdrawal.amountCents || 0);
+      },
+      0
+    );
 
     dispatchClosureId = closureId;
 
@@ -146,6 +158,12 @@ function v3CloseCashSafe_(payload, user) {
         closureId
       );
 
+      v3MarkWithdrawalsWithClosure_(
+        env,
+        withdrawalIds,
+        closureId
+      );
+
       v2UpdateDailyBalanceClose_(
         env,
         date,
@@ -185,7 +203,8 @@ function v3CloseCashSafe_(payload, user) {
         user: user,
         delta: delta,
         summary: summaryBefore,
-        closingWithdrawalCents: closingWithdrawal,
+        closingWithdrawalCents:
+          pendingWithdrawalCents + closingWithdrawal,
         carryoverCents: carryover,
         notes: notes,
         entryIds: entryIds
@@ -194,6 +213,12 @@ function v3CloseCashSafe_(payload, user) {
       v3MarkEntriesWithClosure_(
         env,
         entryIds,
+        closureId
+      );
+
+      v3MarkWithdrawalsWithClosure_(
+        env,
+        withdrawalIds,
         closureId
       );
 
