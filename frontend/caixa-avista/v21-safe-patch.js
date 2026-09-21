@@ -683,16 +683,25 @@
   function supplementSummaryText() {
     const count = supplementRuntime.pendingCount;
     const net = supplementRuntime.pendingNetCents;
+    const withdrawalCents =
+      supplementRuntime.pendingWithdrawalCents;
 
-    return (
+    let text =
       count +
       ' novo' +
       (count === 1 ? '' : 's') +
       ' movimento' +
       (count === 1 ? '' : 's') +
       ' · adicional líquido ' +
-      formatMoney(net)
-    );
+      formatMoney(net);
+
+    if (withdrawalCents > 0) {
+      text +=
+        ' · sangrias ' +
+        formatMoney(withdrawalCents);
+    }
+
+    return text;
   }
 
   function queueSupplementUi() {
