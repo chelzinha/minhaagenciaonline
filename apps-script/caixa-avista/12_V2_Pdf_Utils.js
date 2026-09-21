@@ -5,7 +5,7 @@ function v2GenerateWithdrawalPdf_(env,withdrawalId,context) {
     var folder=v2PdfFolder_(context.unit,'Sangrias',String(w.date_iso));
     var doc=DocumentApp.create('TEMP_SANGRIA_'+withdrawalId),body=doc.getBody();
     v2DocHeader_(body,'COMPROVANTE DE SANGRIA',String(context.unit.name||context.unit.unit_id),String(w.date_iso),String(w.operator_name),v2Iso_(w.created_at));
-    body.appendTable([['Informação','Valor'],['Saldo antes',v2Money_(w.balance_before_cents)],['Valor da sangria',v2Money_(w.amount_cents)],['Saldo após',v2Money_(w.balance_after_cents)],['Destino',String(w.destination||'')],['Observação',String(w.notes||'')]]);
+    body.appendTable([['Informação','Valor'],['Saldo antes',v2Money_(w.balance_before_cents)],['Valor da sangria',v2Money_(w.amount_cents)],['Saldo após',v2Money_(w.balance_after_cents)]]);
     body.appendParagraph('DECLARAÇÃO DE CONFERÊNCIA').setHeading(DocumentApp.ParagraphHeading.HEADING2);
     body.appendParagraph(String(w.declaration_text||CAIXA_V2_CFG.WITHDRAWAL_DECLARATION));
     body.appendParagraph('☑ Confirmação registrada no sistema');
