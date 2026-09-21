@@ -147,7 +147,23 @@ function v2RecordWithdrawal_(env, context, user, data) {
   ]);
   var pdf = v2GenerateWithdrawalPdf_(env, id, context);
   v2UpdateWithdrawalPdf_(env, id, pdf);
-  return { id:id, amountCents:amount, balanceBeforeCents:before, balanceAfterCents:after, pdfStatus:pdf.status, pdfUrl:pdf.url || '' };
+  return {
+    id:id,
+    date:v2SheetDateIso_(data.date),
+    createdAt:v2Iso_(created),
+    unitId:String(context.unit.unit_id),
+    operatorId:String(user.id || ''),
+    operatorName:String(user.name || ''),
+    amountCents:amount,
+    destination:String(data.destination || 'Financeiro'),
+    notes:String(data.notes || ''),
+    balanceBeforeCents:before,
+    balanceAfterCents:after,
+    closureId:String(data.closureId || ''),
+    confirmed:true,
+    pdfStatus:pdf.status,
+    pdfUrl:pdf.url || ''
+  };
 }
 
 function v2CreateWithdrawal_(payload,user) {
@@ -164,10 +180,6 @@ function v2CreateWithdrawal_(payload,user) {
   try {
     var env = v2Environment_();
     var context = v2ResolveContext_(env,user);
-
-    if (!context.permissions.withdraw) {
-      throw appError_('Usuário sem permissão para sangria.','FORBIDDEN');
-    }
 
     var date = v2Today_();
     var unitId = String(context.unit.unit_id);
@@ -217,11 +229,18 @@ function v2CreateWithdrawal_(payload,user) {
           pdfStatus:String(existing.pdf_status || ''),
           pdfUrl:String(existing.pdf_url || '')
         },
-        summary:v2BuildSummary_(env,date,unitId)
+        summary:v2BuildSummary_(env,date,unitId),
+        supplementState:
+          typeof v3SupplementState_ === 'function'
+            ? v3SupplementState_(
+                env,
+                date,
+                unitId,
+                v2FindClosure_(env,date,unitId)
+              )
+            : null
       };
     }
-
-    v2AssertOpen_(env,date,unitId);
 
     var summary = v2BuildSummary_(env,date,unitId);
 
@@ -237,15 +256,24 @@ function v2CreateWithdrawal_(payload,user) {
       date:date,
       amountCents:amount,
       balanceBeforeCents:summary.expectedCashCents,
-      destination:payload.destination,
-      notes:payload.notes,
+      destination:'Financeiro',
+      notes:'',
       closureId:''
     });
 
     return {
       ok:true,
       withdrawal:withdrawal,
-      summary:v2BuildSummary_(env,date,unitId)
+      summary:v2BuildSummary_(env,date,unitId),
+      supplementState:
+        typeof v3SupplementState_ === 'function'
+          ? v3SupplementState_(
+              env,
+              date,
+              unitId,
+              v2FindClosure_(env,date,unitId)
+            )
+          : null
     };
   } finally {
     lock.releaseLock();
