@@ -16,6 +16,7 @@ function v3CloseCashSafe_(payload, user) {
 
   var result;
   var dispatchClosureId = '';
+  var supplementPdf = null;
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
 
@@ -233,6 +234,18 @@ function v3CloseCashSafe_(payload, user) {
         carryover,
         user
       );
+
+      supplementPdf = v3GenerateSupplementPdf_(
+        env,
+        closureId,
+        context
+      );
+
+      v3UpdateSupplementPdf_(
+        env,
+        closureId,
+        supplementPdf
+      );
     }
 
     /*
@@ -268,6 +281,9 @@ function v3CloseCashSafe_(payload, user) {
       supplementId: baseClosure
         ? closureId
         : '',
+      supplementPdf: baseClosure
+        ? supplementPdf
+        : null,
       closure: v3DecorateClosure_(
         refreshedBase,
         refreshedSummary
@@ -336,3 +352,114 @@ function v3CloseCashSafe_(payload, user) {
 
   return result;
 }
+
+function v3RepairSupplementPdf_(supplementId, user) {
+  var wantedId = String(supplementId || '').trim();
+
+  if (!wantedId) {
+    throw appError_(
+      'Informe o fechamento complementar.',
+      'SUPPLEMENT_REQUIRED'
+    );
+  }
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+
+  try {
+    var env = v2Environment_();
+    var context = v2ResolveContext_(env, user);
+
+    if (!context.permissions.close) {
+      throw appError_(
+        'Usuário sem permissão para fechar o caixa.',
+        'FORBIDDEN'
+      );
+    }
+
+    var supplement = v3SupplementRecord_(
+      env,
+      wantedId
+    );
+
+    if (!supplement) {
+      throw appError_(
+        'Fechamento complementar não encontrado.',
+        'SUPPLEMENT_NOT_FOUND'
+      );
+    }
+
+    if (
+      String(supplement.unit_id || '') !==
+      String(context.unit.unit_id || '')
+    ) {
+      throw appError_(
+        'O fechamento complementar pertence a outra unidade.',
+        'UNIT_MISMATCH'
+      );
+    }
+
+    if (
+      String(supplement.pdf_status || '') === 'GERADO' &&
+      String(supplement.pdf_url || '').trim()
+    ) {
+      return {
+        ok: true,
+        idempotent: true,
+        pdf: {
+          status: 'GERADO',
+          id: String(supplement.pdf_file_id || ''),
+          url: String(supplement.pdf_url || '')
+        },
+        supplementState: v3SupplementState_(
+          env,
+          v2SheetDateIso_(supplement.date_iso),
+          String(supplement.unit_id || ''),
+          v2FindClosure_(
+            env,
+            v2SheetDateIso_(supplement.date_iso),
+            String(supplement.unit_id || '')
+          )
+        )
+      };
+    }
+
+    var pdf = v3GenerateSupplementPdf_(
+      env,
+      wantedId,
+      context
+    );
+
+    v3UpdateSupplementPdf_(
+      env,
+      wantedId,
+      pdf
+    );
+
+    if (pdf.status !== 'GERADO') {
+      throw appError_(
+        pdf.error ||
+        'Não foi possível gerar o PDF complementar.',
+        'SUPPLEMENT_PDF_FAILED'
+      );
+    }
+
+    return {
+      ok: true,
+      pdf: pdf,
+      supplementState: v3SupplementState_(
+        env,
+        v2SheetDateIso_(supplement.date_iso),
+        String(supplement.unit_id || ''),
+        v2FindClosure_(
+          env,
+          v2SheetDateIso_(supplement.date_iso),
+          String(supplement.unit_id || '')
+        )
+      )
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
