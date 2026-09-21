@@ -462,4 +462,3 @@ function v3RepairSupplementPdf_(supplementId, user) {
     lock.releaseLock();
   }
 }
-
