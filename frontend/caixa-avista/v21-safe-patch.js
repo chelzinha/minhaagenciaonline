@@ -149,7 +149,12 @@
 
   function activeUnclosedWithdrawals(withdrawals) {
     return (Array.isArray(withdrawals) ? withdrawals : []).filter(
-      withdrawal => !String(withdrawal?.closureId || '').trim()
+      withdrawal =>
+        Object.prototype.hasOwnProperty.call(
+          withdrawal || {},
+          'closureId'
+        ) &&
+        !String(withdrawal?.closureId || '').trim()
     );
   }
 
@@ -269,6 +274,10 @@
       includePendingPixInSummary(data);
       captureSupplementState(data);
 
+      if (data.closure) {
+        refreshSupplementStateFromV3(data);
+      }
+
       const headers = new Headers(response.headers);
       headers.set('Content-Type', 'application/json;charset=utf-8');
 
@@ -280,12 +289,6 @@
     } catch (_) {
       return response;
     }
-  }
-
-  function shouldUseV3ForClose() {
-    return String(
-      document.getElementById('closeState')?.textContent || ''
-    ).trim() === 'Pix pendente';
   }
 
   function baseClosureExists() {
@@ -399,6 +402,25 @@
           Number(data.summary.expectedCashCents || 0)
         ),
         0
+      );
+    }
+  }
+
+  async function refreshSupplementStateFromV3(data) {
+    try {
+      await postV3(
+        'summary',
+        {
+          date:
+            data?.serverDate ||
+            data?.summary?.date ||
+            ''
+        }
+      );
+    } catch (error) {
+      console.warn(
+        '[CAIXA_SUPPLEMENT_STATE]',
+        error
       );
     }
   }
@@ -541,10 +563,7 @@
       request.payloads = request.payloads.map(applyDefaultClient);
     }
 
-    if (
-      request.action === 'createWithdrawal' &&
-      baseClosureExists()
-    ) {
+    if (request.action === 'createWithdrawal') {
       request.unitId = selectedUnitId();
 
       const response = await previousFetch(V3_API, {
@@ -604,10 +623,11 @@
     }
 
     /*
-     * O fechamento V3 continua sendo usado quando há Pix pendente.
-     * Sem Pix pendente, o primeiro fechamento permanece no V2 estável.
+     * O bootstrap permanece V2, mas todo fechamento usa o backend V3 seguro.
+     * Assim o fechamento principal e os complementos compartilham a mesma
+     * regra de closure_id para lançamentos e sangrias, sem promover o init V3.
      */
-    if (request.action === 'closeCash' && shouldUseV3ForClose()) {
+    if (request.action === 'closeCash') {
       request.unitId = selectedUnitId();
 
       const response = await previousFetch(V3_API, {
