@@ -9,7 +9,8 @@ const ALLOWED_ACTIONS = new Set([
   'saveBatch',
   'syncPixPayment',
   'createWithdrawal',
-  'closeCash'
+  'closeCash',
+  'repairSupplementPdf'
 ]);
 
 function jsonResponse(payload, status = 200) {
