@@ -141,6 +141,12 @@ function v3UnclosedEntries_(env, date, unitId) {
   });
 }
 
+function v3UnclosedWithdrawals_(env, date, unitId) {
+  return v2WithdrawalsByDate_(env, date, unitId).filter(function(withdrawal) {
+    return !String(withdrawal.closureId || '').trim();
+  });
+}
+
 function v3DeltaSummary_(entries) {
   var delta = {
     revenueCents: 0,
@@ -231,6 +237,9 @@ function v3SupplementState_(env, date, unitId, baseClosure) {
     return {
       hasBaseClosure: false,
       pendingCount: 0,
+      pendingEntryCount: 0,
+      pendingWithdrawalCount: 0,
+      pendingWithdrawalCents: 0,
       pendingRevenueCents: 0,
       pendingExpenseCents: 0,
       pendingNetCents: 0,
@@ -239,12 +248,19 @@ function v3SupplementState_(env, date, unitId, baseClosure) {
   }
 
   var entries = v3UnclosedEntries_(env, date, unitId);
+  var withdrawals = v3UnclosedWithdrawals_(env, date, unitId);
   var delta = v3DeltaSummary_(entries);
+  var pendingWithdrawalCents = withdrawals.reduce(function(total, withdrawal) {
+    return total + Number(withdrawal.amountCents || 0);
+  }, 0);
   var history = v3SupplementHistory_(env, date, unitId);
 
   return {
     hasBaseClosure: true,
-    pendingCount: entries.length,
+    pendingCount: entries.length + withdrawals.length,
+    pendingEntryCount: entries.length,
+    pendingWithdrawalCount: withdrawals.length,
+    pendingWithdrawalCents: pendingWithdrawalCents,
     pendingRevenueCents: delta.revenueCents,
     pendingExpenseCents: delta.expenseCents,
     pendingNetCents: delta.netCents,
@@ -495,6 +511,50 @@ function v3MarkEntriesWithClosure_(env, entryIds, closureId) {
   if (changed) {
     env.entries
       .getRange(2, 1, values.length, values[0].length)
+      .setValues(values);
+  }
+}
+
+function v3MarkWithdrawalsWithClosure_(env, withdrawalIds, closureId) {
+  if (!withdrawalIds.length) return;
+
+  var wanted = {};
+  withdrawalIds.forEach(function(id) {
+    wanted[String(id)] = true;
+  });
+
+  var last = env.withdrawals.getLastRow();
+  if (last < 2) return;
+
+  var headers = CAIXA_V2_CFG.HEADERS.WITHDRAWALS;
+  var closureIndex = headers.indexOf('closure_id');
+
+  if (closureIndex < 0) {
+    throw appError_(
+      'Estrutura de Sangrias sem closure_id.',
+      'WITHDRAWAL_SCHEMA_MISMATCH'
+    );
+  }
+
+  var values = env.withdrawals
+    .getRange(2, 1, last - 1, headers.length)
+    .getValues();
+
+  var changed = false;
+
+  values.forEach(function(row) {
+    if (
+      wanted[String(row[0])] &&
+      !String(row[closureIndex] || '').trim()
+    ) {
+      row[closureIndex] = closureId;
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    env.withdrawals
+      .getRange(2, 1, values.length, headers.length)
       .setValues(values);
   }
 }
