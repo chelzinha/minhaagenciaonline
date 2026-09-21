@@ -535,6 +535,20 @@
       request.payloads = request.payloads.map(applyDefaultClient);
     }
 
+    if (
+      request.action === 'createWithdrawal' &&
+      baseClosureExists()
+    ) {
+      request.unitId = selectedUnitId();
+
+      const response = await previousFetch(V3_API, {
+        ...init,
+        body: JSON.stringify(request)
+      });
+
+      return observeV3Response(request.action, response);
+    }
+
     /*
      * Depois do fechamento principal, somente as gravações novas são
      * encaminhadas ao backend V3, que permite lançamentos pós-fechamento e
