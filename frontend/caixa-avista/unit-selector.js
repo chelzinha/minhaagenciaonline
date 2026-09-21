@@ -248,7 +248,8 @@
         height: 68px;
         align-items: center;
         justify-content: center;
-        margin-bottom: 14px;
+        align-self: center;
+        margin: 0 auto 14px;
         border-radius: 22px;
         background: #0f6ee8;
         color: #ffffff;
