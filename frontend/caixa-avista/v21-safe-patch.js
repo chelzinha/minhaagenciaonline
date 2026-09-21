@@ -21,9 +21,11 @@
     pendingExpenseCents: 0,
     pendingNetCents: 0,
     supplementCount: 0,
+    history: [],
     busy: false
   };
 
+  const supplementPdfRepairAttempted = new Set();
   const previousFetch = window.fetch.bind(window);
 
   function selectedUnitId() {
@@ -202,7 +204,14 @@
     supplementRuntime.supplementCount =
       Number(next.supplementCount || 0);
 
+    if (Array.isArray(next.history)) {
+      supplementRuntime.history = next.history;
+    } else if (!supplementRuntime.hasBaseClosure) {
+      supplementRuntime.history = [];
+    }
+
     queueSupplementUi();
+    queueSupplementPdfRepair();
   }
 
   function captureSupplementState(data) {
@@ -733,12 +742,112 @@
     window.setTimeout(renderSupplementUi, 0);
   }
 
+  function queueSupplementPdfRepair() {
+    window.setTimeout(repairMissingSupplementPdf, 0);
+  }
+
+  async function repairMissingSupplementPdf() {
+    const pending = (
+      Array.isArray(supplementRuntime.history)
+        ? supplementRuntime.history
+        : []
+    ).find(item => {
+      const id = String(item?.id || '').trim();
+      const generated =
+        String(item?.pdfStatus || '').toUpperCase() ===
+          'GERADO' &&
+        Boolean(String(item?.pdfUrl || '').trim());
+
+      return (
+        id &&
+        !generated &&
+        !supplementPdfRepairAttempted.has(id)
+      );
+    });
+
+    if (!pending) {
+      return;
+    }
+
+    const id = String(pending.id || '').trim();
+    supplementPdfRepairAttempted.add(id);
+
+    try {
+      await postV3(
+        'repairSupplementPdf',
+        { supplementId: id }
+      );
+    } catch (error) {
+      console.warn(
+        '[CAIXA_SUPPLEMENT_PDF]',
+        error
+      );
+    }
+  }
+
+  function renderSupplementPdfLinks() {
+    const container =
+      document.getElementById('closeLinks');
+
+    if (!container) {
+      return;
+    }
+
+    container
+      .querySelectorAll(
+        '.caixa-supplement-pdf-link'
+      )
+      .forEach(node => node.remove());
+
+    (
+      Array.isArray(supplementRuntime.history)
+        ? supplementRuntime.history
+        : []
+    )
+      .filter(item =>
+        String(item?.pdfStatus || '').toUpperCase() ===
+          'GERADO' &&
+        Boolean(String(item?.pdfUrl || '').trim())
+      )
+      .forEach(item => {
+        const link = document.createElement('a');
+        link.className =
+          'caixa-supplement-pdf-link';
+        link.href = String(item.pdfUrl);
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+
+        const icon =
+          document.createElement('span');
+        icon.className =
+          'material-symbols-rounded';
+        icon.textContent = 'picture_as_pdf';
+
+        const label =
+          document.createTextNode(
+            ' PDF complementar ' +
+            String(item.sequence || '')
+          );
+
+        link.appendChild(icon);
+        link.appendChild(label);
+        container.appendChild(link);
+      });
+
+    container.classList.toggle(
+      'hidden',
+      !container.querySelector('a')
+    );
+  }
+
   function renderSupplementUi() {
     const original = document.getElementById('btnCloseCash');
 
     if (!original) {
       return;
     }
+
+    renderSupplementPdfLinks();
 
     let info = document.getElementById('v21SupplementInfo');
     let button = document.getElementById('btnV21Supplement');
@@ -883,14 +992,27 @@
       const dispatchOk =
         result?.contaAzulDispatch?.ok !== false;
 
-      if (info) {
-        info.textContent = dispatchOk
-          ? 'Fechamento atualizado. Os novos movimentos foram enviados para processamento no Conta Azul.'
-          : 'Fechamento atualizado. O envio ao Conta Azul ficou pendente para nova tentativa.';
+      const pdfOk =
+        result?.supplementPdf?.status ===
+        'GERADO';
 
-        info.className = dispatchOk
-          ? 'status-box show success'
-          : 'status-box show warning';
+      if (info) {
+        if (pdfOk && dispatchOk) {
+          info.textContent =
+            'Fechamento atualizado e PDF complementar gerado. Os novos movimentos foram enviados para processamento no Conta Azul.';
+          info.className =
+            'status-box show success';
+        } else if (!pdfOk) {
+          info.textContent =
+            'Fechamento atualizado. O PDF complementar ficou pendente e será tentado novamente.';
+          info.className =
+            'status-box show warning';
+        } else {
+          info.textContent =
+            'Fechamento atualizado e PDF complementar gerado. O envio ao Conta Azul ficou pendente para nova tentativa.';
+          info.className =
+            'status-box show warning';
+        }
       }
 
       window.setTimeout(
