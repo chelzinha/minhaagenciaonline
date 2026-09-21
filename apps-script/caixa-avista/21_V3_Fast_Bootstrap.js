@@ -370,6 +370,7 @@ function v3FastWithdrawal_(item) {
     balanceBeforeCents: Number(item.balance_before_cents || 0),
     balanceAfterCents: Number(item.balance_after_cents || 0),
     confirmed: v2Bool_(item.confirmed),
+    closureId: String(item.closure_id || ''),
     pdfStatus: String(item.pdf_status || ''),
     pdfUrl: String(item.pdf_url || '')
   };
@@ -641,12 +642,27 @@ function v3FastInit_(dateValue, user) {
   var unclosedEntries = todayEntries.filter(function(entry) {
     return !String(entry.closureId || '').trim();
   });
+
+  var unclosedWithdrawals = withdrawals.filter(function(withdrawal) {
+    return !String(withdrawal.closureId || '').trim();
+  });
+
   var delta = v3DeltaSummary_(unclosedEntries);
+
+  var pendingWithdrawalCents = unclosedWithdrawals.reduce(
+    function(total, withdrawal) {
+      return total + Number(withdrawal.amountCents || 0);
+    },
+    0
+  );
 
   var supplementState = baseClosure
     ? {
         hasBaseClosure: true,
-        pendingCount: unclosedEntries.length,
+        pendingCount: unclosedEntries.length + unclosedWithdrawals.length,
+        pendingEntryCount: unclosedEntries.length,
+        pendingWithdrawalCount: unclosedWithdrawals.length,
+        pendingWithdrawalCents: pendingWithdrawalCents,
         pendingRevenueCents: delta.revenueCents,
         pendingExpenseCents: delta.expenseCents,
         pendingNetCents: delta.netCents,
@@ -656,6 +672,9 @@ function v3FastInit_(dateValue, user) {
     : {
         hasBaseClosure: false,
         pendingCount: 0,
+        pendingEntryCount: 0,
+        pendingWithdrawalCount: 0,
+        pendingWithdrawalCents: 0,
         pendingRevenueCents: 0,
         pendingExpenseCents: 0,
         pendingNetCents: 0,
