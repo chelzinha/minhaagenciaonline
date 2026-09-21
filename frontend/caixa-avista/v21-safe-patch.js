@@ -227,10 +227,14 @@
       applySupplementState(data.supplementState);
     } else {
       const delta = deltaFromEntries(data.entries);
+      const withdrawals = withdrawalDelta(data.withdrawals);
 
       applySupplementState({
         hasBaseClosure: true,
-        pendingCount: delta.count,
+        pendingCount: delta.count + withdrawals.count,
+        pendingEntryCount: delta.count,
+        pendingWithdrawalCount: withdrawals.count,
+        pendingWithdrawalCents: withdrawals.cents,
         pendingRevenueCents: delta.revenueCents,
         pendingExpenseCents: delta.expenseCents,
         pendingNetCents: delta.netCents,
