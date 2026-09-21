@@ -814,6 +814,8 @@ function v2WithdrawalsByDate_(env,date,unitId) {
           ),
         confirmed:
           v2Bool_(item.confirmed),
+        closureId:
+          String(item.closure_id || ''),
         pdfStatus:
           String(item.pdf_status || ''),
         pdfUrl:
