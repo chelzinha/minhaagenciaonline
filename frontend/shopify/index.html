@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="agf-auth-pending">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Conector Shopify | Plataforma AGF</title>
+  <link rel="stylesheet" href="/shared/ui/agf-ui.css" />
+  <link rel="stylesheet" href="./shopify.css" />
+
+  <script src="/shared/auth/agf-auth-config.js"></script>
+  <script src="/shared/auth/agf-auth-client.js"></script>
+  <script>
+    window.AGF_ACCESS = { roles: ['admin'] };
+  </script>
+  <script src="/shared/auth/agf-route-guard.js"></script>
+  <script src="/shared/core/agf-core-config.js"></script>
+  <script src="/shared/core/agf-core-client.js"></script>
+  <script src="/shared/shopify/agf-shopify-config.js"></script>
+  <script src="/shared/shopify/agf-shopify-client.js"></script>
+</head>
+<body>
+  <header class="shopify-topbar">
+    <div>
+      <a href="/agf/" class="shopify-back">← Plataforma AGF</a>
+      <h1>Conector Shopify</h1>
+      <p>Conecte uma loja Shopify ao cadastro central da Plataforma AGF.</p>
+    </div>
+    <div id="currentUser" class="shopify-user"></div>
+  </header>
+
+  <main class="shopify-main">
+    <section class="shopify-card">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Conexão</span>
+          <h2>Vincular uma loja</h2>
+        </div>
+        <span class="status-chip" id="backendStatus">API conectada</span>
+      </div>
+
+      <div id="pageMessage" class="message" hidden></div>
+
+      <div class="form-grid">
+        <label>
+          Cliente AGF
+          <select id="customerSelect">
+            <option value="">Carregando clientes...</option>
+          </select>
+        </label>
+
+        <label>
+          Domínio da loja Shopify
+          <input id="shopInput" type="text" inputmode="url" autocomplete="off" placeholder="sualoja.myshopify.com" />
+          <small>Use o domínio permanente <strong>.myshopify.com</strong>, não o domínio personalizado.</small>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="connectBtn" class="btn-primary" type="button">Conectar Shopify</button>
+      </div>
+    </section>
+
+    <section class="shopify-card">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Lojas vinculadas</span>
+          <h2>Conexões deste cliente</h2>
+        </div>
+        <button id="refreshBtn" class="btn-secondary" type="button">Atualizar</button>
+      </div>
+
+      <div id="connectionsEmpty" class="empty-state">Selecione um cliente para consultar as lojas conectadas.</div>
+      <div id="connectionsList" class="connections-list" hidden></div>
+    </section>
+  </main>
+
+  <script src="./shopify.js"></script>
+  <script>
+    if (document.documentElement.classList.contains('agf-auth-ready')) {
+      window.dispatchEvent(new CustomEvent('agf:auth-ready', { detail: { cached: true, replayed: true } }));
+    }
+  </script>
+</body>
+</html>
