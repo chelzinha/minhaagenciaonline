@@ -1,9 +1,10 @@
 # AGF Core - Cadastro Base da Plataforma
 
-**Status:** fundação inicial em desenvolvimento  
+**Status:** V1 funcional validada  
 **Rota administrativa:** `/admin/cadastros/`  
 **Backend:** `cloudflare/agf-core-api`  
 **Banco:** Cloudflare D1 `agf-core`  
+**Worker:** `https://agf-core-api.chelzinha.workers.dev`  
 **Branch inicial:** `feature/agf-core-cadastros`
 
 ## 1. Objetivo
@@ -49,10 +50,18 @@ A permissão de uma pessoa dentro de um cliente é outra responsabilidade e não
 
 ## 3. Identidade do cliente
 
-Todo cliente recebe um identificador próprio do AGF Core:
+Todo novo cliente recebe um identificador técnico próprio do AGF Core no formato:
 
 ```text
-cus_<uuid>
+cus_XXXXXXXXXXXX
+```
+
+O sufixo possui 12 caracteres URL-safe gerados a partir de 72 bits aleatórios.
+
+Exemplo:
+
+```text
+cus_7rFenH8BS9ZB
 ```
 
 Esse `customer_id` é a referência canônica para módulos novos.
@@ -67,6 +76,12 @@ Não usar como chave primária:
 - ID Portal Postal.
 
 Esses identificadores podem existir como dados ou referências externas, mas não substituem `customer_id`.
+
+### Compatibilidade inicial
+
+O primeiro cadastro criado durante a validação do AGF Core utilizou o formato anterior baseado em UUID. Esse identificador continua válido internamente para preservar integridade referencial. Novos clientes usam apenas o formato curto.
+
+O ID técnico não deve ocupar posição de destaque na interface administrativa.
 
 ## 4. Entidades iniciais
 
@@ -107,8 +122,6 @@ A senha não é armazenada nesta tabela. O vínculo com um provedor de identidad
 
 Relaciona usuários externos aos clientes.
 
-Uma empresa pode ter vários usuários e um usuário poderá ser modelado conforme as regras de associação que forem definidas para a plataforma.
-
 ### `customer_integrations`
 
 Registra contas externas vinculadas ao cliente sem misturar integrações no registro principal de `customers`.
@@ -144,7 +157,7 @@ O Worker `agf-core-api` recebe o Bearer token da sessão atual, chama a action `
 role = admin
 ```
 
-Esse mecanismo é temporariamente reutilizado para o painel interno porque já existe e permite avançar sem duplicar autenticação.
+Esse mecanismo é reutilizado para o painel interno porque já existe e permite avançar sem duplicar autenticação.
 
 O login futuro dos clientes externos é uma camada separada e não deve reutilizar senha em planilha.
 
@@ -184,8 +197,9 @@ A primeira tela oferece:
 - filtro por status;
 - criação de cliente;
 - edição cadastral;
-- habilitação/desabilitação de módulos;
-- exibição do `customer_id` canônico.
+- habilitação/desabilitação de módulos.
+
+O visual atual é funcional e provisório. O redesign será tratado em rodada própria, sem misturar acabamento visual com a fundação de dados.
 
 Próximas abas previstas dentro do cliente:
 
@@ -198,13 +212,13 @@ Correios
 Histórico
 ```
 
-A versão inicial implementa Dados gerais + Módulos.
+A V1 implementa Dados gerais + Módulos.
 
 ## 8. Relação com o Conector Shopify
 
 O Conector Shopify não será dono do cadastro de cliente.
 
-Fluxo futuro:
+Fluxo oficial:
 
 ```text
 Shopify OAuth
@@ -227,28 +241,59 @@ O mesmo `customer_id` poderá ser usado por:
 - Nuvemshop;
 - outros módulos futuros.
 
+Não usar `ID_CRM_REF` no novo Conector Shopify.
+
 ## 9. Banco D1
 
-O repositório contém o binding preparado para:
+Configuração atual:
 
 ```text
 database_name = agf-core
 binding = DB
 ```
 
-Antes do primeiro deploy é obrigatório criar o D1 e substituir o placeholder `database_id` em:
+Database ID:
 
 ```text
-cloudflare/agf-core-api/wrangler.jsonc
+09b63793-d6c3-4658-b83a-f7db13d93b54
 ```
 
-Depois aplicar:
+Migration inicial:
 
 ```text
 migrations/0001_agf_core.sql
 ```
 
-## 10. Regras travadas nesta fundação
+A migration foi validada localmente e aplicada com sucesso no D1 remoto.
+
+## 10. Validação concluída
+
+Foi validado de ponta a ponta:
+
+```text
+Autenticação AGF admin
+        ↓
+/admin/cadastros
+        ↓
+agf-core-api
+        ↓
+D1 agf-core
+        ↓
+customers
++
+customer_modules
+```
+
+Também foi validado:
+
+- carregamento do catálogo de módulos;
+- listagem de clientes;
+- criação de cliente;
+- persistência após recarregar a página;
+- habilitação do módulo `SHOPIFY`;
+- persistência do vínculo em `customer_modules`.
+
+## 11. Regras travadas nesta fundação
 
 1. O cadastro base novo não depende de planilha.
 2. O cadastro base novo não depende de `ID_CRM`.
@@ -260,16 +305,15 @@ migrations/0001_agf_core.sql
 8. Senhas não são armazenadas no D1 do cadastro.
 9. Segredos de integrações não ficam em texto claro no cadastro.
 10. O AGF Core deve ser consumível por Shopify e por módulos futuros.
+11. Novos IDs de cliente usam o formato curto `cus_XXXXXXXXXXXX`.
 
-## 11. Próximos passos
+## 12. Próximos passos
 
-1. Criar o D1 remoto `agf-core`.
-2. Registrar o `database_id` real no `wrangler.jsonc`.
-3. Aplicar migration local e remota.
-4. Testar `/health`.
-5. Fazer deploy do Worker.
-6. Atualizar `frontend/shared/core/agf-core-config.js` com a URL real.
-7. Testar `/admin/cadastros/` com usuário AGF `admin`.
-8. Criar o primeiro cliente de teste.
-9. Habilitar o módulo `SHOPIFY` nesse cliente.
-10. Retomar a fundação Shopify vinculando `shopify_shops.customer_id` ao AGF Core.
+1. Integrar o Conector Shopify ao AGF Core por `customer_id`.
+2. Criar `shopify_shops` vinculado ao cliente.
+3. Implementar OAuth Shopify.
+4. Associar loja autorizada ao cliente com módulo `SHOPIFY` ativo.
+5. Criar a camada de conta Correios por cliente.
+6. Construir o Motor de Cotação AGF.
+7. Em rodada posterior, redesenhar `/admin/cadastros/`.
+8. Posteriormente readequar CRM e outros sistemas legados para consumirem o AGF Core.
