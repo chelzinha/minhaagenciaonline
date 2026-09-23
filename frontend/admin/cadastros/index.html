@@ -162,5 +162,10 @@
   </main>
 
   <script src="./cadastros.js"></script>
+  <script>
+    if (document.documentElement.classList.contains('agf-auth-ready')) {
+      window.dispatchEvent(new CustomEvent('agf:auth-ready', { detail: { cached: true, replayed: true } }));
+    }
+  </script>
 </body>
 </html>
