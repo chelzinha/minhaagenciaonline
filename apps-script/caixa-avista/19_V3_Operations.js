@@ -178,7 +178,10 @@ function v3BuildSummary_(env, date, unitId) {
     summary.withdrawalsCents += withdrawal.amountCents;
   });
 
-  summary.openingCashCents = v2OpeningBalance_(env, date, unitId);
+  var openingInfo = v2OpeningInfo_(env, date, unitId);
+  summary.openingCashCents = openingInfo.cents;
+  summary.openingSource = openingInfo.source;
+  summary.openingReferenceDate = openingInfo.referenceDate;
   summary.expectedCashCents =
     summary.openingCashCents +
     summary.cashRevenueCents -

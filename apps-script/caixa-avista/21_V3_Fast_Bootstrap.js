@@ -325,35 +325,15 @@ function v3FastClearClientsCache_() {
   } catch (_) {}
 }
 
-function v3FastOpeningBalance_(balanceRows, date, unitId) {
-  var wantedDate = v2SheetDateIso_(date);
-  var wantedUnit = String(unitId || '').trim();
-
-  var current = balanceRows.filter(function(item) {
-    return (
-      String(item.unit_id || '').trim() === wantedUnit &&
-      v2SheetDateIso_(item.date_iso) === wantedDate
-    );
-  })[0];
-
-  if (current) {
-    return Number(current.opening_cash_cents || 0);
-  }
-
-  var previous = balanceRows
-    .filter(function(item) {
-      return (
-        String(item.unit_id || '').trim() === wantedUnit &&
-        v2SheetDateIso_(item.date_iso) < wantedDate &&
-        String(item.status || '') === 'FECHADO'
-      );
-    })
-    .sort(function(a, b) {
-      return v2SheetDateIso_(b.date_iso)
-        .localeCompare(v2SheetDateIso_(a.date_iso));
-    })[0];
-
-  return previous ? Number(previous.carryover_cents || 0) : 0;
+function v3FastOpeningBalance_(balanceRows, date, unitId, entryRows, withdrawalRows) {
+  /* Somente leitura: a linha do dia é gravada na primeira operação de escrita. */
+  return v2ComputeOpening_(
+    balanceRows,
+    entryRows || [],
+    withdrawalRows || [],
+    date,
+    unitId
+  );
 }
 
 function v3FastWithdrawal_(item) {
@@ -628,19 +608,24 @@ function v3FastInit_(dateValue, user) {
     env.dailyBalances,
     CAIXA_V2_CFG.HEADERS.DAILY_BALANCES
   );
-  var openingCash = v3FastOpeningBalance_(
+  var openingInfo = v3FastOpeningBalance_(
     balanceRows,
     date,
-    unitId
+    unitId,
+    rawEntries,
+    withdrawalRows
   );
 
   var summary = v3FastSummary_(
     todayEntries,
     withdrawals,
-    openingCash,
+    openingInfo.cents,
     date,
     unitId
   );
+
+  summary.openingSource = openingInfo.source;
+  summary.openingReferenceDate = openingInfo.referenceDate;
 
   var closureRows = v2ReadObjects_(
     env.closures,

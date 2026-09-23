@@ -193,6 +193,12 @@ function v2SaveClient_(nameValue, user) {
   }
 }
 
+function v2IsTerminalPixPayment_(payment) {
+  return String(
+    payment && payment.pixMode || ''
+  ).toUpperCase().trim() === 'MAQUININHA';
+}
+
 function v2FindEntryRecordById_(env, entryId) {
   var wanted = String(entryId || '').trim();
   if (!wanted) return null;
@@ -452,12 +458,24 @@ function v2ValidateDraft_(payload, context, library) {
     throw appError_('Esta despesa não permite lote.', 'MODE_NOT_ALLOWED');
   }
 
+  /*
+   * Pix de maquininha (pix_mode = MAQUININHA, ex.: Pix Infinity) funciona
+   * como cartão: o recebimento já ocorreu no terminal, então o lançamento
+   * nasce CONFIRMADO, aceita Avulso/Lote e não gera QR Code no Caixa.
+   * Qualquer outro Pix continua com a regra do Pix Santander (QR local).
+   */
   var isPix = payment.contaAzulMethod === 'PIX_PAGAMENTO_INSTANTANEO';
+  var isTerminalPix = isPix && v2IsTerminalPixPayment_(payment);
+  var isLocalPix = isPix && !isTerminalPix;
   var pixStatus = String(payload.pixStatus || '').toUpperCase().trim();
   var pixTxid = String(payload.pixTxid || '').trim();
   var pixProvider = String(payload.pixProvider || '').trim();
 
-  if (isPix) {
+  if (isTerminalPix) {
+    pixStatus = 'CONFIRMADO';
+    pixTxid = '';
+    pixProvider = 'MAQUININHA';
+  } else if (isLocalPix) {
     if (type !== 'RECEITA' || mode !== 'ATENDIMENTO') {
       throw appError_(
         'Pix Santander só pode ser usado no atendimento individual de receita.',
@@ -824,8 +842,9 @@ function v2WithdrawalsByDate_(env,date,unitId) {
     });
 }
 
-function v2DeleteEntry_(payload, user) {
+function v2DeleteEntry_(payload, user, options) {
   payload = payload || {};
+  options = options || {};
 
   var entryId = String(
     payload.entryId || ''
@@ -990,11 +1009,19 @@ function v2DeleteEntry_(payload, user) {
         item.date_iso
       );
 
-    v2AssertOpen_(
-      env,
-      date,
-      unitId
-    );
+    /*
+     * Com fechamento complementar (V3), lançamentos novos feitos depois do
+     * fechamento principal ficam sem closure_id até o complemento e podem ser
+     * excluídos. Lançamento já consolidado continua bloqueado pela checagem de
+     * closure_id acima; o que já entrou no Conta Azul também.
+     */
+    if (!options.allowAfterBaseClosure) {
+      v2AssertOpen_(
+        env,
+        date,
+        unitId
+      );
+    }
 
     var row =
       item._row.slice();

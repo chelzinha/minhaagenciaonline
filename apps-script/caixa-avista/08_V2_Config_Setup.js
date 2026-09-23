@@ -245,6 +245,14 @@ function migrarConfiguracaoPixEExclusaoV2() {
       return;
     }
 
+    /* Pix de maquininha não gera QR Code local. */
+    if (
+      String(item.pix_mode || '').toUpperCase() ===
+      'MAQUININHA'
+    ) {
+      return;
+    }
+
     var row =
       v2PadPaymentConfigRow_(
         item._row
