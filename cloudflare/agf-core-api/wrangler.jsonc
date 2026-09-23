@@ -11,7 +11,7 @@
     {
       "binding": "DB",
       "database_name": "agf-core",
-      "database_id": "PREENCHER_APOS_CRIAR_D1",
+      "database_id": "09b63793-d6c3-4658-b83a-f7db13d93b54",
       "migrations_dir": "migrations"
     }
   ]
