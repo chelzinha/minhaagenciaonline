@@ -1,4 +1,4 @@
-{
+﻿{
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "agf-shopify-api",
   "main": "src/index.js",
@@ -16,8 +16,9 @@
     {
       "binding": "DB",
       "database_name": "agf-shopify",
-      "database_id": "PREENCHER_APOS_CRIAR_D1",
+      "database_id": "e10b7569-ea37-46c6-965f-62f2d3840c66",
       "migrations_dir": "migrations"
     }
   ]
 }
+
