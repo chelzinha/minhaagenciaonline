@@ -60,6 +60,23 @@ function safeJson(value, fallback = '{}') {
   }
 }
 
+function createCustomerId() {
+  const bytes = new Uint8Array(9);
+  crypto.getRandomValues(bytes);
+
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+
+  const token = btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+
+  return `cus_${token}`;
+}
+
 async function parseBody(request) {
   try {
     return await request.json();
@@ -195,7 +212,7 @@ async function createCustomer(request, env, actor) {
     throw Object.assign(new Error('Tipo de documento invÃ¡lido.'), { status: 400 });
   }
 
-  const id = `cus_${crypto.randomUUID()}`;
+  const id = createCustomerId();
   const values = {
     id,
     status: cleanText(body.status, 20).toUpperCase() || 'ACTIVE',
@@ -392,4 +409,5 @@ export default {
     }
   }
 };
+
 

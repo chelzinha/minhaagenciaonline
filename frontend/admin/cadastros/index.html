@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR" class="agf-auth-pending">
 <head>
   <meta charset="UTF-8" />
@@ -19,9 +19,9 @@
 <body>
   <header class="core-topbar">
     <div>
-      <a href="/agf/" class="core-back">← Plataforma AGF</a>
+      <a href="/agf/" class="core-back">â† Plataforma AGF</a>
       <h1>Cadastros</h1>
-      <p>Clientes e módulos da Plataforma AGF</p>
+      <p>Clientes e mÃ³dulos da Plataforma AGF</p>
     </div>
     <div class="core-user" id="currentUser"></div>
   </header>
@@ -53,7 +53,7 @@
     <section class="editor-panel">
       <div id="emptyState" class="empty-state">
         <strong>Selecione um cliente</strong>
-        <p>Ou crie um novo cadastro para começar.</p>
+        <p>Ou crie um novo cadastro para comeÃ§ar.</p>
       </div>
 
       <form id="customerForm" class="customer-form" hidden>
@@ -61,7 +61,7 @@
           <div>
             <span class="eyebrow" id="formEyebrow">Novo cliente</span>
             <h2 id="formTitle">Cadastrar cliente</h2>
-            <code id="customerId"></code>
+            <code id="customerId" hidden></code>
           </div>
           <div class="editor-actions">
             <button type="button" id="cancelBtn" class="btn-secondary">Cancelar</button>
@@ -74,10 +74,10 @@
         <section class="form-section">
           <div class="section-title">
             <h3>Dados gerais</h3>
-            <p>Cadastro base usado pelos módulos da plataforma.</p>
+            <p>Cadastro base usado pelos mÃ³dulos da plataforma.</p>
           </div>
           <div class="form-grid">
-            <label class="span-2">Razão social / nome
+            <label class="span-2">RazÃ£o social / nome
               <input name="legalName" required maxlength="200" />
             </label>
             <label class="span-2">Nome fantasia
@@ -96,7 +96,7 @@
                 <option value="CNPJ">CNPJ</option>
                 <option value="CPF">CPF</option>
                 <option value="OTHER">Outro</option>
-                <option value="">Não informado</option>
+                <option value="">NÃ£o informado</option>
               </select>
             </label>
             <label>CPF/CNPJ
@@ -113,8 +113,8 @@
 
         <section class="form-section">
           <div class="section-title">
-            <h3>Endereço</h3>
-            <p>Endereço cadastral. Dados específicos de postagem ficam nas integrações correspondentes.</p>
+            <h3>EndereÃ§o</h3>
+            <p>EndereÃ§o cadastral. Dados especÃ­ficos de postagem ficam nas integraÃ§Ãµes correspondentes.</p>
           </div>
           <div class="form-grid">
             <label>CEP
@@ -123,7 +123,7 @@
             <label class="span-2">Logradouro
               <input name="addressLine1" maxlength="200" />
             </label>
-            <label>Número
+            <label>NÃºmero
               <input name="addressNumber" maxlength="30" />
             </label>
             <label class="span-2">Complemento
@@ -143,7 +143,7 @@
 
         <section class="form-section">
           <div class="section-title">
-            <h3>Módulos</h3>
+            <h3>MÃ³dulos</h3>
             <p>Defina quais produtos da Plataforma AGF este cliente pode utilizar.</p>
           </div>
           <div id="moduleGrid" class="module-grid"></div>
@@ -151,7 +151,7 @@
 
         <section class="form-section">
           <div class="section-title">
-            <h3>Observações internas</h3>
+            <h3>ObservaÃ§Ãµes internas</h3>
           </div>
           <label>
             <textarea name="notes" rows="4" maxlength="2000"></textarea>
@@ -169,3 +169,4 @@
   </script>
 </body>
 </html>
+
