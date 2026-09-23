@@ -1,22 +1,18 @@
-﻿# Conector AGF - Shopify
+# Conector AGF - Shopify
 # Plataforma Digital AGF
 #
-# App standalone.
-# Interface principal em minhaagenciaonline.com.br/shopify.
-# Backend hospedado separadamente no Cloudflare.
-#
-# API travada na ultima versao estavel validada em 22/09/2026.
+# App standalone: interface principal na Plataforma AGF e backend no Cloudflare Worker.
+# API Admin/Webhooks travada em 2026-07.
 
 client_id = "61622c164f2f40b89f889aa087e0799b"
 name = "Conector AGF"
 
-application_url = "https://shopify.dev/apps/default-app-home"
-
+application_url = "https://www.minhaagenciaonline.com.br/shopify/"
 embedded = false
 
 [build]
 include_config_on_deploy = true
-automatically_update_urls_on_dev = true
+automatically_update_urls_on_dev = false
 
 [webhooks]
 api_version = "2026-07"
@@ -26,5 +22,5 @@ scopes = "read_orders"
 
 [auth]
 redirect_urls = [
-  "https://shopify.dev/apps/default-app-home/api/shopify/auth/callback"
+  "https://agf-shopify-api.chelzinha.workers.dev/api/shopify/auth/callback"
 ]
