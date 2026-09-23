@@ -1,0 +1,14 @@
+{
+  "name": "agf-core-api",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "migrate:local": "wrangler d1 migrations apply agf-core --local",
+    "migrate:remote": "wrangler d1 migrations apply agf-core --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
