@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "agf-shopify-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-23",
+  "vars": {
+    "SHOPIFY_CLIENT_ID": "61622c164f2f40b89f889aa087e0799b",
+    "SHOPIFY_API_VERSION": "2026-07",
+    "SHOPIFY_SCOPES": "read_orders",
+    "SHOPIFY_REDIRECT_URI": "https://agf-shopify-api.chelzinha.workers.dev/api/shopify/auth/callback",
+    "AGF_CORE_API_URL": "https://agf-core-api.chelzinha.workers.dev",
+    "PLATFORM_URL": "https://www.minhaagenciaonline.com.br",
+    "ALLOWED_ORIGINS": "https://minhaagenciaonline.com.br,https://www.minhaagenciaonline.com.br,http://localhost:8788,http://127.0.0.1:8788"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "agf-shopify",
+      "database_id": "PREENCHER_APOS_CRIAR_D1",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
