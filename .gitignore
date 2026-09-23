@@ -12,6 +12,9 @@
 credentials.json
 token.json
 
+# Dependencias Node locais
+**/node_modules/
+
 # Temporarios
 *.tmp
 *.log
@@ -22,6 +25,5 @@ Thumbs.db
 .netlify/
 serve-crm.mjs
 
-.wrangler/
-
-.wrangler/
+# Wrangler local
+**/.wrangler/

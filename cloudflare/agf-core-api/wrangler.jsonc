@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "agf-core-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-22",
+  "vars": {
+    "AGF_AUTH_API_URL": "https://script.google.com/macros/s/AKfycbxv_3OLKyy13PqtEdqnVSA2zg3xljaU5gAKgn-TIVaaSRaTNPGgWIaRvDV_JuT9PTc5/exec",
+    "ALLOWED_ORIGINS": "https://minhaagenciaonline.com.br,https://www.minhaagenciaonline.com.br,http://localhost:8788,http://127.0.0.1:8788"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "agf-core",
+      "database_id": "09b63793-d6c3-4658-b83a-f7db13d93b54",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
