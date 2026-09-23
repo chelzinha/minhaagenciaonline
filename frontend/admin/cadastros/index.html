@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="agf-auth-pending">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cadastros | Plataforma AGF</title>
+  <link rel="stylesheet" href="/shared/ui/agf-ui.css" />
+  <link rel="stylesheet" href="./cadastros.css" />
+
+  <script src="/shared/auth/agf-auth-config.js"></script>
+  <script src="/shared/auth/agf-auth-client.js"></script>
+  <script>
+    window.AGF_ACCESS = { roles: ['admin'] };
+  </script>
+  <script src="/shared/auth/agf-route-guard.js"></script>
+  <script src="/shared/core/agf-core-config.js"></script>
+  <script src="/shared/core/agf-core-client.js"></script>
+</head>
+<body>
+  <header class="core-topbar">
+    <div>
+      <a href="/agf/" class="core-back">← Plataforma AGF</a>
+      <h1>Cadastros</h1>
+      <p>Clientes e módulos da Plataforma AGF</p>
+    </div>
+    <div class="core-user" id="currentUser"></div>
+  </header>
+
+  <main class="core-layout">
+    <aside class="customer-panel">
+      <div class="panel-head">
+        <div>
+          <span class="eyebrow">Clientes</span>
+          <strong id="customerCount">0</strong>
+        </div>
+        <button type="button" id="newCustomerBtn" class="btn-primary">+ Novo</button>
+      </div>
+
+      <div class="filters">
+        <input id="searchInput" type="search" placeholder="Buscar cliente, CNPJ ou e-mail" autocomplete="off" />
+        <select id="statusFilter">
+          <option value="">Todos os status</option>
+          <option value="ACTIVE">Ativos</option>
+          <option value="PROSPECT">Prospects</option>
+          <option value="SUSPENDED">Suspensos</option>
+          <option value="INACTIVE">Inativos</option>
+        </select>
+      </div>
+
+      <div id="customerList" class="customer-list" aria-live="polite"></div>
+    </aside>
+
+    <section class="editor-panel">
+      <div id="emptyState" class="empty-state">
+        <strong>Selecione um cliente</strong>
+        <p>Ou crie um novo cadastro para começar.</p>
+      </div>
+
+      <form id="customerForm" class="customer-form" hidden>
+        <div class="editor-head">
+          <div>
+            <span class="eyebrow" id="formEyebrow">Novo cliente</span>
+            <h2 id="formTitle">Cadastrar cliente</h2>
+            <code id="customerId"></code>
+          </div>
+          <div class="editor-actions">
+            <button type="button" id="cancelBtn" class="btn-secondary">Cancelar</button>
+            <button type="submit" class="btn-primary" id="saveBtn">Salvar cliente</button>
+          </div>
+        </div>
+
+        <div id="formMessage" class="message" hidden></div>
+
+        <section class="form-section">
+          <div class="section-title">
+            <h3>Dados gerais</h3>
+            <p>Cadastro base usado pelos módulos da plataforma.</p>
+          </div>
+          <div class="form-grid">
+            <label class="span-2">Razão social / nome
+              <input name="legalName" required maxlength="200" />
+            </label>
+            <label class="span-2">Nome fantasia
+              <input name="tradeName" maxlength="200" />
+            </label>
+            <label>Status
+              <select name="status">
+                <option value="ACTIVE">Ativo</option>
+                <option value="PROSPECT">Prospect</option>
+                <option value="SUSPENDED">Suspenso</option>
+                <option value="INACTIVE">Inativo</option>
+              </select>
+            </label>
+            <label>Tipo de documento
+              <select name="documentType">
+                <option value="CNPJ">CNPJ</option>
+                <option value="CPF">CPF</option>
+                <option value="OTHER">Outro</option>
+                <option value="">Não informado</option>
+              </select>
+            </label>
+            <label>CPF/CNPJ
+              <input name="documentNumber" inputmode="numeric" maxlength="20" />
+            </label>
+            <label>E-mail
+              <input name="email" type="email" maxlength="200" />
+            </label>
+            <label>Telefone
+              <input name="phone" inputmode="tel" maxlength="20" />
+            </label>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title">
+            <h3>Endereço</h3>
+            <p>Endereço cadastral. Dados específicos de postagem ficam nas integrações correspondentes.</p>
+          </div>
+          <div class="form-grid">
+            <label>CEP
+              <input name="postalCode" inputmode="numeric" maxlength="9" />
+            </label>
+            <label class="span-2">Logradouro
+              <input name="addressLine1" maxlength="200" />
+            </label>
+            <label>Número
+              <input name="addressNumber" maxlength="30" />
+            </label>
+            <label class="span-2">Complemento
+              <input name="addressComplement" maxlength="120" />
+            </label>
+            <label>Bairro
+              <input name="district" maxlength="120" />
+            </label>
+            <label>Cidade
+              <input name="city" maxlength="120" />
+            </label>
+            <label>UF
+              <input name="state" maxlength="2" />
+            </label>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title">
+            <h3>Módulos</h3>
+            <p>Defina quais produtos da Plataforma AGF este cliente pode utilizar.</p>
+          </div>
+          <div id="moduleGrid" class="module-grid"></div>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title">
+            <h3>Observações internas</h3>
+          </div>
+          <label>
+            <textarea name="notes" rows="4" maxlength="2000"></textarea>
+          </label>
+        </section>
+      </form>
+    </section>
+  </main>
+
+  <script src="./cadastros.js"></script>
+</body>
+</html>
