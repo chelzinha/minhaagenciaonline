@@ -549,11 +549,23 @@
   const isPixPayment = payment =>
     payment?.contaAzulMethod === 'PIX_PAGAMENTO_INSTANTANEO';
 
+  /*
+   * Pix de maquininha (pix_mode = MAQUININHA, ex.: Pix Infinity) funciona como
+   * cartão: sem QR Code, aceita Avulso e Lote e nasce confirmado no backend.
+   * Somente o Pix com QR local (Pix Santander) segue as regras de cobrança.
+   */
+  const isTerminalPixPayment = payment =>
+    isPixPayment(payment) &&
+    String(payment?.pixMode || '').toUpperCase().trim() === 'MAQUININHA';
+
+  const isLocalPixPayment = payment =>
+    isPixPayment(payment) && !isTerminalPixPayment(payment);
+
   function shouldGenerateLocalPix(payment) {
     return Boolean(
       state.type === 'RECEITA' &&
       state.mode === 'ATENDIMENTO' &&
-      isPixPayment(payment)
+      isLocalPixPayment(payment)
     );
   }
 
@@ -803,7 +815,82 @@
   }
 
   function setBusy(value,text='Carregando...'){state.busy=value;$('loadingOverlay').classList.toggle('hidden',!value);$('loadingText').textContent=text;}
-  function status(id,message,type='info'){const el=$(id);el.textContent=message;el.className=`status-box show ${type}`;}
+  function status(id,message,type='info'){const el=$(id);el.textContent=message;el.className=`status-box show ${type}`;if(TOAST_TARGETS.includes(id)&&(type==='success'||type==='error'))feedback(type,message);}
+
+  /*
+   * FEEDBACK DE AÇÃO (2026-09-23)
+   * Confirmação grande, estilo maquininha: ícone, título, detalhe, vibração
+   * curta e bipe discreto. Sucesso fecha sozinho; erro fica até tocar.
+   */
+  const TOAST_TARGETS = ['launchStatus','movementStatus','closeStatus','withdrawalStatus','pixStatus'];
+  let toastTimer = null;
+  let lastFeedback = null;
+
+  function beep(type) {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = beep.ctx || (beep.ctx = new Ctx());
+      const tones = type === 'success' ? [880, 1320] : [330, 220];
+      tones.forEach((freq, index) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const start = ctx.currentTime + index * 0.11;
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.08, start + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.1);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + 0.11);
+      });
+    } catch (_) {}
+  }
+
+  function feedback(type, title, detail = '') {
+    const toast = $('caixaToast');
+    if (!toast) return;
+
+    const key = type + '|' + title;
+    const now = Date.now();
+    if (lastFeedback && lastFeedback.key === key && now - lastFeedback.at < 400) return;
+    lastFeedback = { key, at: now };
+
+    const extra = detail || (type === 'success' ? (lastSavedDetail || '') : '');
+    lastSavedDetail = '';
+
+    toast.className = `caixa-toast show ${type}`;
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    toast.innerHTML = `
+      <div class="toast-card">
+        <span class="toast-icon"><span class="material-symbols-rounded">${type === 'success' ? 'check' : 'priority_high'}</span></span>
+        <strong>${escapeHtml(title)}</strong>
+        ${extra ? `<span class="toast-detail">${extra}</span>` : ''}
+        ${type === 'error' ? '<button type="button" class="toast-close">OK</button>' : ''}
+      </div>`;
+
+    try { navigator.vibrate?.(type === 'success' ? 35 : [60, 40, 60]); } catch (_) {}
+    beep(type);
+
+    window.clearTimeout(toastTimer);
+    if (type === 'success') {
+      toastTimer = window.setTimeout(hideFeedback, 1700);
+    }
+  }
+
+  function hideFeedback() {
+    const toast = $('caixaToast');
+    if (toast) toast.className = 'caixa-toast';
+  }
+
+  let lastSavedDetail = '';
+
+  function rememberSavedDetail(amountCents, payment) {
+    lastSavedDetail =
+      `<b>${escapeHtml(money(amountCents))}</b>` +
+      (payment ? ` · ${escapeHtml(payment.name)}` : '');
+  }
   function clearStatus(id){const el=$(id);el.textContent='';el.className='status-box';}
 
   async function refresh(){
@@ -852,7 +939,9 @@
 
       if (!allowed) return false;
 
-      if (isPixPayment(payment)) {
+      if (state.mode === 'LOTE' && !payment.allowBatch) return false;
+
+      if (isLocalPixPayment(payment)) {
         return (
           state.type === 'RECEITA' &&
           state.mode === 'ATENDIMENTO' &&
@@ -1072,9 +1161,106 @@
         );
       });
   }
+  /*
+   * UI MAQUININHA (2026-09-23)
+   * Somente apresentação: famílias de pagamento e grupos de receita.
+   * data-payment / data-category e os handlers continuam os mesmos.
+   */
+  const PAYMENT_FAMILIES = [
+    { id:'CASH', label:'Dinheiro', icon:'payments' },
+    { id:'PIX', label:'Pix', icon:'bolt' },
+    { id:'DEBIT', label:'Débito', icon:'credit_card' },
+    { id:'CREDIT', label:'Crédito', icon:'credit_score' },
+    { id:'OTHER', label:'Outros', icon:'account_balance_wallet' }
+  ];
+
+  function paymentFamily(payment) {
+    const method = String(payment?.contaAzulMethod || '').toUpperCase();
+    if (method === 'DINHEIRO' || payment?.id === 'DINHEIRO') return 'CASH';
+    if (method === 'PIX_PAGAMENTO_INSTANTANEO') return 'PIX';
+    if (method === 'CARTAO_DEBITO') return 'DEBIT';
+    if (method === 'CARTAO_CREDITO') return 'CREDIT';
+    return 'OTHER';
+  }
+
+  function paymentShortName(payment) {
+    const name = String(payment?.name || payment?.id || '').trim();
+    const short = name
+      .replace(/^(pix|d[ée]bito|cr[ée]dito|cart[ãa]o( de)?( d[ée]bito| cr[ée]dito)?)\s+/i, '')
+      .trim();
+    return short || name;
+  }
+
+  function paymentTileHtml(payment, extraClass = '') {
+    const active = state.selectedPayment === payment.id;
+    const family = paymentFamily(payment);
+    const local = isLocalPixPayment(payment);
+    const label = family === 'CASH' ? payment.name : paymentShortName(payment);
+
+    return `<button
+      type="button"
+      class="pay-tile pay-${family.toLowerCase()} ${extraClass} ${active ? 'active' : ''}"
+      data-payment="${escapeHtml(payment.id)}"
+      aria-pressed="${active ? 'true' : 'false'}"
+      aria-label="${escapeHtml(payment.name)}"
+      title="${escapeHtml(payment.name)}"
+    >
+      <span class="material-symbols-rounded pay-icon">${
+        family === 'CASH' ? 'payments' : local ? 'qr_code_2' : (PAYMENT_FAMILIES.find(f => f.id === family)?.icon || 'payments')
+      }</span>
+      <span class="pay-name">${escapeHtml(label)}</span>
+      ${local ? '<span class="pay-badge">QR</span>' : ''}
+      <span class="material-symbols-rounded pay-check" aria-hidden="true">check_circle</span>
+    </button>`;
+  }
+
+  function renderPaymentBoard() {
+    const list = payments();
+    const byFamily = {};
+
+    list.forEach(payment => {
+      const family = paymentFamily(payment);
+      (byFamily[family] = byFamily[family] || []).push(payment);
+    });
+
+    const cash = byFamily.CASH || [];
+    const others = PAYMENT_FAMILIES.filter(
+      family => family.id !== 'CASH' && (byFamily[family.id] || []).length
+    );
+
+    const cashHtml = cash.length
+      ? `<div class="pay-cash-row">${cash.map(p => paymentTileHtml(p, 'pay-tile-wide')).join('')}</div>`
+      : '';
+
+    const familiesHtml = others.length
+      ? `<div class="pay-families" style="--pay-family-count:${others.length}">${
+          others.map(family => `
+            <div class="pay-family pay-family-${family.id.toLowerCase()}" role="group" aria-label="${family.label}">
+              <div class="pay-family-head">
+                <span class="material-symbols-rounded">${family.icon}</span>
+                <span>${family.label}</span>
+              </div>
+              <div class="pay-family-options">
+                ${byFamily[family.id].map(p => paymentTileHtml(p)).join('')}
+              </div>
+            </div>`).join('')
+        }</div>`
+      : '';
+
+    return list.length
+      ? `<div class="pay-board">${cashHtml}${familiesHtml}</div>`
+      : '<div class="pay-empty"><span class="material-symbols-rounded">block</span>Nenhuma forma de pagamento disponível neste modo.</div>';
+  }
+
   function renderOptions(){
     const isRevenue =
       state.type === 'RECEITA';
+
+    const revenueGroups =
+      isRevenue ? categories() : [];
+
+    const showRevenueGroups =
+      revenueGroups.length > 1;
 
     const categorySection =
       $('categoryOptions')
@@ -1083,24 +1269,48 @@
     if(categorySection){
       categorySection.classList.toggle(
         'hidden',
-        isRevenue
+        isRevenue && !showRevenueGroups
+      );
+      categorySection.classList.toggle(
+        'revenue-groups',
+        showRevenueGroups
       );
     }
 
     $('categoryLabel').textContent =
-      'Tipo de despesa';
+      isRevenue
+        ? 'Grupo'
+        : 'Tipo de despesa';
+
+    $('categoryOptions').classList.toggle(
+      'group-switch',
+      showRevenueGroups
+    );
 
     $('categoryOptions').innerHTML =
       isRevenue
-        ? ''
+        ? (showRevenueGroups
+            ? revenueGroups.map(x => `<button
+                type="button"
+                class="group-btn ${state.selectedCategory === x.id ? 'active' : ''}"
+                data-category="${escapeHtml(x.id)}"
+                aria-pressed="${state.selectedCategory === x.id ? 'true' : 'false'}"
+                style="--option-color:${escapeHtml(x.color || '#0f6ee8')}"
+              >
+                <span class="material-symbols-rounded">${escapeHtml(x.icon || 'point_of_sale')}</span>
+                <span>${escapeHtml(x.name)}</span>
+              </button>`).join('')
+            : '')
         : categories().map(x =>
             `<button
+              type="button"
               class="option-btn ${
                 state.selectedCategory === x.id
                   ? 'active'
                   : ''
               }"
               data-category="${x.id}"
+              aria-pressed="${state.selectedCategory === x.id ? 'true' : 'false'}"
               style="--option-color:${
                 x.color || '#ef4444'
               }"
@@ -1121,35 +1331,7 @@
       $('paymentOptions');
 
     paymentContainer.innerHTML =
-      payments().map(x =>
-        `<button
-          type="button"
-          class="option-btn ${
-            state.selectedPayment === x.id
-              ? 'active'
-              : ''
-          }"
-          data-payment="${x.id}"
-          aria-pressed="${
-            state.selectedPayment === x.id
-              ? 'true'
-              : 'false'
-          }"
-          style="--option-color:${
-            x.color || '#1677ff'
-          }"
-        >
-          <span
-            class="material-symbols-rounded"
-          >
-            ${x.icon || 'payments'}
-          </span>
-
-          <span>
-            ${escapeHtml(x.name)}
-          </span>
-        </button>`
-      ).join('');
+      renderPaymentBoard();
 
     paymentContainer
       .querySelectorAll(
@@ -1218,7 +1400,7 @@
     if (
       state.type === 'RECEITA' &&
       attendance &&
-      isPixPayment(payment)
+      isLocalPixPayment(payment)
     ) {
       saveLabel = 'Gerar Pix';
     }
@@ -1228,12 +1410,163 @@
         'span:last-child'
       )
       .textContent = saveLabel;
+
+    renderAmountContext(payment);
   }
+
+  function renderAmountContext(payment) {
+    const group =
+      state.type === 'RECEITA' && categories().length > 1
+        ? selectedCategory()
+        : null;
+
+    const html = [
+      group
+        ? `<span class="ctx-chip ctx-group"><span class="material-symbols-rounded">${escapeHtml(group.icon || 'point_of_sale')}</span>${escapeHtml(group.name)}</span>`
+        : '',
+      payment
+        ? `<span class="ctx-chip ctx-pay pay-${paymentFamily(payment).toLowerCase()}"><span class="material-symbols-rounded">${isLocalPixPayment(payment) ? 'qr_code_2' : (PAYMENT_FAMILIES.find(f => f.id === paymentFamily(payment))?.icon || 'payments')}</span>${escapeHtml(payment.name)}</span>`
+        : '<span class="ctx-chip ctx-warn"><span class="material-symbols-rounded">touch_app</span>Escolha o pagamento</span>'
+    ].join('');
+
+    ['amountContext', 'batchAmountContext'].forEach(id => {
+      const node = $(id);
+      if (node) node.innerHTML = html;
+    });
+
+    document.body.dataset.payFamily =
+      payment ? paymentFamily(payment).toLowerCase() : '';
+  }
+  const OPENING_SOURCE_LABELS = {
+    SALDO_ANTERIOR: 'Fechamento anterior',
+    SALDO_ANTERIOR_SEM_FECHAMENTO: 'Inclui dias sem fechamento',
+    FECHAMENTO: 'Do dia',
+    INICIAL_ZERO: 'Sem histórico',
+    MANUAL: 'Ajustado',
+    REGISTRADO: 'Registrado'
+  };
+
+  function openingSourceText(summary) {
+    const source = String(summary?.openingSource || '').toUpperCase();
+    if (!source) return '';
+    const label = OPENING_SOURCE_LABELS[source] || '';
+    const ref = summary?.openingReferenceDate;
+    if (source === 'SALDO_ANTERIOR' && ref) return 'Fech. ' + brDate(ref).slice(0, 5);
+    return label;
+  }
+
+  function revenueGroupTotals() {
+    const groups = {};
+    const order = [];
+    const names = {};
+
+    (state.library?.revenueTypes || []).forEach(type => {
+      names[type.id] = type;
+    });
+
+    state.entries
+      .filter(entry => entry.type !== 'DESPESA' && entry.status !== 'EXCLUIDO')
+      .forEach(entry => {
+        const key = String(entry.categoryId || 'SEM_GRUPO');
+        if (!groups[key]) {
+          groups[key] = {
+            id: key,
+            name: names[key]?.name || entry.categoryContaAzulName || 'Balcão',
+            icon: names[key]?.icon || 'point_of_sale',
+            color: names[key]?.color || '#0f6ee8',
+            cents: 0,
+            count: 0
+          };
+          order.push(key);
+        }
+        groups[key].cents += Number(entry.amountCents || 0);
+        groups[key].count += 1;
+      });
+
+    return order.map(key => groups[key]);
+  }
+
   function renderSummary(){
     const s=state.summary||{};$('cashOpening').textContent=money(s.openingCashCents);$('cashExpected').textContent=money(s.expectedCashCents);$('cashWithdrawals').textContent=money(s.withdrawalsCents);
     $('summaryRevenue').textContent=money(s.revenueCents);$('summaryExpense').textContent=money(s.expenseCents);$('summaryNet').textContent=money(s.netCents);
-    $('paymentSummary').innerHTML=(state.library?.payments||[]).map(p=>`<div class="payment-chip"><small>${escapeHtml(p.name)}</small><strong>${money(s.byPayment?.[p.id]||0)}</strong></div>`).join('');
+
+    const openingSource = $('cashOpeningSource');
+    if (openingSource) {
+      openingSource.textContent = openingSourceText(s);
+    }
+
+    const openingButton = $('btnOpeningInfo');
+    if (openingButton) {
+      openingButton.classList.toggle('can-adjust', canAdjustOpening());
+    }
+
+    const payments = (state.library?.payments || [])
+      .map(payment => ({
+        payment,
+        cents: Number(s.byPayment?.[payment.id] || 0),
+        count: Number(s.countByPayment?.[payment.id] || 0)
+      }))
+      .filter(item => item.cents > 0 || item.count > 0);
+
+    const groups = revenueGroupTotals();
+    const groupHtml = groups.length > 1 || (groups.length === 1 && categories().length > 1 && state.type === 'RECEITA')
+      ? `<div class="group-summary">${groups.map(g => `
+          <div class="group-chip" style="--option-color:${escapeHtml(g.color)}">
+            <span class="material-symbols-rounded">${escapeHtml(g.icon)}</span>
+            <small>${escapeHtml(g.name)}<em>${g.count}</em></small>
+            <strong>${money(g.cents)}</strong>
+          </div>`).join('')}</div>`
+      : '';
+
+    $('paymentSummary').innerHTML =
+      groupHtml +
+      (payments.length
+        ? payments.map(item => `
+            <div class="payment-chip pay-${paymentFamily(item.payment).toLowerCase()}">
+              <span class="material-symbols-rounded">${isLocalPixPayment(item.payment) ? 'qr_code_2' : (PAYMENT_FAMILIES.find(f => f.id === paymentFamily(item.payment))?.icon || 'payments')}</span>
+              <small>${escapeHtml(item.payment.name)}<em>${item.count}</em></small>
+              <strong>${money(item.cents)}</strong>
+            </div>`).join('')
+        : '<div class="payment-chip empty"><small>Nenhuma receita ainda</small></div>');
   }
+
+  const MODE_LABELS = {
+    ATENDIMENTO: 'Atender',
+    AVULSO: 'Avulso',
+    LOTE: 'Lote',
+    INDIVIDUAL: 'Individual'
+  };
+
+  function splitDecorated(value) {
+    const parts = String(value || '').split('·').map(part => part.trim()).filter(Boolean);
+    const time = parts.length >= 3 ? parts[parts.length - 1] : '';
+    return { head: parts[0] || '', time };
+  }
+
+  function movementTime(item) {
+    try {
+      const date = new Date(item.createdAt);
+      if (Number.isNaN(date.getTime())) return '';
+      return new Intl.DateTimeFormat('pt-BR', {
+        timeZone: state.timezone || 'America/Fortaleza',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23'
+      }).format(date);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function canDeleteEntry(entry) {
+    const contaAzulStatus = String(entry?.contaAzulStatus || '').toUpperCase();
+    return Boolean(
+      entry &&
+      !entry.closureId &&
+      ['', 'NAO_ENVIADO', 'CANCELADO'].includes(contaAzulStatus)
+    );
+  }
+
   function renderMovements() {
     const movements = [
       ...state.entries.map(entry => ({
@@ -1254,158 +1587,97 @@
           )
     );
 
+    const groupNames = {};
+    (state.library?.revenueTypes || []).forEach(type => { groupNames[type.id] = type.name; });
+    const showGroups = categories().length > 1 || (state.library?.revenueTypes || []).length > 1;
+
     $('movementList').innerHTML =
       movements.length
         ? movements.map(item => {
-            if (
-              item.kind === 'WITHDRAWAL'
-            ) {
-              const withdrawal =
-                item.data;
+            if (item.kind === 'WITHDRAWAL') {
+              const withdrawal = item.data;
+              const who = splitDecorated(withdrawal.operatorName).head;
 
               return `
                 <article class="movement-item withdrawal">
-                  <div>
-                    <h4>
-                      Sangria
-                    </h4>
-
+                  <span class="mv-icon"><span class="material-symbols-rounded">outbox</span></span>
+                  <div class="movement-main">
+                    <h4>Sangria</h4>
                     <p>
-                      ${escapeHtml(
-                        withdrawal.operatorName ||
-                        ''
-                      )}
-                      ${withdrawal.pdfUrl
-                        ? `· <a href="${escapeHtml(
-                            withdrawal.pdfUrl
-                          )}" target="_blank">PDF</a>`
-                        : ''}
+                      <span class="mv-time">${escapeHtml(movementTime(item))}</span>
+                      ${who ? `<span>${escapeHtml(who)}</span>` : ''}
+                      ${withdrawal.closureId ? '<span class="mv-lock"><span class="material-symbols-rounded">lock</span>Consolidada</span>' : ''}
                     </p>
+                    ${withdrawal.pdfUrl
+                      ? `<div class="movement-actions"><a class="movement-link" href="${escapeHtml(withdrawal.pdfUrl)}" target="_blank" rel="noopener"><span class="material-symbols-rounded">picture_as_pdf</span>PDF</a></div>`
+                      : ''}
                   </div>
-
-                  <strong>
-                    - ${money(
-                      withdrawal.amountCents
-                    )}
-                  </strong>
+                  <strong class="mv-amount">- ${money(withdrawal.amountCents)}</strong>
                 </article>
               `;
             }
 
             const entry = item.data;
-
-            const pending =
-              isPendingPixEntry(entry);
-
-            const contaAzulStatus =
-              String(
-                entry.contaAzulStatus ||
-                ''
-              ).toUpperCase();
-
-            const canDelete =
-              !state.closure &&
-              !entry.closureId &&
-              [
-                '',
-                'NAO_ENVIADO',
-                'CANCELADO'
-              ].includes(
-                contaAzulStatus
-              );
+            const pending = isPendingPixEntry(entry);
+            const canDelete = canDeleteEntry(entry);
+            const payment = paymentById(entry.paymentId) || {
+              id: entry.paymentId,
+              name: entry.paymentName,
+              contaAzulMethod: entry.paymentContaAzulMethod
+            };
+            const family = paymentFamily(payment).toLowerCase();
+            const expense = entry.type === 'DESPESA';
+            const mode = splitDecorated(entry.mode).head.toUpperCase();
+            const note = String(entry.description || '').trim();
+            const title = expense
+              ? (note || entry.categoryContaAzulName || entry.categoryId)
+              : (showGroups ? (groupNames[entry.categoryId] || 'Balcão') : (MODE_LABELS[mode] || 'Receita'));
+            const icon = expense
+              ? 'remove_circle'
+              : (isLocalPixPayment(payment) ? 'qr_code_2' : (PAYMENT_FAMILIES.find(f => f.id === paymentFamily(payment))?.icon || 'payments'));
 
             return `
-              <article class="movement-item
-                ${entry.type === 'DESPESA'
-                  ? 'expense'
-                  : ''}
-                ${pending
-                  ? 'pix-pending'
-                  : ''}">
+              <article class="movement-item ${expense ? 'expense' : `pay-${family}`} ${pending ? 'pix-pending' : ''}">
+                <span class="mv-icon"><span class="material-symbols-rounded">${icon}</span></span>
                 <div class="movement-main">
-                  <h4>
-                    ${escapeHtml(
-                      entry.type === 'DESPESA'
-                        ? (
-                            entry.description ||
-                            entry.categoryId
-                          )
-                        : (
-                            entry.clientName ||
-                            'Sem cliente'
-                          )
-                    )}
-                  </h4>
-
+                  <h4>${escapeHtml(title)}</h4>
                   <p>
-                    ${escapeHtml(
-                      entry.paymentName ||
-                      entry.paymentId
-                    )}
-                    ·
-                    ${escapeHtml(entry.mode)}
-                    ${entry.batchId
-                      ? ' · Lote'
-                      : ''}
-                    ${entry.pixStatus
-                      ? ' · ' +
-                        escapeHtml(
-                          entry.pixStatus
-                        )
-                      : ''}
+                    <span class="mv-time">${escapeHtml(movementTime(item))}</span>
+                    <span>${escapeHtml(entry.paymentName || entry.paymentId)}</span>
+                    ${!expense && showGroups && !entry.batchId ? `<span>${escapeHtml(MODE_LABELS[mode] || mode)}</span>` : ''}
+                    ${entry.batchId ? `<span>Lote #${escapeHtml(entry.batchIndex || '')}</span>` : ''}
+                    ${!expense && Number(entry.objectCount || 0) > 0 ? `<span class="mv-obj"><span class="material-symbols-rounded">inventory_2</span>${escapeHtml(entry.objectCount)}</span>` : ''}
+                    ${pending ? '<span class="mv-pending">Pix pendente</span>' : ''}
+                    ${entry.closureId ? '<span class="mv-lock"><span class="material-symbols-rounded">lock</span>Consolidado</span>' : ''}
                   </p>
-
-                  <div class="movement-actions">
-                    ${pending
-                      ? `
-                        <button
-                          class="movement-pix-action"
-                          type="button"
-                          data-open-pending-pix="${escapeHtml(
-                            entry.id
-                          )}"
-                        >
-                          <span class="material-symbols-rounded">
-                            qr_code_2
-                          </span>
-                          Abrir cobrança
-                        </button>
-                      `
-                      : ''}
-
-                    ${canDelete
-                      ? `
-                        <button
-                          class="movement-delete-action"
-                          type="button"
-                          data-delete-entry="${escapeHtml(
-                            entry.id
-                          )}"
-                        >
-                          <span class="material-symbols-rounded">
-                            delete
-                          </span>
-                          Excluir
-                        </button>
-                      `
-                      : ''}
-                  </div>
-                </div>
-
-                <strong>
-                  ${entry.type === 'DESPESA'
-                    ? '- '
+                  ${!expense && note && note !== 'Atendimento de balcão' && !/^Atendimento de balcão - /.test(note)
+                    ? `<p class="mv-note">${escapeHtml(note)}</p>`
                     : ''}
-                  ${money(entry.amountCents)}
-                </strong>
+                  ${pending || canDelete
+                    ? `<div class="movement-actions">
+                        ${pending
+                          ? `<button class="movement-pix-action" type="button" data-open-pending-pix="${escapeHtml(entry.id)}">
+                              <span class="material-symbols-rounded">qr_code_2</span>
+                              Abrir cobrança
+                            </button>`
+                          : ''}
+                        ${canDelete
+                          ? `<button class="movement-delete-action" type="button" data-delete-entry="${escapeHtml(entry.id)}" aria-label="Excluir lançamento de ${escapeHtml(money(entry.amountCents))}">
+                              <span class="material-symbols-rounded">delete</span>
+                              Excluir
+                            </button>`
+                          : ''}
+                      </div>`
+                    : ''}
+                </div>
+                <strong class="mv-amount">${expense ? '- ' : ''}${money(entry.amountCents)}</strong>
               </article>
             `;
           }).join('')
         : `
-          <div class="movement-item">
-            <div>
-              <h4>Sem movimentos</h4>
-            </div>
+          <div class="movement-empty">
+            <span class="material-symbols-rounded">receipt_long</span>
+            <strong>Sem movimentos hoje</strong>
           </div>
         `;
   }
@@ -1449,7 +1721,7 @@
   function updateCloseMath(){const counted=parseMoney($('countedCash').value),withdraw=parseMoney($('closingWithdrawal').value),expected=state.summary?.expectedCashCents||0;$('closeDifference').textContent=money(counted-expected);$('closeCarryover').textContent=money(Math.max(0,counted-withdraw));}
 
   function changeType(type){state.type=type;state.mode=type==='RECEITA'?'ATENDIMENTO':'INDIVIDUAL';state.selectedCategory='';state.selectedPayment='';state.amountCents=0;state.batchAmountCents=0;state.batchItems=[];state.selectedClient=null;chooseDefaults();renderAll();clearStatus('launchStatus');}
-  function changeMode(mode){state.mode=mode;state.amountCents=0;state.batchAmountCents=0;state.batchItems=[];state.selectedClient=null;renderAll();}
+  function changeMode(mode){state.mode=mode;state.amountCents=0;state.batchAmountCents=0;state.batchItems=[];state.selectedClient=null;chooseDefaults();renderAll();}
   function handleKey(target,key){const prop=target==='batch'?'batchAmountCents':'amountCents';if(/^\d$/.test(key))state[prop]=Math.min(999999999,state[prop]*10+Number(key));else if(key==='backspace')state[prop]=Math.floor(state[prop]/10);else state[prop]=0;renderEntryForm();}
 
   function draft(amountCents,extra={}){
@@ -1504,7 +1776,7 @@
     }
 
     if (
-      isPixPayment(payment) &&
+      isLocalPixPayment(payment) &&
       !shouldGenerateLocalPix(payment)
     ) {
       return status(
@@ -1543,6 +1815,11 @@
       );
 
       applySaveResult(result);
+
+      rememberSavedDetail(
+        result?.entry?.amountCents || state.amountCents,
+        payment
+      );
 
       status(
         'launchStatus',
@@ -2139,44 +2416,10 @@
       return;
     }
 
-    const reason =
-      window.prompt(
-        'Informe o motivo da exclusão deste registro:'
-      );
-
-    if (reason === null) {
-      return;
-    }
-
     const cleanReason =
-      String(reason)
-        .replace(/\s+/g, ' ')
-        .trim();
+      await askDeleteReason(entry);
 
-    if (cleanReason.length < 3) {
-      status(
-        'movementStatus',
-        'Informe um motivo com pelo menos 3 caracteres.',
-        'warning'
-      );
-
-      return;
-    }
-
-    const confirmed =
-      window.confirm(
-        [
-          'Confirma a exclusão deste registro?',
-          '',
-          entry.paymentName ||
-            entry.paymentId,
-          money(entry.amountCents),
-          '',
-          'O registro permanecerá na auditoria da planilha.'
-        ].join('\n')
-      );
-
-    if (!confirmed) {
+    if (!cleanReason) {
       return;
     }
 
@@ -2213,9 +2456,12 @@
 
       renderAll();
 
+      lastSavedDetail =
+        `<b>${escapeHtml(money(entry.amountCents))}</b> · ${escapeHtml(entry.paymentName || entry.paymentId)}`;
+
       status(
         'movementStatus',
-        'Registro excluído e removido dos totais.',
+        'Lançamento excluído.',
         'success'
       );
     } catch (error) {
@@ -2225,6 +2471,146 @@
           'Não foi possível excluir o registro.',
         'error'
       );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const DELETE_REASONS = [
+    'Valor errado',
+    'Forma de pagamento errada',
+    'Lançado em duplicidade',
+    'Cliente desistiu'
+  ];
+
+  function askDeleteReason(entry) {
+    return new Promise(resolve => {
+      const modal = $('deleteModal');
+
+      if (!modal) {
+        const typed = window.prompt('Informe o motivo da exclusão deste registro:');
+        const clean = String(typed || '').replace(/\s+/g, ' ').trim();
+        resolve(clean.length >= 3 ? clean : '');
+        return;
+      }
+
+      const summary = $('deleteSummary');
+      const chips = $('deleteReasons');
+      const input = $('deleteReasonInput');
+      const confirm = $('btnConfirmDelete');
+      const statusBox = $('deleteStatus');
+
+      summary.innerHTML = `
+        <strong>${escapeHtml(money(entry.amountCents))}</strong>
+        <span>${escapeHtml(entry.paymentName || entry.paymentId)} · ${escapeHtml(movementTime(entry))}</span>`;
+
+      chips.innerHTML = DELETE_REASONS.map(reason =>
+        `<button type="button" class="reason-chip" data-reason="${escapeHtml(reason)}">${escapeHtml(reason)}</button>`
+      ).join('');
+
+      input.value = '';
+      confirm.disabled = true;
+      statusBox.className = 'status-box';
+      statusBox.textContent = '';
+
+      const current = () => String(input.value || '').replace(/\s+/g, ' ').trim();
+
+      const sync = () => {
+        const value = current();
+        confirm.disabled = value.length < 3 || value.length > 250;
+        chips.querySelectorAll('[data-reason]').forEach(chip => {
+          chip.classList.toggle('active', chip.dataset.reason === value);
+        });
+      };
+
+      const onChip = event => {
+        const chip = event.target.closest('[data-reason]');
+        if (!chip) return;
+        input.value = chip.dataset.reason;
+        sync();
+      };
+
+      const finish = value => {
+        chips.removeEventListener('click', onChip);
+        input.removeEventListener('input', sync);
+        confirm.removeEventListener('click', onConfirm);
+        modal.querySelectorAll('[data-close="deleteModal"]').forEach(button => button.removeEventListener('click', onCancel));
+        modal.removeEventListener('click', onBackdrop);
+        closeModal('deleteModal');
+        resolve(value);
+      };
+
+      const onConfirm = () => {
+        const value = current();
+        if (value.length < 3) {
+          statusBox.textContent = 'Informe o motivo com pelo menos 3 caracteres.';
+          statusBox.className = 'status-box show warning';
+          return;
+        }
+        finish(value.slice(0, 250));
+      };
+      const onCancel = () => finish('');
+      const onBackdrop = event => { if (event.target === modal) finish(''); };
+
+      chips.addEventListener('click', onChip);
+      input.addEventListener('input', sync);
+      confirm.addEventListener('click', onConfirm);
+      modal.querySelectorAll('[data-close="deleteModal"]').forEach(button => button.addEventListener('click', onCancel));
+      modal.addEventListener('click', onBackdrop);
+
+      openModal('deleteModal');
+    });
+  }
+
+  /* SALDO INICIAL: ajuste por gestor (backend valida perfil e permissão). */
+  function canAdjustOpening() {
+    const role = String(state.user?.role || '').toLowerCase();
+    return Boolean(
+      !state.closure &&
+      state.library?.permissions?.close &&
+      ['admin', 'manager'].includes(role)
+    );
+  }
+
+  function openOpeningModal() {
+    const s = state.summary || {};
+    $('openingCurrent').textContent = money(s.openingCashCents);
+    $('openingSourceText').textContent =
+      String(s.openingSource || '').toUpperCase() === 'SALDO_ANTERIOR' && s.openingReferenceDate
+        ? 'Ficou na gaveta no fechamento de ' + brDate(s.openingReferenceDate)
+        : (openingSourceText(s) || 'Saldo em dinheiro no início do dia');
+    $('openingAdjust').classList.toggle('hidden', !canAdjustOpening());
+    $('openingAmount').value = '';
+    clearStatus('openingStatus');
+    openModal('openingModal');
+  }
+
+  async function saveOpeningBalance() {
+    const amount = parseMoney($('openingAmount').value);
+    const raw = String($('openingAmount').value || '').trim();
+
+    if (!raw) {
+      return status('openingStatus', 'Informe o valor contado na gaveta.', 'warning');
+    }
+
+    const ok = window.confirm(
+      'Ajustar o saldo inicial de hoje para ' + money(amount) + '?\n\nO ajuste fica registrado em seu nome.'
+    );
+    if (!ok) return;
+
+    setBusy(true, 'Ajustando saldo inicial...');
+    try {
+      const result = await callApi('setOpeningBalance', {
+        date: currentDate(),
+        amountCents: amount
+      });
+      state.summary = result.summary || state.summary;
+      closeModal('openingModal');
+      renderAll();
+      lastSavedDetail = `<b>${escapeHtml(money(amount))}</b>`;
+      status('launchStatus', 'Saldo inicial ajustado.', 'success');
+    } catch (error) {
+      status('openingStatus', error.message || 'Não foi possível ajustar.', 'error');
     } finally {
       setBusy(false);
     }
@@ -2281,7 +2667,7 @@
       );
     }
 
-    if(isPixPayment(selectedPayment())){
+    if(isLocalPixPayment(selectedPayment())){
       return status(
         'launchStatus',
         'Pix Santander não pode ser lançado em lote.',
@@ -2312,6 +2698,11 @@
         );
         if (!exists) state.entries.push(entry);
       });
+
+      rememberSavedDetail(
+        state.batchItems.reduce((total, item) => total + item.amountCents, 0),
+        selectedPayment()
+      );
 
       state.summary = result.summary;
       state.batchItems = [];
@@ -2898,6 +3289,9 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
         leavePixPending
       );
     $('btnRefresh').addEventListener('click',refresh);
+    $('btnOpeningInfo')?.addEventListener('click',openOpeningModal);
+    $('btnSaveOpening')?.addEventListener('click',saveOpeningBalance);
+    $('caixaToast')?.addEventListener('click',hideFeedback);
     $('btnMovementRefresh').addEventListener('click',refresh);
 
     $('btnSwitchUnit')?.addEventListener(

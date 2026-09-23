@@ -141,7 +141,7 @@ function doPost(e) {
       case 'saveClient': return jsonOutput_(v3SaveClientFast_(request.name, user));
       case 'saveEntry': return jsonOutput_(v3SaveEntryDefaultClient_(request.payload, user));
       case 'saveBatch': return jsonOutput_(v3SaveBatch_(request.payloads, user));
-      case 'deleteEntry': return jsonOutput_(v2DeleteEntry_(request.payload || {}, user));
+      case 'deleteEntry': return jsonOutput_(v3DeleteEntry_(request.payload || {}, user));
       case 'syncPixPayment': return jsonOutput_(v3SyncPix_(request.payload || {}, user));
       case 'summary': return jsonOutput_(v3FastInit_(request.date, user));
       case 'setOpeningBalance': return jsonOutput_(v2SetOpeningBalance_(request.date, request.amountCents, user));

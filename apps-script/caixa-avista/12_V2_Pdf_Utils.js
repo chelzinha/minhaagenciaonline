@@ -1,4 +1,4 @@
-function v2GenerateWithdrawalPdf_(env,withdrawalId,context) {
+function v2GenerateWithdrawalPdfLegacy_(env,withdrawalId,context) {
   var w=v2ReadObjects_(env.withdrawals,CAIXA_V2_CFG.HEADERS.WITHDRAWALS).filter(function(x){return String(x.withdrawal_id)===withdrawalId;})[0];
   if(!w)return {status:'ERRO',error:'Sangria não encontrada'};
   try{
@@ -12,7 +12,7 @@ function v2GenerateWithdrawalPdf_(env,withdrawalId,context) {
   }catch(error){return {status:'ERRO',error:String(error.message||error)};}
 }
 
-function v2GenerateClosingPdf_(env,closureId,context) {
+function v2GenerateClosingPdfLegacy_(env,closureId,context) {
   var c=v2ReadObjects_(env.closures,CAIXA_V2_CFG.HEADERS.CLOSURES).filter(function(x){return String(x.closure_id)===closureId;})[0];
   if(!c)return {status:'ERRO',error:'Fechamento não encontrado'};
   try{
@@ -48,7 +48,7 @@ function v3SupplementRecord_(env,supplementId) {
   })[0]||null;
 }
 
-function v3GenerateSupplementPdf_(env,supplementId,context) {
+function v3GenerateSupplementPdfLegacy_(env,supplementId,context) {
   var c=v3SupplementRecord_(env,supplementId);
   if(!c)return {status:'ERRO',error:'Fechamento complementar não encontrado'};
 

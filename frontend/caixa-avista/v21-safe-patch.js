@@ -84,7 +84,13 @@
     const summary = data.summary;
     const pending = pendingPixEntries(data.entries);
 
-    if (!summary || !pending.length || summary.__v21PendingIncluded) {
+    /*
+     * Bootstrap V3 (version 'V3' / 'V3-FAST') já soma o Pix pendente na
+     * receita. Somar de novo aqui duplicaria o valor nos totais.
+     */
+    const alreadyV3 = /^V3/i.test(String(data.version || ''));
+
+    if (!summary || !pending.length || summary.__v21PendingIncluded || alreadyV3) {
       return data;
     }
 
@@ -653,6 +659,14 @@
 
     if (request.action === 'init' || request.action === 'summary') {
       return rewriteInitResponse(response);
+    }
+
+    /*
+     * Exclusão (inclusive de lançamento novo após o fechamento principal):
+     * atualiza o contador de "Atualizar fechamento" com o supplementState.
+     */
+    if (request.action === 'deleteEntry') {
+      return observeV3Response(request.action, response);
     }
 
     if (request.action === 'closeCash') {

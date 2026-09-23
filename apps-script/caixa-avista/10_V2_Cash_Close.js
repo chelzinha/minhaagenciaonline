@@ -12,78 +12,164 @@ function v2BuildSummary_(env,date,unitId) {
     }
   });
   withdrawals.forEach(function(w){ s.withdrawalsCents += w.amountCents; });
-  s.openingCashCents = v2OpeningBalance_(env,date,unitId);
+  var openingInfo = v2OpeningInfo_(env,date,unitId);
+  s.openingCashCents = openingInfo.cents;
+  s.openingSource = openingInfo.source;
+  s.openingReferenceDate = openingInfo.referenceDate;
   s.expectedCashCents = s.openingCashCents + s.cashRevenueCents - s.cashExpenseCents - s.withdrawalsCents;
   s.netCents = s.revenueCents - s.expenseCents;
   return s;
 }
 
-function v2OpeningBalance_(env,date,unitId) {
+/*
+ * SALDO INICIAL (correção 2026-09-23)
+ *
+ * Regra anterior: usava somente o carryover do último dia FECHADO. Dias sem
+ * fechamento eram ignorados, então o dinheiro físico desses dias sumia do
+ * saldo inicial seguinte (ex.: Metrô abrindo com o mesmo valor por semanas).
+ *
+ * Regra atual:
+ *   saldo inicial = carryover do último dia FECHADO
+ *                 + dinheiro dos dias intermediários sem fechamento
+ *                   (receitas DINHEIRO - despesas DINHEIRO - sangrias)
+ * Se o dia já possui linha em Saldos_Diarios, ela continua sendo a autoridade
+ * (inclusive ajuste MANUAL). A linha do dia é criada uma vez e não muda depois.
+ */
+function v2ComputeOpening_(balanceRows, entryRows, withdrawalRows, date, unitId) {
   var wantedDate = v2SheetDateIso_(date);
-  var wantedUnit = String(
-    unitId || ''
-  ).trim();
+  var wantedUnit = String(unitId || '').trim();
+
+  var current = (balanceRows || []).filter(function(item) {
+    return (
+      String(item.unit_id || '').trim() === wantedUnit &&
+      v2SheetDateIso_(item.date_iso) === wantedDate
+    );
+  })[0];
+
+  if (current) {
+    return {
+      cents: Number(current.opening_cash_cents || 0),
+      source: String(current.opening_source || 'REGISTRADO'),
+      referenceDate: wantedDate,
+      gapDays: 0,
+      persisted: true
+    };
+  }
+
+  var previous = (balanceRows || [])
+    .filter(function(item) {
+      return (
+        String(item.unit_id || '').trim() === wantedUnit &&
+        v2SheetDateIso_(item.date_iso) < wantedDate &&
+        String(item.status || '') === 'FECHADO'
+      );
+    })
+    .sort(function(a, b) {
+      return v2SheetDateIso_(b.date_iso)
+        .localeCompare(v2SheetDateIso_(a.date_iso));
+    })[0];
+
+  var baseDate = previous ? v2SheetDateIso_(previous.date_iso) : '';
+  var cents = previous ? Number(previous.carryover_cents || 0) : 0;
+  var gap = {};
+
+  function inGap(dateIso) {
+    return dateIso < wantedDate && (!baseDate || dateIso > baseDate);
+  }
+
+  (entryRows || []).forEach(function(item) {
+    var dateIso = v2SheetDateIso_(item.date_iso);
+    if (
+      String(item.unit_id || '').trim() !== wantedUnit ||
+      !inGap(dateIso) ||
+      String(item.status || '').toUpperCase() === 'EXCLUIDO' ||
+      String(item.payment_id || '') !== 'DINHEIRO'
+    ) {
+      return;
+    }
+
+    var amount = Number(item.amount_cents || 0);
+    cents += String(item.type || '').toUpperCase() === 'DESPESA'
+      ? -amount
+      : amount;
+    gap[dateIso] = true;
+  });
+
+  (withdrawalRows || []).forEach(function(item) {
+    var dateIso = v2SheetDateIso_(item.date_iso);
+    if (
+      String(item.unit_id || '').trim() !== wantedUnit ||
+      !inGap(dateIso)
+    ) {
+      return;
+    }
+
+    cents -= Number(item.amount_cents || 0);
+    gap[dateIso] = true;
+  });
+
+  var gapDays = Object.keys(gap).length;
+
+  return {
+    cents: cents,
+    source: gapDays
+      ? 'SALDO_ANTERIOR_SEM_FECHAMENTO'
+      : (previous ? 'SALDO_ANTERIOR' : 'INICIAL_ZERO'),
+    referenceDate: baseDate,
+    gapDays: gapDays,
+    persisted: false
+  };
+}
+
+function v2OpeningInfo_(env, date, unitId) {
+  var wantedDate = v2SheetDateIso_(date);
+  var wantedUnit = String(unitId || '').trim();
 
   var rows = v2ReadObjects_(
     env.dailyBalances,
     CAIXA_V2_CFG.HEADERS.DAILY_BALANCES
   );
 
-  var current = rows.filter(function(item) {
+  var hasCurrent = rows.some(function(item) {
     return (
-      String(item.unit_id || '').trim() ===
-        wantedUnit &&
-      v2SheetDateIso_(item.date_iso) ===
-        wantedDate
+      String(item.unit_id || '').trim() === wantedUnit &&
+      v2SheetDateIso_(item.date_iso) === wantedDate
     );
-  })[0];
+  });
 
-  if (current) {
-    return Number(
-      current.opening_cash_cents || 0
-    );
+  var info = hasCurrent
+    ? v2ComputeOpening_(rows, [], [], wantedDate, wantedUnit)
+    : v2ComputeOpening_(
+        rows,
+        v2ReadObjects_(env.entries, CAIXA_V2_CFG.HEADERS.ENTRIES),
+        v2ReadObjects_(env.withdrawals, CAIXA_V2_CFG.HEADERS.WITHDRAWALS),
+        wantedDate,
+        wantedUnit
+      );
+
+  if (!info.persisted) {
+    env.dailyBalances.appendRow([
+      wantedUnit,
+      wantedDate,
+      info.cents,
+      info.source,
+      new Date(),
+      'sistema',
+      '',
+      '',
+      '',
+      '',
+      '',
+      'ABERTO'
+    ]);
+    info.persisted = true;
   }
 
-  var previous = rows
-    .filter(function(item) {
-      return (
-        String(item.unit_id || '').trim() ===
-          wantedUnit &&
-        v2SheetDateIso_(item.date_iso) <
-          wantedDate &&
-        String(item.status || '') ===
-          'FECHADO'
-      );
-    })
-    .sort(function(a,b) {
-      return v2SheetDateIso_(b.date_iso)
-        .localeCompare(
-          v2SheetDateIso_(a.date_iso)
-        );
-    })[0];
+  return info;
+}
 
-  var opening = previous
-    ? Number(previous.carryover_cents || 0)
-    : 0;
-
-  env.dailyBalances.appendRow([
-    wantedUnit,
-    wantedDate,
-    opening,
-    previous
-      ? 'SALDO_ANTERIOR'
-      : 'INICIAL_ZERO',
-    new Date(),
-    'sistema',
-    '',
-    '',
-    '',
-    '',
-    '',
-    'ABERTO'
-  ]);
-
-  return opening;
+function v2OpeningBalance_(env,date,unitId) {
+  return v2OpeningInfo_(env, date, unitId).cents;
 }
 
 function v2SetOpeningBalance_(dateValue, amountValue, user) {
@@ -97,8 +183,20 @@ function v2SetOpeningBalance_(dateValue, amountValue, user) {
     var unitId = String(context.unit.unit_id || '').trim();
     var amount = Math.round(Number(amountValue || 0));
 
-    if (amount < 0) {
+    if (!(amount >= 0) || amount > 99999999) {
       throw appError_('Saldo inicial inválido.', 'INVALID_OPENING');
+    }
+
+    var role = String(user && user.role || '').toLowerCase();
+
+    if (
+      !context.permissions.close ||
+      ['admin', 'manager'].indexOf(role) < 0
+    ) {
+      throw appError_(
+        'Somente gestor com permissão de fechamento pode ajustar o saldo inicial.',
+        'FORBIDDEN'
+      );
     }
 
     v2AssertOpen_(env, date, unitId);
@@ -116,7 +214,9 @@ function v2SetOpeningBalance_(dateValue, amountValue, user) {
     })[0];
 
     if (found) {
-      env.dailyBalances.getRange(found._sheetRow, 3).setValue(amount);
+      env.dailyBalances
+        .getRange(found._sheetRow, 3, 1, 4)
+        .setValues([[amount, 'MANUAL', new Date(), user.id]]);
     } else {
       env.dailyBalances.appendRow([
         unitId,date,amount,'MANUAL',new Date(),user.id,
@@ -126,7 +226,10 @@ function v2SetOpeningBalance_(dateValue, amountValue, user) {
 
     return {
       ok:true,
-      summary:v2BuildSummary_(env,date,unitId)
+      summary:
+        typeof v3BuildSummary_ === 'function'
+          ? v3BuildSummary_(env,date,unitId)
+          : v2BuildSummary_(env,date,unitId)
     };
   } finally {
     lock.releaseLock();

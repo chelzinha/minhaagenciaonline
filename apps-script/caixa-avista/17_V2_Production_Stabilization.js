@@ -7,6 +7,7 @@ function v2ProductionPaymentIds_() {
   return [
     'DINHEIRO',
     'PIX_SANTANDER',
+    'PIX_INFINITY',
     'DEBITO_CIELO',
     'CREDITO_CIELO',
     'DEBITO_INFINITY',
@@ -67,7 +68,15 @@ function auditarPreProducaoCaixaV2() {
       var isPix = String(item.conta_azul_method || '') ===
         'PIX_PAGAMENTO_INSTANTANEO';
 
-      if (isPix && paymentId !== 'PIX_SANTANDER' && v2Bool_(item.active)) {
+      var isTerminalPix = String(item.pix_mode || '').toUpperCase() === 'MAQUININHA';
+
+      if (isTerminalPix && v2Bool_(item.allow_expense)) {
+        errors.push(
+          unitId + ': Pix de maquininha não deve aparecer em despesas: ' + paymentId
+        );
+      }
+
+      if (isPix && !isTerminalPix && paymentId !== 'PIX_SANTANDER' && v2Bool_(item.active)) {
         errors.push(
           unitId + ': Pix não autorizado permanece ativo: ' + paymentId
         );
@@ -188,6 +197,14 @@ function prepararProducaoCaixaV2() {
       row[idx.pix_mode] = 'LOCAL_STATIC';
       row[idx.pix_active] = true;
       if (!row[idx.pix_city]) row[idx.pix_city] = 'FORTALEZA';
+    } else if (
+      isPix &&
+      String(item.pix_mode || '').toUpperCase() === 'MAQUININHA'
+    ) {
+      /* Pix de maquininha (ex.: Pix Infinity): ativo, sem QR local. */
+      row[idx.generate_pix] = false;
+      row[idx.pix_active] = false;
+      row[idx.allow_expense] = false;
     } else if (isPix) {
       row[idx.active] = false;
       row[idx.allow_expense] = false;
