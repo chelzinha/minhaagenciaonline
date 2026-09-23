@@ -1,6 +1,4 @@
-/* Configuração compartilhada do AGF Core.
- * Substituir apiUrl após o primeiro deploy do Worker agf-core-api.
- */
+/* Configuração compartilhada do AGF Core. */
 window.AGF_CORE_CONFIG = Object.freeze({
-  apiUrl: 'https://PREENCHER-AGF-CORE-API.workers.dev'
+  apiUrl: 'https://agf-core-api.chelzinha.workers.dev'
 });
