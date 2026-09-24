@@ -308,3 +308,7 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Quatro origens em abas com busca e paginação; nome padronizado apresentado em maiúsculas.
 - Sugestões para consolidar grafias e opção de busca manual; transferência transacional de postagens, aliases e contratos com auditoria e confirmação.
 - Explicação dos campos de associação de grafia; postagens por LOCAL e contratos observados preservados.
+
+## 2026-09-24 - Correção da prévia do Cadastro
+
+- Prévia de deploy direciona para a origem da branch permitida pela API; falhas de leitura exibem erro e opção de recarregar.
