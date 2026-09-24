@@ -42,6 +42,9 @@
     listOrders: (shop, limit) => request(
       '/api/shopify/orders?shop=' + encodeURIComponent(shop) + '&limit=' + encodeURIComponent(limit || 20)
     ),
+    getOrder: (shop, orderId) => request(
+      '/api/shopify/order?shop=' + encodeURIComponent(shop) + '&order_id=' + encodeURIComponent(orderId)
+    ),
     testConnection: (shop) => request('/api/shopify/test', {
       method: 'POST',
       body: { shop }
