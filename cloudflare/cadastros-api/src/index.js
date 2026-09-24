@@ -60,6 +60,7 @@ async function admin(request, env) {
   if (String(user.role || '').toLowerCase() !== 'admin') fail('Acesso restrito ao administrador.', 403);
   return clean(user.username || user.displayName || 'admin');
 }
+function officialName(value) { return clean(value).toLocaleUpperCase('pt-BR').slice(0,200); }
 function customerId() { return `cus_${crypto.randomUUID()}`; }
 async function directId(normalized) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`PORTAL:${normalized}`));
@@ -283,9 +284,13 @@ async function syncPage(env, limit = 200) {
 
 async function listCustomers(url, env) {
   const q = clean(url.searchParams.get('q')).slice(0, 100);
+  const origin = clean(url.searchParams.get('origin')).toUpperCase();
+  if (origin && !['PORTAL','BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION'].includes(origin)) fail('Origem inválida.');
+  const originSql = origin === 'PORTAL' ? "EXISTS (SELECT 1 FROM customer_aliases a WHERE a.customer_id=c.id AND a.kind='PORTAL')" : origin ? "EXISTS (SELECT 1 FROM source_postings p WHERE p.customer_id=c.id AND p.portal_norm=?)" : '1=1';
+  const originArgs = origin && origin !== 'PORTAL' ? [origin] : [];
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit')) || 50));
   const offset = Math.max(0, Math.trunc(Number(url.searchParams.get('offset')) || 0));
-  const [r, count] = await env.DB.batch([env.DB.prepare(`SELECT c.id,c.canonical_name,c.status,c.created_at,
+  const [r, count] = await env.DB.batch([env.DB.prepare(`SELECT c.id,c.canonical_name,c.identity_quality,c.status,c.created_at,
     (SELECT COUNT(*) FROM source_postings p WHERE p.customer_id=c.id) posting_count
     FROM customers c WHERE (?='' OR c.canonical_name LIKE ? OR c.id LIKE ?)
     ORDER BY c.canonical_name COLLATE NOCASE LIMIT ? OFFSET ?`)
@@ -310,7 +315,7 @@ async function getCustomer(id, env) {
 }
 async function createCustomer(request, env, actor) {
   const input = await body(request);
-  const name = clean(input.canonicalName).slice(0, 200);
+  const name = officialName(input.canonicalName);
   if (!name) fail('Informe o nome padronizado.');
   const id = customerId();
   await env.DB.batch([
@@ -323,7 +328,7 @@ async function updateCustomer(request, env, actor, id) {
   const previous = await env.DB.prepare('SELECT * FROM customers WHERE id=?').bind(id).first();
   if (!previous) fail('Cliente não encontrado.', 404);
   const input = await body(request);
-  const name = Object.hasOwn(input, 'canonicalName') ? clean(input.canonicalName).slice(0, 200) : previous.canonical_name;
+  const name = Object.hasOwn(input, 'canonicalName') ? officialName(input.canonicalName) : previous.canonical_name;
   const status = Object.hasOwn(input, 'status') ? clean(input.status).toUpperCase() : previous.status;
   if (!name || !['ACTIVE','INACTIVE'].includes(status)) fail('Nome ou situação inválidos.');
   await env.DB.batch([
@@ -366,6 +371,63 @@ async function lookupAlias(url, env) {
   const alias = await env.DB.prepare(`SELECT a.customer_id,c.canonical_name FROM customer_aliases a JOIN customers c ON c.id=a.customer_id WHERE a.kind=? AND a.normalized_name=?`).bind(kind,normalized).first();
   return { alias: alias || null };
 }
+
+async function suggestions(url, env) {
+  const id = clean(url.searchParams.get('id'));
+  const source = await env.DB.prepare('SELECT id,canonical_name FROM customers WHERE id=?').bind(id).first();
+  if (!source) fail('Cliente não encontrado.',404);
+  const normalized = key(source.canonical_name);
+  const tokens = normalized.split(/[^A-Z0-9]+/).filter(w => w.length >= 4);
+  if (!tokens.length) return {suggestions:[]};
+  const prefix = tokens[0].slice(0,5);
+  const rows = await env.DB.prepare(`SELECT c.id,c.canonical_name,c.identity_quality,
+    EXISTS(SELECT 1 FROM customer_aliases a WHERE a.customer_id=c.id AND a.kind='PORTAL') portal_customer,
+    (SELECT COUNT(*) FROM source_postings p WHERE p.customer_id=c.id) posting_count
+    FROM customers c WHERE c.id<>? AND (
+      UPPER(c.canonical_name) LIKE ? OR UPPER(c.canonical_name) LIKE ?
+    ) LIMIT 120`).bind(id,`%${prefix}%`,`%${tokens[tokens.length-1]}%`).all();
+  const compact = v => key(v).replace(/[^A-Z0-9]/g,'');
+  const sourceCompact = compact(normalized);
+  const suggestions = (rows.results || []).map(c => {
+    const target = key(c.canonical_name), targetCompact = compact(target);
+    const shared = tokens.filter(t => target.includes(t)).length;
+    const score = (targetCompact === sourceCompact ? 100 : 0) +
+      (targetCompact.includes(sourceCompact) || sourceCompact.includes(targetCompact) ? 35 : 0) +
+      shared*10 + (c.portal_customer ? 12 : 0);
+    return {...c,score};
+  }).filter(c=>c.score>=20).sort((a,b)=>b.score-a.score || b.canonical_name.length-a.canonical_name.length).slice(0,12);
+  return {suggestions};
+}
+
+async function mergeCustomers(request, env, actor) {
+  const input = await body(request);
+  const sourceId = clean(input.sourceId), targetId = clean(input.targetId);
+  if (!sourceId || !targetId || sourceId===targetId) fail('Selecione dois cadastros diferentes.');
+  const [source,target] = await env.DB.batch([
+    env.DB.prepare('SELECT id,canonical_name,identity_quality FROM customers WHERE id=?').bind(sourceId),
+    env.DB.prepare('SELECT id,canonical_name,identity_quality FROM customers WHERE id=?').bind(targetId)
+  ]);
+  const from=source.results?.[0], to=target.results?.[0];
+  if (!from || !to) fail('Atualize a página: um dos cadastros não existe.',409);
+  if (input.expectedSourceName !== from.canonical_name || input.expectedTargetName !== to.canonical_name)
+    fail('Os nomes mudaram. Atualize a ficha antes de agrupar.',409);
+  // Transação D1: preserva a grafia recebida, os contratos e os overrides por postagem.
+  await env.DB.batch([
+    env.DB.prepare('UPDATE customer_aliases SET customer_id=?,source=\'MANUAL\',updated_at=CURRENT_TIMESTAMP WHERE customer_id=?').bind(targetId,sourceId),
+    env.DB.prepare('UPDATE source_postings SET customer_id=?,updated_at=CURRENT_TIMESTAMP WHERE customer_id=?').bind(targetId,sourceId),
+    env.DB.prepare('DELETE FROM auto_enrollment WHERE customer_id=?').bind(sourceId),
+    env.DB.prepare(`INSERT OR IGNORE INTO customer_contracts(customer_id,contract_number,posting_card,note)
+      SELECT ?,contract_number,posting_card,note FROM customer_contracts WHERE customer_id=?`).bind(targetId,sourceId),
+    env.DB.prepare('DELETE FROM customer_contracts WHERE customer_id=?').bind(sourceId),
+    env.DB.prepare(`UPDATE customers SET canonical_name=?,identity_quality='MANUAL',updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+      .bind(officialName(input.canonicalName || to.canonical_name),targetId),
+    auditStmt(env,actor,'MERGE','customer',sourceId,
+      {customerId:sourceId,name:from.canonical_name}, {customerId:targetId,name:officialName(input.canonicalName || to.canonical_name)}),
+    env.DB.prepare('DELETE FROM customers WHERE id=?').bind(sourceId)
+  ]);
+  return getCustomer(targetId,env);
+}
+
 async function listReview(url, env) {
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit')) || 50));
   const offset = Math.max(0, Number(url.searchParams.get('offset')) || 0);
@@ -443,6 +505,8 @@ async function handler(request, env) {
   const customer = path.match(/^\/api\/customers\/([^/]+)$/);
   if (customer && method === 'GET') return json({ok:true,...await getCustomer(decodeURIComponent(customer[1]),env)});
   if (customer && method === 'PATCH') return json({ok:true,...await updateCustomer(request,env,actor,decodeURIComponent(customer[1]))});
+  if (path === '/api/suggestions' && method === 'GET') return json({ok:true,...await suggestions(url,env)});
+  if (path === '/api/customers/merge' && method === 'POST') return json({ok:true,...await mergeCustomers(request,env,actor)});
   if (path === '/api/aliases' && method === 'POST') return json({ok:true,...await saveAlias(request,env,actor)});
   if (path === '/api/aliases/lookup' && method === 'GET') return json({ok:true,...await lookupAlias(url,env)});
   if (path === '/api/contracts' && method === 'POST') return json({ok:true,...await addContract(request,env,actor)});
