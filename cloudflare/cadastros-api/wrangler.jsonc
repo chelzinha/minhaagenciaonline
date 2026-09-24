@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "agf-cadastros-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-24",
+  "vars": {
+    "AGF_AUTH_API_URL": "https://script.google.com/macros/s/AKfycbxv_3OLKyy13PqtEdqnVSA2zg3xljaU5gAKgn-TIVaaSRaTNPGgWIaRvDV_JuT9PTc5/exec",
+    "ALLOWED_ORIGINS": "https://minhaagenciaonline.com.br,https://www.minhaagenciaonline.com.br,https://feature-cadastros-base-ident.minhaagenciaonline.pages.dev,http://localhost:8788,http://127.0.0.1:8788"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "agf-cadastros",
+      "database_id": "39a4982e-cc07-4feb-9f76-bc7b6c645f7f",
+      "migrations_dir": "migrations"
+    },
+    {
+      "binding": "ATENDE_DB",
+      "database_name": "agf-atende",
+      "database_id": "868ad2d8-2083-449a-bd09-97b2bf27120f"
+    }
+  ],
+  "triggers": { "crons": ["* * * * *"] }
+}

@@ -2,6 +2,18 @@
 
 Documento tecnico em preparacao.
 
+## 2026-09-24 - Ativação autorizada da sincronização de identidade
+
+**Atenção sensível.** Após autorização explícita da gestora, o Worker `agf-cadastros-api` passou a ter endereço `workers.dev` e cron ativo. Ele lê as postagens canônicas do D1 do Atende e grava projeção com nome recebido, Cliente Portal, LOCAL, contrato/cartão e valor no D1 `agf-cadastros`. `/health` é público; as rotas de dados exigem Bearer validado na autenticação AGF, e as rotas de correção exigem administrador. A importação inicial e a comparação de LOCAL devem ser conferidas antes de integrar o front à produção. Nenhum segredo foi incluído no repositório. Para diagnóstico, o cron marca a tentativa no cursor e grava apenas mensagem de erro técnico limitada a 240 caracteres no D1 administrativo; a revisão automática rejeitou ativar logs integrais de invocação por envolver dados de clientes.
+
+## 2026-09-24 - Preparação do acesso à base de identidade
+
+**Atenção sensível.** O código do Worker de cadastros foi enviado à conta Cloudflare com bindings para leitura do Atende e escrita no D1 `agf-cadastros`. O endereço público e a rotina de sincronização automática não foram ativados após bloqueio de revisão automática. A base continua sem postagens importadas. O Worker exige sessão AGF validada, restringe as correções ao administrador e permite CORS somente para as origens listadas, incluindo o preview específico do PR. Contratos/cartões são sinais de conferência, não chaves automáticas. Antes da ativação, verificar autenticação, LOCAL e volume de registros sem expor dados pessoais nos logs.
+
+## 2026-09-24 - Base independente de identidade de clientes
+
+Criado o D1 `agf-cadastros` e aplicado o esquema inicial. A projeção planejada lê nomes, contrato/cartão e LOCAL de postagens canônicas do Atende, sem alterar a fonte. Escritas manuais de identidade e vínculos requerem administrador autenticado e são auditadas. Contratos/cartões não são chaves de identificação automática. Worker, frontend e sincronização ainda não publicados nesta mudança; antes da ativação, verificar acesso e comparar LOCAL com a tabela do Atende. Nenhum registro real de cliente foi inserido no novo D1.
+
 ## 2026-09-08 - Atende: protecao server-side da remuneracao do Dashboard V4
 
 ### Atencao sensivel
@@ -249,3 +261,7 @@ Controle aplicado: arquivos .clasp.json ignorados via .gitignore e verificacao i
 
 Commit relacionado: badf763.
 
+
+## 2026-09-24 - Agrupamento manual de identidades
+
+**Atenção sensível.** Administrador pode transferir aliases e postagens de uma ficha duplicada para outra e excluir a ficha de origem, preservando nomes recebidos e trilha de auditoria. A mudança afeta vínculos de dados cadastrais e relatórios por cliente; verificar visualmente duas fichas antes de confirmar. O Atende RAW permanece intacto. Nenhuma lista de nomes da planilha legada foi enviada à Cloudflare nesta etapa.

@@ -1,5 +1,9 @@
 # FRONTEND
 
+## Cadastro de Clientes
+
+`frontend/cadastros/` oferece revisão de nomes recebidos, criação e correção da identidade canônica, vínculos de contrato/cartão e separação por LOCAL. Admin com permissão `intra`; dados pelo Worker `agf-cadastros-api`. O card foi adicionado ao `/intra/`. A lista de clientes é paginada, e o progresso da importação aparece no resumo. O Worker e o cron estão ativos; a tela permanece no preview da branch enquanto a primeira importação é conferida. Ver `docs/modulos/cadastros/README.md`.
+
 ## Hospedagem oficial do frontend principal
 
 A hospedagem oficial do frontend principal de `www.minhaagenciaonline.com.br` é **Cloudflare**.
@@ -350,3 +354,12 @@ Arquivo alterado:
 - `frontend/crm/app.js`
 
 Este ajuste nao altera Apps Script, dados, regras de carregamento inicial ou layout da Home.
+
+
+### Agrupamento visual de clientes (2026-09-24)
+
+As abas CLIENTE PORTAL, BALCÃO, GAS SHOPPING METRO e GAS SHOPPING CENTRO FASHION paginam cadastros por origem. A ficha apresenta sugestões para conferência, busca por cadastro, seleção da origem e confirmação do agrupamento. A apresentação dos nomes padronizados usa maiúsculas, sem alterar o nome recebido das postagens. A ficha conserva os blocos de contratos observados e postagens por LOCAL. Conferir em desktop e celular: filtros, busca e paginação; sugestões para AGNESRISTAU; associação de várias grafias à mesma ficha; contagem, contratos e LOCAL após o agrupamento.
+
+### Prévia do Cadastro: origem e recuperação de leitura
+
+O Worker aceita CORS da origem fixa da branch `feature-cadastros-base-ident.minhaagenciaonline.pages.dev`. URLs imutáveis de deploy redirecionam para essa origem antes da guarda de login. As consultas de resumo, clientes e revisão exibem falha individual e botão de recarga quando uma requisição falha; isso evita deixar “Carregando” indefinidamente. O agrupamento permanece desabilitado até a publicação da API correspondente.

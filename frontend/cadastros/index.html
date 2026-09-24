@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR" class="agf-auth-pending">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#00416b">
+  <title>Cadastro de Clientes | AGF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/ui/agf-ui.css">
+  <link rel="stylesheet" href="/cadastros/styles.css?v=20260924-4">
+  <script>
+    // Os URLs de deploy imutável não estão na lista CORS da API.
+    if (location.hostname.endsWith('.minhaagenciaonline.pages.dev') &&
+        location.hostname !== 'feature-cadastros-base-ident.minhaagenciaonline.pages.dev') {
+      location.replace('https://feature-cadastros-base-ident.minhaagenciaonline.pages.dev/cadastros/');
+    }
+  </script>
+  <script src="/shared/auth/agf-auth-config.js"></script>
+  <script src="/shared/auth/agf-auth-client.js"></script>
+  <script>window.AGF_ACCESS={roles:['admin'],app:'intra'};</script>
+  <script src="/shared/auth/agf-route-guard.js"></script>
+  <script src="/cadastros/config.js" defer></script>
+  <script src="/cadastros/app.js?v=20260924-5" defer></script>
+</head>
+<body>
+  <header class="topbar"><div class="container topbar-inner">
+    <a href="/intra/" class="back">← Painel interno</a><span class="brand">AGF <span>JOSÉ BONIFÁCIO</span></span>
+  </div></header>
+  <main class="container">
+    <div class="intro"><div><p class="eyebrow">BASE DE IDENTIDADE</p><h1>Cadastro de Clientes</h1><p>Cadastros comerciais organizados a partir das postagens do Atende.</p></div>
+      <div class="intro-actions"><button type="button" id="retryButton" class="button secondary">Recarregar dados</button><button type="button" id="syncButton" class="button secondary">Sincronizar próxima página</button></div></div>
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <section class="summary" aria-label="Resumo da sincronização">
+      <div><span>Postagens importadas</span><strong id="total">—</strong></div>
+      <div><span>Clientes cadastrados</span><strong id="customersTotal">—</strong></div>
+      <div><span>Cadastros provisórios</span><strong id="provisionalTotal">—</strong></div>
+      <div><span>Nomes distintos em revisão</span><strong id="pendingNames">—</strong></div>
+      <div><span>Postagens em revisão</span><strong id="pending">—</strong></div>
+      <div><span>Varreduras completas</span><strong id="passes">—</strong></div>
+      <div><span>Última atividade</span><strong id="updated">—</strong></div>
+    </section>
+    <p id="syncProgress" class="sync-progress" role="status" aria-live="polite"></p>
+    <div class="layout">
+      <section class="panel" aria-labelledby="reviewTitle"><div class="panel-head"><div><p class="eyebrow">TRIAGEM</p><h2 id="reviewTitle">Nomes para revisão</h2></div><span class="badge">Identidade pendente</span></div>
+        <p class="hint">Coincidências confiáveis são associadas automaticamente. Nomes novos ganham cadastro provisório; só ambiguidades ficam aqui. O nome registrado no Atende continua intacto.</p>
+        <label class="field">Buscar nome recebido<input id="reviewSearch" type="search" placeholder="Remetente ou Cliente Portal"></label>
+        <div id="reviewList" class="list" aria-live="polite"></div>
+        <button type="button" id="moreReview" class="text-button" hidden>Ver mais pendências</button>
+      </section>
+      <section class="panel" aria-labelledby="customerTitle"><div class="panel-head"><div><p class="eyebrow">IDENTIDADE</p><h2 id="customerTitle">Cadastro de clientes</h2></div></div>
+        <div class="origin-tabs" role="group" aria-label="Origem dos clientes">
+          <button type="button" data-origin="" aria-pressed="true">Todos</button>
+          <button type="button" data-origin="PORTAL" aria-pressed="false">CLIENTE PORTAL</button>
+          <button type="button" data-origin="BALCAO" aria-pressed="false">BALCÃO</button>
+          <button type="button" data-origin="GAS SHOPPING METRO" aria-pressed="false">GAS SHOPPING METRO</button>
+          <button type="button" data-origin="GAS SHOPPING CENTRO FASHION" aria-pressed="false">GAS SHOPPING CENTRO FASHION</button>
+        </div><p class="hint">Um cliente pode aparecer em mais de uma origem; cada postagem preserva seu LOCAL.</p>
+        <label class="field">Buscar cadastro<input id="customerSearch" type="search" placeholder="Nome padronizado"></label>
+        <div id="customerList" class="list compact" aria-live="polite"></div>
+        <nav class="pagination" aria-label="Páginas de clientes"><button type="button" id="previousCustomers" class="button secondary">Anterior</button><span id="customerPageInfo" aria-live="polite"></span><button type="button" id="nextCustomers" class="button secondary">Próxima</button></nav>
+        <form id="createForm" class="inline-form"><label class="field">Novo cliente padronizado<input id="newName" required maxlength="200" placeholder="Nome comercial único"></label><button class="button" type="submit">Criar cliente</button></form>
+      </section>
+    </div>
+    <section class="panel detail" id="detail" hidden aria-labelledby="detailTitle">
+      <div class="panel-head"><div><p class="eyebrow">FICHA DE IDENTIDADE</p><h2 id="detailTitle"></h2><p id="detailId" class="small"></p></div><button type="button" id="closeDetail" class="text-button">Fechar</button></div>
+      <form id="renameForm" class="inline-form"><label class="field">Nome padronizado<input id="renameName" required maxlength="200"></label><button class="button secondary" type="submit">Salvar nome</button></form>
+      <div class="merge-panel"><h3>Agrupar nomes do mesmo cliente</h3><p class="hint">Selecione outro cadastro para juntar a esta ficha. Os nomes recebidos, contratos e postagens passam para o cadastro escolhido. Confira a sugestão antes de confirmar.</p>
+        <div id="suggestions" class="list compact"></div>
+        <form id="mergeForm" class="subform"><label class="field">Buscar outro cadastro<input id="mergeSearch" type="search" placeholder="Nome ou parte do nome"></label><label class="field">Cadastro que será agrupado<select id="mergeSource" required><option value="">Selecione</option></select></label><label class="field">Nome padronizado após o agrupamento<input id="mergeName" required maxlength="200"></label><button type="submit" class="button">Agrupar nesta ficha</button></form></div>
+      <div class="detail-grid"><div><h3>Nomes associados</h3><div id="aliases" class="chips"></div>
+        <p class="hint">Use estes campos só para adicionar uma grafia recebida ao cliente desta ficha. Para juntar duas fichas existentes, use “Agrupar nomes do mesmo cliente”.</p><form id="aliasForm" class="subform"><label class="field">Onde o nome aparece<select id="aliasKind"><option value="SENDER">Nome remetente</option><option value="PORTAL">Cliente Portal</option></select></label><label class="field">Grafia recebida no Atende<input id="aliasName" required maxlength="200"></label><button class="button secondary" type="submit">Associar nome</button></form></div>
+        <div><h3>Contratos observados</h3><div id="observed" class="list compact"></div><h3>Vínculos conferidos</h3><div id="contracts" class="list compact"></div>
+          <form id="contractForm" class="subform"><label class="field">Número contrato<input id="contractNumber" maxlength="100"></label><label class="field">Cartão postagem<input id="postingCard" maxlength="100"></label><label class="field">Nota (opcional)<input id="contractNote" maxlength="500"></label><button class="button secondary" type="submit">Vincular contrato ou cartão</button></form></div></div>
+      <h3>Postagens por LOCAL</h3><div id="locals" class="chips"></div>
+    </section>
+    <dialog id="resolveDialog"><form id="resolveForm" class="dialog-body"><div class="panel-head"><h2>Associar nome recebido</h2><button type="button" id="cancelResolve" class="text-button">Fechar</button></div><p id="resolveContext"></p>
+      <label class="field">Buscar cliente<input id="resolveSearch" type="search" placeholder="Digite o nome padronizado"></label>
+      <label class="field">Cliente padronizado<select id="resolveCustomer" required></select></label><p class="hint">Se o cliente não estiver na lista, crie seu cadastro primeiro. Uma mesma grafia de remetente vale para os três portais compartilhados.</p>
+      <button type="submit" class="button">Confirmar associação</button></form></dialog>
+  </main>
+</body>
+</html>

@@ -2,6 +2,38 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-24 - Correspondência automática e contagem de nomes
+
+- Remetentes de BALCÃO, GAS SHOPPING METRO e GAS SHOPPING CENTRO FASHION com nome normalizado idêntico a um alias de CLIENTE PORTAL direto passam a usar o mesmo cliente, respeitando o alias de remetente confirmado e overrides por postagem.
+- A tela preserva a contagem de postagens e mostra também o total de clientes e de nomes distintos pendentes. A lista de clientes agora tem paginação visível.
+- A planilha histórica CLIENTES_ALIAS foi inspecionada: 2.484 registros AUTO com IDs distintos. O arquivo CADASTRO_MESTRE_CLIENTES.xlsx contém regras de precedência, 9.181 aliases legados e 2.140 propostas seguras, mas os IDs de cliente ainda estão pendentes de migração; nenhum lote foi importado automaticamente.
+
+## 2026-09-24 - Primeira varredura do Cadastro de Clientes concluída
+
+- O D1 recebeu 93.624 postagens, igual ao total da view canônica do Atende, e criou 301 clientes por portal direto.
+- Oito amostras distribuídas na origem coincidiram em portal, remetente, LOCAL, contrato, cartão, data e valor. As 16.615 postagens pendentes exigem revisão de identidade, sobretudo nos três portais compartilhados.
+- Concorrência entre ciclos do cron passou a ser tratada como espera normal; falhas técnicas continuam registradas no D1 administrativo. A tela autenticada ainda precisa de validação antes do merge.
+
+## 2026-09-24 - Ativação autorizada do Worker de cadastros
+
+- Após autorização da gestora, habilitados o endereço público `agf-cadastros-api.chelzinha.workers.dev` e o cron configurado em `wrangler.jsonc`.
+- `/health` responde 200; `/api/status` sem sessão responde 401; preflight CORS do preview específico responde 204 com a origem correta.
+- Primeira importação e conferência de `LOCAL` em andamento. A tela permanece apenas no preview do PR até validação da base e merge controlado.
+- Instrumentação mínima do cron: marca a primeira tentativa no cursor e registra somente a mensagem de erro técnico no D1 administrativo. A coleta ampla de logs não foi ativada.
+
+## 2026-09-24 - Front do Cadastro de Clientes e ativação pendente
+
+- A lista de clientes agora tem paginação, e a tela informa o progresso da primeira importação de postagens do Atende.
+- O Worker inclui a origem exata do preview do PR no CORS e prevê processamento mais rápido na primeira varredura, mantendo intervalos efetivos de dez minutos depois dela.
+- O código do Worker foi enviado à Cloudflare sem endereço público. A ativação do `workers.dev` e do cron foi bloqueada pela revisão automática; o D1 continua sem importação e o front de preview ainda não consulta dados reais.
+
+## 2026-09-24 - Estrutura do Cadastro de Clientes
+
+- Criada base D1 independente `agf-cadastros`, com `customers`, aliases, projeção de postagens canônicas, vínculos informativos de contrato/cartão, auditoria e cursor de sincronização.
+- Implementados Worker de leitura do Atende, fila de revisão administrativa e frontend `/cadastros/`; adicionado card no painel interno.
+- Identidade por remetente apenas para BALCÃO, GAS SHOPPING METRO e GAS SHOPPING CENTRO FASHION; demais cadastros seguem CLIENTE PORTAL. LOCAL fica por postagem.
+- Esquema aplicado no D1; o frontend permaneceu apenas no preview do PR e a integração do CRM ainda não foi publicada por esta alteração.
+
 ## 2026-09-11 - Correcao da aba Entregas do /app
 
 ### Corrigido
@@ -269,3 +301,14 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 ### Escopo
 - Ajuste isolado em `frontend/crm/app.js`.
 - Nao altera backend, Apps Script, dados, layout da Home ou performance inicial.
+
+
+## 2026-09-24 - Agrupamento assistido no Cadastro de Clientes
+
+- Quatro origens em abas com busca e paginação; nome padronizado apresentado em maiúsculas.
+- Sugestões para consolidar grafias e opção de busca manual; transferência transacional de postagens, aliases e contratos com auditoria e confirmação.
+- Explicação dos campos de associação de grafia; postagens por LOCAL e contratos observados preservados.
+
+## 2026-09-24 - Correção da prévia do Cadastro
+
+- Prévia de deploy direciona para a origem da branch permitida pela API; falhas de leitura exibem erro e opção de recarregar.

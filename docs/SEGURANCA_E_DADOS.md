@@ -2,6 +2,10 @@
 
 Documento tecnico em preparacao.
 
+## Cadastro de Clientes
+
+O D1 `agf-cadastros` contém nomes recebidos, contrato/cartão de postagem e LOCAL por operação canônica. O Worker só lê o D1 `agf-atende`; não edita RAW. Rotas de correção exigem sessão AGF revalidada com papel administrador. O endpoint de consumo exige administrador ou acesso `crm`, responde somente identidade canônica/LOCAL por `source_id` e não devolve os textos recebidos. O token é enviado via header Bearer, sem URL. O histórico das correções registra usuário e valores de vínculo; não registrar token ou payload operacional completo em logs.
+
 ## Atende - protecao de indicadores de gestao
 
 ATENÇÃO - dados ou segurança.
