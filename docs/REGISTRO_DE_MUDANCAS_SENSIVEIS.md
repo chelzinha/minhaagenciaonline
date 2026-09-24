@@ -260,3 +260,8 @@ Risco: exposicao acidental de identificadores, credenciais, tokens, URLs ou dado
 Controle aplicado: arquivos .clasp.json ignorados via .gitignore e verificacao inicial por termos sensiveis antes do commit.
 
 Commit relacionado: badf763.
+
+
+## 2026-09-24 - Agrupamento manual de identidades
+
+**Atenção sensível.** Administrador pode transferir aliases e postagens de uma ficha duplicada para outra e excluir a ficha de origem, preservando nomes recebidos e trilha de auditoria. A mudança afeta vínculos de dados cadastrais e relatórios por cliente; verificar visualmente duas fichas antes de confirmar. O Atende RAW permanece intacto. Nenhuma lista de nomes da planilha legada foi enviada à Cloudflare nesta etapa.
