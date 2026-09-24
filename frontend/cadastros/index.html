@@ -22,15 +22,16 @@
     <a href="/intra/" class="back">← Painel interno</a><span class="brand">AGF <span>JOSÉ BONIFÁCIO</span></span>
   </div></header>
   <main class="container">
-    <div class="intro"><div><p class="eyebrow">BASE DE IDENTIDADE · D1</p><h1>Cadastro de Clientes</h1><p>Padronização de nomes recebidos no Atende para uma identidade única de cliente.</p></div>
+    <div class="intro"><div><p class="eyebrow">BASE DE IDENTIDADE</p><h1>Cadastro de Clientes</h1><p>Cadastros comerciais organizados a partir das postagens do Atende.</p></div>
       <button type="button" id="syncButton" class="button secondary">Sincronizar próxima página</button></div>
     <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
     <section class="summary" aria-label="Resumo da sincronização">
-      <div><span>Postagens lidas</span><strong id="total">—</strong></div>
+      <div><span>Postagens importadas</span><strong id="total">—</strong></div>
       <div><span>Em revisão</span><strong id="pending">—</strong></div>
       <div><span>Varreduras completas</span><strong id="passes">—</strong></div>
       <div><span>Última atividade</span><strong id="updated">—</strong></div>
     </section>
+    <p id="syncProgress" class="sync-progress" role="status" aria-live="polite"></p>
     <div class="layout">
       <section class="panel" aria-labelledby="reviewTitle"><div class="panel-head"><div><p class="eyebrow">TRIAGEM</p><h2 id="reviewTitle">Nomes para revisão</h2></div><span class="badge">Identidade pendente</span></div>
         <p class="hint">As grafias do remetente são associadas manualmente. O nome registrado no Atende continua intacto.</p>
@@ -41,6 +42,7 @@
       <section class="panel" aria-labelledby="customerTitle"><div class="panel-head"><div><p class="eyebrow">IDENTIDADE</p><h2 id="customerTitle">Clientes padronizados</h2></div></div>
         <label class="field">Buscar cadastro<input id="customerSearch" type="search" placeholder="Nome padronizado"></label>
         <div id="customerList" class="list compact" aria-live="polite"></div>
+        <button type="button" id="moreCustomers" class="text-button" hidden>Ver mais clientes</button>
         <form id="createForm" class="inline-form"><label class="field">Novo cliente padronizado<input id="newName" required maxlength="200" placeholder="Nome comercial único"></label><button class="button" type="submit">Criar cliente</button></form>
       </section>
     </div>

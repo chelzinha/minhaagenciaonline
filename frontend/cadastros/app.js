@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { customers: [], pending: [], selected: null, reviewOffset: 0, resolving: null };
+  const state = { customers: [], pending: [], selected: null, customerOffset: 0, reviewOffset: 0, resolving: null, customerRequest: 0, reviewRequest: 0 };
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const debounce = (fn, ms = 250) => { let timer; return () => { clearTimeout(timer); timer = setTimeout(fn, ms); }; };
   function notice(message, error = false) { const el=$('notice'); el.textContent=message; el.classList.toggle('error', error); el.hidden=false; }
@@ -34,17 +34,30 @@
     $('pending').textContent = Number(data.postings?.pending || 0).toLocaleString('pt-BR');
     $('passes').textContent = Number(data.sync?.completed_passes || 0).toLocaleString('pt-BR');
     $('updated').textContent = data.sync?.updated_at || '—';
+    const cursor = Number(data.sync?.cursor_id || 0);
+    $('syncProgress').textContent = Number(data.sync?.completed_passes || 0) === 0
+      ? `Primeira importação em andamento. Último registro de origem processado: ${cursor.toLocaleString('pt-BR')}. Os cadastros aparecem à medida que as postagens são importadas.`
+      : `Base em atualização periódica. Último registro de origem processado nesta varredura: ${cursor.toLocaleString('pt-BR')}.`;
   }
-  async function loadCustomers() {
+  async function loadCustomers(more = false) {
+    if (!more) { state.customerOffset = 0; state.customers = []; }
+    const request = ++state.customerRequest;
+    const offset = state.customerOffset;
     const q = encodeURIComponent($('customerSearch').value.trim());
-    const data = await api(`/api/customers?q=${q}&limit=100`);
-    state.customers = data.customers;
-    $('customerList').innerHTML = data.customers.length ? data.customers.map(c => `<div class="row"><button type="button" data-customer="${esc(c.id)}"><strong>${esc(c.canonical_name)}</strong><small>${Number(c.posting_count).toLocaleString('pt-BR')} postagens · ${esc(c.status)}</small></button></div>`).join('') : '<div class="empty">Nenhum cadastro encontrado.</div>';
+    const data = await api(`/api/customers?q=${q}&limit=100&offset=${offset}`);
+    if (request !== state.customerRequest) return;
+    state.customers.push(...data.customers);
+    state.customerOffset += data.customers.length;
+    $('customerList').innerHTML = state.customers.length ? state.customers.map(c => `<div class="row"><button type="button" data-customer="${esc(c.id)}"><strong>${esc(c.canonical_name)}</strong><small>${Number(c.posting_count).toLocaleString('pt-BR')} postagens · ${esc(c.status)}</small></button></div>`).join('') : '<div class="empty">Nenhum cadastro encontrado nesta busca.</div>';
+    $('moreCustomers').hidden = data.customers.length < 100;
   }
   async function loadReview(more = false) {
     if (!more) { state.reviewOffset = 0; state.pending = []; }
+    const request = ++state.reviewRequest;
+    const offset = state.reviewOffset;
     const q=encodeURIComponent($('reviewSearch').value.trim());
-    const data=await api(`/api/review?q=${q}&limit=50&offset=${state.reviewOffset}`);
+    const data=await api(`/api/review?q=${q}&limit=50&offset=${offset}`);
+    if (request !== state.reviewRequest) return;
     state.pending.push(...data.pending);
     state.reviewOffset += data.pending.length;
     $('reviewList').innerHTML = state.pending.length ? state.pending.map((p,i)=>`<div class="row"><div><strong>${esc(p.sender_name || '(sem remetente)')}</strong><small>${esc(p.portal_name || '(sem Cliente Portal)')} · ${Number(p.postings).toLocaleString('pt-BR')} postagens · ${Number(p.local_count)} locais</small><small>Exemplo: ${esc(p.sample_local || 'LOCAL vazio')} · contrato ${esc(p.sample_contract || '—')} · cartão ${esc(p.sample_card || '—')}</small></div><button type="button" class="button secondary" data-review="${i}">Revisar</button></div>`).join('') : '<div class="empty">Nenhum nome pendente nesta busca.</div>';
@@ -80,6 +93,7 @@
       $('resolveCustomer').innerHTML='<option value="">Selecione um cadastro</option>'+data.customers.map(c=>`<option value="${esc(c.id)}">${esc(c.canonical_name)}</option>`).join('');
     })));
     $('moreReview').addEventListener('click',()=>task(()=>loadReview(true),$('moreReview')));
+    $('moreCustomers').addEventListener('click',()=>task(()=>loadCustomers(true),$('moreCustomers')));
     $('customerList').addEventListener('click',e=>{const id=e.target.closest('[data-customer]')?.dataset.customer;if(id)task(()=>openCustomer(id));});
     $('reviewList').addEventListener('click',e=>{const idx=e.target.closest('[data-review]')?.dataset.review;if(idx !== undefined) resolve(state.pending[Number(idx)]);});
     $('cancelResolve').addEventListener('click',()=>$('resolveDialog').close());

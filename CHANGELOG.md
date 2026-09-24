@@ -2,12 +2,18 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-24 - Front do Cadastro de Clientes e ativação pendente
+
+- A lista de clientes agora tem paginação, e a tela informa o progresso da primeira importação de postagens do Atende.
+- O Worker inclui a origem exata do preview do PR no CORS e prevê processamento mais rápido na primeira varredura, mantendo intervalos efetivos de dez minutos depois dela.
+- O código do Worker foi enviado à Cloudflare sem endereço público. A ativação do `workers.dev` e do cron foi bloqueada pela revisão automática; o D1 continua sem importação e o front de preview ainda não consulta dados reais.
+
 ## 2026-09-24 - Estrutura do Cadastro de Clientes
 
 - Criada base D1 independente `agf-cadastros`, com `customers`, aliases, projeção de postagens canônicas, vínculos informativos de contrato/cartão, auditoria e cursor de sincronização.
 - Implementados Worker de leitura do Atende, fila de revisão administrativa e frontend `/cadastros/`; adicionado card no painel interno.
 - Identidade por remetente apenas para BALCÃO, GAS SHOPPING METRO e GAS SHOPPING CENTRO FASHION; demais cadastros seguem CLIENTE PORTAL. LOCAL fica por postagem.
-- Esquema aplicado no D1; Worker, frontend e integração do CRM ainda não publicados por esta alteração.
+- Esquema aplicado no D1; o frontend permaneceu apenas no preview do PR e a integração do CRM ainda não foi publicada por esta alteração.
 
 ## 2026-09-11 - Correcao da aba Entregas do /app
 

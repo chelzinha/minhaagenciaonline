@@ -2,7 +2,7 @@
 
 ## Cadastro de Clientes
 
-`frontend/cadastros/` oferece revisão de nomes recebidos, criação e correção da identidade canônica, vínculos de contrato/cartão e separação por LOCAL. Admin com permissão `intra`; dados pelo Worker `agf-cadastros-api`. O card foi adicionado ao `/intra/`; a publicação do frontend e do Worker está pendente. Ver `docs/modulos/cadastros/README.md`.
+`frontend/cadastros/` oferece revisão de nomes recebidos, criação e correção da identidade canônica, vínculos de contrato/cartão e separação por LOCAL. Admin com permissão `intra`; dados pelo Worker `agf-cadastros-api`. O card foi adicionado ao `/intra/`. A lista de clientes é paginada, e o progresso da importação aparece no resumo. O preview da branch existe, mas o Worker ainda não tem endereço público nem cron, então a tela não acessa dados reais. Ver `docs/modulos/cadastros/README.md`.
 
 ## Hospedagem oficial do frontend principal
 

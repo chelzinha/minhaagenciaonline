@@ -320,7 +320,10 @@ export default {
       return cors(json({ok:false,error:(error.status || 500)>=500?'Falha ao processar solicitação.':error.message},error.status || 500),request,env);
     }
   },
-  async scheduled(_event,env,ctx) { ctx.waitUntil((async () => {
+  async scheduled(event,env,ctx) { ctx.waitUntil((async () => {
+    const state = await env.DB.prepare("SELECT completed_passes FROM sync_state WHERE source_system='ATENDE'").first();
+    // Acelera apenas a carga inicial; depois mantém a cadência de dez minutos.
+    if (Number(state?.completed_passes || 0) > 0 && Math.floor(event.scheduledTime / 60000) % 10 !== 0) return;
     for (let i=0; i<20; i++) {
       const result = await syncPage(env);
       if (result.completedPass) break;

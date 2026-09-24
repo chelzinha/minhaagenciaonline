@@ -2,6 +2,10 @@
 
 Documento tecnico em preparacao.
 
+## 2026-09-24 - Preparação do acesso à base de identidade
+
+**Atenção sensível.** O código do Worker de cadastros foi enviado à conta Cloudflare com bindings para leitura do Atende e escrita no D1 `agf-cadastros`. O endereço público e a rotina de sincronização automática não foram ativados após bloqueio de revisão automática. A base continua sem postagens importadas. O Worker exige sessão AGF validada, restringe as correções ao administrador e permite CORS somente para as origens listadas, incluindo o preview específico do PR. Contratos/cartões são sinais de conferência, não chaves automáticas. Antes da ativação, verificar autenticação, LOCAL e volume de registros sem expor dados pessoais nos logs.
+
 ## 2026-09-24 - Base independente de identidade de clientes
 
 Criado o D1 `agf-cadastros` e aplicado o esquema inicial. A projeção planejada lê nomes, contrato/cartão e LOCAL de postagens canônicas do Atende, sem alterar a fonte. Escritas manuais de identidade e vínculos requerem administrador autenticado e são auditadas. Contratos/cartões não são chaves de identificação automática. Worker, frontend e sincronização ainda não publicados nesta mudança; antes da ativação, verificar acesso e comparar LOCAL com a tabela do Atende. Nenhum registro real de cliente foi inserido no novo D1.
