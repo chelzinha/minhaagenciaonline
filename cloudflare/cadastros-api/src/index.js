@@ -501,6 +501,8 @@ export default {
   async scheduled(event, env, ctx) {
     ctx.waitUntil((async () => {
       try {
+        // cron roda a cada minuto; fora da janela de 10 min so trabalha para recuperar a primeira passagem do CRM
+        if (new Date(event.scheduledTime || Date.now()).getUTCMinutes() % 10 !== 0 && (await crmPronto(env.DB)).pronto) return;
         const s = await sincronizar(env, { paginas: 25, orcamentoMs: 20000 });
         const pend = await env.DB.prepare(`SELECT valor FROM cid_estado WHERE chave='motor_pendente'`).first();
         const vazio = await env.DB.prepare(`SELECT COUNT(*) n FROM cid_clientes`).first();

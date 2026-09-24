@@ -15,6 +15,6 @@
     "PREVIEW_ORIGIN_SUFFIX": ""
   },
   // sincroniza o Atende a cada 10 min; a limpeza roda sozinha ao fim de cada passagem com mudanca
-  "triggers": { "crons": ["*/10 * * * *"] },
+  "triggers": { "crons": ["* * * * *"] },
   "observability": { "enabled": true }
 }

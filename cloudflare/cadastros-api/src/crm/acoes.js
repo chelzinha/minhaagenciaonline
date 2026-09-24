@@ -62,6 +62,7 @@ export async function dashboardAcoes(env, p, user) {
 
   const master = await carregarClientes(db, { user });
   const nomeDe = new Map(master.map((m) => [m.CLIENTE_ID, text(m.CLIENTE) || text(m.NOME_REMETENTE_BASE)]));
+  for (const x of await todos(db, `SELECT id, nome FROM cid_clientes`)) if (!nomeDe.get(x.id)) nomeDe.set(x.id, text(x.nome));
   const passaQ = (id) => !q || semAc(nomeDe.get(id) || '').includes(q);
   const vazioSeg = segs && segs.length === 0;                                  // __NONE__ ou "Limpar" no SEGMENTO
   const winPor = new Map((win.results || []).filter((x) => passaQ(x.id)).map((x) => [x.id, { fW: Number(x.v) || 0, qW: Number(x.q) || 0 }]));

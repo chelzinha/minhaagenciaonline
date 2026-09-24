@@ -70,6 +70,20 @@ export async function calcularCrmD1(env, autor = 'SISTEMA') {
   return resumo;
 }
 
+/** Carteira pronta = ha metricas. Enquanto nao ha, informa o andamento da sincronizacao. */
+export async function statusCarteira(env) {
+  const n = await env.DB.prepare(`SELECT COUNT(*) n FROM crm_metricas`).first();
+  if (Number(n?.n || 0) > 0) return { pronta: true };
+  const r = await env.DB.prepare(`SELECT chave, valor FROM cid_estado WHERE chave IN ('sync_cursor','sync_passagem','crm_min_passagem')`).all();
+  const e = Object.fromEntries((r.results || []).map((x) => [x.chave, Number(x.valor || 0)]));
+  let progresso = 100;
+  if ((e.sync_passagem || 0) < (e.crm_min_passagem || 0)) {
+    const m = await env.ATENDE_DB.prepare(`SELECT MAX(id) m FROM atende_postagens_canonicas`).first();
+    progresso = Math.min(99, Math.round(((e.sync_cursor || 0) / Math.max(1, Number(m?.m || 1))) * 100));
+  }
+  return { pronta: false, progresso, mensagem: `Carteira em cálculo (${progresso}%). Os clientes aparecem assim que terminar.` };
+}
+
 /** O CRM so calcula depois de uma passagem completa com as colunas do Atende (intermediador, tipo, subgrupo). */
 export async function crmPronto(db) {
   const r = await db.prepare(`SELECT chave, valor FROM cid_estado WHERE chave IN ('sync_passagem','crm_min_passagem','crm_pendente')`).all();

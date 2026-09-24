@@ -4,6 +4,7 @@
  * Cliente criado no CRM sem postagem (ORIGEM MANUAL) entra com metricas zeradas, como antes.
  */
 import { calcularAcao, midiaDaSubAcao } from '../crm_motor.js';
+import { statusCarteira } from '../crm_persistencia.js';
 import { text, upper, upperNoAccents, nowIso, hoje, diffDays, ymd, novoId, primeiro, falhar, todos, um, insert, update, lote, bumpRev } from './util.js';
 import { locaisPermitidos, localPermitido, lerResponsaveis, resolverResponsavel, CRM_LOCAIS } from './config.js';
 
@@ -144,7 +145,7 @@ export async function carregarProspects(db, { ids = null, user = null } = {}) {
 export async function getCadastro(env, p, user) {
   const tipo = upper(p.tipo || 'CLIENTE');
   if (tipo === 'PROSPECT' || tipo === 'PROSPECTS') return { ok: true, tipo: 'PROSPECT', items: (await carregarProspects(env.DB, { user })).map(projetarProspect) };
-  return { ok: true, tipo: 'CLIENTE', items: (await carregarClientes(env.DB, { user })).map(projetarCliente) };
+  return { ok: true, tipo: 'CLIENTE', items: (await carregarClientes(env.DB, { user })).map(projetarCliente), carteira: await statusCarteira(env) };
 }
 
 // ------------------------------------------------------------ POST clientes
