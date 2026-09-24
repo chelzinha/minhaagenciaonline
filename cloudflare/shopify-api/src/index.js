@@ -181,14 +181,35 @@ function bearerToken(request) {
 
 async function validateAgfCustomer(request, env, customerId) {
   const token = bearerToken(request);
-  const base = requireEnv(env, 'AGF_CORE_API_URL').replace(/\/$/, '');
-  const response = await fetch(`${base}/api/customers/${encodeURIComponent(customerId)}`, {
+  const path = `/api/customers/${encodeURIComponent(customerId)}`;
+  const init = {
+    method: 'GET',
     headers: { Authorization: `Bearer ${token}` }
-  });
-  const data = await response.json().catch(() => null);
+  };
+
+  let response;
+
+  if (env.AGF_CORE && typeof env.AGF_CORE.fetch === 'function') {
+    response = await env.AGF_CORE.fetch(
+      new Request(`https://agf-core.internal${path}`, init)
+    );
+  } else {
+    const base = requireEnv(env, 'AGF_CORE_API_URL').replace(/\/$/, '');
+    response = await fetch(`${base}${path}`, init);
+  }
+
+  const raw = await response.text();
+  let data = null;
+
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    console.error('[AGF_CORE_UPSTREAM]', 'Resposta não JSON', response.status, raw.slice(0, 300));
+  }
+
   if (!response.ok || !data || data.ok === false || !data.customer) {
     const error = new Error((data && data.error) || 'Não foi possível validar o cliente no AGF Core.');
-    error.status = response.status === 403 ? 403 : 401;
+    error.status = [401, 403, 404].includes(response.status) ? response.status : 502;
     throw error;
   }
   if (String(data.customer.status) !== 'ACTIVE') {
