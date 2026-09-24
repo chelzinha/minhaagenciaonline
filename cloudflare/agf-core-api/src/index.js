@@ -60,7 +60,17 @@ function safeJson(value, fallback = '{}') {
   }
 }
 
-function createCustomerId() {
+function parseJsonObject(value) {
+  if (!value) return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function randomId(prefix) {
   const bytes = new Uint8Array(9);
   crypto.getRandomValues(bytes);
 
@@ -74,7 +84,15 @@ function createCustomerId() {
     .replace(/\//g, '_')
     .replace(/=+$/g, '');
 
-  return `cus_${token}`;
+  return `${prefix}_${token}`;
+}
+
+function createCustomerId() {
+  return randomId('cus');
+}
+
+function createIntegrationId() {
+  return randomId('int');
 }
 
 async function parseBody(request) {
@@ -183,6 +201,37 @@ async function listCustomers(url, env) {
   return { customers: result.results || [], limit, offset };
 }
 
+function publicCorreiosIntegration(row) {
+  if (!row) return null;
+  const configuration = parseJsonObject(row.configuration_json);
+  return {
+    id: row.id,
+    provider: 'CORREIOS',
+    status: row.status,
+    displayName: row.display_name || 'Conta Correios',
+    externalAccountId: row.external_account_id || null,
+    contractNumber: configuration.contractNumber || null,
+    postingCard: configuration.postingCard || null,
+    documentNumber: configuration.documentNumber || null,
+    dr: configuration.dr || null,
+    drs: configuration.drs || null,
+    credentialsConfigured: Boolean(row.credentials_ref),
+    updatedAt: row.updated_at || null
+  };
+}
+
+async function getCorreiosIntegration(customerId, env) {
+  const row = await env.DB.prepare(
+    `SELECT id, provider, external_account_id, display_name, status,
+            configuration_json, credentials_ref, created_at, updated_at
+       FROM customer_integrations
+      WHERE customer_id = ? AND provider = 'CORREIOS'
+      ORDER BY updated_at DESC
+      LIMIT 1`
+  ).bind(customerId).first();
+  return publicCorreiosIntegration(row);
+}
+
 async function getCustomer(customerId, env) {
   const customer = await env.DB.prepare('SELECT * FROM customers WHERE id = ?').bind(customerId).first();
   if (!customer) throw Object.assign(new Error('Cliente não encontrado.'), { status: 404 });
@@ -198,7 +247,11 @@ async function getCustomer(customerId, env) {
      ORDER BY m.display_order ASC, m.name ASC`
   ).bind(customerId).all();
 
-  return { customer, modules: modules.results || [] };
+  return {
+    customer,
+    modules: modules.results || [],
+    correios: await getCorreiosIntegration(customerId, env)
+  };
 }
 
 async function createCustomer(request, env, actor) {
@@ -357,6 +410,78 @@ async function setCustomerModules(customerId, request, env, actor) {
   return getCustomer(customerId, env);
 }
 
+async function setCorreiosIntegration(customerId, request, env, actor) {
+  await getCustomer(customerId, env);
+  const body = await parseBody(request);
+
+  const status = cleanText(body.status, 20).toUpperCase() || 'CONNECTED';
+  if (!['CONNECTED','DISCONNECTED','ERROR','DISABLED'].includes(status)) {
+    throw Object.assign(new Error('Status da conta Correios inválido.'), { status: 400 });
+  }
+
+  const configuration = {
+    contractNumber: digits(body.contractNumber, 20) || null,
+    postingCard: digits(body.postingCard, 20) || null,
+    documentNumber: digits(body.documentNumber, 14) || null,
+    dr: cleanText(body.dr, 30).toUpperCase() || null,
+    drs: cleanText(body.drs, 30).toUpperCase() || null
+  };
+
+  const existing = await env.DB.prepare(
+    `SELECT id, credentials_ref
+       FROM customer_integrations
+      WHERE customer_id = ? AND provider = 'CORREIOS'
+      ORDER BY updated_at DESC
+      LIMIT 1`
+  ).bind(customerId).first();
+
+  const integrationId = existing?.id || createIntegrationId();
+  const displayName = cleanText(body.displayName, 120) || 'Conta Correios';
+  const externalAccountId = configuration.contractNumber || null;
+
+  if (existing) {
+    await env.DB.prepare(
+      `UPDATE customer_integrations
+          SET external_account_id = ?,
+              display_name = ?,
+              status = ?,
+              configuration_json = ?,
+              updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`
+    ).bind(
+      externalAccountId,
+      displayName,
+      status,
+      safeJson(configuration),
+      integrationId
+    ).run();
+  } else {
+    await env.DB.prepare(
+      `INSERT INTO customer_integrations (
+         id, customer_id, provider, external_account_id, display_name, status,
+         configuration_json, credentials_ref, created_at, updated_at
+       ) VALUES (?, ?, 'CORREIOS', ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+    ).bind(
+      integrationId,
+      customerId,
+      externalAccountId,
+      displayName,
+      status,
+      safeJson(configuration)
+    ).run();
+  }
+
+  await audit(env, actor, existing ? 'CORREIOS_INTEGRATION_UPDATE' : 'CORREIOS_INTEGRATION_CREATE', 'CUSTOMER_INTEGRATION', integrationId, {
+    customerId,
+    status,
+    contractConfigured: Boolean(configuration.contractNumber),
+    postingCardConfigured: Boolean(configuration.postingCard),
+    documentConfigured: Boolean(configuration.documentNumber)
+  });
+
+  return getCustomer(customerId, env);
+}
+
 async function handleApi(request, env) {
   const url = new URL(request.url);
   const method = request.method.toUpperCase();
@@ -375,6 +500,18 @@ async function handleApi(request, env) {
   }
   if (url.pathname === '/api/customers' && method === 'POST') {
     return json({ ok: true, ...(await createCustomer(request, env, actor)) }, 201);
+  }
+
+  const correiosMatch = url.pathname.match(/^\/api\/customers\/([^/]+)\/integrations\/correios$/);
+  if (correiosMatch) {
+    const customerId = decodeURIComponent(correiosMatch[1]);
+    if (method === 'GET') {
+      await getCustomer(customerId, env);
+      return json({ ok: true, correios: await getCorreiosIntegration(customerId, env) });
+    }
+    if (method === 'PUT') {
+      return json({ ok: true, ...(await setCorreiosIntegration(customerId, request, env, actor)) });
+    }
   }
 
   const match = url.pathname.match(/^\/api\/customers\/([^/]+)(?:\/(modules))?$/);
