@@ -6,7 +6,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "migrate:remote": "wrangler d1 migrations apply agf-cadastros --remote",
-    "test": "node test/motor.test.mjs"
+    "test": "node test/motor.test.mjs && node test/crm_motor.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

@@ -5,6 +5,8 @@
 import { executarMotorD1, emLotes } from './persistencia.js';
 import { sincronizar } from './sincronizacao.js';
 import { REGRAS, MOTIVOS_SUGESTAO, MOTOR_VERSAO, nomeExibicao } from './motor.js';
+import { calcularCrmD1, crmPronto } from './crm_persistencia.js';
+import { CRM_LOCAIS, CRM_MOTOR_VERSAO } from './crm_motor.js';
 
 const ABAS = ['PORTAL', 'BALCAO', 'METRO', 'CF'];
 
@@ -174,6 +176,7 @@ async function definirLocal(request, env, autor) {
       ON CONFLICT(chave) DO UPDATE SET local=excluded.local, autor=excluded.autor, em=CURRENT_TIMESTAMP`).bind(k, it.local, autor));
     stmts.push(env.DB.prepare(`UPDATE cid_clientes SET local_carteira=?, local_fonte='ADMIN', atualizado_em=CURRENT_TIMESTAMP WHERE id=?`).bind(it.local, it.clienteId));
   }
+  stmts.push(env.DB.prepare(`UPDATE cid_estado SET valor='1' WHERE chave='crm_pendente'`));   // curva do LOCAL muda
   await emLotes(env.DB, stmts);
   return { definidos: itens.length, filaLocal: await contarFilaLocal(env) };
 }
@@ -383,6 +386,50 @@ async function renomear(request, env, autor) {
   return { motor: await executarMotorD1(env, autor) };
 }
 
+// ---------------------------------------------------------------- CRM (aba CLIENTES)
+// LOCAIS que o usuario enxerga: admin ve todos; responsavel ve so os LOCAIS vinculados a ele no cadastro de usuarios.
+function locaisDoUsuario(u) {
+  if (String(u.role || '').toLowerCase() === 'admin') return [...CRM_LOCAIS, 'SEM_LOCAL'];
+  let v = u.locais ?? u.crm_locais ?? u.locais_json ?? [];
+  if (typeof v === 'string') { try { v = JSON.parse(v); } catch { v = v.split(','); } }
+  return (Array.isArray(v) ? v : []).map((x) => limpar(x).toUpperCase()).filter((x) => CRM_LOCAIS.includes(x));
+}
+function filtroLocal(url, permitidos) {
+  const pedido = limpar(url.searchParams.get('local')).toUpperCase();
+  const locais = pedido ? permitidos.filter((l) => l === pedido) : permitidos;
+  if (!locais.length) erro('Seu usuario nao esta vinculado a este LOCAL.', 403);
+  return locais;
+}
+async function crmClientes(url, env, u) {
+  const locais = filtroLocal(url, locaisDoUsuario(u));
+  const por = Math.min(200, Math.max(10, Number(url.searchParams.get('por')) || 100));
+  const pagina = Math.max(1, Math.trunc(Number(url.searchParams.get('pagina')) || 1));
+  const cond = [`local IN (${locais.map(() => '?').join(',')})`], binds = [...locais];
+  const acao = limpar(url.searchParams.get('acao')).toUpperCase(), curva = limpar(url.searchParams.get('curva')).toUpperCase();
+  const q = limpar(url.searchParams.get('q')).toUpperCase().slice(0, 80);
+  if (acao) { cond.push('acao = ?'); binds.push(acao); }
+  if (curva) { cond.push('curva = ?'); binds.push(curva); }
+  if (q) { cond.push('upper(nome) LIKE ?'); binds.push(`%${q}%`); }
+  const where = cond.join(' AND ');
+  const [lista, total] = await env.DB.batch([
+    env.DB.prepare(`SELECT dados FROM crm_metricas WHERE ${where} ORDER BY prioridade_rank DESC, score DESC, share DESC, nome LIMIT ? OFFSET ?`).bind(...binds, por, (pagina - 1) * por),
+    env.DB.prepare(`SELECT COUNT(*) n FROM crm_metricas WHERE ${where}`).bind(...binds),
+  ]);
+  return { clientes: (lista.results || []).map((x) => JSON.parse(x.dados)), total: total.results?.[0]?.n || 0, pagina, por, locais };
+}
+async function crmResumo(url, env, u) {
+  const locais = filtroLocal(url, locaisDoUsuario(u));
+  const marcas = locais.map(() => '?').join(',');
+  const [grupos, est] = await env.DB.batch([
+    env.DB.prepare(`SELECT local, acao, curva, COUNT(*) clientes, ROUND(SUM(fat_30d),2) fat_30d FROM crm_metricas WHERE local IN (${marcas}) GROUP BY 1,2,3`).bind(...locais),
+    env.DB.prepare(`SELECT chave, valor, atualizado_em FROM cid_estado WHERE chave IN ('crm_ultimo','crm_pendente','crm_min_passagem','sync_passagem')`),
+  ]);
+  const e = Object.fromEntries((est.results || []).map((x) => [x.chave, x]));
+  return { locais, versao: CRM_MOTOR_VERSAO, grupos: grupos.results || [],
+    ultimoCalculo: e.crm_ultimo ? JSON.parse(e.crm_ultimo.valor) : null, pendente: e.crm_pendente?.valor === '1',
+    aguardandoSincronizacao: Number(e.sync_passagem?.valor || 0) < Number(e.crm_min_passagem?.valor || 0) };
+}
+
 // ---------------------------------------------------------------- CRM
 async function feedCrm(url, env) {
   const depois = Math.max(0, Number(url.searchParams.get('depois')) || 0);
@@ -398,6 +445,8 @@ async function rotear(request, env) {
   const url = new URL(request.url), p = url.pathname, m = request.method;
   if (p === '/health' && m === 'GET') return json({ ok: true, servico: 'agf-cadastros-api', versao: 2, motor: MOTOR_VERSAO });
   if (p === '/api/v2/crm/postagens' && m === 'GET') { await exigirCrm(request, env); return json({ ok: true, ...(await feedCrm(url, env)) }); }
+  if (p === '/api/v2/crm/clientes' && m === 'GET') { const u = await exigirCrm(request, env); return json({ ok: true, ...(await crmClientes(url, env, u)) }); }
+  if (p === '/api/v2/crm/resumo' && m === 'GET') { const u = await exigirCrm(request, env); return json({ ok: true, ...(await crmResumo(url, env, u)) }); }
   if (p === '/api/v2/crm/ids-fundidos' && m === 'GET') {
     await exigirCrm(request, env);
     const r = await env.DB.prepare(`SELECT id_antigo, id_novo, em FROM cid_ids_fundidos`).all();
@@ -417,6 +466,7 @@ async function rotear(request, env) {
   if (p === '/api/v2/fila-local' && m === 'GET') return json({ ok: true, ...(await filaLocal(url, env)) });
   if (p === '/api/v2/definir-local' && m === 'POST') return json({ ok: true, ...(await definirLocal(request, env, autor)) });
   if (p === '/api/v2/motor' && m === 'POST') return json({ ok: true, motor: await executarMotorD1(env, autor) });
+  if (p === '/api/v2/crm/recalcular' && m === 'POST') return json({ ok: true, crm: await calcularCrmD1(env, autor) });
   if (p === '/api/v2/sincronizar' && m === 'POST') {
     const s = await sincronizar(env, { paginas: 10, orcamentoMs: 15000 });
     return json({ ok: true, sincronizacao: s });
@@ -442,6 +492,10 @@ export default {
         const vazio = await env.DB.prepare(`SELECT COUNT(*) n FROM cid_clientes`).first();
         // primeira carga: roda a limpeza assim que houver postagens, sem esperar o fim da passagem
         if (!s.ocupado && pend?.valor === '1' && (s.fimDaPassagem || !Number(vazio?.n))) await executarMotorD1(env, 'SISTEMA');
+        // CRM: recalcula quando algo mudou (postagens, agrupamentos ou LOCAL), sempre depois da limpeza
+        const crm = await crmPronto(env.DB);
+        const motorAinda = await env.DB.prepare(`SELECT valor FROM cid_estado WHERE chave='motor_pendente'`).first();
+        if (!s.ocupado && crm.pronto && crm.pendente && motorAinda?.valor !== '1') await calcularCrmD1(env, 'SISTEMA');
       } catch (e) {
         await env.DB.prepare(`INSERT INTO cid_execucoes(tipo, autor, resumo_json) VALUES('SYNC','SISTEMA',?)`)
           .bind(JSON.stringify({ erro: String(e?.message || e).slice(0, 300) })).run();

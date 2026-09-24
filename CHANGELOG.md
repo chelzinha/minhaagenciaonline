@@ -2,6 +2,14 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-24 - CRM aba CLIENTES: motor no Worker (etapa 1)
+
+### Adicionado
+- `crm_motor.js`: porte fiel do calculo do CLIENTES_MASTER (30/60 dias, curva, acao, subacao, prioridade, midia), com curva por LOCAL da carteira.
+- Teste de paridade contra o Apps Script original: 0 diferencas.
+- Sincronizacao do Atende passa a trazer INTERMEDIADOR, TIPO, subgrupo do servico e estorno (migracao 0102).
+- Tabela `crm_metricas` e rotas `/api/v2/crm/resumo`, `/api/v2/crm/clientes`, `/api/v2/crm/recalcular`.
+
 ## 2026-09-24 - Cadastro de Clientes v2 (ponte Atende para CRM)
 
 ### Adicionado

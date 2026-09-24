@@ -224,6 +224,7 @@ export async function executarMotorD1(env, autor = 'SISTEMA') {
   await db.batch([
     db.prepare(`INSERT INTO cid_execucoes(tipo, autor, resumo_json) VALUES('MOTOR', ?, ?)`).bind(autor, JSON.stringify(resumo)),
     db.prepare(`UPDATE cid_estado SET valor='0', atualizado_em=CURRENT_TIMESTAMP WHERE chave='motor_pendente'`),
+    db.prepare(`INSERT INTO cid_estado(chave, valor) VALUES('crm_pendente','1') ON CONFLICT(chave) DO UPDATE SET valor='1', atualizado_em=CURRENT_TIMESTAMP`),
   ]);
   return resumo;
 }

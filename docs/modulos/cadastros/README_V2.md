@@ -80,3 +80,32 @@ frontend/cadastros/
 ## Como reverter
 
 `npx wrangler rollback` volta o Worker para a v1. As tabelas `cid_*` podem ficar; a v1 não as usa.
+
+## CRM - aba CLIENTES (etapa 1: motor no Worker)
+
+O cálculo que o Apps Script fazia na planilha `CLIENTES_MASTER` agora roda no Worker, sobre as postagens do Visão 360 já ligadas ao cliente deste cadastro.
+
+- Código: `src/crm_motor.js` (regras, porte fiel de `apps-script/base-metro/00_CLIENTES_MASTER_FINAL.js`) e `src/crm_persistencia.js` (leitura e gravação no D1).
+- Tabela: `crm_metricas` (1 linha por cliente, com todas as colunas do antigo CLIENTES_MASTER em `dados`). Migração `0102`.
+- Paridade: `test/crm_motor.test.mjs` roda o original do Apps Script e o portado com os mesmos dados. Resultado: 0 diferenças em 1.706 clientes simulados (curva, ação, subação, prioridade, score, perfil, alerta, mídia e ordem da fila).
+
+### O que mudou em relação ao Apps Script (decidido)
+
+1. Fonte: Visão 360 (`/atende`), não a BASE_TOTAL.
+2. Curva, share do LOCAL e ação são calculados dentro de cada LOCAL da carteira (AGF, BALCAO, METRO). Nunca todos juntos. Cliente sem LOCAL (empate exato) fica em `SEM_LOCAL`, com curva própria.
+3. Tipo de negócio pelas colunas do Atende: INTERMEDIADOR `VR` = VR; `INTERMEDIADOR` = plataforma (todas as plataformas do Atende contam como marketplace, não só as 5 da lista antiga); `PORTAL POSTAL` ou `CONTRATO ECT` = contrato; sem contrato = balcão.
+4. Estorno soma o valor (negativo) mas não conta objeto nem dia ativo.
+5. Reverso = serviço com subgrupo `Reverso` na classificação de serviços do Atende.
+6. As métricas usam todas as postagens do cliente (inclusive em outro LOCAL); a comparação da curva é só com os clientes do mesmo LOCAL.
+
+### Quando recalcula
+
+- Sozinho, no cron de 10 min, depois da limpeza, quando houve mudança (postagens novas, agrupamento, LOCAL definido pelo admin).
+- Na primeira sincronização com o código novo, o Worker recomeça a passagem para preencher as colunas INTERMEDIADOR, TIPO, subgrupo e estorno. O CRM só calcula depois dessa passagem (cerca de 1h30).
+- Manual (admin): `POST /api/v2/crm/recalcular`.
+
+### Rotas
+
+- `GET /api/v2/crm/resumo?local=` - contagem por LOCAL, ação e curva, último cálculo.
+- `GET /api/v2/crm/clientes?local=&acao=&curva=&q=&pagina=&por=` - fila paginada na ordem do CRM (prioridade, score, share, nome).
+- Admin vê os 3 LOCAIS. Responsável vê só os LOCAIS vinculados a ele (etapa 2: vínculo no cadastro de usuários).
