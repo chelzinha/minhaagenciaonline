@@ -165,10 +165,19 @@
     }
 
     els.connectBtn.disabled = true;
-    showMessage('Preparando autorização na Shopify...');
+    showMessage('Conectando à Shopify...');
 
     try {
       const data = await window.AgfShopify.startOAuth(customerId, shop);
+
+      if (data.connected) {
+        const connectedName = data.shop && data.shop.name ? data.shop.name : shop;
+        showMessage('Loja ' + connectedName + ' conectada com sucesso.', 'success');
+        await loadConnections();
+        els.connectBtn.disabled = false;
+        return;
+      }
+
       if (!data.authorizeUrl) throw new Error('A Shopify não retornou uma URL de autorização.');
       window.location.assign(data.authorizeUrl);
     } catch (error) {
