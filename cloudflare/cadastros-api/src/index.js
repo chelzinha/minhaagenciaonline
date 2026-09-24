@@ -128,12 +128,12 @@ async function reconcileNamePrefixes(env) {
       if (existing && existing.customer_id !== id) continue;
       await env.DB.batch([
         env.DB.prepare(`INSERT OR IGNORE INTO customers(id,canonical_name) VALUES(?,?)`).bind(id,match.targetName),
-        env.DB.prepare(`INSERT OR IGNORE INTO customer_aliases(kind,normalized_name,original_name,customer_id,source) VALUES('SENDER',?,?,?,'AUTO_PREFIX')`).bind(match.target,match.targetName,id)
+        env.DB.prepare(`INSERT OR IGNORE INTO customer_aliases(kind,normalized_name,original_name,customer_id,source) VALUES('SENDER',?,?,?,'AUTO_PORTAL')`).bind(match.target,match.targetName,id)
       ]);
     }
     const existingShort = await env.DB.prepare(`SELECT customer_id FROM customer_aliases WHERE kind='SENDER' AND normalized_name=?`).bind(match.short.sender_norm).first();
     if (existingShort && existingShort.customer_id !== id) continue;
-    await env.DB.prepare(`INSERT OR IGNORE INTO customer_aliases(kind,normalized_name,original_name,customer_id,source) VALUES('SENDER',?,?,?,'AUTO_PREFIX')`).bind(match.short.sender_norm,match.short.sender_name,id).run();
+    await env.DB.prepare(`INSERT OR IGNORE INTO customer_aliases(kind,normalized_name,original_name,customer_id,source) VALUES('SENDER',?,?,?,'AUTO_PORTAL')`).bind(match.short.sender_norm,match.short.sender_name,id).run();
     await env.DB.prepare(`UPDATE source_postings SET customer_id=?,resolution='SENDER_ALIAS',updated_at=CURRENT_TIMESTAMP WHERE resolution='PENDING' AND sender_norm=?`).bind(id,match.short.sender_norm).run();
     if (match.kind === 'SENDER') await env.DB.prepare(`UPDATE source_postings SET customer_id=?,resolution='SENDER_ALIAS',updated_at=CURRENT_TIMESTAMP WHERE resolution='PENDING' AND sender_norm=?`).bind(id,match.target).run();
     resolved++;
