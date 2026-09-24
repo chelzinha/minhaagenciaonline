@@ -54,3 +54,11 @@ O CRM ainda lê seu backend atual. Antes de migrar, deve associar sua postagem a
 4. Publicar `frontend/` pela Cloudflare Pages segundo `docs/DEPLOY.md`, testar `/cadastros/` com administrador e negar acesso a usuário comum. O link no `/intra/` entra com este frontend.
 
 O nome da conta Workers foi conferido como `chelzinha`. Não há dados reais de clientes codificados na migration nem seeds de aliases. O D1 é preenchido pela sincronização, sem alteração na origem operacional.
+
+## Agrupamento assistido de identidades (2026-09-24)
+
+O cadastro provisório representa uma grafia importada, não uma identidade validada. A lista oferece as origens CLIENTE PORTAL, BALCÃO, GAS SHOPPING METRO e GAS SHOPPING CENTRO FASHION. Um cliente vinculado a mais de uma origem pode aparecer em mais de uma aba; LOCAL continua por postagem. A ficha sugere cadastros parecidos por tokens, forma compacta e prioridade do Portal. Sugestões **não** juntam nomes automaticamente. O administrador escolhe uma ficha destino, uma origem e confirma o nome em maiúsculas. Se o destino é Portal, mantém-se seu nome por padrão; nos demais casos a tela sugere o nome mais comprido. Para agrupar mais de duas grafias, repetir na mesma ficha destino.
+
+A operação `POST /api/customers/merge` exige admin, IDs distintos e nomes esperados. A transação D1 transfere aliases, postagens (inclusive overrides) e contratos, audita a origem e remove somente a ficha duplicada; o nome recebido no Atende permanece no alias e na postagem. A operação é manual e requer conferência visual para evitar unir pessoas diferentes. A busca pode localizar fichas que não aparecerem nas sugestões. A apresentação usa maiúsculas também para cadastros legados; nomes criados, renomeados ou consolidados passam a ser gravados em maiúsculas. `GET /api/customers?origin=...` pagina cada origem e `GET /api/suggestions?id=...` limita sugestões a 12.
+
+Na ficha, **Onde o nome aparece** escolhe a coluna de origem da grafia (Nome remetente ou Cliente Portal); **Grafia recebida no Atende** guarda exatamente o texto da origem. Estes campos associam uma grafia a uma ficha, enquanto **Agrupar nomes** consolida duas fichas já existentes.
