@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "agf-shopify-api",
   "main": "src/index.js",
@@ -12,6 +12,12 @@
     "PLATFORM_URL": "https://www.minhaagenciaonline.com.br",
     "ALLOWED_ORIGINS": "https://minhaagenciaonline.com.br,https://www.minhaagenciaonline.com.br,http://localhost:8788,http://127.0.0.1:8788"
   },
+  "services": [
+    {
+      "binding": "AGF_CORE",
+      "service": "agf-core-api"
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
@@ -21,4 +27,3 @@
     }
   ]
 }
-
