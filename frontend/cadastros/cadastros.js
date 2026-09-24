@@ -25,7 +25,9 @@
   const dataBr = (s) => (s ? String(s).slice(0, 10).split('-').reverse().join('/') : '-');
 
   // ------------------------------------------------------------ api
-  async function api(caminho, opcoes = {}) {
+  // 401 so leva ao login se o controle de acesso confirmar que a sessao acabou;
+  // falha momentanea de validacao repete a chamada uma vez e mostra o erro, sem tirar a pessoa da tela.
+  async function api(caminho, opcoes = {}, tentativa = 1) {
     if (!API) throw new Error('Endereço da API não configurado (config.js).');
     const token = window.AgfAuth ? window.AgfAuth.getToken() : '';
     const ctrl = new AbortController();
@@ -42,7 +44,15 @@
     } finally { clearTimeout(t); }
     let data = null;
     try { data = await resp.json(); } catch (_) { /* vazio */ }
-    if (resp.status === 401 && window.AgfAuth) { window.AgfAuth.redirectToLogin('sessao'); throw new Error('Sessão expirada.'); }
+    if (resp.status === 401 && window.AgfAuth) {
+      let sessaoValida = false;
+      try { await window.AgfAuth.validate(); sessaoValida = true; }
+      catch (e) {
+        if (e && e.code === 'rejected') { window.AgfAuth.redirectToLogin('sessao'); throw new Error('Sessão expirada. Entre novamente.'); }
+      }
+      if (sessaoValida && tentativa === 1) return api(caminho, opcoes, 2);
+      throw new Error('Não foi possível confirmar seu acesso agora. Tente de novo em instantes.');
+    }
     if (!resp.ok || !data || data.ok === false) throw new Error((data && data.erro) || `Erro ${resp.status} na API.`);
     return data;
   }

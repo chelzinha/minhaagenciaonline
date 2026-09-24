@@ -33,17 +33,48 @@ function comCors(resp, request, env) {
 }
 async function corpo(request) { try { return await request.json(); } catch { return erro('JSON invalido.'); } }
 
-async function usuarioDaSessao(request, env) {
-  const token = (request.headers.get('Authorization') || '').match(/^Bearer\s+(.+)$/i)?.[1];
-  if (!token) erro('Faca login para continuar.', 401);
-  if (!env.AGF_AUTH_API_URL) erro('Validacao de sessao nao configurada.', 503);
+// Sessao: valida no Apps Script de autenticacao e guarda o resultado por alguns minutos.
+// Sem cache, cada clique disparava varias validacoes simultaneas e o Apps Script recusava parte delas,
+// o que virava 401 e mandava o usuario de volta ao portal.
+const SESSAO_TTL_MS = 5 * 60 * 1000;
+const sessoes = new Map();                       // cache do isolate: hash do token -> { user, ate }
+
+async function hashToken(token) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+async function validarNoAuth(env, token) {
   let resp, data;
   try {
     resp = await fetch(env.AGF_AUTH_API_URL, { method: 'POST', headers: { 'content-type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'validate', token }), redirect: 'follow' });
     data = await resp.json();
-  } catch { erro('Nao foi possivel validar a sessao.', 503); }
-  if (!resp.ok || !data || data.ok === false || !data.user) erro('Sessao invalida.', 401);
-  return data.user;
+  } catch { return { falhaTemporaria: true }; }
+  if (resp.ok && data && data.ok !== false && data.user) return { user: data.user };
+  return { recusado: true };
+}
+async function usuarioDaSessao(request, env) {
+  const token = (request.headers.get('Authorization') || '').match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!token) erro('Faca login para continuar.', 401);
+  if (!env.AGF_AUTH_API_URL) erro('Validacao de sessao nao configurada.', 503);
+  const h = await hashToken(token);
+  const agora = Date.now();
+  const mem = sessoes.get(h);
+  if (mem && mem.ate > agora) return mem.user;
+  const cacheKey = new Request(`https://sessao.agf-cadastros.local/${h}`);
+  const cache = typeof caches !== 'undefined' ? caches.default : null;
+  if (cache) {
+    const hit = await cache.match(cacheKey);
+    if (hit) { const user = await hit.json(); sessoes.set(h, { user, ate: agora + SESSAO_TTL_MS }); return user; }
+  }
+  let r = await validarNoAuth(env, token);
+  if (!r.user) { await new Promise((ok) => setTimeout(ok, 600)); r = await validarNoAuth(env, token); }   // 2a tentativa
+  if (r.user) {
+    sessoes.set(h, { user: r.user, ate: agora + SESSAO_TTL_MS });
+    if (cache) await cache.put(cacheKey, new Response(JSON.stringify(r.user), { headers: { 'content-type': 'application/json', 'cache-control': `max-age=${SESSAO_TTL_MS / 1000}` } }));
+    return r.user;
+  }
+  if (r.falhaTemporaria) erro('Nao foi possivel validar a sessao agora. Tente de novo em instantes.', 503);
+  erro('Sessao invalida.', 401);
 }
 async function exigirAdmin(request, env) {
   const u = await usuarioDaSessao(request, env);
