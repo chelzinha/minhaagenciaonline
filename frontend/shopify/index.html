@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Conector Shopify | Plataforma AGF</title>
   <link rel="stylesheet" href="/shared/ui/agf-ui.css" />
-  <link rel="stylesheet" href="./shopify.css" />
+  <link rel="stylesheet" href="./shopify.css?v=20260924-1" />
 
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
@@ -15,8 +15,8 @@
   <script src="/shared/auth/agf-route-guard.js"></script>
   <script src="/shared/core/agf-core-config.js"></script>
   <script src="/shared/core/agf-core-client.js"></script>
-  <script src="/shared/shopify/agf-shopify-config.js"></script>
-  <script src="/shared/shopify/agf-shopify-client.js"></script>
+  <script src="/shared/shopify/agf-shopify-config.js?v=20260924-1"></script>
+  <script src="/shared/shopify/agf-shopify-client.js?v=20260924-1"></script>
 </head>
 <body>
   <header class="shopify-topbar">
@@ -88,7 +88,7 @@
     </section>
   </main>
 
-  <script src="./shopify.js"></script>
+  <script src="./shopify.js?v=20260924-1"></script>
   <script>
     if (document.documentElement.classList.contains('agf-auth-ready')) {
       window.dispatchEvent(new CustomEvent('agf:auth-ready', { detail: { cached: true, replayed: true } }));
