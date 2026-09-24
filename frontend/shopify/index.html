@@ -72,6 +72,20 @@
       <div id="connectionsEmpty" class="empty-state">Selecione um cliente para consultar as lojas conectadas.</div>
       <div id="connectionsList" class="connections-list" hidden></div>
     </section>
+
+    <section class="shopify-card">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Pedidos</span>
+          <h2>Pedidos recentes da Shopify</h2>
+          <p id="ordersShopLabel" class="section-note">Selecione uma loja vinculada para carregar os pedidos.</p>
+        </div>
+        <button id="refreshOrdersBtn" class="btn-secondary" type="button" disabled>Atualizar pedidos</button>
+      </div>
+
+      <div id="ordersEmpty" class="empty-state">Nenhuma loja selecionada.</div>
+      <div id="ordersList" class="orders-list" hidden></div>
+    </section>
   </main>
 
   <script src="./shopify.js"></script>
