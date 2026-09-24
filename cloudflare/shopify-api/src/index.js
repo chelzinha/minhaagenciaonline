@@ -80,6 +80,14 @@ function normalizeLimit(value, fallback = 20, max = 50) {
   return Math.min(Math.max(parsed, 1), max);
 }
 
+function normalizeOrderId(value) {
+  const orderId = String(value || '').trim();
+  if (!/^gid:\/\/shopify\/Order\/\d+$/.test(orderId)) {
+    throw Object.assign(new Error('order_id Shopify inválido.'), { status: 400 });
+  }
+  return orderId;
+}
+
 function base64Url(bytes) {
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -426,6 +434,12 @@ async function graphql(shop, accessToken, query, variables, env) {
   const data = await response.json().catch(() => null);
   if (!response.ok || !data || data.errors) {
     console.error('[SHOPIFY_GRAPHQL]', shop, response.status, data?.errors || data);
+    const denied = Array.isArray(data?.errors)
+      ? data.errors.find((item) => item?.extensions?.code === 'ACCESS_DENIED')
+      : null;
+    if (denied) {
+      throw Object.assign(new Error('A Shopify bloqueou o acesso aos dados solicitados. Verifique as permissões de dados protegidos do app.'), { status: 403 });
+    }
     throw Object.assign(new Error('Falha ao consultar a Shopify.'), { status: response.status === 401 ? 401 : 502 });
   }
   return data.data;
@@ -481,6 +495,172 @@ const RECENT_ORDERS_QUERY = `
     }
   }
 `;
+
+const ORDER_DETAIL_QUERY = `
+  query OrderDetail($id: ID!) {
+    order(id: $id) {
+      id
+      legacyResourceId
+      name
+      createdAt
+      processedAt
+      displayFinancialStatus
+      displayFulfillmentStatus
+      requiresShipping
+      currentTotalWeight
+      email
+      phone
+      note
+      customAttributes {
+        key
+        value
+      }
+      shippingAddress {
+        name
+        firstName
+        lastName
+        company
+        address1
+        address2
+        city
+        province
+        provinceCode
+        zip
+        country
+        countryCodeV2
+        phone
+      }
+      shippingLine {
+        title
+        code
+        source
+        carrierIdentifier
+        originalPriceSet {
+          shopMoney {
+            amount
+            currencyCode
+          }
+        }
+      }
+      totalPriceSet {
+        shopMoney {
+          amount
+          currencyCode
+        }
+      }
+      lineItems(first: 50) {
+        nodes {
+          id
+          name
+          title
+          quantity
+          currentQuantity
+          sku
+          requiresShipping
+          customAttributes {
+            key
+            value
+          }
+          originalUnitPriceSet {
+            shopMoney {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+function normalizedAttributeKey(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function findDocument(customAttributes) {
+  const accepted = new Set(['CPFCNPJ', 'CPF', 'CNPJ']);
+  const item = (customAttributes || []).find((attribute) => accepted.has(normalizedAttributeKey(attribute?.key)));
+  if (!item?.value) return null;
+  const value = String(item.value).trim();
+  const digits = value.replace(/\D/g, '');
+  return {
+    value,
+    digits: digits || null,
+    type: digits.length === 11 ? 'CPF' : (digits.length === 14 ? 'CNPJ' : null),
+    sourceKey: item.key || null
+  };
+}
+
+function normalizeOrderDetail(order) {
+  const address = order.shippingAddress || null;
+  const document = findDocument(order.customAttributes);
+  const shippingLine = order.shippingLine || null;
+  const lineItems = (order.lineItems?.nodes || []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    title: item.title || null,
+    quantity: item.quantity,
+    currentQuantity: item.currentQuantity,
+    sku: item.sku || null,
+    requiresShipping: Boolean(item.requiresShipping),
+    unitPrice: item.originalUnitPriceSet?.shopMoney || null,
+    customAttributes: item.customAttributes || []
+  }));
+
+  return {
+    order: {
+      id: order.id,
+      legacyResourceId: order.legacyResourceId || null,
+      name: order.name,
+      createdAt: order.createdAt,
+      processedAt: order.processedAt || null,
+      financialStatus: order.displayFinancialStatus || null,
+      fulfillmentStatus: order.displayFulfillmentStatus || null,
+      requiresShipping: Boolean(order.requiresShipping),
+      total: order.totalPriceSet?.shopMoney || null,
+      totalWeightGrams: Number(order.currentTotalWeight || 0),
+      note: order.note || null,
+      customAttributes: order.customAttributes || [],
+      lineItems
+    },
+    shipmentDraft: {
+      recipient: {
+        name: address?.name || [address?.firstName, address?.lastName].filter(Boolean).join(' ') || null,
+        email: order.email || null,
+        phone: address?.phone || order.phone || null,
+        document
+      },
+      address: address ? {
+        company: address.company || null,
+        address1: address.address1 || null,
+        address2: address.address2 || null,
+        city: address.city || null,
+        province: address.province || null,
+        provinceCode: address.provinceCode || null,
+        postalCode: address.zip || null,
+        country: address.country || null,
+        countryCode: address.countryCodeV2 || null
+      } : null,
+      shipping: shippingLine ? {
+        title: shippingLine.title || null,
+        code: shippingLine.code || null,
+        source: shippingLine.source || null,
+        carrierIdentifier: shippingLine.carrierIdentifier || null,
+        price: shippingLine.originalPriceSet?.shopMoney || null
+      } : null,
+      package: {
+        weightGrams: Number(order.currentTotalWeight || 0),
+        dimensions: null,
+        dimensionsSource: null
+      },
+      items: lineItems
+    }
+  };
+}
 
 async function connectOwnOrgStore(request, env, customerId, shop) {
   await validateAgfCustomer(request, env, customerId);
@@ -621,6 +801,33 @@ async function listOrders(request, url, env) {
   });
 }
 
+async function getOrderDetail(request, url, env) {
+  const shop = normalizeShop(url.searchParams.get('shop'));
+  const orderId = normalizeOrderId(url.searchParams.get('order_id'));
+  const row = await env.DB.prepare(
+    'SELECT customer_id, status FROM shopify_shops WHERE shop_domain = ?'
+  ).bind(shop).first();
+
+  if (!row) throw Object.assign(new Error('Loja não vinculada.'), { status: 404 });
+  if (row.status !== 'ACTIVE') throw Object.assign(new Error('Loja Shopify não está ativa.'), { status: 409 });
+
+  await validateAgfCustomer(request, env, row.customer_id);
+  const token = await accessTokenForShop(shop, env);
+  const data = await graphql(shop, token, ORDER_DETAIL_QUERY, { id: orderId }, env);
+  if (!data?.order) throw Object.assign(new Error('Pedido não encontrado na Shopify.'), { status: 404 });
+
+  await env.DB.prepare(
+    'UPDATE shopify_shops SET last_verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE shop_domain = ?'
+  ).bind(shop).run();
+
+  const detail = normalizeOrderDetail(data.order);
+  return json({
+    ok: true,
+    shop,
+    ...detail
+  });
+}
+
 async function testConnection(request, env) {
   const body = await parseBody(request);
   const shop = normalizeShop(body.shop);
@@ -649,6 +856,7 @@ async function handleApi(request, env) {
   if (url.pathname === '/api/shopify/auth/callback' && method === 'GET') return oauthCallback(url, env);
   if (url.pathname === '/api/shopify/connections' && method === 'GET') return listConnections(request, url, env);
   if (url.pathname === '/api/shopify/orders' && method === 'GET') return listOrders(request, url, env);
+  if (url.pathname === '/api/shopify/order' && method === 'GET') return getOrderDetail(request, url, env);
   if (url.pathname === '/api/shopify/test' && method === 'POST') return testConnection(request, env);
 
   return json({ ok: false, error: 'Rota não encontrada.' }, 404);
