@@ -5,7 +5,8 @@
     initialized: false,
     customers: [],
     selectedCustomerId: '',
-    selectedShop: ''
+    selectedShop: '',
+    selectedOrderId: ''
   };
 
   const els = {};
@@ -23,6 +24,10 @@
     els.ordersShopLabel = document.getElementById('ordersShopLabel');
     els.ordersEmpty = document.getElementById('ordersEmpty');
     els.ordersList = document.getElementById('ordersList');
+    els.orderDetailCard = document.getElementById('orderDetailCard');
+    els.orderDetailTitle = document.getElementById('orderDetailTitle');
+    els.orderDetailContent = document.getElementById('orderDetailContent');
+    els.closeOrderDetailBtn = document.getElementById('closeOrderDetailBtn');
   }
 
   function showMessage(message, type) {
@@ -71,6 +76,40 @@
       .toLowerCase()
       .replace(/_/g, ' ')
       .replace(/^./, (char) => char.toUpperCase());
+  }
+
+  function appendText(parent, tag, text, className) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    node.textContent = text == null || text === '' ? '—' : String(text);
+    parent.appendChild(node);
+    return node;
+  }
+
+  function detailBlock(title, fields) {
+    const block = document.createElement('section');
+    block.className = 'detail-block';
+    appendText(block, 'h3', title);
+
+    const grid = document.createElement('div');
+    grid.className = 'detail-grid';
+
+    for (const field of fields) {
+      const item = document.createElement('div');
+      item.className = 'detail-field';
+      appendText(item, 'span', field.label, 'detail-label');
+      appendText(item, 'strong', field.value, 'detail-value');
+      grid.appendChild(item);
+    }
+
+    block.appendChild(grid);
+    return block;
+  }
+
+  function closeOrderDetail() {
+    state.selectedOrderId = '';
+    els.orderDetailCard.hidden = true;
+    els.orderDetailContent.innerHTML = '';
   }
 
   async function loadEligibleCustomers() {
@@ -180,6 +219,7 @@
     els.ordersList.hidden = true;
     els.ordersEmpty.hidden = false;
     els.ordersEmpty.textContent = 'Nenhuma loja selecionada.';
+    closeOrderDetail();
   }
 
   function renderOrders(orders) {
@@ -189,6 +229,7 @@
       els.ordersList.hidden = true;
       els.ordersEmpty.hidden = false;
       els.ordersEmpty.textContent = 'Nenhum pedido recente foi retornado pela Shopify.';
+      closeOrderDetail();
       return;
     }
 
@@ -217,8 +258,13 @@
 
       const status = document.createElement('div');
       status.className = 'order-statuses';
-      status.innerHTML = '<span>Financeiro: <strong>' + statusLabel(order.financialStatus) + '</strong></span>' +
-        '<span>Expedição: <strong>' + statusLabel(order.fulfillmentStatus) + '</strong></span>';
+      const financial = document.createElement('span');
+      financial.append('Financeiro: ');
+      appendText(financial, 'strong', statusLabel(order.financialStatus));
+      const fulfillment = document.createElement('span');
+      fulfillment.append('Expedição: ');
+      appendText(fulfillment, 'strong', statusLabel(order.fulfillmentStatus));
+      status.append(financial, fulfillment);
 
       const items = document.createElement('div');
       items.className = 'order-items';
@@ -232,8 +278,117 @@
         }).join(' | ');
       }
 
-      row.append(header, status, items);
+      const actions = document.createElement('div');
+      actions.className = 'order-actions';
+      const detailBtn = document.createElement('button');
+      detailBtn.type = 'button';
+      detailBtn.className = 'btn-secondary';
+      detailBtn.textContent = 'Abrir pedido';
+      detailBtn.addEventListener('click', () => loadOrderDetail(order.id, detailBtn));
+      actions.appendChild(detailBtn);
+
+      row.append(header, status, items, actions);
       els.ordersList.appendChild(row);
+    }
+  }
+
+  function renderOrderDetail(data) {
+    const order = data.order || {};
+    const draft = data.shipmentDraft || {};
+    const recipient = draft.recipient || {};
+    const address = draft.address || {};
+    const shipping = draft.shipping || {};
+    const packageData = draft.package || {};
+    const documentData = recipient.document || null;
+
+    els.orderDetailTitle.textContent = (order.name || 'Pedido') + ' · prévia de expedição';
+    els.orderDetailContent.innerHTML = '';
+
+    const statusBlock = detailBlock('Pedido', [
+      { label: 'Criado em', value: formatDate(order.createdAt) },
+      { label: 'Financeiro', value: statusLabel(order.financialStatus) },
+      { label: 'Expedição', value: statusLabel(order.fulfillmentStatus) },
+      { label: 'Total', value: formatMoney(order.total) },
+      { label: 'Peso total', value: packageData.weightGrams ? packageData.weightGrams + ' g' : 'Não informado' },
+      { label: 'Dimensões', value: packageData.dimensions ? String(packageData.dimensions) : 'Não fornecidas pela Shopify' }
+    ]);
+
+    const documentLabel = documentData
+      ? ((documentData.type ? documentData.type + ': ' : '') + (documentData.value || documentData.digits || '—'))
+      : 'Não encontrado';
+
+    const recipientBlock = detailBlock('Destinatário', [
+      { label: 'Nome', value: recipient.name || 'Não informado' },
+      { label: 'CPF/CNPJ', value: documentLabel },
+      { label: 'E-mail', value: recipient.email || 'Não informado' },
+      { label: 'Telefone', value: recipient.phone || 'Não informado' }
+    ]);
+
+    const addressBlock = detailBlock('Endereço de entrega', [
+      { label: 'Endereço', value: address.address1 || 'Não informado' },
+      { label: 'Complemento', value: address.address2 || '—' },
+      { label: 'Cidade', value: address.city || 'Não informado' },
+      { label: 'UF', value: address.provinceCode || address.province || 'Não informado' },
+      { label: 'CEP', value: address.postalCode || 'Não informado' },
+      { label: 'País', value: address.countryCode || address.country || 'Não informado' }
+    ]);
+
+    const shippingBlock = detailBlock('Frete Shopify', [
+      { label: 'Opção', value: shipping.title || 'Não informado' },
+      { label: 'Código', value: shipping.code || '—' },
+      { label: 'Origem da tarifa', value: shipping.source || '—' },
+      { label: 'Valor do frete', value: formatMoney(shipping.price) }
+    ]);
+
+    const itemsBlock = document.createElement('section');
+    itemsBlock.className = 'detail-block detail-block-wide';
+    appendText(itemsBlock, 'h3', 'Itens');
+    const itemsList = document.createElement('div');
+    itemsList.className = 'detail-items';
+    const items = Array.isArray(draft.items) ? draft.items : [];
+
+    if (!items.length) {
+      appendText(itemsList, 'div', 'Nenhum item retornado.', 'detail-item');
+    } else {
+      for (const item of items) {
+        const itemRow = document.createElement('div');
+        itemRow.className = 'detail-item';
+        const itemMain = document.createElement('div');
+        appendText(itemMain, 'strong', item.quantity + '× ' + (item.name || item.title || 'Item'));
+        appendText(itemMain, 'span', item.sku ? 'SKU ' + item.sku : 'SKU não informado', 'detail-item-meta');
+        appendText(itemRow, 'strong', formatMoney(item.unitPrice), 'detail-item-price');
+        itemRow.prepend(itemMain);
+        itemsList.appendChild(itemRow);
+      }
+    }
+    itemsBlock.appendChild(itemsList);
+
+    const warning = document.createElement('div');
+    warning.className = 'detail-warning';
+    warning.textContent = 'Esta tela apenas confere os dados recebidos da Shopify. Ainda não cria PPN, PLP ou etiqueta nos Correios.';
+
+    els.orderDetailContent.append(statusBlock, recipientBlock, addressBlock, shippingBlock, itemsBlock, warning);
+    els.orderDetailCard.hidden = false;
+    els.orderDetailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function loadOrderDetail(orderId, button) {
+    if (!state.selectedShop || !orderId) return;
+
+    const previous = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Abrindo...';
+    state.selectedOrderId = orderId;
+
+    try {
+      const data = await window.AgfShopify.getOrder(state.selectedShop, orderId);
+      renderOrderDetail(data);
+    } catch (error) {
+      showMessage(error.message || 'Não foi possível abrir o pedido.', 'error');
+      closeOrderDetail();
+    } finally {
+      button.disabled = false;
+      button.textContent = previous;
     }
   }
 
@@ -275,6 +430,7 @@
       return;
     }
 
+    if (state.selectedShop !== shop) closeOrderDetail();
     state.selectedShop = shop;
     els.ordersShopLabel.textContent = shop + ' · últimos pedidos disponíveis para o app';
     els.refreshOrdersBtn.disabled = true;
@@ -373,6 +529,7 @@
     els.connectBtn.addEventListener('click', startConnection);
     els.refreshBtn.addEventListener('click', loadConnections);
     els.refreshOrdersBtn.addEventListener('click', () => loadOrders());
+    els.closeOrderDetailBtn.addEventListener('click', closeOrderDetail);
     els.shopInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         event.preventDefault();
