@@ -7,7 +7,7 @@
   const LOCAL_NOME = { AGF: 'AGF', BALCAO: 'BALCÃO', METRO: 'METRÔ', '': 'Sem LOCAL' };
   const LOCAL_COR = { AGF: 'var(--l-agf)', BALCAO: 'var(--l-balcao)', METRO: 'var(--l-metro)', '': 'var(--l-vazio)' };
   const REGRA_TXT = {
-    PORTAL: 'Cliente do Portal', NOME_UNICO: 'Nome base', DECISAO_MANUAL: 'Agrupado manualmente', DECISAO_PLANILHA: 'Planilha (decisão manual antiga)',
+    PORTAL: 'Cliente do Portal', NOME_UNICO: 'Mesmo nome depois da limpeza', DECISAO_MANUAL: 'Agrupado manualmente', DECISAO_PLANILHA: 'Planilha (decisão manual antiga)',
     IGUAL_PORTAL: 'Mesmo nome do Portal', SEM_ESPACO: 'Mesmo nome sem espaço/pontuação', MESMO_CNPJ_RAIZ: 'Mesmo CNPJ raiz',
     NOME_CORTADO: 'Nome cortado pelo sistema', MESMAS_PALAVRAS: 'Mesmas palavras', GRAFIA_QUASE_IGUAL: 'Erro de digitação mínimo',
   };
@@ -175,6 +175,9 @@
     const c = r.cliente, el = $('ficha');
     const ehPortal = !!c.portal_chave;
     const totL = r.locais.reduce((s, l) => s + l.postagens, 0) || 1;
+    const primeiraDoNo = new Map();
+    for (const g of r.grafias) if (!primeiraDoNo.has(g.chave)) primeiraDoNo.set(g.chave, g);
+    const nosDistintos = primeiraDoNo.size;
     const fonte = ehPortal ? '<span class="chip portal"><span class="material-symbols-rounded">verified</span>Nome do Portal</span>'
       : c.fonte_nome === 'MANUAL' ? '<span class="chip manual">Nome corrigido manualmente</span>' : '<span class="chip">Nome mais completo recebido</span>';
     el.innerHTML = `
@@ -201,10 +204,11 @@
           <span class="r"><b>${num(l.postagens)}</b></span><span class="r">${brl(l.valor)}</span></div>`).join('') || '<div class="f-sub">Sem postagens.</div>'}
       </div>
       <div class="f-sec"><h3><span class="material-symbols-rounded">spellcheck</span>Grafias recebidas no Atende <em>${r.grafias.length}</em></h3>
+        ${r.grafias.length > 1 ? `<p class="f-sub" style="margin:-4px 0 8px"><span class="material-symbols-rounded" style="font-size:14px;color:var(--c-ok)">check_circle</span> Todas já estão agrupadas neste cliente. Use <b>Separar</b> só se alguma não for dele.</p>` : ''}
         <table class="f-tbl"><thead><tr><th>Grafia recebida</th><th class="r">Post.</th><th></th></tr></thead><tbody>
         ${r.grafias.map((g) => `<tr><td><div class="f-graf">${esc(g.grafia)}</div><div class="f-sub">${ORIGEM_TXT[g.origem] || g.origem} · ${REGRA_TXT[g.regra] || g.regra} · última ${dataBr(g.ultima)}</div></td>
           <td class="n">${num(g.postagens)}</td>
-          <td class="r">${r.grafias.length > 1 && !(ehPortal && g.origem === 'PORTAL') ? `<button type="button" class="cad-btn ghost" data-tirar="${esc(g.chave)}" title="Esta grafia não é deste cliente"><span class="material-symbols-rounded">call_split</span></button>` : ''}</td></tr>`).join('')}
+          <td class="r">${nosDistintos > 1 && primeiraDoNo.get(g.chave) === g && !(ehPortal && g.origem === 'PORTAL') ? `<button type="button" class="cad-btn ghost" data-tirar="${esc(g.chave)}" title="Separar este nome (e as grafias iguais a ele) deste cliente"><span class="material-symbols-rounded">call_split</span>Separar</button>` : ''}</td></tr>`).join('')}
         </tbody></table>
       </div>
       <div class="f-sec"><h3><span class="material-symbols-rounded">description</span>Contratos observados <em>${r.contratos.length}</em></h3>
