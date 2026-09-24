@@ -4,7 +4,7 @@ Documento tecnico em preparacao.
 
 ## 2026-09-24 - Ativação autorizada da sincronização de identidade
 
-**Atenção sensível.** Após autorização explícita da gestora, o Worker `agf-cadastros-api` passou a ter endereço `workers.dev` e cron ativo. Ele lê as postagens canônicas do D1 do Atende e grava projeção com nome recebido, Cliente Portal, LOCAL, contrato/cartão e valor no D1 `agf-cadastros`. `/health` é público; as rotas de dados exigem Bearer validado na autenticação AGF, e as rotas de correção exigem administrador. A importação inicial e a comparação de LOCAL devem ser conferidas antes de integrar o front à produção. Nenhum segredo foi incluído no repositório.
+**Atenção sensível.** Após autorização explícita da gestora, o Worker `agf-cadastros-api` passou a ter endereço `workers.dev` e cron ativo. Ele lê as postagens canônicas do D1 do Atende e grava projeção com nome recebido, Cliente Portal, LOCAL, contrato/cartão e valor no D1 `agf-cadastros`. `/health` é público; as rotas de dados exigem Bearer validado na autenticação AGF, e as rotas de correção exigem administrador. A importação inicial e a comparação de LOCAL devem ser conferidas antes de integrar o front à produção. Nenhum segredo foi incluído no repositório. Para diagnóstico, o cron marca a tentativa no cursor e grava apenas mensagem de erro técnico limitada a 240 caracteres no D1 administrativo; a revisão automática rejeitou ativar logs integrais de invocação por envolver dados de clientes.
 
 ## 2026-09-24 - Preparação do acesso à base de identidade
 

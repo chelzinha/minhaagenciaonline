@@ -321,12 +321,26 @@ export default {
     }
   },
   async scheduled(event,env,ctx) { ctx.waitUntil((async () => {
-    const state = await env.DB.prepare("SELECT completed_passes FROM sync_state WHERE source_system='ATENDE'").first();
-    // Acelera apenas a carga inicial; depois mantém a cadência de dez minutos.
-    if (Number(state?.completed_passes || 0) > 0 && Math.floor(event.scheduledTime / 60000) % 10 !== 0) return;
-    for (let i=0; i<20; i++) {
-      const result = await syncPage(env);
-      if (result.completedPass) break;
+    try {
+      const state = await env.DB.prepare("SELECT cursor_id,completed_passes FROM sync_state WHERE source_system='ATENDE'").first();
+      if (!state) throw new Error('Cursor de sincronização ausente.');
+      // Marca a primeira tentativa sem registrar dados da postagem ou token.
+      if (Number(state.completed_passes) === 0 && Number(state.cursor_id) === 0) {
+        await env.DB.prepare("UPDATE sync_state SET updated_at=CURRENT_TIMESTAMP WHERE source_system='ATENDE'").run();
+      }
+      // Acelera apenas a carga inicial; depois mantém a cadência de dez minutos.
+      if (Number(state.completed_passes) > 0 && Math.floor(event.scheduledTime / 60000) % 10 !== 0) return;
+      for (let i=0; i<20; i++) {
+        const result = await syncPage(env);
+        if (result.completedPass) break;
+      }
+    } catch (error) {
+      // Diagnóstico restrito ao D1 administrativo; não grava payloads da origem.
+      const message = String(error?.message || 'Falha desconhecida').slice(0, 240);
+      await env.DB.prepare(`INSERT INTO audit_log(actor,action,entity_type,entity_id,before_json,after_json)
+        VALUES('SYSTEM','SYNC_ERROR','sync_state','ATENDE','{}',?)`)
+        .bind(JSON.stringify({ message })).run();
+      throw error;
     }
   })()); }
 };

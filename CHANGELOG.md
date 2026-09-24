@@ -7,6 +7,7 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 - Após autorização da gestora, habilitados o endereço público `agf-cadastros-api.chelzinha.workers.dev` e o cron configurado em `wrangler.jsonc`.
 - `/health` responde 200; `/api/status` sem sessão responde 401; preflight CORS do preview específico responde 204 com a origem correta.
 - Primeira importação e conferência de `LOCAL` em andamento. A tela permanece apenas no preview do PR até validação da base e merge controlado.
+- Instrumentação mínima do cron: marca a primeira tentativa no cursor e registra somente a mensagem de erro técnico no D1 administrativo. A coleta ampla de logs não foi ativada.
 
 ## 2026-09-24 - Front do Cadastro de Clientes e ativação pendente
 
