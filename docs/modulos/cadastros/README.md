@@ -2,7 +2,7 @@
 
 ## Escopo e estado
 
-Módulo independente em `frontend/cadastros/` e `cloudflare/cadastros-api/`, com D1 `agf-cadastros`. O D1 foi criado e o esquema inicial aplicado em 2026-09-24. O código do Worker foi enviado à conta Cloudflare, mas o endereço `workers.dev` e o cron não foram ativados. O frontend está no preview do PR, sem acesso à API, e ainda não foi integrado à `main`. A integração de leitura pelo CRM existente será uma etapa separada. Nada é gravado no D1 do Atende, no RAW, no Apps Script do CRM ou no `agf-core`.
+Módulo independente em `frontend/cadastros/` e `cloudflare/cadastros-api/`, com D1 `agf-cadastros`. O D1 foi criado e o esquema inicial aplicado em 2026-09-24. O Worker e o cron foram ativados após autorização da gestora; o frontend está no preview do PR e ainda não foi integrado à `main`. A primeira importação está em conferência. A integração de leitura pelo CRM existente será uma etapa separada. Nada é gravado no D1 do Atende, no RAW, no Apps Script do CRM ou no `agf-core`.
 
 Esta base cuida de **identidade**, não de ficha comercial: `customers` traz um nome padronizado estável; aliases, vínculos conferidos de contrato/cartão e referências às postagens canônicas permitem identificar e revisar esse cliente. Endereço, contato, documento e estágios do CRM ficam fora dela.
 
@@ -33,7 +33,7 @@ Cada `source_postings` corresponde a um `r.id` da view `atende_postagens_canonic
 | `audit_log` | Autor, ação, entidade e valores anterior/novo. |
 | `sync_state` | Cursor, passagens completas e exclusão mútua do sincronizador. |
 
-O cron previsto roda a cada minuto e lê até vinte páginas de 200 operações na primeira passagem. Nas passagens seguintes, só processa nos minutos múltiplos de dez. O cron **não está ativo**. O botão administrativo lê uma página quando a API estiver acessível. Repetições são idempotentes. Cada passagem completa atualiza registros existentes, detecta mudança de portal/remetente/LOCAL na origem, preserva override manual se a chave de origem não mudou e remove projeções que deixaram de ser canônicas. Se o portal/remetente mudar, o override anterior deixa de valer e a identidade é resolvida novamente. A primeira varredura integral demanda vários ciclos; o painel mostra a contagem de passagens e o cursor. O cursor da origem é `r.id`, não SRO nem contrato.
+O cron ativo roda a cada minuto e lê até vinte páginas de 200 operações na primeira passagem. Nas passagens seguintes, só processa nos minutos múltiplos de dez. O botão administrativo lê uma página. Repetições são idempotentes. Cada passagem completa atualiza registros existentes, detecta mudança de portal/remetente/LOCAL na origem, preserva override manual se a chave de origem não mudou e remove projeções que deixaram de ser canônicas. Se o portal/remetente mudar, o override anterior deixa de valer e a identidade é resolvida novamente. A primeira varredura integral demanda vários ciclos; o painel mostra a contagem de passagens e o cursor. O cursor da origem é `r.id`, não SRO nem contrato.
 
 ## Contrato de API
 
@@ -44,8 +44,8 @@ O CRM ainda lê seu backend atual. Antes de migrar, deve associar sua postagem a
 ## Publicação e verificação
 
 1. Os `database_id` de `agf-cadastros` e `agf-atende` foram conferidos na conta conectada. O esquema remoto inicial já foi aplicado via D1 API. Registrar a migration no histórico do Wrangler ao habilitar esse fluxo; ela é idempotente.
-2. O código do Worker foi enviado à Cloudflare, mas a revisão automática bloqueou a ativação do endereço público e do cron. Após autorização específica, ativar ambos na conta correta e confirmar os bindings para **ambos** os D1. O arquivo `wrangler.jsonc` é a fonte da configuração de publicação seguinte.
+2. O Worker e o cron foram ativados na conta correta após autorização. `/health` respondeu 200, `/api/status` sem sessão respondeu 401 e o preflight CORS do preview foi permitido. Confirmar a primeira passagem, os totais, a classificação de LOCAL e o acesso administrativo autenticado. O arquivo `wrangler.jsonc` é a fonte da configuração de publicação seguinte.
 3. Conferir `GET /health`, autorização administrativa e uma página de `/api/sync`; comparar uma amostra de `CLIENTE PORTAL`, remetente e `LOCAL` com a tabela do Atende. Depois completar a primeira passagem, conferir totais, pendências e origem canônica.
 4. Publicar `frontend/` pela Cloudflare Pages segundo `docs/DEPLOY.md`, testar `/cadastros/` com administrador e negar acesso a usuário comum. O link no `/intra/` entra com este frontend.
 
-O nome da conta Workers foi conferido como `chelzinha`. Não há dados reais de clientes codificados na migration nem seeds de aliases. O D1 criado contém somente a estrutura e o cursor inicial até a publicação/sincronização.
+O nome da conta Workers foi conferido como `chelzinha`. Não há dados reais de clientes codificados na migration nem seeds de aliases. O D1 é preenchido pela sincronização, sem alteração na origem operacional.

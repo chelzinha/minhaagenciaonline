@@ -2,6 +2,12 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-24 - Ativação autorizada do Worker de cadastros
+
+- Após autorização da gestora, habilitados o endereço público `agf-cadastros-api.chelzinha.workers.dev` e o cron configurado em `wrangler.jsonc`.
+- `/health` responde 200; `/api/status` sem sessão responde 401; preflight CORS do preview específico responde 204 com a origem correta.
+- Primeira importação e conferência de `LOCAL` em andamento. A tela permanece apenas no preview do PR até validação da base e merge controlado.
+
 ## 2026-09-24 - Front do Cadastro de Clientes e ativação pendente
 
 - A lista de clientes agora tem paginação, e a tela informa o progresso da primeira importação de postagens do Atende.

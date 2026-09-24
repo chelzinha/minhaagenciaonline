@@ -4,7 +4,7 @@ Documento tecnico em preparacao.
 
 ## Cadastro de Clientes
 
-Sincronização por cursor de até 200 postagens canônicas por página; o cron proposto processa no máximo 20 páginas por execução. A primeira varredura é programada para cada minuto, e as seguintes são processadas uma vez a cada dez minutos. O cron ainda não foi ativado. A tela usa listas paginadas (50 pendências ou 100 clientes por página) e detalhe sob demanda. O D1 tem índices por cliente/LOCAL, pendências, alias e contrato. O primeiro ciclo completo deve ser medido após a ativação; não há leitura integral de planilha no navegador.
+Sincronização por cursor de até 200 postagens canônicas por página; o cron ativo processa no máximo 20 páginas por execução. A primeira varredura é programada para cada minuto, e as seguintes são processadas uma vez a cada dez minutos. A tela usa listas paginadas (50 pendências ou 100 clientes por página) e detalhe sob demanda. O D1 tem índices por cliente/LOCAL, pendências, alias e contrato. O primeiro ciclo completo deve ser medido após a importação; não há leitura integral de planilha no navegador.
 
 ## CRM - performance de boot e loading inicial
 

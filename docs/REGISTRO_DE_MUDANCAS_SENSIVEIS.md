@@ -2,6 +2,10 @@
 
 Documento tecnico em preparacao.
 
+## 2026-09-24 - Ativação autorizada da sincronização de identidade
+
+**Atenção sensível.** Após autorização explícita da gestora, o Worker `agf-cadastros-api` passou a ter endereço `workers.dev` e cron ativo. Ele lê as postagens canônicas do D1 do Atende e grava projeção com nome recebido, Cliente Portal, LOCAL, contrato/cartão e valor no D1 `agf-cadastros`. `/health` é público; as rotas de dados exigem Bearer validado na autenticação AGF, e as rotas de correção exigem administrador. A importação inicial e a comparação de LOCAL devem ser conferidas antes de integrar o front à produção. Nenhum segredo foi incluído no repositório.
+
 ## 2026-09-24 - Preparação do acesso à base de identidade
 
 **Atenção sensível.** O código do Worker de cadastros foi enviado à conta Cloudflare com bindings para leitura do Atende e escrita no D1 `agf-cadastros`. O endereço público e a rotina de sincronização automática não foram ativados após bloqueio de revisão automática. A base continua sem postagens importadas. O Worker exige sessão AGF validada, restringe as correções ao administrador e permite CORS somente para as origens listadas, incluindo o preview específico do PR. Contratos/cartões são sinais de conferência, não chaves automáticas. Antes da ativação, verificar autenticação, LOCAL e volume de registros sem expor dados pessoais nos logs.

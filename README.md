@@ -24,7 +24,7 @@ Organizar os modulos digitais da AGF, incluindo frontends, Apps Script, document
 - releases/
 - cloudflare/cadastros-api/ — base D1 de identidade de clientes
 
-O Cadastro de Clientes (`/cadastros/`) está em PR de implementação. Seu Worker foi enviado à Cloudflare, mas o endereço público e a rotina de importação ainda não foram ativados; o D1 está vazio. A tela de preview não exibe dados reais até essa ativação. Ver `docs/modulos/cadastros/README.md`.
+O Cadastro de Clientes (`/cadastros/`) está no PR #68. O Worker e o cron estão ativos; a primeira importação do Atende deve ser conferida antes do merge. A tela está no preview da branch, sem publicação na `main`. Ver `docs/modulos/cadastros/README.md`.
 
 O módulo `/cadastros/` padroniza identidades recebidas do Atende. Regras, estado de publicação e API: `docs/modulos/cadastros/README.md`.
 
