@@ -286,18 +286,22 @@ async function listCustomers(url, env) {
   const q = clean(url.searchParams.get('q')).slice(0, 100);
   const origin = clean(url.searchParams.get('origin')).toUpperCase();
   if (origin && !['PORTAL','BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION'].includes(origin)) fail('Origem inválida.');
-  const originSql = origin === 'PORTAL' ? "EXISTS (SELECT 1 FROM customer_aliases a WHERE a.customer_id=c.id AND a.kind='PORTAL')" : origin ? "EXISTS (SELECT 1 FROM source_postings p WHERE p.customer_id=c.id AND p.portal_norm=?)" : '1=1';
+  const originSql = origin === 'PORTAL' ? "EXISTS (SELECT 1 FROM customer_aliases a WHERE a.customer_id=c.id AND a.kind='PORTAL')" :
+    origin ? "EXISTS (SELECT 1 FROM source_postings p WHERE p.customer_id=c.id AND p.portal_norm=?)" : '1=1';
   const originArgs = origin && origin !== 'PORTAL' ? [origin] : [];
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit')) || 50));
   const offset = Math.max(0, Math.trunc(Number(url.searchParams.get('offset')) || 0));
-  const [r, count] = await env.DB.batch([env.DB.prepare(`SELECT c.id,c.canonical_name,c.identity_quality,c.status,c.created_at,
-    (SELECT COUNT(*) FROM source_postings p WHERE p.customer_id=c.id) posting_count
-    FROM customers c WHERE (?='' OR c.canonical_name LIKE ? OR c.id LIKE ?)
-    ORDER BY c.canonical_name COLLATE NOCASE LIMIT ? OFFSET ?`)
-    .bind(q, `%${q}%`, `%${q}%`, limit, offset),
-  env.DB.prepare(`SELECT COUNT(*) total FROM customers c WHERE (?='' OR c.canonical_name LIKE ? OR c.id LIKE ?)`)
-    .bind(q, `%${q}%`, `%${q}%`)]);
-  return { customers: r.results || [], total: count.results?.[0]?.total || 0, limit, offset };
+  const [r, count] = await env.DB.batch([
+    env.DB.prepare(`SELECT c.id,c.canonical_name,c.identity_quality,c.status,c.created_at,
+      (SELECT COUNT(*) FROM source_postings p WHERE p.customer_id=c.id) posting_count
+      FROM customers c WHERE (${originSql}) AND (?='' OR c.canonical_name LIKE ? OR c.id LIKE ?)
+      ORDER BY c.canonical_name COLLATE NOCASE LIMIT ? OFFSET ?`)
+      .bind(...originArgs,q,`%${q}%`,`%${q}%`,limit,offset),
+    env.DB.prepare(`SELECT COUNT(*) total FROM customers c
+      WHERE (${originSql}) AND (?='' OR c.canonical_name LIKE ? OR c.id LIKE ?)`)
+      .bind(...originArgs,q,`%${q}%`,`%${q}%`)
+  ]);
+  return { customers:r.results || [], total:count.results?.[0]?.total || 0, limit, offset };
 }
 async function getCustomer(id, env) {
   const customer = await env.DB.prepare('SELECT * FROM customers WHERE id=?').bind(id).first();
