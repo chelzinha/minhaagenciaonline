@@ -22,6 +22,14 @@ test('cliente direto mantém identidade de CLIENTE PORTAL apesar do remetente', 
     {customerId:'cus_fashion',resolution:'PORTAL',reason:''});
 });
 
+test('remetente de portal compartilhado coincide com um CLIENTE PORTAL direto', () => {
+  const aliases = new Map([['PORTAL:ACME LTDA','cus_portal']]);
+  assert.deepEqual(resolveIdentity('BALCÃO','Ácme   Ltda',aliases),
+    {customerId:'cus_portal',resolution:'SENDER_ALIAS',reason:''});
+  aliases.set('SENDER:ACME LTDA','cus_confirmado');
+  assert.equal(resolveIdentity('GAS SHOPPING METRO','Acme Ltda',aliases).customerId,'cus_confirmado');
+});
+
 test('grafias desconhecidas e ausência de portal ou remetente ficam em revisão', () => {
   const aliases = new Map();
   assert.equal(resolveIdentity('BALCÃO','Nova grafia',aliases).resolution,'PENDING');

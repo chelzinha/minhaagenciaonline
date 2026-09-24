@@ -81,6 +81,16 @@ async function getAliases(env, specs) {
   return map;
 }
 
+async function backfillExactShared(env) {
+  // Resolução determinística de nomes já vistos; uma escolha manual tem prioridade.
+  return env.DB.prepare(`UPDATE source_postings SET
+    customer_id=(SELECT a.customer_id FROM customer_aliases a WHERE a.kind='PORTAL' AND a.normalized_name=source_postings.sender_norm),
+    resolution='SENDER_ALIAS',updated_at=CURRENT_TIMESTAMP
+    WHERE resolution='PENDING' AND portal_norm IN ('BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION')
+    AND sender_norm<>'' AND EXISTS(SELECT 1 FROM customer_aliases a WHERE a.kind='PORTAL' AND a.normalized_name=source_postings.sender_norm)
+    AND NOT EXISTS(SELECT 1 FROM customer_aliases a WHERE a.kind='SENDER' AND a.normalized_name=source_postings.sender_norm)`).run();
+}
+
 async function syncPageUnlocked(env, limit = 200) {
   const state = await env.DB.prepare(`SELECT cursor_id,completed_passes FROM sync_state WHERE source_system='ATENDE'`).first();
   const cursor = Number(state?.cursor_id || 0);
@@ -112,6 +122,9 @@ async function syncPageUnlocked(env, limit = 200) {
     );
   }
   for (let i=0; i<portalStatements.length; i+=70) await env.DB.batch(portalStatements.slice(i,i+70));
+  // Portais diretos descobertos nesta página podem identificar remetentes
+  // compartilhados lidos anteriormente. Aliases SENDER confirmados prevalecem.
+  if (newPortals.size) await backfillExactShared(env);
   const refreshed = await getAliases(env, specs);
   const existing = new Map();
   for (let i = 0; i < input.length; i += 80) {
@@ -156,13 +169,15 @@ async function syncPage(env, limit = 200) {
 async function listCustomers(url, env) {
   const q = clean(url.searchParams.get('q')).slice(0, 100);
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit')) || 50));
-  const offset = Math.max(0, Number(url.searchParams.get('offset')) || 0);
-  const r = await env.DB.prepare(`SELECT c.id,c.canonical_name,c.status,c.created_at,
+  const offset = Math.max(0, Math.trunc(Number(url.searchParams.get('offset')) || 0));
+  const [r, count] = await env.DB.batch([env.DB.prepare(`SELECT c.id,c.canonical_name,c.status,c.created_at,
     (SELECT COUNT(*) FROM source_postings p WHERE p.customer_id=c.id) posting_count
     FROM customers c WHERE (?='' OR c.canonical_name LIKE ? OR c.id LIKE ?)
     ORDER BY c.canonical_name COLLATE NOCASE LIMIT ? OFFSET ?`)
-    .bind(q, `%${q}%`, `%${q}%`, limit, offset).all();
-  return { customers: r.results || [], limit, offset };
+    .bind(q, `%${q}%`, `%${q}%`, limit, offset),
+  env.DB.prepare(`SELECT COUNT(*) total FROM customers c WHERE (?='' OR c.canonical_name LIKE ? OR c.id LIKE ?)`)
+    .bind(q, `%${q}%`, `%${q}%`)]);
+  return { customers: r.results || [], total: count.results?.[0]?.total || 0, limit, offset };
 }
 async function getCustomer(id, env) {
   const customer = await env.DB.prepare('SELECT * FROM customers WHERE id=?').bind(id).first();
@@ -225,6 +240,7 @@ async function saveAlias(request, env, actor) {
     : `portal_norm=? AND portal_norm NOT IN ('BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION')`;
   await env.DB.prepare(`UPDATE source_postings SET customer_id=?,resolution=?,updated_at=CURRENT_TIMESTAMP
     WHERE resolution<>'OVERRIDE' AND ${condition}`).bind(customerId,kind==='SENDER'?'SENDER_ALIAS':'PORTAL',normalized).run();
+  if (kind === 'PORTAL') await backfillExactShared(env);
   return { kind, normalizedName: normalized, customerId };
 }
 async function lookupAlias(url, env) {
@@ -291,11 +307,13 @@ async function handler(request, env) {
   }
   const actor = await admin(request, env);
   if (path === '/api/status' && method === 'GET') {
-    const [state, counts] = await env.DB.batch([
+    const [state, counts, customers] = await env.DB.batch([
       env.DB.prepare(`SELECT * FROM sync_state WHERE source_system='ATENDE'`),
-      env.DB.prepare(`SELECT COUNT(*) total,COUNT(CASE WHEN resolution='PENDING' THEN 1 END) pending FROM source_postings`)
+      env.DB.prepare(`SELECT COUNT(*) total,COUNT(CASE WHEN resolution='PENDING' THEN 1 END) pending,
+        COUNT(DISTINCT CASE WHEN resolution='PENDING' AND sender_norm<>'' THEN sender_norm END) pending_names FROM source_postings`),
+      env.DB.prepare('SELECT COUNT(*) total FROM customers')
     ]);
-    return json({ok:true,sync:state.results?.[0],postings:counts.results?.[0]});
+    return json({ok:true,sync:state.results?.[0],postings:counts.results?.[0],customers:customers.results?.[0]});
   }
   if (path === '/api/sync' && method === 'POST') return json({ok:true,...await syncPage(env)});
   if (path === '/api/customers' && method === 'GET') return json({ok:true,...await listCustomers(url,env)});

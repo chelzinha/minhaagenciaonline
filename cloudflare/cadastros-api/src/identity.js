@@ -25,7 +25,9 @@ export function resolveIdentity(portal, sender, aliases) {
   if (!portalNorm) return { customerId: null, resolution: 'PENDING', reason: 'SEM_CLIENTE_PORTAL' };
   if (isSharedPortal(portalNorm)) {
     if (!senderNorm) return { customerId: null, resolution: 'PENDING', reason: 'SEM_REMETENTE' };
-    const customerId = aliases.get(`SENDER:${senderNorm}`) || null;
+    // O alias confirmado do remetente vence; a coincidência exata com um
+    // CLIENTE PORTAL direto também identifica o mesmo cliente sem criar alias.
+    const customerId = aliases.get(`SENDER:${senderNorm}`) || aliases.get(`PORTAL:${senderNorm}`) || null;
     return { customerId, resolution: customerId ? 'SENDER_ALIAS' : 'PENDING', reason: customerId ? '' : 'REMETENTE_NOVO' };
   }
   const customerId = aliases.get(`PORTAL:${portalNorm}`) || null;

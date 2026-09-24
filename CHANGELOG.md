@@ -2,6 +2,12 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-24 - Correspondência automática e contagem de nomes
+
+- Remetentes de BALCÃO, GAS SHOPPING METRO e GAS SHOPPING CENTRO FASHION com nome normalizado idêntico a um alias de CLIENTE PORTAL direto passam a usar o mesmo cliente, respeitando o alias de remetente confirmado e overrides por postagem.
+- A tela preserva a contagem de postagens e mostra também o total de clientes e de nomes distintos pendentes. A lista de clientes agora tem paginação visível.
+- A planilha histórica CLIENTES_ALIAS foi inspecionada: 2.484 registros AUTO com IDs distintos. O arquivo CADASTRO_MESTRE_CLIENTES.xlsx contém regras de precedência, 9.181 aliases legados e 2.140 propostas seguras, mas os IDs de cliente ainda estão pendentes de migração; nenhum lote foi importado automaticamente.
+
 ## 2026-09-24 - Primeira varredura do Cadastro de Clientes concluída
 
 - O D1 recebeu 93.624 postagens, igual ao total da view canônica do Atende, e criou 301 clientes por portal direto.

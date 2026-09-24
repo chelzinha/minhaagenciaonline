@@ -1,7 +1,8 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { customers: [], pending: [], selected: null, customerOffset: 0, reviewOffset: 0, resolving: null, customerRequest: 0, reviewRequest: 0 };
+  const state = { customers: [], pending: [], selected: null, customerPage: 0, reviewOffset: 0, resolving: null, customerRequest: 0, reviewRequest: 0 };
+  const customerPageSize = 50;
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const debounce = (fn, ms = 250) => { let timer; return () => { clearTimeout(timer); timer = setTimeout(fn, ms); }; };
   function notice(message, error = false) { const el=$('notice'); el.textContent=message; el.classList.toggle('error', error); el.hidden=false; }
@@ -31,6 +32,8 @@
   async function refreshStatus() {
     const data = await api('/api/status');
     $('total').textContent = Number(data.postings?.total || 0).toLocaleString('pt-BR');
+    $('customersTotal').textContent = Number(data.customers?.total || 0).toLocaleString('pt-BR');
+    $('pendingNames').textContent = Number(data.postings?.pending_names || 0).toLocaleString('pt-BR');
     $('pending').textContent = Number(data.postings?.pending || 0).toLocaleString('pt-BR');
     $('passes').textContent = Number(data.sync?.completed_passes || 0).toLocaleString('pt-BR');
     $('updated').textContent = data.sync?.updated_at || '—';
@@ -39,17 +42,20 @@
       ? `Primeira importação em andamento. Último registro de origem processado: ${cursor.toLocaleString('pt-BR')}. Os cadastros aparecem à medida que as postagens são importadas.`
       : `Base em atualização periódica. Último registro de origem processado nesta varredura: ${cursor.toLocaleString('pt-BR')}.`;
   }
-  async function loadCustomers(more = false) {
-    if (!more) { state.customerOffset = 0; state.customers = []; }
+  async function loadCustomers(reset = false) {
+    if (reset) state.customerPage = 0;
     const request = ++state.customerRequest;
-    const offset = state.customerOffset;
+    const offset = state.customerPage * customerPageSize;
     const q = encodeURIComponent($('customerSearch').value.trim());
-    const data = await api(`/api/customers?q=${q}&limit=100&offset=${offset}`);
+    const data = await api(`/api/customers?q=${q}&limit=${customerPageSize}&offset=${offset}`);
     if (request !== state.customerRequest) return;
-    state.customers.push(...data.customers);
-    state.customerOffset += data.customers.length;
+    const total = Number(data.total || 0);
+    if (offset >= total && state.customerPage > 0) { state.customerPage = Math.max(0,Math.ceil(total/customerPageSize)-1); return loadCustomers(); }
+    state.customers = data.customers;
     $('customerList').innerHTML = state.customers.length ? state.customers.map(c => `<div class="row"><button type="button" data-customer="${esc(c.id)}"><strong>${esc(c.canonical_name)}</strong><small>${Number(c.posting_count).toLocaleString('pt-BR')} postagens · ${esc(c.status)}</small></button></div>`).join('') : '<div class="empty">Nenhum cadastro encontrado nesta busca.</div>';
-    $('moreCustomers').hidden = data.customers.length < 100;
+    $('customerPageInfo').textContent = total ? `Página ${state.customerPage+1} de ${Math.ceil(total/customerPageSize)} · ${total.toLocaleString('pt-BR')} clientes` : 'Nenhum cliente';
+    $('previousCustomers').disabled = state.customerPage === 0;
+    $('nextCustomers').disabled = offset + data.customers.length >= total;
   }
   async function loadReview(more = false) {
     if (!more) { state.reviewOffset = 0; state.pending = []; }
@@ -87,13 +93,14 @@
     $('reviewList').textContent='Carregando pendências…'; $('customerList').textContent='Carregando cadastros…';
     await task(refresh);
     $('reviewSearch').addEventListener('input',debounce(()=>task(()=>loadReview())));
-    $('customerSearch').addEventListener('input',debounce(()=>task(loadCustomers)));
+    $('customerSearch').addEventListener('input',debounce(()=>task(()=>loadCustomers(true))));
     $('resolveSearch').addEventListener('input',debounce(()=>task(async()=>{
       const data=await api(`/api/customers?q=${encodeURIComponent($('resolveSearch').value.trim())}&limit=100`);
       $('resolveCustomer').innerHTML='<option value="">Selecione um cadastro</option>'+data.customers.map(c=>`<option value="${esc(c.id)}">${esc(c.canonical_name)}</option>`).join('');
     })));
     $('moreReview').addEventListener('click',()=>task(()=>loadReview(true),$('moreReview')));
-    $('moreCustomers').addEventListener('click',()=>task(()=>loadCustomers(true),$('moreCustomers')));
+    $('previousCustomers').addEventListener('click',()=>task(async()=>{state.customerPage--;await loadCustomers();},$('previousCustomers')));
+    $('nextCustomers').addEventListener('click',()=>task(async()=>{state.customerPage++;await loadCustomers();},$('nextCustomers')));
     $('customerList').addEventListener('click',e=>{const id=e.target.closest('[data-customer]')?.dataset.customer;if(id)task(()=>openCustomer(id));});
     $('reviewList').addEventListener('click',e=>{const idx=e.target.closest('[data-review]')?.dataset.review;if(idx !== undefined) resolve(state.pending[Number(idx)]);});
     $('cancelResolve').addEventListener('click',()=>$('resolveDialog').close());
