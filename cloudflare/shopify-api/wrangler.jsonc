@@ -7,6 +7,7 @@
     "SHOPIFY_CLIENT_ID": "61622c164f2f40b89f889aa087e0799b",
     "SHOPIFY_API_VERSION": "2026-07",
     "SHOPIFY_SCOPES": "read_orders",
+    "SHOPIFY_AUTH_MODE": "client_credentials",
     "SHOPIFY_REDIRECT_URI": "https://agf-shopify-api.chelzinha.workers.dev/api/shopify/auth/callback",
     "AGF_CORE_API_URL": "https://agf-core-api.chelzinha.workers.dev",
     "PLATFORM_URL": "https://www.minhaagenciaonline.com.br",
