@@ -335,6 +335,8 @@ export default {
         if (result.completedPass) break;
       }
     } catch (error) {
+      // Outra execução ainda importa uma página; o próximo cron continuará pelo cursor.
+      if (error?.status === 409) return;
       // Diagnóstico restrito ao D1 administrativo; não grava payloads da origem.
       const message = String(error?.message || 'Falha desconhecida').slice(0, 240);
       await env.DB.prepare(`INSERT INTO audit_log(actor,action,entity_type,entity_id,before_json,after_json)
