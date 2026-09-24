@@ -198,8 +198,8 @@
         </tbody></table>
       </div>
       <div class="f-sec"><h3><span class="material-symbols-rounded">description</span>Contratos observados <em>${r.contratos.length}</em></h3>
-        ${r.contratos.length ? `<table class="f-tbl"><thead><tr><th>Contrato</th><th>Cartão</th><th>Intermediador</th><th class="r">Post.</th><th class="r">Última</th></tr></thead><tbody>
-          ${r.contratos.map((k) => `<tr><td>${esc(k.contrato || '-')}</td><td>${esc(k.cartao || '-')}</td><td>${esc(k.intermediador || '-')}</td><td class="n">${num(k.postagens)}</td><td class="n">${dataBr(k.ultima)}</td></tr>`).join('')}</tbody></table>`
+        ${r.contratos.length ? `<table class="f-tbl"><thead><tr><th>Contrato</th><th>Cartão</th><th>Tipo</th><th class="r">Post.</th><th class="r">Última</th></tr></thead><tbody>
+          ${r.contratos.map((k) => `<tr><td>${esc(k.contrato || '-')}</td><td>${esc(k.cartao || '-')}</td><td>${esc(k.tipo || '-')}</td><td class="n">${num(k.postagens)}</td><td class="n">${dataBr(k.ultima)}</td></tr>`).join('')}</tbody></table>`
           : '<div class="f-sub">Nenhum contrato ou cartão nas postagens deste cliente.</div>'}
         <p class="f-sub" style="margin-top:8px">Contrato e cartão servem só para conferência: não identificam o cliente sozinhos.</p>
       </div>`;
