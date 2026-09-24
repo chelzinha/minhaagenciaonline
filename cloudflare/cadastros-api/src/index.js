@@ -397,7 +397,9 @@ async function suggestions(url, env) {
     const shared = tokens.filter(t => target.includes(t)).length;
     const score = (targetCompact === sourceCompact ? 100 : 0) +
       (targetCompact.includes(sourceCompact) || sourceCompact.includes(targetCompact) ? 35 : 0) +
-      shared*10 + (c.portal_customer ? 12 : 0);
+      shared*10 + (sourceCompact.slice(0,5) === targetCompact.slice(0,5) ? 15 : 0) +
+      (sourceCompact.slice(-5) === targetCompact.slice(-5) ? 25 : 0) +
+      (c.portal_customer ? 12 : 0);
     return {...c,score};
   }).filter(c=>c.score>=20).sort((a,b)=>b.score-a.score || b.canonical_name.length-a.canonical_name.length).slice(0,12);
   return {suggestions};
