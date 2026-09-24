@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { customers: [], pending: [], selected: null, customerPage: 0, reviewOffset: 0, resolving: null, customerRequest: 0, reviewRequest: 0, origin: '', mergeOptions: new Map(), mergeRequest: 0, portalTarget: false };
+  const state = { customers: [], pending: [], selected: null, customerPage: 0, reviewOffset: 0, resolving: null, customerRequest: 0, reviewRequest: 0, origin: '', mergeOptions: new Map(), mergeRequest: 0, portalTarget: false, mergeReady: false };
   const customerPageSize = 50;
   const upper = value => String(value ?? '').toLocaleUpperCase('pt-BR');
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -98,7 +98,17 @@
     $('mergeForm').scrollIntoView({behavior:'smooth',block:'center'});
   }
   async function loadSuggestions(id) {
-    const data=await api(`/api/suggestions?id=${encodeURIComponent(id)}`);
+    let data;
+    try { data=await api(`/api/suggestions?id=${encodeURIComponent(id)}`); }
+    catch (error) {
+      if (error.message !== 'Rota não encontrada.') throw error;
+      state.mergeReady=false;
+      $('mergeForm').querySelector('[type=submit]').disabled=true;
+      $('suggestions').innerHTML='<p class="hint">O agrupamento aguarda a publicação da API. Os cadastros atuais permanecem disponíveis para consulta.</p>';
+      return;
+    }
+    state.mergeReady=true;
+    $('mergeForm').querySelector('[type=submit]').disabled=false;
     if(id!==state.selected)return;
     mergeChoices(data.suggestions);
     $('suggestions').innerHTML=data.suggestions.length ? data.suggestions.map(c=>
@@ -118,8 +128,15 @@
     if(started)return; started=true;
     $('reviewList').textContent='Carregando pendências…'; $('customerList').textContent='Carregando cadastros…';
     await task(refresh);
+    try { await api('/api/suggestions?id=__capability_check__'); state.mergeReady=true; }
+    catch (error) { state.mergeReady=error.message==='Cliente não encontrado.'; }
+    if(!state.mergeReady) {
+      document.querySelectorAll('.origin-tabs button').forEach(button=>{if(button.dataset.origin)button.disabled=true;});
+      document.querySelector('.origin-tabs').insertAdjacentHTML('afterend','<p class="hint">Os filtros por origem e o agrupamento aguardam a publicação da API.</p>');
+      $('mergeForm').querySelector('[type=submit]').disabled=true;
+    }
     $('reviewSearch').addEventListener('input',debounce(()=>task(()=>loadReview())));
-    document.querySelector('.origin-tabs').addEventListener('click',e=>{const button=e.target.closest('[data-origin]');if(!button)return;state.origin=button.dataset.origin;document.querySelectorAll('[data-origin]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));task(()=>loadCustomers(true));});
+    document.querySelector('.origin-tabs').addEventListener('click',e=>{const button=e.target.closest('[data-origin]');if(!button || !state.mergeReady)return;state.origin=button.dataset.origin;document.querySelectorAll('[data-origin]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));task(()=>loadCustomers(true));});
     $('suggestions').addEventListener('click',e=>{const id=e.target.closest('[data-merge]')?.dataset.merge;if(id)selectMerge(id);});
     $('mergeSearch').addEventListener('input',debounce(()=>task(async()=>{
       const request=++state.mergeRequest;
