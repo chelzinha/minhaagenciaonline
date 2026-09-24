@@ -515,6 +515,16 @@ const ORDER_DETAIL_QUERY = `
         key
         value
       }
+      localizedFields(first: 5) {
+        edges {
+          node {
+            countryCode
+            purpose
+            title
+            value
+          }
+        }
+      }
       shippingAddress {
         name
         firstName
@@ -581,24 +591,47 @@ function normalizedAttributeKey(value) {
     .replace(/[^A-Z0-9]/g, '');
 }
 
-function findDocument(customAttributes) {
+function documentRecord(value, sourceKey, source) {
+  const text = String(value || '').trim();
+  if (!text) return null;
+  const digits = text.replace(/\D/g, '');
+  return {
+    value: text,
+    digits: digits || null,
+    type: digits.length === 11 ? 'CPF' : (digits.length === 14 ? 'CNPJ' : null),
+    sourceKey: sourceKey || null,
+    source
+  };
+}
+
+function findDocument(localizedFields, customAttributes) {
+  const localized = (localizedFields?.edges || [])
+    .map((edge) => edge?.node)
+    .filter(Boolean);
+
+  const taxField = localized.find((field) => {
+    const title = normalizedAttributeKey(field?.title);
+    return String(field?.countryCode || '').toUpperCase() === 'BR' &&
+      (String(field?.purpose || '').toUpperCase() === 'TAX' || title === 'CPFCNPJ' || title === 'CPF' || title === 'CNPJ');
+  });
+
+  if (taxField?.value) {
+    return documentRecord(taxField.value, taxField.title || taxField.purpose || 'TAX_CREDENTIAL_BR', 'localizedFields');
+  }
+
   const accepted = new Set(['CPFCNPJ', 'CPF', 'CNPJ']);
   const item = (customAttributes || []).find((attribute) => accepted.has(normalizedAttributeKey(attribute?.key)));
   if (!item?.value) return null;
-  const value = String(item.value).trim();
-  const digits = value.replace(/\D/g, '');
-  return {
-    value,
-    digits: digits || null,
-    type: digits.length === 11 ? 'CPF' : (digits.length === 14 ? 'CNPJ' : null),
-    sourceKey: item.key || null
-  };
+  return documentRecord(item.value, item.key || null, 'customAttributes');
 }
 
 function normalizeOrderDetail(order) {
   const address = order.shippingAddress || null;
-  const document = findDocument(order.customAttributes);
+  const document = findDocument(order.localizedFields, order.customAttributes);
   const shippingLine = order.shippingLine || null;
+  const localizedFields = (order.localizedFields?.edges || [])
+    .map((edge) => edge?.node)
+    .filter(Boolean);
   const lineItems = (order.lineItems?.nodes || []).map((item) => ({
     id: item.id,
     name: item.name,
@@ -625,6 +658,7 @@ function normalizeOrderDetail(order) {
       totalWeightGrams: Number(order.currentTotalWeight || 0),
       note: order.note || null,
       customAttributes: order.customAttributes || [],
+      localizedFields,
       lineItems
     },
     shipmentDraft: {
