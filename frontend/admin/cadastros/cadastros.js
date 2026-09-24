@@ -5,6 +5,7 @@
     customers: [],
     modules: [],
     currentId: '',
+    hasCorreiosIntegration: false,
     busy: false,
     searchTimer: null
   };
@@ -28,6 +29,7 @@
     els.moduleGrid = $('#moduleGrid');
     els.cancelBtn = $('#cancelBtn');
     els.saveBtn = $('#saveBtn');
+    els.correiosCredentialNote = $('#correiosCredentialNote');
   }
 
   function escapeHtml(value) {
@@ -108,10 +110,26 @@
     }).join('');
   }
 
+  function renderCorreiosNote(correios) {
+    if (!els.correiosCredentialNote) return;
+    if (!correios) {
+      els.correiosCredentialNote.textContent = 'Conta Correios ainda não cadastrada para este cliente.';
+      return;
+    }
+    if (correios.credentialsConfigured) {
+      els.correiosCredentialNote.textContent = 'Credenciais CWS vinculadas à integração.';
+      return;
+    }
+    els.correiosCredentialNote.textContent = 'Contrato cadastrado. Credenciais CWS ainda não configuradas.';
+  }
+
   function resetForm() {
     els.customerForm.reset();
     els.customerForm.elements.status.value = 'ACTIVE';
     els.customerForm.elements.documentType.value = 'CNPJ';
+    els.customerForm.elements.correiosStatus.value = 'DISCONNECTED';
+    state.hasCorreiosIntegration = false;
+    renderCorreiosNote(null);
     renderModules([]);
     showMessage('', '');
   }
@@ -123,6 +141,7 @@
 
   function hideEditor() {
     state.currentId = '';
+    state.hasCorreiosIntegration = false;
     els.customerForm.hidden = true;
     els.emptyState.hidden = false;
     renderCustomerList();
@@ -139,7 +158,7 @@
     els.customerForm.elements.legalName.focus();
   }
 
-  function fillForm(customer, modules) {
+  function fillForm(customer, modules, correios) {
     const form = els.customerForm.elements;
     form.legalName.value = customer.legal_name || '';
     form.tradeName.value = customer.trade_name || '';
@@ -156,6 +175,16 @@
     form.city.value = customer.city || '';
     form.state.value = customer.state || '';
     form.notes.value = customer.notes || '';
+
+    form.correiosContractNumber.value = correios?.contractNumber || '';
+    form.correiosPostingCard.value = correios?.postingCard || '';
+    form.correiosDocumentNumber.value = correios?.documentNumber || '';
+    form.correiosDr.value = correios?.dr || '';
+    form.correiosDrs.value = correios?.drs || '';
+    form.correiosStatus.value = correios?.status || 'DISCONNECTED';
+    state.hasCorreiosIntegration = Boolean(correios?.id);
+    renderCorreiosNote(correios || null);
+
     renderModules(modules || []);
   }
 
@@ -170,7 +199,7 @@
     els.customerId.textContent = id;
     try {
       const data = await window.AgfCore.getCustomer(id);
-      fillForm(data.customer, data.modules);
+      fillForm(data.customer, data.modules, data.correios);
       els.formTitle.textContent = customerDisplayName(data.customer);
     } catch (error) {
       showMessage(error.message || 'Não foi possível carregar o cliente.', 'error');
@@ -222,6 +251,28 @@
     };
   }
 
+  function correiosPayload() {
+    const form = new FormData(els.customerForm);
+    return {
+      contractNumber: form.get('correiosContractNumber'),
+      postingCard: form.get('correiosPostingCard'),
+      documentNumber: form.get('correiosDocumentNumber'),
+      dr: form.get('correiosDr'),
+      drs: form.get('correiosDrs'),
+      status: form.get('correiosStatus') || 'DISCONNECTED'
+    };
+  }
+
+  function hasCorreiosValues(payload) {
+    return Boolean(
+      String(payload.contractNumber || '').trim() ||
+      String(payload.postingCard || '').trim() ||
+      String(payload.documentNumber || '').trim() ||
+      String(payload.dr || '').trim() ||
+      String(payload.drs || '').trim()
+    );
+  }
+
   function selectedModules() {
     return Array.from(els.customerForm.querySelectorAll('input[name="modules"]:checked')).map((input) => input.value);
   }
@@ -239,11 +290,19 @@
         : await window.AgfCore.createCustomer(payload);
 
       state.currentId = saved.customer.id;
-      const withModules = await window.AgfCore.setCustomerModules(state.currentId, selectedModules());
-      fillForm(withModules.customer, withModules.modules);
+      let finalData = await window.AgfCore.setCustomerModules(state.currentId, selectedModules());
+
+      const correios = correiosPayload();
+      const hasValues = hasCorreiosValues(correios);
+      if (state.hasCorreiosIntegration || hasValues) {
+        if (!hasValues) correios.status = 'DISABLED';
+        finalData = await window.AgfCore.setCorreiosIntegration(state.currentId, correios);
+      }
+
+      fillForm(finalData.customer, finalData.modules, finalData.correios);
       els.formEyebrow.textContent = 'Cliente';
-      els.formTitle.textContent = customerDisplayName(withModules.customer);
-      els.customerId.textContent = withModules.customer.id;
+      els.formTitle.textContent = customerDisplayName(finalData.customer);
+      els.customerId.textContent = finalData.customer.id;
       showMessage('Cadastro salvo com sucesso.', 'ok');
       await loadCustomers();
     } catch (error) {
