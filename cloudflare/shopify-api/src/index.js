@@ -47,13 +47,13 @@ async function parseBody(request) {
   try {
     return await request.json();
   } catch {
-    throw Object.assign(new Error('JSON invÃ¡lido.'), { status: 400 });
+    throw Object.assign(new Error('JSON inválido.'), { status: 400 });
   }
 }
 
 function requireEnv(env, key) {
   const value = String(env[key] || '').trim();
-  if (!value) throw Object.assign(new Error(`ConfiguraÃ§Ã£o ausente: ${key}`), { status: 503 });
+  if (!value) throw Object.assign(new Error(`Configuração ausente: ${key}`), { status: 503 });
   return value;
 }
 
@@ -61,7 +61,7 @@ function normalizeShop(value) {
   let shop = String(value || '').trim().toLowerCase();
   shop = shop.replace(/^https?:\/\//, '').split('/')[0];
   if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(shop)) {
-    throw Object.assign(new Error('DomÃ­nio Shopify invÃ¡lido.'), { status: 400 });
+    throw Object.assign(new Error('Domínio Shopify inválido.'), { status: 400 });
   }
   return shop;
 }
@@ -69,7 +69,7 @@ function normalizeShop(value) {
 function normalizeCustomerId(value) {
   const customerId = String(value || '').trim();
   if (!/^cus_[A-Za-z0-9_-]{8,80}$/.test(customerId)) {
-    throw Object.assign(new Error('customer_id invÃ¡lido.'), { status: 400 });
+    throw Object.assign(new Error('customer_id inválido.'), { status: 400 });
   }
   return customerId;
 }
@@ -108,7 +108,7 @@ async function encryptionKey(env) {
     const binary = atob(raw);
     bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
   } catch {
-    throw Object.assign(new Error('TOKEN_ENCRYPTION_KEY invÃ¡lida.'), { status: 503 });
+    throw Object.assign(new Error('TOKEN_ENCRYPTION_KEY inválida.'), { status: 503 });
   }
   if (bytes.byteLength !== 32) {
     throw Object.assign(new Error('TOKEN_ENCRYPTION_KEY deve conter 32 bytes em Base64.'), { status: 503 });
@@ -129,7 +129,7 @@ async function encryptSecret(value, env) {
 async function decryptSecret(value, env) {
   if (!value) return null;
   const parts = String(value).split('.');
-  if (parts.length !== 3 || parts[0] !== 'v1') throw new Error('Credencial criptografada invÃ¡lida.');
+  if (parts.length !== 3 || parts[0] !== 'v1') throw new Error('Credencial criptografada inválida.');
   const key = await encryptionKey(env);
   const decrypted = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: fromBase64Url(parts[1]) },
@@ -165,9 +165,6 @@ async function verifyOAuthHmac(url, env) {
   if (!received) return false;
 
   const secret = requireEnv(env, 'SHOPIFY_CLIENT_SECRET');
-
-  // Algoritmo conforme o exemplo oficial atual da Shopify:
-  // remove hmac -> cria pares -> ordena -> chave=valor -> junta com &
   const params = Object.fromEntries(
     Array.from(url.searchParams.entries())
       .filter(([key]) => key !== 'hmac')
@@ -179,39 +176,13 @@ async function verifyOAuthHmac(url, env) {
     .join('&');
 
   const expected = await hmacHex(message, secret);
-
-  if (constantTimeEqual(expected, received)) {
-    return true;
-  }
-
-  // Diagnóstico de compatibilidade: preserva a representação recebida
-  // na query string, sem registrar valores sensíveis.
-  const rawMessage = url.search
-    .slice(1)
-    .split('&')
-    .filter((part) => part.split('=', 1)[0] !== 'hmac')
-    .sort()
-    .join('&');
-
-  const rawExpected = await hmacHex(rawMessage, secret);
-  const rawMatches = constantTimeEqual(rawExpected, received);
-
-  console.warn('[SHOPIFY_OAUTH_HMAC]', {
-    keys: Object.keys(params).sort(),
-    officialMatches: false,
-    rawMatches,
-    receivedPrefix: received.slice(0, 8),
-    expectedPrefix: expected.slice(0, 8),
-    rawExpectedPrefix: rawExpected.slice(0, 8)
-  });
-
-  return rawMatches;
+  return constantTimeEqual(expected, received);
 }
 
 function bearerToken(request) {
   const auth = request.headers.get('Authorization') || '';
   const match = auth.match(/^Bearer\s+(.+)$/i);
-  if (!match) throw Object.assign(new Error('FaÃ§a login na Plataforma AGF para continuar.'), { status: 401 });
+  if (!match) throw Object.assign(new Error('Faça login na Plataforma AGF para continuar.'), { status: 401 });
   return match[1];
 }
 
@@ -240,20 +211,20 @@ async function validateAgfCustomer(request, env, customerId) {
   try {
     data = raw ? JSON.parse(raw) : null;
   } catch {
-    console.error('[AGF_CORE_UPSTREAM]', 'Resposta nÃ£o JSON', response.status, raw.slice(0, 300));
+    console.error('[AGF_CORE_UPSTREAM]', 'Resposta não JSON', response.status, raw.slice(0, 300));
   }
 
   if (!response.ok || !data || data.ok === false || !data.customer) {
-    const error = new Error((data && data.error) || 'NÃ£o foi possÃ­vel validar o cliente no AGF Core.');
+    const error = new Error((data && data.error) || 'Não foi possível validar o cliente no AGF Core.');
     error.status = [401, 403, 404].includes(response.status) ? response.status : 502;
     throw error;
   }
   if (String(data.customer.status) !== 'ACTIVE') {
-    throw Object.assign(new Error('Cliente nÃ£o estÃ¡ ativo no AGF Core.'), { status: 403 });
+    throw Object.assign(new Error('Cliente não está ativo no AGF Core.'), { status: 403 });
   }
   const shopifyModule = (data.modules || []).find((item) => item.code === 'SHOPIFY');
   if (!shopifyModule || !['ACTIVE', 'TRIAL'].includes(shopifyModule.customer_status)) {
-    throw Object.assign(new Error('O mÃ³dulo Conector Shopify nÃ£o estÃ¡ habilitado para este cliente.'), { status: 403 });
+    throw Object.assign(new Error('O módulo Conector Shopify não está habilitado para este cliente.'), { status: 403 });
   }
   return data.customer;
 }
@@ -281,6 +252,32 @@ async function exchangeAuthorizationCode(shop, code, env) {
   return data;
 }
 
+async function exchangeClientCredentials(shop, env) {
+  const body = new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_id: requireEnv(env, 'SHOPIFY_CLIENT_ID'),
+    client_secret: requireEnv(env, 'SHOPIFY_CLIENT_SECRET')
+  });
+
+  const response = await fetch(`https://${shop}/admin/oauth/access_token`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      accept: 'application/json'
+    },
+    body
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.access_token) {
+    console.error('[SHOPIFY_CLIENT_CREDENTIALS]', shop, response.status, data);
+    const message = data?.error_description || data?.error || 'Não foi possível autenticar a loja de desenvolvimento.';
+    throw Object.assign(new Error(message), { status: response.status === 401 ? 401 : 502 });
+  }
+
+  return data;
+}
+
 async function refreshOfflineToken(shop, refreshToken, env) {
   const body = new URLSearchParams({
     client_id: requireEnv(env, 'SHOPIFY_CLIENT_ID'),
@@ -304,7 +301,7 @@ async function refreshOfflineToken(shop, refreshToken, env) {
   return data;
 }
 
-async function saveTokenPair(shop, tokenData, env) {
+async function saveTokenPair(shop, tokenData, env, tokenType = 'OFFLINE_EXPIRING') {
   const accessEnc = await encryptSecret(tokenData.access_token, env);
   const refreshEnc = await encryptSecret(tokenData.refresh_token, env);
   const accessExpires = tokenData.expires_in ? addSeconds(tokenData.expires_in) : null;
@@ -315,18 +312,18 @@ async function saveTokenPair(shop, tokenData, env) {
     `INSERT INTO shopify_tokens (
        shop_domain, access_token_enc, refresh_token_enc, access_token_expires_at,
        refresh_token_expires_at, scopes, token_type, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, 'OFFLINE_EXPIRING', CURRENT_TIMESTAMP)
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
      ON CONFLICT(shop_domain) DO UPDATE SET
        access_token_enc = excluded.access_token_enc,
        refresh_token_enc = excluded.refresh_token_enc,
        access_token_expires_at = excluded.access_token_expires_at,
        refresh_token_expires_at = excluded.refresh_token_expires_at,
        scopes = excluded.scopes,
-       token_type = 'OFFLINE_EXPIRING',
+       token_type = excluded.token_type,
        updated_at = CURRENT_TIMESTAMP`
-  ).bind(shop, accessEnc, refreshEnc, accessExpires, refreshExpires, scopes).run();
+  ).bind(shop, accessEnc, refreshEnc, accessExpires, refreshExpires, scopes, tokenType).run();
 
-  return { accessExpires, refreshExpires, scopes };
+  return { accessExpires, refreshExpires, scopes, tokenType };
 }
 
 async function accessTokenForShop(shop, env) {
@@ -337,13 +334,19 @@ async function accessTokenForShop(shop, env) {
     return decryptSecret(row.access_token_enc, env);
   }
 
+  if (row.token_type === 'CLIENT_CREDENTIALS') {
+    const renewed = await exchangeClientCredentials(shop, env);
+    await saveTokenPair(shop, renewed, env, 'CLIENT_CREDENTIALS');
+    return renewed.access_token;
+  }
+
   if (!row.refresh_token_enc || (row.refresh_token_expires_at && new Date(row.refresh_token_expires_at).getTime() <= Date.now())) {
     throw Object.assign(new Error('Credenciais Shopify expiradas. Reconecte a loja.'), { status: 401 });
   }
 
   const refreshToken = await decryptSecret(row.refresh_token_enc, env);
   const refreshed = await refreshOfflineToken(shop, refreshToken, env);
-  await saveTokenPair(shop, refreshed, env);
+  await saveTokenPair(shop, refreshed, env, 'OFFLINE_EXPIRING');
   return refreshed.access_token;
 }
 
@@ -376,10 +379,64 @@ const SHOP_IDENTITY_QUERY = `
   }
 `;
 
+async function saveShopConnection(shop, customerId, identity, scopes, env) {
+  await env.DB.prepare(
+    `INSERT INTO shopify_shops (
+       shop_domain, customer_id, shop_gid, shop_name, primary_domain, status,
+       scopes, installed_at, last_verified_at, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+     ON CONFLICT(shop_domain) DO UPDATE SET
+       customer_id = excluded.customer_id,
+       shop_gid = excluded.shop_gid,
+       shop_name = excluded.shop_name,
+       primary_domain = excluded.primary_domain,
+       status = 'ACTIVE',
+       scopes = excluded.scopes,
+       uninstalled_at = NULL,
+       last_verified_at = CURRENT_TIMESTAMP,
+       updated_at = CURRENT_TIMESTAMP`
+  ).bind(
+    shop,
+    customerId,
+    identity.shop.id || null,
+    identity.shop.name || null,
+    identity.shop.primaryDomain?.host || null,
+    scopes
+  ).run();
+}
+
+async function connectOwnOrgStore(request, env, customerId, shop) {
+  await validateAgfCustomer(request, env, customerId);
+
+  const tokenData = await exchangeClientCredentials(shop, env);
+  const identity = await graphql(shop, tokenData.access_token, SHOP_IDENTITY_QUERY, {}, env);
+  const canonicalDomain = normalizeShop(identity.shop.myshopifyDomain || shop);
+
+  if (canonicalDomain !== shop) {
+    throw new Error('Domínio retornado pela Shopify não corresponde à loja informada.');
+  }
+
+  const scopes = String(tokenData.scope || env.SHOPIFY_SCOPES || '');
+  await saveShopConnection(shop, customerId, identity, scopes, env);
+  await saveTokenPair(shop, tokenData, env, 'CLIENT_CREDENTIALS');
+
+  return json({
+    ok: true,
+    connected: true,
+    authMode: 'client_credentials',
+    shop: identity.shop
+  });
+}
+
 async function startOAuth(request, env) {
   const body = await parseBody(request);
   const customerId = normalizeCustomerId(body.customerId || body.customer_id);
   const shop = normalizeShop(body.shop);
+
+  if (String(env.SHOPIFY_AUTH_MODE || '').toLowerCase() === 'client_credentials') {
+    return connectOwnOrgStore(request, env, customerId, shop);
+  }
+
   await validateAgfCustomer(request, env, customerId);
 
   const state = randomToken(32);
@@ -403,51 +460,28 @@ async function oauthCallback(url, env) {
   const state = String(url.searchParams.get('state') || '');
   const shop = normalizeShop(url.searchParams.get('shop'));
   if (!code || !state) throw Object.assign(new Error('Callback OAuth incompleto.'), { status: 400 });
-  if (!(await verifyOAuthHmac(url, env))) throw Object.assign(new Error('Assinatura OAuth invÃ¡lida.'), { status: 403 });
+  if (!(await verifyOAuthHmac(url, env))) throw Object.assign(new Error('Assinatura OAuth inválida.'), { status: 403 });
 
   const oauthState = await env.DB.prepare(
     `SELECT * FROM shopify_oauth_states WHERE state = ? AND shop_domain = ?`
   ).bind(state, shop).first();
-  if (!oauthState || oauthState.used_at) throw Object.assign(new Error('Estado OAuth invÃ¡lido ou jÃ¡ utilizado.'), { status: 403 });
+  if (!oauthState || oauthState.used_at) throw Object.assign(new Error('Estado OAuth inválido ou já utilizado.'), { status: 403 });
   if (new Date(oauthState.expires_at).getTime() <= Date.now()) {
-    throw Object.assign(new Error('AutorizaÃ§Ã£o OAuth expirada. Inicie novamente.'), { status: 403 });
+    throw Object.assign(new Error('Autorização OAuth expirada. Inicie novamente.'), { status: 403 });
   }
 
   const tokenData = await exchangeAuthorizationCode(shop, code, env);
   if (!tokenData.refresh_token) {
-    throw new Error('A Shopify nÃ£o retornou refresh_token para o token offline expirÃ¡vel.');
+    throw new Error('A Shopify não retornou refresh_token para o token offline expirável.');
   }
 
   const identity = await graphql(shop, tokenData.access_token, SHOP_IDENTITY_QUERY, {}, env);
   const canonicalDomain = normalizeShop(identity.shop.myshopifyDomain || shop);
-  if (canonicalDomain !== shop) throw new Error('DomÃ­nio retornado pela Shopify nÃ£o corresponde Ã  autorizaÃ§Ã£o.');
+  if (canonicalDomain !== shop) throw new Error('Domínio retornado pela Shopify não corresponde à autorização.');
 
   const scopes = String(tokenData.scope || env.SHOPIFY_SCOPES || '');
-  await env.DB.prepare(
-    `INSERT INTO shopify_shops (
-       shop_domain, customer_id, shop_gid, shop_name, primary_domain, status,
-       scopes, installed_at, last_verified_at, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-     ON CONFLICT(shop_domain) DO UPDATE SET
-       customer_id = excluded.customer_id,
-       shop_gid = excluded.shop_gid,
-       shop_name = excluded.shop_name,
-       primary_domain = excluded.primary_domain,
-       status = 'ACTIVE',
-       scopes = excluded.scopes,
-       uninstalled_at = NULL,
-       last_verified_at = CURRENT_TIMESTAMP,
-       updated_at = CURRENT_TIMESTAMP`
-  ).bind(
-    shop,
-    oauthState.customer_id,
-    identity.shop.id || null,
-    identity.shop.name || null,
-    identity.shop.primaryDomain?.host || null,
-    scopes
-  ).run();
-
-  await saveTokenPair(shop, tokenData, env);
+  await saveShopConnection(shop, oauthState.customer_id, identity, scopes, env);
+  await saveTokenPair(shop, tokenData, env, 'OFFLINE_EXPIRING');
   await env.DB.prepare('UPDATE shopify_oauth_states SET used_at = CURRENT_TIMESTAMP WHERE state = ?').bind(state).run();
 
   const platform = requireEnv(env, 'PLATFORM_URL').replace(/\/$/, '');
@@ -471,7 +505,7 @@ async function testConnection(request, env) {
   const body = await parseBody(request);
   const shop = normalizeShop(body.shop);
   const row = await env.DB.prepare('SELECT customer_id FROM shopify_shops WHERE shop_domain = ?').bind(shop).first();
-  if (!row) throw Object.assign(new Error('Loja nÃ£o vinculada.'), { status: 404 });
+  if (!row) throw Object.assign(new Error('Loja não vinculada.'), { status: 404 });
   await validateAgfCustomer(request, env, row.customer_id);
   const token = await accessTokenForShop(shop, env);
   const identity = await graphql(shop, token, SHOP_IDENTITY_QUERY, {}, env);
@@ -484,14 +518,19 @@ async function handleApi(request, env) {
   const method = request.method.toUpperCase();
 
   if (url.pathname === '/health' && method === 'GET') {
-    return json({ ok: true, service: 'agf-shopify-api', apiVersion: env.SHOPIFY_API_VERSION || null });
+    return json({
+      ok: true,
+      service: 'agf-shopify-api',
+      apiVersion: env.SHOPIFY_API_VERSION || null,
+      authMode: env.SHOPIFY_AUTH_MODE || 'oauth'
+    });
   }
   if (url.pathname === '/api/shopify/auth/start' && method === 'POST') return startOAuth(request, env);
   if (url.pathname === '/api/shopify/auth/callback' && method === 'GET') return oauthCallback(url, env);
   if (url.pathname === '/api/shopify/connections' && method === 'GET') return listConnections(request, url, env);
   if (url.pathname === '/api/shopify/test' && method === 'POST') return testConnection(request, env);
 
-  return json({ ok: false, error: 'Rota nÃ£o encontrada.' }, 404);
+  return json({ ok: false, error: 'Rota não encontrada.' }, 404);
 }
 
 export default {
@@ -507,7 +546,7 @@ export default {
       if (status >= 500) console.error('[AGF_SHOPIFY]', error?.message || String(error), error?.stack || '');
       return withCors(json({
         ok: false,
-        error: status >= 500 ? 'NÃ£o foi possÃ­vel concluir a operaÃ§Ã£o agora.' : String(error?.message || 'Erro inesperado.')
+        error: status >= 500 ? 'Não foi possível concluir a operação agora.' : String(error?.message || 'Erro inesperado.')
       }, status), request, env);
     }
   }
