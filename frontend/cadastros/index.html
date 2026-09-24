@@ -13,8 +13,8 @@
   <script src="/shared/auth/agf-auth-client.js"></script>
   <script>window.AGF_ACCESS = { roles: ['admin'] };</script>
   <script src="/shared/auth/agf-route-guard.js"></script>
-  <script src="./config.js"></script>
-  <link rel="stylesheet" href="./cadastros.css">
+  <script src="./config.js?v=20260924c"></script>
+  <link rel="stylesheet" href="./cadastros.css?v=20260924c">
 </head>
 <body>
 <div class="cad-shell">
@@ -38,16 +38,16 @@
       <div class="cad-kpi"><span>Fora do cadastro</span><strong id="kFora">-</strong><small id="kForaSub">&nbsp;</small></div>
     </section>
 
-    <p class="cad-sec-tit">Fonte do cadastro (CLIENTE PORTAL)</p>
-    <nav class="cad-tabs" role="tablist" aria-label="Fonte do cadastro (CLIENTE PORTAL)" id="tabs">
-      <button role="tab" data-aba="PORTAL" class="on"><b>CLIENTE PORTAL</b><small data-c="PORTAL">-</small></button>
-      <button role="tab" data-aba="BALCAO"><b>BALCÃO</b><small data-c="BALCAO">-</small></button>
-      <button role="tab" data-aba="METRO"><b>GAS SHOPPING METRO</b><small data-c="METRO">-</small></button>
-    </nav>
-
-    <div class="cad-modes" role="tablist" aria-label="Visão">
-      <button id="modoLista" class="on" type="button"><span class="material-symbols-rounded">list</span>Clientes</button>
-      <button id="modoSug" type="button"><span class="material-symbols-rounded">merge</span>Sugestões para agrupar <em id="modoSugN"></em></button>
+    <div class="cad-nav">
+      <nav class="cad-tabs" role="tablist" aria-label="Fonte do cadastro (CLIENTE PORTAL)" id="tabs">
+        <button role="tab" data-aba="PORTAL" class="on"><span class="cad-tab-ic"><span class="material-symbols-rounded">verified</span></span><span class="cad-tab-tx"><b>CLIENTE PORTAL</b><small data-c="PORTAL">-</small></span></button>
+        <button role="tab" data-aba="BALCAO"><span class="cad-tab-ic"><span class="material-symbols-rounded">storefront</span></span><span class="cad-tab-tx"><b>BALCÃO</b><small data-c="BALCAO">-</small></span></button>
+        <button role="tab" data-aba="METRO"><span class="cad-tab-ic"><span class="material-symbols-rounded">local_mall</span></span><span class="cad-tab-tx"><b>GAS SHOPPING METRO</b><small data-c="METRO">-</small></span></button>
+      </nav>
+      <div class="cad-modes" role="tablist" aria-label="Visão">
+        <button id="modoLista" class="on" type="button"><span class="material-symbols-rounded">list</span>Clientes</button>
+        <button id="modoSug" type="button"><span class="material-symbols-rounded">merge</span>Sugestões <em id="modoSugN"></em></button>
+      </div>
     </div>
 
     <!-- LISTA -->
@@ -114,6 +114,6 @@
 <div class="cad-toast" id="toast" role="status"></div>
 <div class="cad-busy" id="busy" hidden><div><span class="cad-spin"></span><p id="busyMsg">Processando...</p></div></div>
 
-<script src="./cadastros.js"></script>
+<script src="./cadastros.js?v=20260924c"></script>
 </body>
 </html>

@@ -47,17 +47,24 @@ button { cursor: pointer; }
 .cad-kpi-act strong { color: #0b7f97; }
 
 /* abas */
-.cad-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.cad-tabs button { border: 1px solid var(--c-line); background: var(--c-card); border-radius: var(--r); padding: 10px 12px; text-align: left; min-width: 0; }
+/* navegacao: fonte do cadastro (segmentado) + visao */
+.cad-nav { display: flex; align-items: stretch; gap: 10px; background: var(--c-card); border: 1px solid var(--c-line); border-radius: 14px; padding: 6px; box-shadow: var(--sh); }
+.cad-tabs { flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; min-width: 0; }
+.cad-tabs button { display: flex; align-items: center; gap: 10px; border: 1px solid transparent; background: transparent; border-radius: 10px; padding: 8px 12px; text-align: left; min-width: 0; transition: background .15s, border-color .15s; }
+.cad-tabs button:hover { background: #f5f8fb; }
+.cad-tab-ic { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 9px; display: grid; place-items: center; background: var(--c-line2); color: var(--c-muted); }
+.cad-tab-ic .material-symbols-rounded { font-size: 19px; }
+.cad-tab-tx { min-width: 0; }
 .cad-tabs b { display: block; font-size: 12px; font-weight: 800; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cad-tabs small { display: block; font-size: 11px; color: var(--c-muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cad-tabs button.on { border-color: var(--c-top); background: var(--c-top); color: #fff; }
+.cad-tabs small { display: block; font-size: 11px; color: var(--c-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cad-tabs button.on { background: var(--c-top); border-color: var(--c-top); color: #fff; box-shadow: 0 2px 8px rgba(27,51,88,.18); }
 .cad-tabs button.on small { color: #bcd3ea; }
+.cad-tabs button.on .cad-tab-ic { background: rgba(255,255,255,.14); color: #fff; }
 
-.cad-sec-tit { margin: 2px 0 -6px; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--c-muted); }
-.cad-modes { display: flex; gap: 6px; }
-.cad-modes button { height: 34px; border: 1px solid var(--c-line); background: var(--c-card); border-radius: 999px; padding: 0 14px; display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; color: var(--c-muted); }
-.cad-modes button.on { color: var(--c-text); border-color: var(--c-text); }
+.cad-modes { display: flex; gap: 4px; padding-left: 10px; border-left: 1px solid var(--c-line2); }
+.cad-modes button { border: 1px solid transparent; background: transparent; border-radius: 10px; padding: 0 14px; display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; color: var(--c-muted); white-space: nowrap; }
+.cad-modes button:hover { background: #f5f8fb; color: var(--c-text); }
+.cad-modes button.on { color: var(--c-text); background: var(--c-accent-soft); border-color: #bfe6ef; }
 .cad-modes em { font-style: normal; background: var(--c-accent); color: #fff; border-radius: 999px; padding: 1px 7px; font-size: 11px; }
 
 /* lista + ficha */
@@ -193,7 +200,10 @@ button { cursor: pointer; }
   .cad-main { padding: 12px 10px 20px; }
   .cad-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .cad-kpi strong { font-size: 20px; }
-  .cad-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cad-nav { flex-direction: column; gap: 6px; }
+  .cad-tabs { grid-template-columns: minmax(0, 1fr); }
+  .cad-modes { padding: 6px 0 0; border-left: 0; border-top: 1px solid var(--c-line2); }
+  .cad-modes button { flex: 1; justify-content: center; min-height: 40px; }
   .cad-tools { flex-wrap: wrap; }
   .cad-tools .cad-search { flex-basis: 100%; }
   .cad-tools select { flex: 1; min-width: 0; }
