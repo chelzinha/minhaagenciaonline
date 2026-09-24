@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="agf-auth-pending">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#1B3358">
+  <title>Cadastro de Clientes - AGF José Bonifácio</title>
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
+  <script src="/shared/auth/agf-auth-config.js"></script>
+  <script src="/shared/auth/agf-auth-client.js"></script>
+  <script>window.AGF_ACCESS = { roles: ['admin'] };</script>
+  <script src="/shared/auth/agf-route-guard.js"></script>
+  <script src="./config.js"></script>
+  <link rel="stylesheet" href="./cadastros.css">
+</head>
+<body>
+<div class="cad-shell">
+  <header class="cad-top">
+    <a class="cad-top-btn" href="/agf/" title="Voltar ao Portal AGF" aria-label="Voltar ao Portal AGF"><span class="material-symbols-rounded">apps</span></a>
+    <span class="cad-top-div" aria-hidden="true"></span>
+    <div class="cad-brand"><span class="cad-brand-ic"><span class="material-symbols-rounded">badge</span></span>
+      <span><strong>Cadastro de Clientes</strong><small>IDENTIDADE COMERCIAL PARA O CRM</small></span></div>
+    <div class="cad-top-actions">
+      <span class="cad-sync" id="syncInfo" title="Última sincronização com o Atende"></span>
+      <button class="cad-top-act" id="btnMotor" type="button" title="Aplicar as regras de limpeza agora"><span class="material-symbols-rounded">auto_fix_high</span><span>Rodar limpeza</span></button>
+      <button class="cad-top-btn" id="btnRecarregar" type="button" title="Recarregar" aria-label="Recarregar"><span class="material-symbols-rounded">refresh</span></button>
+    </div>
+  </header>
+
+  <main class="cad-main">
+    <section class="cad-kpis" id="kpis" aria-label="Resumo">
+      <div class="cad-kpi"><span>Clientes</span><strong id="kClientes">-</strong><small id="kClientesSub">&nbsp;</small></div>
+      <div class="cad-kpi"><span>Postagens</span><strong id="kPostagens">-</strong><small id="kPostagensSub">&nbsp;</small></div>
+      <button class="cad-kpi cad-kpi-act" id="kSugBtn" type="button"><span>Sugestões para agrupar</span><strong id="kSug">-</strong><small>grupos de nomes do mesmo cliente</small></button>
+      <div class="cad-kpi"><span>Fora do cadastro</span><strong id="kFora">-</strong><small id="kForaSub">&nbsp;</small></div>
+    </section>
+
+    <nav class="cad-tabs" role="tablist" aria-label="Origem do cadastro" id="tabs">
+      <button role="tab" data-aba="PORTAL" class="on"><b>CLIENTE PORTAL</b><small data-c="PORTAL">-</small></button>
+      <button role="tab" data-aba="BALCAO"><b>BALCÃO</b><small data-c="BALCAO">-</small></button>
+      <button role="tab" data-aba="METRO"><b>GAS SHOPPING METRO</b><small data-c="METRO">-</small></button>
+      <button role="tab" data-aba="CF"><b>GAS SHOPPING CENTRO FASHION</b><small data-c="CF">-</small></button>
+    </nav>
+
+    <div class="cad-modes" role="tablist" aria-label="Visão">
+      <button id="modoLista" class="on" type="button"><span class="material-symbols-rounded">list</span>Clientes</button>
+      <button id="modoSug" type="button"><span class="material-symbols-rounded">merge</span>Sugestões para agrupar <em id="modoSugN"></em></button>
+    </div>
+
+    <!-- LISTA -->
+    <section class="cad-body" id="vistaLista">
+      <div class="cad-list">
+        <div class="cad-tools">
+          <label class="cad-search"><span class="material-symbols-rounded">search</span>
+            <input id="busca" type="search" placeholder="Buscar nome ou grafia recebida" autocomplete="off"></label>
+          <select id="ordem" aria-label="Ordenar">
+            <option value="postagens">Mais postagens</option>
+            <option value="nome">Nome (A-Z)</option>
+            <option value="grafias">Mais grafias</option>
+            <option value="valor">Maior valor</option>
+          </select>
+        </div>
+        <div class="cad-list-head"><span>Cliente padronizado</span><span>Postagens por LOCAL</span><span class="r">Postagens</span></div>
+        <div class="cad-rows" id="lista" aria-live="polite"></div>
+        <div class="cad-pager" id="pager"></div>
+      </div>
+      <aside class="cad-ficha" id="ficha" aria-live="polite">
+        <div class="cad-empty"><span class="material-symbols-rounded">person_search</span><p>Selecione um cliente para ver a ficha de identidade.</p></div>
+      </aside>
+    </section>
+
+    <!-- SUGESTOES -->
+    <section class="cad-sug" id="vistaSug" hidden>
+      <div class="cad-sug-tools">
+        <p class="cad-help">Cada cartão reúne nomes que parecem ser do mesmo cliente. Desmarque o que não for, escolha o nome final e clique em <b>Agrupar</b>. <b>Não são o mesmo</b> faz a sugestão não voltar.</p>
+        <select id="sugMin" aria-label="Confiança mínima">
+          <option value="0">Todas as confianças</option>
+          <option value="90">Confiança 90+</option>
+          <option value="84">Confiança 84+</option>
+        </select>
+      </div>
+      <div id="sugLista" class="cad-sug-grid" aria-live="polite"></div>
+      <div class="cad-pager" id="sugPager"></div>
+    </section>
+  </main>
+</div>
+
+<dialog class="cad-dlg" id="dlgBusca">
+  <form method="dialog" class="cad-dlg-card">
+    <header><strong>Agrupar com outro cadastro</strong><button value="cancel" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button></header>
+    <p class="cad-help">Busque o cliente correto (de preferência o do Portal). As postagens, grafias e contratos passam para ele.</p>
+    <label class="cad-search"><span class="material-symbols-rounded">search</span><input id="dlgBuscaQ" type="search" placeholder="Digite 2 letras ou mais" autocomplete="off"></label>
+    <div id="dlgBuscaRes" class="cad-dlg-res"></div>
+  </form>
+</dialog>
+
+<dialog class="cad-dlg" id="dlgNome">
+  <form method="dialog" class="cad-dlg-card" id="dlgNomeForm">
+    <header><strong>Corrigir nome padronizado</strong><button value="cancel" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button></header>
+    <label class="cad-field"><span>Nome padronizado (fica em maiúsculas)</span><input id="dlgNomeIn" maxlength="160" required></label>
+    <footer><button value="cancel" class="cad-btn">Cancelar</button><button value="ok" class="cad-btn pri" id="dlgNomeOk">Salvar nome</button></footer>
+  </form>
+</dialog>
+
+<div class="cad-toast" id="toast" role="status"></div>
+<div class="cad-busy" id="busy" hidden><div><span class="cad-spin"></span><p id="busyMsg">Processando...</p></div></div>
+
+<script src="./cadastros.js"></script>
+</body>
+</html>

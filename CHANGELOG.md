@@ -2,6 +2,20 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-24 - Cadastro de Clientes v2 (ponte Atende para CRM)
+
+### Adicionado
+- Worker `agf-cadastros-api` v2 (rotas `/api/v2/*`) com motor de identidade: CLIENTE PORTAL compartilhado (BALCAO, GAS SHOPPING METRO, GAS SHOPPING CENTRO FASHION) usa NOME REMETENTE limpo; os demais usam o CLIENTE PORTAL.
+- Limpeza automatica: mesmo nome do Portal, nome cortado, nome sem espaco, CNPJ raiz, mesmas palavras, erro de digitacao minimo e decisoes manuais da planilha CADASTRO_MESTRE_CLIENTES.
+- Sugestoes em grupos para agrupar com 1 clique; "Nao e o mesmo" permanente.
+- Tabelas `cid_*` no D1 `agf-cadastros` (migracao 0100). As tabelas da v1 nao foram alteradas.
+- Tela `/cadastros/` com abas CLIENTE PORTAL, BALCAO, GAS SHOPPING METRO e GAS SHOPPING CENTRO FASHION, ficha com Postagens por LOCAL, grafias e contratos observados.
+- Feed para o CRM: `/api/v2/crm/postagens` e `/api/v2/crm/ids-fundidos`.
+
+### Observacao
+- ATENCAO - dados: a planilha legada (nomes de clientes) fica fora do Git, em `_entregas/cadastros-v2/`.
+- Documentacao: `docs/modulos/cadastros/README_V2.md`.
+
 ## 2026-09-11 - Correcao da aba Entregas do /app
 
 ### Corrigido
