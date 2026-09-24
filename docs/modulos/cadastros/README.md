@@ -48,7 +48,7 @@ O CRM ainda lê seu backend atual. Antes de migrar, deve associar sua postagem a
 
 ## Publicação e verificação
 
-1. Os `database_id` de `agf-cadastros` e `agf-atende` foram conferidos na conta conectada. O esquema remoto inicial já foi aplicado via D1 API. Registrar a migration no histórico do Wrangler ao habilitar esse fluxo; ela é idempotente.
+1. Os `database_id` de `agf-cadastros` e `agf-atende` foram conferidos na conta conectada. As migrations `0001` e `0002` foram aplicadas no D1 remoto e registradas em `d1_migrations` para futuras execuções do Wrangler.
 2. O Worker e o cron foram ativados na conta correta após autorização. `/health` respondeu 200, `/api/status` sem sessão respondeu 401 e o preflight CORS do preview foi permitido. Confirmar a primeira passagem, os totais, a classificação de LOCAL e o acesso administrativo autenticado. O arquivo `wrangler.jsonc` é a fonte da configuração de publicação seguinte.
 3. Conferir `GET /health`, autorização administrativa e uma página de `/api/sync`; comparar uma amostra de `CLIENTE PORTAL`, remetente e `LOCAL` com a tabela do Atende. Depois completar a primeira passagem, conferir totais, pendências e origem canônica.
 4. Publicar `frontend/` pela Cloudflare Pages segundo `docs/DEPLOY.md`, testar `/cadastros/` com administrador e negar acesso a usuário comum. O link no `/intra/` entra com este frontend.
