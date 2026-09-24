@@ -10,12 +10,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/shared/ui/agf-ui.css">
   <link rel="stylesheet" href="/cadastros/styles.css?v=20260924-4">
+  <script>
+    // Os URLs de deploy imutável não estão na lista CORS da API.
+    if (location.hostname.endsWith('.minhaagenciaonline.pages.dev') &&
+        location.hostname !== 'feature-cadastros-base-ident.minhaagenciaonline.pages.dev') {
+      location.replace('https://feature-cadastros-base-ident.minhaagenciaonline.pages.dev/cadastros/');
+    }
+  </script>
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
   <script>window.AGF_ACCESS={roles:['admin'],app:'intra'};</script>
   <script src="/shared/auth/agf-route-guard.js"></script>
   <script src="/cadastros/config.js" defer></script>
-  <script src="/cadastros/app.js?v=20260924-4" defer></script>
+  <script src="/cadastros/app.js?v=20260924-5" defer></script>
 </head>
 <body>
   <header class="topbar"><div class="container topbar-inner">
@@ -23,7 +30,7 @@
   </div></header>
   <main class="container">
     <div class="intro"><div><p class="eyebrow">BASE DE IDENTIDADE</p><h1>Cadastro de Clientes</h1><p>Cadastros comerciais organizados a partir das postagens do Atende.</p></div>
-      <button type="button" id="syncButton" class="button secondary">Sincronizar próxima página</button></div>
+      <div class="intro-actions"><button type="button" id="retryButton" class="button secondary">Recarregar dados</button><button type="button" id="syncButton" class="button secondary">Sincronizar próxima página</button></div></div>
     <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
     <section class="summary" aria-label="Resumo da sincronização">
       <div><span>Postagens importadas</span><strong id="total">—</strong></div>
