@@ -47,7 +47,7 @@ button { cursor: pointer; }
 .cad-kpi-act strong { color: #0b7f97; }
 
 /* abas */
-.cad-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.cad-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .cad-tabs button { border: 1px solid var(--c-line); background: var(--c-card); border-radius: var(--r); padding: 10px 12px; text-align: left; min-width: 0; }
 .cad-tabs b { display: block; font-size: 12px; font-weight: 800; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cad-tabs small { display: block; font-size: 11px; color: var(--c-muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -160,6 +160,10 @@ export async function executarMotorD1(env, autor = 'SISTEMA') {
     gstmts.push(db.prepare(`INSERT INTO cid_grafias(origem, grafia, no_chave) VALUES(?,?,?) ON CONFLICT(origem, grafia) DO UPDATE SET no_chave=excluded.no_chave`).bind(origem, grafia, chave));
   }
   await emLotes(db, gstmts);
+  // grafias que nao existem mais nas postagens (ex.: origem CF incorporada ao METRO) saem
+  const vivas = new Set(r.grafiaNo.keys());
+  const mortas = [...mapaG.keys()].filter((gk) => !vivas.has(gk));
+  await emLotes(db, mortas.map((gk) => { const [o, g] = gk.split('\u0001'); return db.prepare(`DELETE FROM cid_grafias WHERE origem=? AND grafia=?`).bind(o, g); }));
   // clientes orfaos (sem no) saem
   await db.prepare(`DELETE FROM cid_clientes WHERE id NOT IN (SELECT DISTINCT cliente_id FROM cid_nos WHERE cliente_id IS NOT NULL)`).run();
 

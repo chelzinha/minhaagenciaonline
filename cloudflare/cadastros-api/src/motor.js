@@ -15,8 +15,9 @@ export const MOTOR_VERSAO = '2026-09-24.1';
 export const ORIGENS_COMPARTILHADAS = {
   'BALCAO': 'BALCAO',
   'GAS SHOPPING METRO': 'METRO',
-  'GAS SHOPPING CENTRO FASHION': 'CF',
-  'GAS CENTRO FASHION': 'CF',
+  // Centro Fashion foi incorporado ao Metro (ago/2026): os remetentes dele entram na mesma origem
+  'GAS SHOPPING CENTRO FASHION': 'METRO',
+  'GAS CENTRO FASHION': 'METRO',
 };
 
 const JUNK = new Set(['', 'REMETENTE', 'BALCAO', 'SEM REGISTRO', 'SEM REMETENTE', 'NAO INFORMADO', 'CLIENTE', 'X', 'XX', 'XXX',

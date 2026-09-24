@@ -3,7 +3,7 @@
   'use strict';
 
   const API = String(window.AGF_CADASTROS_API_URL || '').replace(/\/+$/, '');
-  const ABA_NOME = { PORTAL: 'CLIENTE PORTAL', BALCAO: 'BALCÃO', METRO: 'GAS SHOPPING METRO', CF: 'GAS SHOPPING CENTRO FASHION' };
+  const ABA_NOME = { PORTAL: 'CLIENTE PORTAL', BALCAO: 'BALCÃO', METRO: 'METRÔ' };
   const LOCAL_NOME = { AGF: 'AGF', BALCAO: 'BALCÃO', METRO: 'METRÔ', '': 'Sem LOCAL' };
   const LOCAL_COR = { AGF: 'var(--l-agf)', BALCAO: 'var(--l-balcao)', METRO: 'var(--l-metro)', '': 'var(--l-vazio)' };
   const REGRA_TXT = {
