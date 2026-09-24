@@ -215,3 +215,20 @@ button { cursor: pointer; }
   .cad-row, .cad-btn, .cad-pager button { min-height: 40px; }
 }
 .f-voltar { display: none; }
+
+/* fila de LOCAL */
+.cad-local-lista { background: var(--c-card); border: 1px solid var(--c-line); border-radius: var(--r); box-shadow: var(--sh); }
+.l-item { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--c-line2); }
+.l-item.feito { opacity: .5; }
+.l-nome { font-weight: 700; font-size: 13px; word-break: break-word; }
+.l-botoes { display: flex; gap: 6px; }
+.l-botoes .cad-btn { min-width: 86px; justify-content: center; }
+.l-botoes .cad-btn.sug { border-color: var(--c-ok); color: var(--c-ok); background: var(--c-ok-soft); }
+.chip.local { background: #eef2ff; color: #3b3f9a; }
+.chip.fila { background: var(--c-warn-soft); color: var(--c-warn); }
+.f-local { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; }
+.f-local select { height: 32px; border: 1px solid var(--c-line); border-radius: 8px; padding: 0 8px; background: #fff; }
+@media (max-width: 760px) {
+  .l-item { grid-template-columns: minmax(0, 1fr); }
+  .l-botoes .cad-btn { flex: 1; min-width: 0; min-height: 40px; }
+}

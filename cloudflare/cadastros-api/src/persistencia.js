@@ -17,13 +17,15 @@ export async function emLotes(db, stmts) {
 }
 
 async function carregarEntrada(db) {
-  const [nomes, decisoes, planilha, nosAtuais, clientesAtuais] = await db.batch([
-    db.prepare(`SELECT origem, grafia, COUNT(*) postagens, ROUND(SUM(valor), 2) valor
+  const [nomes, decisoes, planilha, nosAtuais, clientesAtuais, locaisDec] = await db.batch([
+    db.prepare(`SELECT origem, grafia, COUNT(*) postagens, ROUND(SUM(valor), 2) valor,
+        SUM(local_codigo = 'AGF') l_agf, SUM(local_codigo = 'BALCAO') l_balcao, SUM(local_codigo = 'METRO') l_metro
       FROM cid_postagens WHERE origem <> 'SEM_PORTAL' GROUP BY origem, grafia`),
     db.prepare(`SELECT id, tipo, chave_a, chave_b, valor, autor, criado_em FROM cid_decisoes WHERE ativo = 1 ORDER BY id`),
     db.prepare(`SELECT grafia, nome_manual FROM cid_planilha_legado`),
     db.prepare(`SELECT chave, cliente_id, regra FROM cid_nos`),
-    db.prepare(`SELECT id, nome, fonte_nome, portal_chave FROM cid_clientes`),
+    db.prepare(`SELECT id, nome, fonte_nome, portal_chave, local_carteira, local_fonte FROM cid_clientes`),
+    db.prepare(`SELECT chave, local, em FROM cid_local_decisoes`),
   ]);
   return {
     nomes: (nomes.results || []).map((r) => ({ origem: r.origem, nome: r.grafia, postagens: r.postagens, valor: r.valor })),
@@ -31,6 +33,8 @@ async function carregarEntrada(db) {
     planilha: (planilha.results || []).map((r) => [r.grafia, r.nome_manual]),
     nosAtuais: new Map((nosAtuais.results || []).map((r) => [r.chave, r])),
     clientesAtuais: new Map((clientesAtuais.results || []).map((r) => [r.id, r])),
+    locaisPorGrafia: new Map((nomes.results || []).map((r) => [`${r.origem}\u0001${r.grafia}`, { AGF: r.l_agf || 0, BALCAO: r.l_balcao || 0, METRO: r.l_metro || 0 }])),
+    localDecisoes: new Map((locaisDec.results || []).map((r) => [r.chave, r])),
   };
 }
 
@@ -107,18 +111,41 @@ export async function executarMotorD1(env, autor = 'SISTEMA') {
   const stmts = [];
   const novoIdDoNo = new Map();
   for (const g of grupos) for (const k of g.chaves) novoIdDoNo.set(k, g.id);
+
+  // ---- LOCAL da carteira: decisao do admin > LOCAL unico das postagens > fila (NULL)
+  const locaisDoGrupo = new Map();
+  for (const [gk, chave] of r.grafiaNo) {
+    if (!chave) continue;
+    const id = novoIdDoNo.get(chave), l = entrada.locaisPorGrafia.get(gk);
+    if (!id || !l) continue;
+    const acc = locaisDoGrupo.get(id) || { AGF: 0, BALCAO: 0, METRO: 0 };
+    acc.AGF += l.AGF; acc.BALCAO += l.BALCAO; acc.METRO += l.METRO;
+    locaisDoGrupo.set(id, acc);
+  }
+  let naFila = 0;
+  for (const g of grupos) {
+    let dec = null;
+    for (const k of g.chaves) { const d = entrada.localDecisoes.get(k); if (d && (!dec || d.em > dec.em)) dec = d; }
+    const cont = locaisDoGrupo.get(g.id) || { AGF: 0, BALCAO: 0, METRO: 0 };
+    const usados = Object.keys(cont).filter((x) => cont[x] > 0);
+    if (dec) { g.local = dec.local; g.localFonte = 'ADMIN'; }
+    else if (usados.length === 1) { g.local = usados[0]; g.localFonte = 'AUTO'; }
+    else { g.local = null; g.localFonte = null; if (usados.length > 1) naFila++; }
+  }
   const idsNovos = new Set(grupos.map((g) => g.id));
 
   for (const g of grupos) {
     const atual = entrada.clientesAtuais.get(g.id);
     const portalChave = g.portal || null;
     if (!atual) {
-      stmts.push(db.prepare(`INSERT INTO cid_clientes(id, nome, fonte_nome, portal_chave) VALUES(?,?,?,?)
-        ON CONFLICT(id) DO UPDATE SET nome=excluded.nome, fonte_nome=excluded.fonte_nome, portal_chave=excluded.portal_chave, atualizado_em=CURRENT_TIMESTAMP`)
-        .bind(g.id, g.nomeFinal, g.fonteFinal, portalChave));
-    } else if (atual.nome !== g.nomeFinal || atual.fonte_nome !== g.fonteFinal || (atual.portal_chave || null) !== portalChave) {
-      stmts.push(db.prepare(`UPDATE cid_clientes SET nome=?, fonte_nome=?, portal_chave=?, situacao='ATIVO', atualizado_em=CURRENT_TIMESTAMP WHERE id=?`)
-        .bind(g.nomeFinal, g.fonteFinal, portalChave, g.id));
+      stmts.push(db.prepare(`INSERT INTO cid_clientes(id, nome, fonte_nome, portal_chave, local_carteira, local_fonte) VALUES(?,?,?,?,?,?)
+        ON CONFLICT(id) DO UPDATE SET nome=excluded.nome, fonte_nome=excluded.fonte_nome, portal_chave=excluded.portal_chave,
+        local_carteira=excluded.local_carteira, local_fonte=excluded.local_fonte, atualizado_em=CURRENT_TIMESTAMP`)
+        .bind(g.id, g.nomeFinal, g.fonteFinal, portalChave, g.local, g.localFonte));
+    } else if (atual.nome !== g.nomeFinal || atual.fonte_nome !== g.fonteFinal || (atual.portal_chave || null) !== portalChave
+      || (atual.local_carteira || null) !== g.local || (atual.local_fonte || null) !== g.localFonte) {
+      stmts.push(db.prepare(`UPDATE cid_clientes SET nome=?, fonte_nome=?, portal_chave=?, local_carteira=?, local_fonte=?, situacao='ATIVO', atualizado_em=CURRENT_TIMESTAMP WHERE id=?`)
+        .bind(g.nomeFinal, g.fonteFinal, portalChave, g.local, g.localFonte, g.id));
     }
   }
   // IDs que sumiram: registrar para onde foram (maior volume) e remover
@@ -184,7 +211,7 @@ export async function executarMotorD1(env, autor = 'SISTEMA') {
   for (const l of r.log) { const k = l.bloqueado ? `BLOQUEADO_${l.bloqueado}` : l.regra; contagem[k] = (contagem[k] || 0) + 1; }
   const resumo = {
     versao: MOTOR_VERSAO, ms: Date.now() - t0, grafias: entrada.nomes.length, nos: r.nos.size, clientes: grupos.length,
-    sugestoes: r.sugestoes.length, descartadas: r.descartados.length, fundidos: fundidos.length, regras: contagem,
+    sugestoes: r.sugestoes.length, descartadas: r.descartados.length, fundidos: fundidos.length, filaLocal: naFila, regras: contagem,
     gravacoes: stmts.length + gstmts.length,
   };
   await db.batch([

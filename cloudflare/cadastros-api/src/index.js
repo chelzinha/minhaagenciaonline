@@ -2,7 +2,7 @@
  * agf-cadastros-api v2 - Cadastro de Clientes (identidade comercial para o CRM)
  * Bindings: DB (agf-cadastros), ATENDE_DB (agf-atende, leitura), AGF_AUTH_API_URL, ALLOWED_ORIGINS
  */
-import { executarMotorD1 } from './persistencia.js';
+import { executarMotorD1, emLotes } from './persistencia.js';
 import { sincronizar } from './sincronizacao.js';
 import { REGRAS, MOTIVOS_SUGESTAO, MOTOR_VERSAO, nomeExibicao } from './motor.js';
 
@@ -90,7 +90,7 @@ async function exigirCrm(request, env) {
 // ---------------------------------------------------------------- leitura
 async function resumo(env) {
   const db = env.DB;
-  const [abas, total, sug, semPortal, descartadas, estado, ultimoMotor] = await db.batch([
+  const [abas, total, sug, semPortal, descartadas, estado, ultimoMotor, carteira] = await db.batch([
     db.prepare(`SELECT aba, COUNT(*) clientes, SUM(postagens) postagens, ROUND(SUM(valor),2) valor, SUM(grafias) grafias FROM cid_resumo GROUP BY aba`),
     db.prepare(`SELECT (SELECT COUNT(*) FROM cid_clientes) clientes, (SELECT COUNT(*) FROM cid_postagens) postagens,
       (SELECT COUNT(*) FROM cid_clientes WHERE portal_chave IS NOT NULL) clientes_portal`),
@@ -100,6 +100,7 @@ async function resumo(env) {
       FROM cid_grafias g WHERE g.no_chave IS NULL`),
     db.prepare(`SELECT chave, valor, atualizado_em FROM cid_estado`),
     db.prepare(`SELECT resumo_json, autor, criado_em FROM cid_execucoes WHERE tipo='MOTOR' ORDER BY id DESC LIMIT 1`),
+    db.prepare(`SELECT COALESCE(local_carteira, 'FILA') local, COUNT(*) clientes FROM cid_clientes GROUP BY 1`),
   ]);
   const porAba = Object.fromEntries(ABAS.map((a) => [a, { clientes: 0, postagens: 0, valor: 0, grafias: 0 }]));
   for (const r of abas.results || []) porAba[r.aba] = { clientes: r.clientes, postagens: r.postagens, valor: r.valor, grafias: r.grafias };
@@ -111,8 +112,72 @@ async function resumo(env) {
     sincronizacao: { cursor: Number(est.sync_cursor?.valor || 0), passagens: Number(est.sync_passagem?.valor || 0), atualizadoEm: est.sync_cursor?.atualizado_em, motorPendente: est.motor_pendente?.valor === '1' },
     motor: um ? { ...JSON.parse(um.resumo_json), autor: um.autor, em: um.criado_em } : null,
     versaoMotor: MOTOR_VERSAO, regras: REGRAS, motivos: MOTIVOS_SUGESTAO,
+    carteira: Object.fromEntries((carteira.results || []).map((x) => [x.local, x.clientes])),
+    filaLocal: await contarFilaLocal(env),
   };
 }
+
+// ---------------------------------------------------------------- LOCAL da carteira
+const LOCAIS = ['AGF', 'BALCAO', 'METRO'];
+const SQL_FILA_LOCAL = `
+  SELECT c.id, c.nome, c.portal_chave IS NOT NULL eh_portal,
+    SUM(r.local_agf) agf, SUM(r.local_balcao) balcao, SUM(r.local_metro) metro, SUM(r.postagens) postagens, ROUND(SUM(r.valor),2) valor,
+    MAX(r.ultima) ultima
+  FROM cid_clientes c JOIN cid_resumo r ON r.cliente_id = c.id
+  WHERE c.local_carteira IS NULL
+  GROUP BY c.id
+  HAVING (SUM(r.local_agf) > 0) + (SUM(r.local_balcao) > 0) + (SUM(r.local_metro) > 0) <> 1`;   // mais de um LOCAL, ou nenhum LOCAL informado
+
+async function contarFilaLocal(env) {
+  const r = await env.DB.prepare(`SELECT COUNT(*) n FROM (${SQL_FILA_LOCAL})`).first();
+  return Number(r?.n || 0);
+}
+
+function sugestaoLocal(x) {
+  const pares = [['AGF', x.agf || 0], ['BALCAO', x.balcao || 0], ['METRO', x.metro || 0]].sort((a, b) => b[1] - a[1]);
+  const total = pares.reduce((s, p) => s + p[1], 0);
+  if (!total) return { sugerido: null, participacao: 0 };                 // postagens sem LOCAL no Atende: sem sugestao
+  return { sugerido: pares[0][0], participacao: Math.floor((100 * pares[0][1]) / total) };   // floor: 100% so quando e tudo num LOCAL
+}
+
+async function filaLocal(url, env) {
+  const por = Math.min(100, Math.max(10, Number(url.searchParams.get('por')) || 30));
+  const pagina = Math.max(1, Math.trunc(Number(url.searchParams.get('pagina')) || 1));
+  const [lista, total] = await env.DB.batch([
+    env.DB.prepare(`${SQL_FILA_LOCAL} ORDER BY valor DESC LIMIT ? OFFSET ?`).bind(por, (pagina - 1) * por),
+    env.DB.prepare(`SELECT COUNT(*) n FROM (${SQL_FILA_LOCAL})`),
+  ]);
+  const itens = (lista.results || []).map((x) => ({ ...x, ...sugestaoLocal(x) }));
+  // quantos da fila inteira tem 90%+ das postagens num LOCAL so (para o "aplicar sugestao" em lote)
+  const todos = await env.DB.prepare(SQL_FILA_LOCAL).all();
+  const fortes = (todos.results || []).filter((x) => sugestaoLocal(x).participacao >= 90).length;
+  const n = Number(total.results?.[0]?.n || 0);
+  return { total: n, pagina, por, paginas: Math.max(1, Math.ceil(n / por)), fortes, itens };
+}
+
+async function definirLocal(request, env, autor) {
+  const b = await corpo(request);
+  let itens = Array.isArray(b.itens) ? b.itens : [];
+  if (b.sugestoesFortes === true) {
+    const todos = await env.DB.prepare(SQL_FILA_LOCAL).all();
+    itens = (todos.results || []).map((x) => ({ clienteId: x.id, ...sugestaoLocal(x) })).filter((x) => x.participacao >= 90).map((x) => ({ clienteId: x.clienteId, local: x.sugerido }));
+  }
+  itens = itens.map((x) => ({ clienteId: limpar(x.clienteId), local: limpar(x.local).toUpperCase() })).filter((x) => x.clienteId);
+  if (!itens.length) erro('Nenhum cliente informado.');
+  if (itens.length > 500) erro('Envie no maximo 500 clientes por vez.');
+  if (itens.some((x) => !LOCAIS.includes(x.local))) erro('LOCAL invalido. Use AGF, BALCAO ou METRO.');
+  const stmts = [];
+  for (const it of itens) {
+    const nos = await nosDoCliente(env, it.clienteId);
+    if (!nos.length) continue;
+    for (const k of nos) stmts.push(env.DB.prepare(`INSERT INTO cid_local_decisoes(chave, local, autor) VALUES(?,?,?)
+      ON CONFLICT(chave) DO UPDATE SET local=excluded.local, autor=excluded.autor, em=CURRENT_TIMESTAMP`).bind(k, it.local, autor));
+    stmts.push(env.DB.prepare(`UPDATE cid_clientes SET local_carteira=?, local_fonte='ADMIN', atualizado_em=CURRENT_TIMESTAMP WHERE id=?`).bind(it.local, it.clienteId));
+  }
+  await emLotes(env.DB, stmts);
+  return { definidos: itens.length, filaLocal: await contarFilaLocal(env) };
+}
+
 
 async function listarClientes(url, env) {
   const aba = ABAS.includes(url.searchParams.get('aba')) ? url.searchParams.get('aba') : 'PORTAL';
@@ -126,7 +191,7 @@ async function listarClientes(url, env) {
   const colLocal = { AGF: 'r.local_agf', BALCAO: 'r.local_balcao', METRO: 'r.local_metro' }[url.searchParams.get('local')];
   const filtroLocal = colLocal ? `AND ${colLocal} > 0` : '';
   const [lista, total] = await env.DB.batch([
-    env.DB.prepare(`SELECT c.id, c.nome, c.fonte_nome, c.portal_chave IS NOT NULL eh_portal, r.postagens, r.valor, r.grafias,
+    env.DB.prepare(`SELECT c.id, c.nome, c.fonte_nome, c.portal_chave IS NOT NULL eh_portal, c.local_carteira, c.local_fonte, r.postagens, r.valor, r.grafias,
         r.local_agf, r.local_balcao, r.local_metro, r.local_vazio, r.ultima,
         (SELECT COUNT(*) FROM cid_sugestoes s WHERE s.cliente_a=c.id OR s.cliente_b=c.id) sugestoes,
         (SELECT GROUP_CONCAT(aba) FROM cid_resumo r2 WHERE r2.cliente_id=c.id) abas
@@ -349,6 +414,8 @@ async function rotear(request, env) {
   if (p === '/api/v2/nao-e-o-mesmo' && m === 'POST') return json({ ok: true, ...(await naoEhOMesmo(request, env, autor)) });
   if (p === '/api/v2/tirar-grafia' && m === 'POST') return json({ ok: true, ...(await tirarGrafia(request, env, autor)) });
   if (p === '/api/v2/renomear' && m === 'POST') return json({ ok: true, ...(await renomear(request, env, autor)) });
+  if (p === '/api/v2/fila-local' && m === 'GET') return json({ ok: true, ...(await filaLocal(url, env)) });
+  if (p === '/api/v2/definir-local' && m === 'POST') return json({ ok: true, ...(await definirLocal(request, env, autor)) });
   if (p === '/api/v2/motor' && m === 'POST') return json({ ok: true, motor: await executarMotorD1(env, autor) });
   if (p === '/api/v2/sincronizar' && m === 'POST') {
     const s = await sincronizar(env, { paginas: 10, orcamentoMs: 15000 });

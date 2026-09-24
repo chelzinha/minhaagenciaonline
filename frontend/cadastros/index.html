@@ -13,8 +13,8 @@
   <script src="/shared/auth/agf-auth-client.js"></script>
   <script>window.AGF_ACCESS = { roles: ['admin'] };</script>
   <script src="/shared/auth/agf-route-guard.js"></script>
-  <script src="./config.js?v=20260924e"></script>
-  <link rel="stylesheet" href="./cadastros.css?v=20260924e">
+  <script src="./config.js?v=20260925a"></script>
+  <link rel="stylesheet" href="./cadastros.css?v=20260925a">
 </head>
 <body>
 <div class="cad-shell">
@@ -47,6 +47,7 @@
       <div class="cad-modes" role="tablist" aria-label="Visão">
         <button id="modoLista" class="on" type="button"><span class="material-symbols-rounded">list</span>Clientes</button>
         <button id="modoSug" type="button"><span class="material-symbols-rounded">merge</span>Sugestões <em id="modoSugN"></em></button>
+        <button id="modoLocal" type="button" title="Clientes com postagens em mais de um LOCAL"><span class="material-symbols-rounded">location_on</span>Fila de LOCAL <em id="modoLocalN"></em></button>
       </div>
     </div>
 
@@ -91,6 +92,16 @@
       <div id="sugLista" class="cad-sug-grid" aria-live="polite"></div>
       <div class="cad-pager" id="sugPager"></div>
     </section>
+
+    <!-- FILA DE LOCAL -->
+    <section class="cad-sug" id="vistaLocal" hidden>
+      <div class="cad-sug-tools">
+        <p class="cad-help">Cada cliente pertence a <b>um</b> LOCAL da carteira. Estes postam em mais de um LOCAL (ou o Atende não informou o LOCAL): escolha a qual pertencem. O sugerido, em verde, é o LOCAL com mais postagens.</p>
+        <button type="button" class="cad-btn ok" id="localFortes" hidden><span class="material-symbols-rounded">done_all</span><span id="localFortesTx">Aplicar sugestão</span></button>
+      </div>
+      <div id="localLista" class="cad-local-lista" aria-live="polite"></div>
+      <div class="cad-pager" id="localPager"></div>
+    </section>
   </main>
 </div>
 
@@ -114,6 +125,6 @@
 <div class="cad-toast" id="toast" role="status"></div>
 <div class="cad-busy" id="busy" hidden><div><span class="cad-spin"></span><p id="busyMsg">Processando...</p></div></div>
 
-<script src="./cadastros.js?v=20260924e"></script>
+<script src="./cadastros.js?v=20260925a"></script>
 </body>
 </html>
