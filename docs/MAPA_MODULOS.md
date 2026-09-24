@@ -39,6 +39,7 @@ O card Caixa do `/intra` é apenas um atalho para a rota oficial `/caixa/`. A an
 | dashboard | `/intra/dashboard` | `frontend/intra/dashboard` | NÃO MAPEADOS | CONFIRMAR | `docs/modulos/dashboard/README.md` |
 | inteligencia | `/intra/inteligencia` | `frontend/intra/inteligencia` | múltiplas | SIM | `docs/modulos/inteligencia/README.md` |
 | crm | `/crm` | `frontend/crm` | `apps-script/base-metro` | CONFIRMAR integralmente | `docs/modulos/crm/README.md` |
+| cadastros | `/cadastros` | `frontend/cadastros` | `cloudflare/cadastros-api` + D1 próprio | Estrutura criada; publicação pendente | `docs/modulos/cadastros/README.md` |
 | resumos | `/intra/resumo` | `frontend/intra/resumo` | NÃO MAPEADOS | CONFIRMAR | `docs/modulos/resumos/README.md` |
 | logistica-interna | `/intra/logistica` | `frontend/intra/logistica` | NÃO MAPEADOS | CONFIRMAR | `docs/modulos/logistica-interna/README.md` |
 | caixa | `/caixa` | `frontend/caixa` | `apps-script/caixa` provável | SIM no catálogo central; validar backend integralmente | `docs/modulos/caixa/README.md` |

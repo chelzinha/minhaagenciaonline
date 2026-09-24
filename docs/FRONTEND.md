@@ -1,5 +1,9 @@
 # FRONTEND
 
+## Cadastro de Clientes
+
+`frontend/cadastros/` oferece revisão de nomes recebidos, criação e correção da identidade canônica, vínculos de contrato/cartão e separação por LOCAL. Admin com permissão `intra`; dados pelo Worker `agf-cadastros-api`. O card foi adicionado ao `/intra/`; a publicação do frontend e do Worker está pendente. Ver `docs/modulos/cadastros/README.md`.
+
 ## Hospedagem oficial do frontend principal
 
 A hospedagem oficial do frontend principal de `www.minhaagenciaonline.com.br` é **Cloudflare**.

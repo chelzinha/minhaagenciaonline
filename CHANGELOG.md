@@ -2,6 +2,13 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-24 - Estrutura do Cadastro de Clientes
+
+- Criada base D1 independente `agf-cadastros`, com `customers`, aliases, projeção de postagens canônicas, vínculos informativos de contrato/cartão, auditoria e cursor de sincronização.
+- Implementados Worker de leitura do Atende, fila de revisão administrativa e frontend `/cadastros/`; adicionado card no painel interno.
+- Identidade por remetente apenas para BALCÃO, GAS SHOPPING METRO e GAS SHOPPING CENTRO FASHION; demais cadastros seguem CLIENTE PORTAL. LOCAL fica por postagem.
+- Esquema aplicado no D1; Worker, frontend e integração do CRM ainda não publicados por esta alteração.
+
 ## 2026-09-11 - Correcao da aba Entregas do /app
 
 ### Corrigido

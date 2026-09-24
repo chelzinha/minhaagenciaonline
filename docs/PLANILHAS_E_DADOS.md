@@ -2,6 +2,10 @@
 
 Documento tecnico em preparacao.
 
+## Cadastro de Clientes em D1
+
+O novo módulo `cadastros` guarda `customers`, aliases de nomes recebidos, vínculos informativos de contrato/cartão e referências às postagens canônicas do Atende. Sua tela grava correções no D1, sem planilha de limpeza. O CRM existente continua com suas planilhas e regras comerciais até uma migração específica. Ver `docs/modulos/cadastros/README.md`.
+
 ## Planilha APP Total CF + Metro - CRM, agenda, midias e manuais
 
 Documento principal:

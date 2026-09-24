@@ -2,6 +2,10 @@
 
 Documento tecnico em preparacao.
 
+## Cadastro de Clientes
+
+Sincronização por cursor de até 200 postagens canônicas por página; cron processa no máximo 20 páginas por execução. A tela usa listas paginadas (50 pendências e até 100 clientes por busca) e detalhe sob demanda. O D1 tem índices por cliente/LOCAL, pendências, alias e contrato. O primeiro ciclo completo deve ser medido após publicar o Worker; não há leitura integral de planilha no navegador.
+
 ## CRM - performance de boot e loading inicial
 
 Data: 2026-07-07

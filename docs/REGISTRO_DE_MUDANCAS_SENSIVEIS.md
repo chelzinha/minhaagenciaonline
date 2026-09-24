@@ -2,6 +2,10 @@
 
 Documento tecnico em preparacao.
 
+## 2026-09-24 - Base independente de identidade de clientes
+
+Criado o D1 `agf-cadastros` e aplicado o esquema inicial. A projeção planejada lê nomes, contrato/cartão e LOCAL de postagens canônicas do Atende, sem alterar a fonte. Escritas manuais de identidade e vínculos requerem administrador autenticado e são auditadas. Contratos/cartões não são chaves de identificação automática. Worker, frontend e sincronização ainda não publicados nesta mudança; antes da ativação, verificar acesso e comparar LOCAL com a tabela do Atende. Nenhum registro real de cliente foi inserido no novo D1.
+
 ## 2026-09-08 - Atende: protecao server-side da remuneracao do Dashboard V4
 
 ### Atencao sensivel
@@ -248,4 +252,3 @@ Risco: exposicao acidental de identificadores, credenciais, tokens, URLs ou dado
 Controle aplicado: arquivos .clasp.json ignorados via .gitignore e verificacao inicial por termos sensiveis antes do commit.
 
 Commit relacionado: badf763.
-

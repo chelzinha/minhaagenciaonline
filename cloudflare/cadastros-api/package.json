@@ -1,0 +1,15 @@
+{
+  "name": "agf-cadastros-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "migrate:local": "wrangler d1 migrations apply agf-cadastros --local",
+    "migrate:remote": "wrangler d1 migrations apply agf-cadastros --remote",
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

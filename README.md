@@ -22,6 +22,9 @@ Organizar os modulos digitais da AGF, incluindo frontends, Apps Script, document
 - docs/
 - previews/
 - releases/
+- cloudflare/cadastros-api/ — base D1 de identidade de clientes
+
+O módulo `/cadastros/` padroniza identidades recebidas do Atende. Regras, estado de publicação e API: `docs/modulos/cadastros/README.md`.
 
 ## Regra de trabalho
 
