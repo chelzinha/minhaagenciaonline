@@ -258,7 +258,7 @@ async function listReview(url, env) {
     GROUP_CONCAT(DISTINCT portal_name) portal_names,
     MAX(sender_name) sender_name,COUNT(*) postings,COUNT(DISTINCT local_code) local_count,
     MAX(local_code) sample_local,MAX(contract_number) sample_contract,MAX(posting_card) sample_card,
-    MIN(source_id) first_source_id FROM source_postings WHERE resolution='PENDING'
+    MIN(source_id) first_source_id FROM source_postings WHERE resolution='PENDING' AND sender_norm<>''
     AND (?='' OR portal_name LIKE ? OR sender_name LIKE ?)
     GROUP BY CASE WHEN portal_norm IN ('BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION') THEN 'SHARED' ELSE portal_norm END,sender_norm
     ORDER BY postings DESC,portal_norm,sender_norm LIMIT ? OFFSET ?`)
