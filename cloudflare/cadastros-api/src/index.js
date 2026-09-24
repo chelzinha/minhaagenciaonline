@@ -128,7 +128,33 @@ async function ficha(id, env) {
       WHERE s.cliente_a=? OR s.cliente_b=? ORDER BY s.score DESC`).bind(id, id, id),
     db.prepare(`SELECT aba, postagens FROM cid_resumo WHERE cliente_id=?`).bind(id),
   ]);
-  return { cliente, grafias: grafias.results || [], locais: locais.results || [], contratos: contratos.results || [], sugestoes: sugestoes.results || [], abas: abas.results || [] };
+  const listaContratos = contratos.results || [];
+  await anexarIntermediador(env, listaContratos);
+  return { cliente, grafias: grafias.results || [], locais: locais.results || [], contratos: listaContratos, sugestoes: sugestoes.results || [], abas: abas.results || [] };
+}
+
+/** INTERMEDIADOR do contrato com a mesma regra do Atende:
+ *  nome ativo em atende_contratos; sem nome, contrato com 1 a 3 postagens = CONTRATO ECT. */
+async function anexarIntermediador(env, lista) {
+  const numeros = [...new Set(lista.map((k) => limpar(k.contrato).toUpperCase()).filter(Boolean))];
+  for (const k of lista) k.intermediador = '';
+  if (!numeros.length || !env.ATENDE_DB) return;
+  try {
+    const marcas = numeros.map(() => '?').join(',');
+    const [co, cc] = await env.ATENDE_DB.batch([
+      env.ATENDE_DB.prepare(`SELECT numero, nome FROM atende_contratos WHERE ativo = 1 AND numero IN (${marcas})`).bind(...numeros),
+      env.ATENDE_DB.prepare(`SELECT numero, ocorrencias FROM atende_contrato_counts WHERE numero IN (${marcas})`).bind(...numeros),
+    ]);
+    const nome = new Map((co.results || []).map((x) => [x.numero, limpar(x.nome)]));
+    const oc = new Map((cc.results || []).map((x) => [x.numero, Number(x.ocorrencias || 0)]));
+    for (const k of lista) {
+      const n = limpar(k.contrato).toUpperCase();
+      if (!n) continue;
+      k.intermediador = nome.get(n) || ((oc.get(n) || 0) >= 1 && (oc.get(n) || 0) <= 3 ? 'CONTRATO ECT' : '');
+    }
+  } catch (e) {
+    console.error('[CADASTROS_V2] intermediador', e?.message || e);   // a ficha abre mesmo sem essa informacao
+  }
 }
 
 /** Sugestoes agrupadas: componentes conexos do grafo de sugestoes ("3 nomes viram 1"). */
