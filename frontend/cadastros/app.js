@@ -1,8 +1,9 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { customers: [], pending: [], selected: null, customerPage: 0, reviewOffset: 0, resolving: null, customerRequest: 0, reviewRequest: 0 };
+  const state = { customers: [], pending: [], selected: null, customerPage: 0, reviewOffset: 0, resolving: null, customerRequest: 0, reviewRequest: 0, origin: '', mergeOptions: new Map(), mergeRequest: 0, portalTarget: false };
   const customerPageSize = 50;
+  const upper = value => String(value ?? '').toLocaleUpperCase('pt-BR');
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const debounce = (fn, ms = 250) => { let timer; return () => { clearTimeout(timer); timer = setTimeout(fn, ms); }; };
   function notice(message, error = false) { const el=$('notice'); el.textContent=message; el.classList.toggle('error', error); el.hidden=false; }
@@ -48,12 +49,12 @@
     const request = ++state.customerRequest;
     const offset = state.customerPage * customerPageSize;
     const q = encodeURIComponent($('customerSearch').value.trim());
-    const data = await api(`/api/customers?q=${q}&limit=${customerPageSize}&offset=${offset}`);
+    const data = await api(`/api/customers?q=${q}&origin=${encodeURIComponent(state.origin)}&limit=${customerPageSize}&offset=${offset}`);
     if (request !== state.customerRequest) return;
     const total = Number(data.total || 0);
     if (offset >= total && state.customerPage > 0) { state.customerPage = Math.max(0,Math.ceil(total/customerPageSize)-1); return loadCustomers(); }
     state.customers = data.customers;
-    $('customerList').innerHTML = state.customers.length ? state.customers.map(c => `<div class="row"><button type="button" data-customer="${esc(c.id)}"><strong>${esc(c.canonical_name)}</strong><small>${Number(c.posting_count).toLocaleString('pt-BR')} postagens · ${c.identity_quality === 'PROVISIONAL' ? 'Provisório' : 'Confirmado'} · ${esc(c.status)}</small></button></div>`).join('') : '<div class="empty">Nenhum cadastro encontrado nesta busca.</div>';
+    $('customerList').innerHTML = state.customers.length ? state.customers.map(c => `<div class="row"><button type="button" data-customer="${esc(c.id)}"><strong>${esc(upper(c.canonical_name))}</strong><small>${Number(c.posting_count).toLocaleString('pt-BR')} postagens · ${c.identity_quality === 'PROVISIONAL' ? 'Provisório' : 'Confirmado'} · ${esc(c.status)}</small></button></div>`).join('') : '<div class="empty">Nenhum cadastro encontrado nesta busca.</div>';
     $('customerPageInfo').textContent = total ? `Página ${state.customerPage+1} de ${Math.ceil(total/customerPageSize)} · ${total.toLocaleString('pt-BR')} clientes` : 'Nenhum cliente';
     $('previousCustomers').disabled = state.customerPage === 0;
     $('nextCustomers').disabled = offset + data.customers.length >= total;
@@ -74,13 +75,37 @@
     const c=data.customer; state.selected=c.id; $('detail').hidden=false;
     $('detailTitle').textContent=c.canonical_name;
     $('detailId').textContent=`${c.id} · ${c.identity_quality === 'PROVISIONAL' ? 'Provisório' : 'Confirmado'} · ${c.status}`;
-    $('renameName').value=c.canonical_name;
+    $('renameName').value=upper(c.canonical_name);
+    $('mergeName').value=upper(c.canonical_name);
+    state.portalTarget=data.aliases.some(a=>a.kind==='PORTAL');
     $('aliases').innerHTML = data.aliases.length ? data.aliases.map(a=>`<span class="chip"><b>${a.kind === 'SENDER' ? 'REMETENTE' : 'PORTAL'}</b> · ${esc(a.original_name)}</span>`).join('') : '<span class="small">Ainda sem nomes associados.</span>';
     $('observed').innerHTML = data.observedContracts.length ? data.observedContracts.map(v=>`<div class="row"><span>${esc(v.contract_number)} ${v.posting_card ? ' · '+esc(v.posting_card) : ''}<small>${Number(v.postings)} postagens</small></span></div>`).join('') : '<span class="small">Sem contratos observados.</span>';
     $('contracts').innerHTML = data.contracts.length ? data.contracts.map(v=>`<div class="row"><span>${esc(v.contract_number)} ${v.posting_card ? ' · '+esc(v.posting_card) : ''}<small>${esc(v.note)}</small></span></div>`).join('') : '<span class="small">Nenhum vínculo conferido.</span>';
     $('locals').innerHTML = data.locals.length ? data.locals.map(l=>`<span class="chip"><b>${esc(l.local_code || 'LOCAL vazio')}</b> · ${Number(l.postings).toLocaleString('pt-BR')} postagens</span>`).join('') : '<span class="small">Sem postagens associadas.</span>';
   }
-  async function openCustomer(id) { renderDetail(await api(`/api/customers/${encodeURIComponent(id)}`)); $('detail').scrollIntoView({behavior:'smooth'}); }
+
+  function mergeChoices(customers) {
+    state.mergeOptions = new Map(customers.filter(c=>c.id!==state.selected).map(c=>[c.id,c]));
+    $('mergeSource').innerHTML='<option value="">Selecione um cadastro</option>'+[...state.mergeOptions.values()].map(c=>
+      `<option value="${esc(c.id)}">${esc(upper(c.canonical_name))} · ${Number(c.posting_count||0).toLocaleString('pt-BR')} postagens</option>`).join('');
+  }
+  function selectMerge(id) {
+    const c=state.mergeOptions.get(id);
+    if(!c)return;
+    $('mergeSource').value=id;
+    if(!state.portalTarget && upper(c.canonical_name).length > $('detailTitle').textContent.length)
+      $('mergeName').value=upper(c.canonical_name);
+    $('mergeForm').scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  async function loadSuggestions(id) {
+    const data=await api(`/api/suggestions?id=${encodeURIComponent(id)}`);
+    if(id!==state.selected)return;
+    mergeChoices(data.suggestions);
+    $('suggestions').innerHTML=data.suggestions.length ? data.suggestions.map(c=>
+      `<div class="row"><button type="button" data-merge="${esc(c.id)}"><strong>${esc(upper(c.canonical_name))}</strong><small>${c.portal_customer?'CLIENTE PORTAL · ':''}${Number(c.posting_count).toLocaleString('pt-BR')} postagens · sugestão para conferir</small></button></div>`).join('')
+      : '<p class="hint">Nenhuma sugestão próxima. Busque pelo nome para escolher outra ficha.</p>';
+  }
+  async function openCustomer(id) { renderDetail(await api(`/api/customers/${encodeURIComponent(id)}`)); $('detail').scrollIntoView({behavior:'smooth'}); await loadSuggestions(id); }
   async function refresh() { await Promise.all([refreshStatus(),loadCustomers(),loadReview()]); if(state.selected) await openCustomer(state.selected); }
   function resolve(row) {
     state.resolving=row;
@@ -94,6 +119,30 @@
     $('reviewList').textContent='Carregando pendências…'; $('customerList').textContent='Carregando cadastros…';
     await task(refresh);
     $('reviewSearch').addEventListener('input',debounce(()=>task(()=>loadReview())));
+    document.querySelector('.origin-tabs').addEventListener('click',e=>{const button=e.target.closest('[data-origin]');if(!button)return;state.origin=button.dataset.origin;document.querySelectorAll('[data-origin]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));task(()=>loadCustomers(true));});
+    $('suggestions').addEventListener('click',e=>{const id=e.target.closest('[data-merge]')?.dataset.merge;if(id)selectMerge(id);});
+    $('mergeSearch').addEventListener('input',debounce(()=>task(async()=>{
+      const request=++state.mergeRequest;
+      const q=$('mergeSearch').value.trim();
+      if(!q){await loadSuggestions(state.selected);return;}
+      const data=await api(`/api/customers?q=${encodeURIComponent(q)}&limit=100`);
+      if(request!==state.mergeRequest)return;
+      mergeChoices(data.customers);
+      $('suggestions').innerHTML=data.customers.length?data.customers.filter(c=>c.id!==state.selected).map(c=>
+        `<div class="row"><button type="button" data-merge="${esc(c.id)}"><strong>${esc(upper(c.canonical_name))}</strong><small>${Number(c.posting_count).toLocaleString('pt-BR')} postagens</small></button></div>`).join(''):'<p class="hint">Nenhum cadastro encontrado.</p>';
+    })));
+    $('mergeForm').addEventListener('submit',e=>{e.preventDefault();task(async()=>{
+      const source=state.mergeOptions.get($('mergeSource').value);
+      if(!source)throw new Error('Selecione o cadastro que será agrupado.');
+      const target=await api(`/api/customers/${encodeURIComponent(state.selected)}`);
+      const name=upper($('mergeName').value.trim());
+      if(!name)throw new Error('Informe o nome padronizado.');
+      if(!window.confirm(`Agrupar "${upper(source.canonical_name)}" em "${upper(target.customer.canonical_name)}" como "${name}"? Todas as postagens e grafias do primeiro cadastro serão transferidas.`))return;
+      await send('/api/customers/merge',{sourceId:source.id,targetId:target.customer.id,expectedSourceName:source.canonical_name,expectedTargetName:target.customer.canonical_name,canonicalName:name});
+      notice('Cadastros agrupados. Nomes recebidos, postagens e contratos reunidos.');
+      $('mergeSearch').value='';
+      await refresh();
+    },e.submitter);});
     $('customerSearch').addEventListener('input',debounce(()=>task(()=>loadCustomers(true))));
     $('resolveSearch').addEventListener('input',debounce(()=>task(async()=>{
       const data=await api(`/api/customers?q=${encodeURIComponent($('resolveSearch').value.trim())}&limit=100`);
