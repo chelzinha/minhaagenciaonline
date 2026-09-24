@@ -2,6 +2,12 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-24 - Primeira varredura do Cadastro de Clientes concluída
+
+- O D1 recebeu 93.624 postagens, igual ao total da view canônica do Atende, e criou 301 clientes por portal direto.
+- Oito amostras distribuídas na origem coincidiram em portal, remetente, LOCAL, contrato, cartão, data e valor. As 16.615 postagens pendentes exigem revisão de identidade, sobretudo nos três portais compartilhados.
+- Concorrência entre ciclos do cron passou a ser tratada como espera normal; falhas técnicas continuam registradas no D1 administrativo. A tela autenticada ainda precisa de validação antes do merge.
+
 ## 2026-09-24 - Ativação autorizada do Worker de cadastros
 
 - Após autorização da gestora, habilitados o endereço público `agf-cadastros-api.chelzinha.workers.dev` e o cron configurado em `wrangler.jsonc`.
