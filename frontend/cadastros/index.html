@@ -15,7 +15,7 @@
   <script>window.AGF_ACCESS={roles:['admin'],app:'intra'};</script>
   <script src="/shared/auth/agf-route-guard.js"></script>
   <script src="/cadastros/config.js" defer></script>
-  <script src="/cadastros/app.js?v=20260924-2" defer></script>
+  <script src="/cadastros/app.js?v=20260924-3" defer></script>
 </head>
 <body>
   <header class="topbar"><div class="container topbar-inner">
@@ -28,6 +28,7 @@
     <section class="summary" aria-label="Resumo da sincronização">
       <div><span>Postagens importadas</span><strong id="total">—</strong></div>
       <div><span>Clientes cadastrados</span><strong id="customersTotal">—</strong></div>
+      <div><span>Cadastros provisórios</span><strong id="provisionalTotal">—</strong></div>
       <div><span>Nomes distintos em revisão</span><strong id="pendingNames">—</strong></div>
       <div><span>Postagens em revisão</span><strong id="pending">—</strong></div>
       <div><span>Varreduras completas</span><strong id="passes">—</strong></div>
@@ -36,12 +37,12 @@
     <p id="syncProgress" class="sync-progress" role="status" aria-live="polite"></p>
     <div class="layout">
       <section class="panel" aria-labelledby="reviewTitle"><div class="panel-head"><div><p class="eyebrow">TRIAGEM</p><h2 id="reviewTitle">Nomes para revisão</h2></div><span class="badge">Identidade pendente</span></div>
-        <p class="hint">Nomes iguais aos de um Cliente Portal direto são associados automaticamente. Os demais ficam para conferência; o nome registrado no Atende continua intacto.</p>
+        <p class="hint">Coincidências confiáveis são associadas automaticamente. Nomes novos ganham cadastro provisório; só ambiguidades ficam aqui. O nome registrado no Atende continua intacto.</p>
         <label class="field">Buscar nome recebido<input id="reviewSearch" type="search" placeholder="Remetente ou Cliente Portal"></label>
         <div id="reviewList" class="list" aria-live="polite"></div>
         <button type="button" id="moreReview" class="text-button" hidden>Ver mais pendências</button>
       </section>
-      <section class="panel" aria-labelledby="customerTitle"><div class="panel-head"><div><p class="eyebrow">IDENTIDADE</p><h2 id="customerTitle">Clientes padronizados</h2></div></div>
+      <section class="panel" aria-labelledby="customerTitle"><div class="panel-head"><div><p class="eyebrow">IDENTIDADE</p><h2 id="customerTitle">Cadastro de clientes</h2></div></div>
         <label class="field">Buscar cadastro<input id="customerSearch" type="search" placeholder="Nome padronizado"></label>
         <div id="customerList" class="list compact" aria-live="polite"></div>
         <nav class="pagination" aria-label="Páginas de clientes"><button type="button" id="previousCustomers" class="button secondary">Anterior</button><span id="customerPageInfo" aria-live="polite"></span><button type="button" id="nextCustomers" class="button secondary">Próxima</button></nav>

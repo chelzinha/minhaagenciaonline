@@ -27,6 +27,12 @@ export function isNamePrefix(shortName, longName) {
     (i === short.length - 1 && word.length >= 5 && `${word}S` === long[i]));
 }
 
+export function isUsableSenderName(name) {
+  const normalized = key(name);
+  return normalized.length >= 3 && /[A-Z]/.test(normalized) &&
+    !new Set(['SEM REGISTRO','SEM REMETENTE','REMETENTE','CLIENTE','NULL','N/A','NAO INFORMADO','BALCAO']).has(normalized);
+}
+
 export function resolveIdentity(portal, sender, aliases) {
   const portalNorm = key(portal);
   const senderNorm = key(sender);

@@ -33,6 +33,7 @@
     const data = await api('/api/status');
     $('total').textContent = Number(data.postings?.total || 0).toLocaleString('pt-BR');
     $('customersTotal').textContent = Number(data.customers?.total || 0).toLocaleString('pt-BR');
+    $('provisionalTotal').textContent = Number(data.customers?.provisional || 0).toLocaleString('pt-BR');
     $('pendingNames').textContent = Number(data.postings?.pending_names || 0).toLocaleString('pt-BR');
     $('pending').textContent = Number(data.postings?.pending || 0).toLocaleString('pt-BR');
     $('passes').textContent = Number(data.sync?.completed_passes || 0).toLocaleString('pt-BR');
@@ -52,7 +53,7 @@
     const total = Number(data.total || 0);
     if (offset >= total && state.customerPage > 0) { state.customerPage = Math.max(0,Math.ceil(total/customerPageSize)-1); return loadCustomers(); }
     state.customers = data.customers;
-    $('customerList').innerHTML = state.customers.length ? state.customers.map(c => `<div class="row"><button type="button" data-customer="${esc(c.id)}"><strong>${esc(c.canonical_name)}</strong><small>${Number(c.posting_count).toLocaleString('pt-BR')} postagens · ${esc(c.status)}</small></button></div>`).join('') : '<div class="empty">Nenhum cadastro encontrado nesta busca.</div>';
+    $('customerList').innerHTML = state.customers.length ? state.customers.map(c => `<div class="row"><button type="button" data-customer="${esc(c.id)}"><strong>${esc(c.canonical_name)}</strong><small>${Number(c.posting_count).toLocaleString('pt-BR')} postagens · ${c.identity_quality === 'PROVISIONAL' ? 'Provisório' : 'Confirmado'} · ${esc(c.status)}</small></button></div>`).join('') : '<div class="empty">Nenhum cadastro encontrado nesta busca.</div>';
     $('customerPageInfo').textContent = total ? `Página ${state.customerPage+1} de ${Math.ceil(total/customerPageSize)} · ${total.toLocaleString('pt-BR')} clientes` : 'Nenhum cliente';
     $('previousCustomers').disabled = state.customerPage === 0;
     $('nextCustomers').disabled = offset + data.customers.length >= total;
@@ -72,7 +73,7 @@
   function renderDetail(data) {
     const c=data.customer; state.selected=c.id; $('detail').hidden=false;
     $('detailTitle').textContent=c.canonical_name;
-    $('detailId').textContent=`${c.id} · ${c.status}`;
+    $('detailId').textContent=`${c.id} · ${c.identity_quality === 'PROVISIONAL' ? 'Provisório' : 'Confirmado'} · ${c.status}`;
     $('renameName').value=c.canonical_name;
     $('aliases').innerHTML = data.aliases.length ? data.aliases.map(a=>`<span class="chip"><b>${a.kind === 'SENDER' ? 'REMETENTE' : 'PORTAL'}</b> · ${esc(a.original_name)}</span>`).join('') : '<span class="small">Ainda sem nomes associados.</span>';
     $('observed').innerHTML = data.observedContracts.length ? data.observedContracts.map(v=>`<div class="row"><span>${esc(v.contract_number)} ${v.posting_card ? ' · '+esc(v.posting_card) : ''}<small>${Number(v.postings)} postagens</small></span></div>`).join('') : '<span class="small">Sem contratos observados.</span>';

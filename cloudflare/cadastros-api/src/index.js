@@ -1,4 +1,4 @@
-import { clean, key, isSharedPortal, isNamePrefix, resolveIdentity } from './identity.js';
+import { clean, key, isSharedPortal, isNamePrefix, isUsableSenderName, resolveIdentity } from './identity.js';
 
 const FEED_SQL = `
   SELECT r.id, r.nome_remetente sender_name, cp.cliente_portal portal_name,
@@ -97,7 +97,7 @@ async function reconcileNamePrefixes(env) {
     env.DB.prepare(`SELECT normalized_name,customer_id FROM customer_aliases WHERE kind='PORTAL'`),
     env.DB.prepare(`SELECT normalized_name FROM customer_aliases WHERE kind='SENDER'`)
   ]);
-  const pending = pendingResult.results || [];
+  const pending = (pendingResult.results || []).filter(p => isUsableSenderName(p.sender_norm));
   const portals = portalsResult.results || [];
   const senderAliases = new Set((senderAliasesResult.results || []).map(a => a.normalized_name));
   const candidates = new Map();
@@ -127,7 +127,7 @@ async function reconcileNamePrefixes(env) {
       const existing = await env.DB.prepare(`SELECT customer_id FROM customer_aliases WHERE kind='SENDER' AND normalized_name=?`).bind(match.target).first();
       if (existing && existing.customer_id !== id) continue;
       await env.DB.batch([
-        env.DB.prepare(`INSERT OR IGNORE INTO customers(id,canonical_name) VALUES(?,?)`).bind(id,match.targetName),
+        env.DB.prepare(`INSERT OR IGNORE INTO customers(id,canonical_name,identity_quality) VALUES(?,?,'PROVISIONAL')`).bind(id,match.targetName),
         env.DB.prepare(`INSERT OR IGNORE INTO customer_aliases(kind,normalized_name,original_name,customer_id,source) VALUES('SENDER',?,?,?,'AUTO_PORTAL')`).bind(match.target,match.targetName,id)
       ]);
     }
@@ -141,6 +141,64 @@ async function reconcileNamePrefixes(env) {
   return { resolved, candidates: matches.length };
 }
 
+async function reconcileCompactNames(env) {
+  const [pendingResult, aliasesResult] = await env.DB.batch([
+    env.DB.prepare("SELECT sender_norm,MAX(sender_name) sender_name FROM source_postings WHERE resolution='PENDING' AND sender_norm<>'' GROUP BY sender_norm"),
+    env.DB.prepare(`SELECT a.normalized_name,a.customer_id FROM customer_aliases a JOIN customers c ON c.id=a.customer_id
+      WHERE c.identity_quality<>'PROVISIONAL'`)
+  ]);
+  const candidates = aliasesResult.results || [];
+  const compact = value => value.replace(/[^A-Z0-9]/g,'');
+  const index = new Map(), exact = new Map();
+  for (const item of candidates) {
+    const k = compact(item.normalized_name);
+    if (!index.has(k)) index.set(k,new Set());
+    index.get(k).add(item.customer_id);
+    if (!exact.has(item.normalized_name)) exact.set(item.normalized_name,new Set());
+    exact.get(item.normalized_name).add(item.customer_id);
+  }
+  let resolved = 0;
+  for (const row of pendingResult.results || []) {
+    if (!isUsableSenderName(row.sender_norm)) continue;
+    const compactCandidates = index.get(compact(row.sender_norm));
+    const withoutSuffix = row.sender_norm.replace(/\s+\d{2,5}$/,'');
+    const found = compactCandidates?.size === 1 ? compactCandidates :
+      withoutSuffix !== row.sender_norm ? exact.get(withoutSuffix) : null;
+    if (!found || found.size !== 1) continue;
+    const customerId = [...found][0];
+    const old = await env.DB.prepare("SELECT customer_id FROM customer_aliases WHERE kind='SENDER' AND normalized_name=?").bind(row.sender_norm).first();
+    if (old && old.customer_id !== customerId) continue;
+    await env.DB.prepare(`INSERT OR IGNORE INTO customer_aliases(kind,normalized_name,original_name,customer_id,source)
+      VALUES('SENDER',?,?,?,'AUTO_PORTAL')`).bind(row.sender_norm,row.sender_name,customerId).run();
+    await env.DB.prepare(`UPDATE source_postings SET customer_id=?,resolution='SENDER_ALIAS',updated_at=CURRENT_TIMESTAMP
+      WHERE resolution='PENDING' AND sender_norm=?`).bind(customerId,row.sender_norm).run();
+    resolved++;
+  }
+  return { resolved };
+}
+
+async function provisionUnknownSenders(env) {
+  const eligible = `resolution='PENDING' AND sender_norm<>'' AND length(sender_norm)>=3
+    AND sender_norm GLOB '*[A-Z]*' AND sender_norm NOT IN
+    ('SEM REGISTRO','SEM REMETENTE','REMETENTE','CLIENTE','NULL','N/A','NAO INFORMADO','BALCAO')`;
+  await env.DB.prepare(`INSERT OR IGNORE INTO auto_enrollment(sender_norm,customer_id,sender_name)
+    SELECT sender_norm,'cus_a_'||lower(hex(randomblob(16))),MAX(sender_name)
+    FROM source_postings WHERE ${eligible}
+    AND NOT EXISTS (SELECT 1 FROM customer_aliases a WHERE a.kind='SENDER' AND a.normalized_name=source_postings.sender_norm)
+    AND NOT EXISTS (SELECT 1 FROM customer_aliases a WHERE a.kind='PORTAL' AND a.normalized_name=source_postings.sender_norm)
+    GROUP BY sender_norm`).run();
+  await env.DB.prepare(`INSERT OR IGNORE INTO customers(id,canonical_name,identity_quality)
+    SELECT e.customer_id,e.sender_name,'PROVISIONAL' FROM auto_enrollment e
+    WHERE EXISTS (SELECT 1 FROM source_postings p WHERE p.resolution='PENDING' AND p.sender_norm=e.sender_norm)`).run();
+  await env.DB.prepare(`INSERT OR IGNORE INTO customer_aliases(kind,normalized_name,original_name,customer_id,source)
+    SELECT 'SENDER',e.sender_norm,e.sender_name,e.customer_id,'AUTO_PORTAL' FROM auto_enrollment e
+    WHERE EXISTS (SELECT 1 FROM source_postings p WHERE p.resolution='PENDING' AND p.sender_norm=e.sender_norm)`).run();
+  return env.DB.prepare(`UPDATE source_postings SET
+    customer_id=(SELECT a.customer_id FROM customer_aliases a WHERE a.kind='SENDER' AND a.normalized_name=source_postings.sender_norm),
+    resolution='SENDER_ALIAS',updated_at=CURRENT_TIMESTAMP
+    WHERE ${eligible} AND EXISTS (SELECT 1 FROM customer_aliases a WHERE a.kind='SENDER' AND a.normalized_name=source_postings.sender_norm)`).run();
+}
+
 async function syncPageUnlocked(env, limit = 200) {
   const state = await env.DB.prepare(`SELECT cursor_id,completed_passes FROM sync_state WHERE source_system='ATENDE'`).first();
   const cursor = Number(state?.cursor_id || 0);
@@ -150,6 +208,8 @@ async function syncPageUnlocked(env, limit = 200) {
     if (cursor > 0) await env.DB.prepare(`DELETE FROM source_postings WHERE source_system='ATENDE' AND last_seen_pass<?`).bind(Number(state.completed_passes) + 1).run();
     await backfillExactShared(env);
     await reconcileNamePrefixes(env);
+    await reconcileCompactNames(env);
+    await provisionUnknownSenders(env);
     await env.DB.prepare(`UPDATE sync_state SET cursor_id=0,completed_passes=completed_passes+1,updated_at=CURRENT_TIMESTAMP WHERE source_system='ATENDE' AND cursor_id=?`).bind(cursor).run();
     return { read: 0, changed: 0, cursor: 0, completedPass: true };
   }
@@ -161,7 +221,7 @@ async function syncPageUnlocked(env, limit = 200) {
   }));
   const specs = input.flatMap(r => isSharedPortal(r.portalNorm) || !r.portalNorm
     ? [{kind:'SENDER',normalized:r.senderNorm},{kind:'PORTAL',normalized:r.senderNorm}]
-    : [{kind:'PORTAL',normalized:r.portalNorm}]);
+    : [{kind:'PORTAL',normalized:r.portalNorm},{kind:'SENDER',normalized:r.portalNorm}]);
   const aliases = await getAliases(env, specs);
   const newPortals = new Map();
   input.forEach(r => {
@@ -169,10 +229,11 @@ async function syncPageUnlocked(env, limit = 200) {
   });
   const portalStatements = [];
   for (const [normalized, original] of newPortals) {
-    const id = await directId(normalized);
+    const id = aliases.get(`SENDER:${normalized}`) || await directId(normalized);
     portalStatements.push(
       env.DB.prepare(`INSERT OR IGNORE INTO customers(id,canonical_name) VALUES(?,?)`).bind(id, original),
-      env.DB.prepare(`INSERT OR IGNORE INTO customer_aliases(kind,normalized_name,original_name,customer_id,source) VALUES('PORTAL',?,?,?,'AUTO_PORTAL')`).bind(normalized, original, id)
+      env.DB.prepare(`INSERT OR IGNORE INTO customer_aliases(kind,normalized_name,original_name,customer_id,source) VALUES('PORTAL',?,?,?,'AUTO_PORTAL')`).bind(normalized, original, id),
+      env.DB.prepare(`UPDATE customers SET identity_quality='PORTAL' WHERE id=? AND identity_quality='PROVISIONAL'`).bind(id)
     );
   }
   for (let i=0; i<portalStatements.length; i+=70) await env.DB.batch(portalStatements.slice(i,i+70));
@@ -253,7 +314,7 @@ async function createCustomer(request, env, actor) {
   if (!name) fail('Informe o nome padronizado.');
   const id = customerId();
   await env.DB.batch([
-    env.DB.prepare('INSERT INTO customers(id,canonical_name) VALUES(?,?)').bind(id, name),
+    env.DB.prepare("INSERT INTO customers(id,canonical_name,identity_quality) VALUES(?,?,'MANUAL')").bind(id, name),
     auditStmt(env, actor, 'CREATE', 'customer', id, {}, { canonicalName: name })
   ]);
   return { customer: await env.DB.prepare('SELECT * FROM customers WHERE id=?').bind(id).first() };
@@ -266,7 +327,7 @@ async function updateCustomer(request, env, actor, id) {
   const status = Object.hasOwn(input, 'status') ? clean(input.status).toUpperCase() : previous.status;
   if (!name || !['ACTIVE','INACTIVE'].includes(status)) fail('Nome ou situação inválidos.');
   await env.DB.batch([
-    env.DB.prepare('UPDATE customers SET canonical_name=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(name,status,id),
+    env.DB.prepare("UPDATE customers SET canonical_name=?,status=?,identity_quality='MANUAL',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name,status,id),
     auditStmt(env,actor,'UPDATE','customer',id,{ name:previous.canonical_name,status:previous.status },{ name,status })
   ]);
   return getCustomer(id, env);
@@ -289,6 +350,7 @@ async function saveAlias(request, env, actor) {
     .bind(kind,normalized,name,customerId),
     auditStmt(env,actor,'ASSIGN','alias',`${kind}:${normalized}`,{ customerId:old?.customer_id || null },{ customerId })];
   await env.DB.batch(statements);
+  await env.DB.prepare("UPDATE customers SET identity_quality='MANUAL' WHERE id=?").bind(customerId).run();
   const condition = kind === 'SENDER'
     ? `(portal_norm IN ('BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION') OR portal_norm='') AND sender_norm=?`
     : `portal_norm=? AND portal_norm NOT IN ('BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION')`;
@@ -313,6 +375,8 @@ async function listReview(url, env) {
     MAX(sender_name) sender_name,COUNT(*) postings,COUNT(DISTINCT local_code) local_count,
     MAX(local_code) sample_local,MAX(contract_number) sample_contract,MAX(posting_card) sample_card,
     MIN(source_id) first_source_id FROM source_postings WHERE resolution='PENDING' AND sender_norm<>''
+    AND length(sender_norm)>=3 AND sender_norm GLOB '*[A-Z]*'
+    AND sender_norm NOT IN ('SEM REGISTRO','SEM REMETENTE','REMETENTE','CLIENTE','NULL','N/A','NAO INFORMADO','BALCAO')
     AND (?='' OR portal_name LIKE ? OR sender_name LIKE ?)
     GROUP BY CASE WHEN portal_norm IN ('BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION') THEN 'SHARED' ELSE portal_norm END,sender_norm
     ORDER BY postings DESC,portal_norm,sender_norm LIMIT ? OFFSET ?`)
@@ -366,8 +430,10 @@ async function handler(request, env) {
     const [state, counts, customers] = await env.DB.batch([
       env.DB.prepare(`SELECT * FROM sync_state WHERE source_system='ATENDE'`),
       env.DB.prepare(`SELECT COUNT(*) total,COUNT(CASE WHEN resolution='PENDING' THEN 1 END) pending,
-        COUNT(DISTINCT CASE WHEN resolution='PENDING' AND sender_norm<>'' THEN sender_norm END) pending_names FROM source_postings`),
-      env.DB.prepare('SELECT COUNT(*) total FROM customers')
+        COUNT(DISTINCT CASE WHEN resolution='PENDING' AND length(sender_norm)>=3 AND sender_norm GLOB '*[A-Z]*'
+        AND sender_norm NOT IN ('SEM REGISTRO','SEM REMETENTE','REMETENTE','CLIENTE','NULL','N/A','NAO INFORMADO','BALCAO')
+        THEN sender_norm END) pending_names FROM source_postings`),
+      env.DB.prepare("SELECT COUNT(*) total,COUNT(CASE WHEN identity_quality='PROVISIONAL' THEN 1 END) provisional FROM customers")
     ]);
     return json({ok:true,sync:state.results?.[0],postings:counts.results?.[0],customers:customers.results?.[0]});
   }

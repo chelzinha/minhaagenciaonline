@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { key, resolveIdentity, isSharedPortal, isNamePrefix } from '../src/identity.js';
+import { key, resolveIdentity, isSharedPortal, isNamePrefix, isUsableSenderName } from '../src/identity.js';
 
 test('somente os três CLIENTES PORTAL declarados usam NOME REMETENTE', () => {
   for (const portal of ['BALCÃO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION']) assert.equal(isSharedPortal(portal),true);
@@ -44,4 +44,9 @@ test('nome abreviado encontra continuação completa e plural no último termo',
   assert.equal(isNamePrefix('DONA LUIZA','DONA LUIZA ATACADISTA DE CALCADOS LTDA'),false);
   assert.equal(isNamePrefix('CARLOS EDUARDO SILVA','CARLOS EDUARDO SOUZA LTDA'),false);
   assert.equal(resolveIdentity('','DONA LUIZA ATACADISTA DE CALCADO',new Map([['SENDER:DONA LUIZA ATACADISTA DE CALCADO','cus_dona']])).customerId,'cus_dona');
+});
+
+test('remetentes operacionais e vazios não viram cadastro provisório', () => {
+  for (const value of ['', '-', 'NULL', 'SEM REGISTRO', 'BALCÃO', '12345']) assert.equal(isUsableSenderName(value),false);
+  assert.equal(isUsableSenderName('MARIA LETICIA'),true);
 });
