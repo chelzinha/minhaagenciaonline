@@ -74,6 +74,12 @@ function normalizeCustomerId(value) {
   return customerId;
 }
 
+function normalizeLimit(value, fallback = 20, max = 50) {
+  const parsed = Number.parseInt(String(value || ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(Math.max(parsed, 1), max);
+}
+
 function base64Url(bytes) {
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -301,14 +307,19 @@ async function refreshOfflineToken(shop, refreshToken, env) {
   return data;
 }
 
-async function saveTokenPair(shop, tokenData, env, tokenType = 'OFFLINE_EXPIRING') {
-  const accessEnc = await encryptSecret(tokenData.access_token, env);
-  const refreshEnc = await encryptSecret(tokenData.refresh_token, env);
-  const accessExpires = tokenData.expires_in ? addSeconds(tokenData.expires_in) : null;
-  const refreshExpires = tokenData.refresh_token_expires_in ? addSeconds(tokenData.refresh_token_expires_in) : null;
-  const scopes = String(tokenData.scope || env.SHOPIFY_SCOPES || '');
+async function tokenRecord(tokenData, env, tokenType) {
+  return {
+    accessEnc: await encryptSecret(tokenData.access_token, env),
+    refreshEnc: await encryptSecret(tokenData.refresh_token, env),
+    accessExpires: tokenData.expires_in ? addSeconds(tokenData.expires_in) : null,
+    refreshExpires: tokenData.refresh_token_expires_in ? addSeconds(tokenData.refresh_token_expires_in) : null,
+    scopes: String(tokenData.scope || env.SHOPIFY_SCOPES || ''),
+    tokenType
+  };
+}
 
-  await env.DB.prepare(
+function tokenUpsertStatement(env, shop, token) {
+  return env.DB.prepare(
     `INSERT INTO shopify_tokens (
        shop_domain, access_token_enc, refresh_token_enc, access_token_expires_at,
        refresh_token_expires_at, scopes, token_type, updated_at
@@ -321,9 +332,61 @@ async function saveTokenPair(shop, tokenData, env, tokenType = 'OFFLINE_EXPIRING
        scopes = excluded.scopes,
        token_type = excluded.token_type,
        updated_at = CURRENT_TIMESTAMP`
-  ).bind(shop, accessEnc, refreshEnc, accessExpires, refreshExpires, scopes, tokenType).run();
+  ).bind(
+    shop,
+    token.accessEnc,
+    token.refreshEnc,
+    token.accessExpires,
+    token.refreshExpires,
+    token.scopes,
+    token.tokenType
+  );
+}
 
-  return { accessExpires, refreshExpires, scopes, tokenType };
+function shopUpsertStatement(env, shop, customerId, identity, scopes) {
+  return env.DB.prepare(
+    `INSERT INTO shopify_shops (
+       shop_domain, customer_id, shop_gid, shop_name, primary_domain, status,
+       scopes, installed_at, last_verified_at, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+     ON CONFLICT(shop_domain) DO UPDATE SET
+       customer_id = excluded.customer_id,
+       shop_gid = excluded.shop_gid,
+       shop_name = excluded.shop_name,
+       primary_domain = excluded.primary_domain,
+       status = 'ACTIVE',
+       scopes = excluded.scopes,
+       uninstalled_at = NULL,
+       last_verified_at = CURRENT_TIMESTAMP,
+       updated_at = CURRENT_TIMESTAMP`
+  ).bind(
+    shop,
+    customerId,
+    identity.shop.id || null,
+    identity.shop.name || null,
+    identity.shop.primaryDomain?.host || null,
+    scopes
+  );
+}
+
+async function saveTokenPair(shop, tokenData, env, tokenType = 'OFFLINE_EXPIRING') {
+  const token = await tokenRecord(tokenData, env, tokenType);
+  await tokenUpsertStatement(env, shop, token).run();
+  return {
+    accessExpires: token.accessExpires,
+    refreshExpires: token.refreshExpires,
+    scopes: token.scopes,
+    tokenType: token.tokenType
+  };
+}
+
+async function saveShopAndToken(shop, customerId, identity, tokenData, env, tokenType) {
+  const token = await tokenRecord(tokenData, env, tokenType);
+  await env.DB.batch([
+    shopUpsertStatement(env, shop, customerId, identity, token.scopes),
+    tokenUpsertStatement(env, shop, token)
+  ]);
+  return token;
 }
 
 async function accessTokenForShop(shop, env) {
@@ -379,31 +442,45 @@ const SHOP_IDENTITY_QUERY = `
   }
 `;
 
-async function saveShopConnection(shop, customerId, identity, scopes, env) {
-  await env.DB.prepare(
-    `INSERT INTO shopify_shops (
-       shop_domain, customer_id, shop_gid, shop_name, primary_domain, status,
-       scopes, installed_at, last_verified_at, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-     ON CONFLICT(shop_domain) DO UPDATE SET
-       customer_id = excluded.customer_id,
-       shop_gid = excluded.shop_gid,
-       shop_name = excluded.shop_name,
-       primary_domain = excluded.primary_domain,
-       status = 'ACTIVE',
-       scopes = excluded.scopes,
-       uninstalled_at = NULL,
-       last_verified_at = CURRENT_TIMESTAMP,
-       updated_at = CURRENT_TIMESTAMP`
-  ).bind(
-    shop,
-    customerId,
-    identity.shop.id || null,
-    identity.shop.name || null,
-    identity.shop.primaryDomain?.host || null,
-    scopes
-  ).run();
-}
+const RECENT_ORDERS_QUERY = `
+  query RecentOrders($first: Int!) {
+    orders(first: $first, sortKey: CREATED_AT, reverse: true) {
+      nodes {
+        id
+        legacyResourceId
+        name
+        createdAt
+        processedAt
+        displayFinancialStatus
+        displayFulfillmentStatus
+        totalPriceSet {
+          shopMoney {
+            amount
+            currencyCode
+          }
+        }
+        lineItems(first: 20) {
+          nodes {
+            id
+            name
+            quantity
+            sku
+            originalUnitPriceSet {
+              shopMoney {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`;
 
 async function connectOwnOrgStore(request, env, customerId, shop) {
   await validateAgfCustomer(request, env, customerId);
@@ -416,9 +493,7 @@ async function connectOwnOrgStore(request, env, customerId, shop) {
     throw new Error('Domínio retornado pela Shopify não corresponde à loja informada.');
   }
 
-  const scopes = String(tokenData.scope || env.SHOPIFY_SCOPES || '');
-  await saveShopConnection(shop, customerId, identity, scopes, env);
-  await saveTokenPair(shop, tokenData, env, 'CLIENT_CREDENTIALS');
+  await saveShopAndToken(shop, customerId, identity, tokenData, env, 'CLIENT_CREDENTIALS');
 
   return json({
     ok: true,
@@ -479,9 +554,7 @@ async function oauthCallback(url, env) {
   const canonicalDomain = normalizeShop(identity.shop.myshopifyDomain || shop);
   if (canonicalDomain !== shop) throw new Error('Domínio retornado pela Shopify não corresponde à autorização.');
 
-  const scopes = String(tokenData.scope || env.SHOPIFY_SCOPES || '');
-  await saveShopConnection(shop, oauthState.customer_id, identity, scopes, env);
-  await saveTokenPair(shop, tokenData, env, 'OFFLINE_EXPIRING');
+  await saveShopAndToken(shop, oauthState.customer_id, identity, tokenData, env, 'OFFLINE_EXPIRING');
   await env.DB.prepare('UPDATE shopify_oauth_states SET used_at = CURRENT_TIMESTAMP WHERE state = ?').bind(state).run();
 
   const platform = requireEnv(env, 'PLATFORM_URL').replace(/\/$/, '');
@@ -492,13 +565,60 @@ async function listConnections(request, url, env) {
   const customerId = normalizeCustomerId(url.searchParams.get('customer_id'));
   await validateAgfCustomer(request, env, customerId);
   const result = await env.DB.prepare(
-    `SELECT shop_domain, shop_gid, shop_name, primary_domain, status, scopes,
-            installed_at, uninstalled_at, last_verified_at, updated_at
-       FROM shopify_shops
-      WHERE customer_id = ?
-      ORDER BY updated_at DESC`
+    `SELECT s.shop_domain, s.shop_gid, s.shop_name, s.primary_domain, s.status, s.scopes,
+            s.installed_at, s.uninstalled_at, s.last_verified_at, s.updated_at,
+            CASE WHEN t.shop_domain IS NULL THEN 0 ELSE 1 END AS credential_ready
+       FROM shopify_shops s
+       LEFT JOIN shopify_tokens t ON t.shop_domain = s.shop_domain
+      WHERE s.customer_id = ?
+      ORDER BY s.updated_at DESC`
   ).bind(customerId).all();
   return json({ ok: true, shops: result.results || [] });
+}
+
+async function listOrders(request, url, env) {
+  const shop = normalizeShop(url.searchParams.get('shop'));
+  const limit = normalizeLimit(url.searchParams.get('limit'), 20, 50);
+  const row = await env.DB.prepare(
+    'SELECT customer_id, status FROM shopify_shops WHERE shop_domain = ?'
+  ).bind(shop).first();
+
+  if (!row) throw Object.assign(new Error('Loja não vinculada.'), { status: 404 });
+  if (row.status !== 'ACTIVE') throw Object.assign(new Error('Loja Shopify não está ativa.'), { status: 409 });
+
+  await validateAgfCustomer(request, env, row.customer_id);
+  const token = await accessTokenForShop(shop, env);
+  const data = await graphql(shop, token, RECENT_ORDERS_QUERY, { first: limit }, env);
+  const nodes = Array.isArray(data?.orders?.nodes) ? data.orders.nodes : [];
+
+  const orders = nodes.map((order) => ({
+    id: order.id,
+    legacyResourceId: order.legacyResourceId || null,
+    name: order.name,
+    createdAt: order.createdAt,
+    processedAt: order.processedAt || null,
+    financialStatus: order.displayFinancialStatus || null,
+    fulfillmentStatus: order.displayFulfillmentStatus || null,
+    total: order.totalPriceSet?.shopMoney || null,
+    lineItems: (order.lineItems?.nodes || []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      sku: item.sku || null,
+      unitPrice: item.originalUnitPriceSet?.shopMoney || null
+    }))
+  }));
+
+  await env.DB.prepare(
+    'UPDATE shopify_shops SET last_verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE shop_domain = ?'
+  ).bind(shop).run();
+
+  return json({
+    ok: true,
+    shop,
+    orders,
+    pageInfo: data?.orders?.pageInfo || { hasNextPage: false, endCursor: null }
+  });
 }
 
 async function testConnection(request, env) {
@@ -528,6 +648,7 @@ async function handleApi(request, env) {
   if (url.pathname === '/api/shopify/auth/start' && method === 'POST') return startOAuth(request, env);
   if (url.pathname === '/api/shopify/auth/callback' && method === 'GET') return oauthCallback(url, env);
   if (url.pathname === '/api/shopify/connections' && method === 'GET') return listConnections(request, url, env);
+  if (url.pathname === '/api/shopify/orders' && method === 'GET') return listOrders(request, url, env);
   if (url.pathname === '/api/shopify/test' && method === 'POST') return testConnection(request, env);
 
   return json({ ok: false, error: 'Rota não encontrada.' }, 404);
