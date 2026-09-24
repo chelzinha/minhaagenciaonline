@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cadastros | Plataforma AGF</title>
   <link rel="stylesheet" href="/shared/ui/agf-ui.css" />
-  <link rel="stylesheet" href="./cadastros.css" />
+  <link rel="stylesheet" href="./cadastros.css?v=20260924-3" />
 
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
@@ -14,7 +14,7 @@
   </script>
   <script src="/shared/auth/agf-route-guard.js"></script>
   <script src="/shared/core/agf-core-config.js"></script>
-  <script src="/shared/core/agf-core-client.js"></script>
+  <script src="/shared/core/agf-core-client.js?v=20260924-3"></script>
 </head>
 <body>
   <header class="core-topbar">
@@ -143,6 +143,39 @@
 
         <section class="form-section">
           <div class="section-title">
+            <h3>Conta Correios</h3>
+            <p>Identificadores do contrato do cliente. Senhas, tokens e outras credenciais CWS não são armazenados nestes campos.</p>
+          </div>
+          <div class="form-grid">
+            <label>Número do contrato
+              <input name="correiosContractNumber" inputmode="numeric" maxlength="20" />
+            </label>
+            <label>Cartão de postagem
+              <input name="correiosPostingCard" inputmode="numeric" maxlength="20" />
+            </label>
+            <label>CNPJ do contrato
+              <input name="correiosDocumentNumber" inputmode="numeric" maxlength="18" />
+            </label>
+            <label>DR
+              <input name="correiosDr" maxlength="30" />
+            </label>
+            <label>DRS
+              <input name="correiosDrs" maxlength="30" />
+            </label>
+            <label>Status da integração
+              <select name="correiosStatus">
+                <option value="DISCONNECTED">Conexão CWS pendente</option>
+                <option value="CONNECTED">Ativa</option>
+                <option value="DISABLED">Desabilitada</option>
+                <option value="ERROR">Erro</option>
+              </select>
+            </label>
+          </div>
+          <p id="correiosCredentialNote" class="integration-note">Credenciais CWS ainda não configuradas.</p>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title">
             <h3>Módulos</h3>
             <p>Defina quais produtos da Plataforma AGF este cliente pode utilizar.</p>
           </div>
@@ -161,7 +194,7 @@
     </section>
   </main>
 
-  <script src="./cadastros.js"></script>
+  <script src="./cadastros.js?v=20260924-3"></script>
   <script>
     if (document.documentElement.classList.contains('agf-auth-ready')) {
       window.dispatchEvent(new CustomEvent('agf:auth-ready', { detail: { cached: true, replayed: true } }));
