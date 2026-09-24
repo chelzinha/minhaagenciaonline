@@ -91,14 +91,17 @@ async function listarClientes(url, env) {
   const ordem = { postagens: 'r.postagens DESC, c.nome', nome: 'c.nome COLLATE NOCASE', grafias: 'r.grafias DESC, r.postagens DESC', valor: 'r.valor DESC' }[url.searchParams.get('ordem')] || 'r.postagens DESC, c.nome';
   const filtro = q ? `AND (c.nome LIKE ? OR EXISTS (SELECT 1 FROM cid_nos n JOIN cid_grafias g ON g.no_chave=n.chave WHERE n.cliente_id=c.id AND upper(g.grafia) LIKE ?))` : '';
   const binds = q ? [`%${q}%`, `%${q}%`] : [];
+  // filtro de LOCAL (onde a postagem foi atendida), independente da fonte do cadastro
+  const colLocal = { AGF: 'r.local_agf', BALCAO: 'r.local_balcao', METRO: 'r.local_metro' }[url.searchParams.get('local')];
+  const filtroLocal = colLocal ? `AND ${colLocal} > 0` : '';
   const [lista, total] = await env.DB.batch([
     env.DB.prepare(`SELECT c.id, c.nome, c.fonte_nome, c.portal_chave IS NOT NULL eh_portal, r.postagens, r.valor, r.grafias,
         r.local_agf, r.local_balcao, r.local_metro, r.local_vazio, r.ultima,
         (SELECT COUNT(*) FROM cid_sugestoes s WHERE s.cliente_a=c.id OR s.cliente_b=c.id) sugestoes,
         (SELECT GROUP_CONCAT(aba) FROM cid_resumo r2 WHERE r2.cliente_id=c.id) abas
       FROM cid_resumo r JOIN cid_clientes c ON c.id=r.cliente_id
-      WHERE r.aba=? ${filtro} ORDER BY ${ordem} LIMIT ? OFFSET ?`).bind(aba, ...binds, por, (pagina - 1) * por),
-    env.DB.prepare(`SELECT COUNT(*) n, COALESCE(SUM(r.postagens),0) postagens FROM cid_resumo r JOIN cid_clientes c ON c.id=r.cliente_id WHERE r.aba=? ${filtro}`).bind(aba, ...binds),
+      WHERE r.aba=? ${filtro} ${filtroLocal} ORDER BY ${ordem} LIMIT ? OFFSET ?`).bind(aba, ...binds, por, (pagina - 1) * por),
+    env.DB.prepare(`SELECT COUNT(*) n, COALESCE(SUM(r.postagens),0) postagens FROM cid_resumo r JOIN cid_clientes c ON c.id=r.cliente_id WHERE r.aba=? ${filtro} ${filtroLocal}`).bind(aba, ...binds),
   ]);
   const t = total.results?.[0] || { n: 0, postagens: 0 };
   return { aba, pagina, por, total: t.n, postagens: t.postagens, paginas: Math.max(1, Math.ceil(t.n / por)), clientes: lista.results || [] };

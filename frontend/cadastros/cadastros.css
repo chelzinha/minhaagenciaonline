@@ -54,6 +54,7 @@ button { cursor: pointer; }
 .cad-tabs button.on { border-color: var(--c-top); background: var(--c-top); color: #fff; }
 .cad-tabs button.on small { color: #bcd3ea; }
 
+.cad-sec-tit { margin: 2px 0 -6px; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--c-muted); }
 .cad-modes { display: flex; gap: 6px; }
 .cad-modes button { height: 34px; border: 1px solid var(--c-line); background: var(--c-card); border-radius: 999px; padding: 0 14px; display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; color: var(--c-muted); }
 .cad-modes button.on { color: var(--c-text); border-color: var(--c-text); }
@@ -193,6 +194,9 @@ button { cursor: pointer; }
   .cad-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .cad-kpi strong { font-size: 20px; }
   .cad-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cad-tools { flex-wrap: wrap; }
+  .cad-tools .cad-search { flex-basis: 100%; }
+  .cad-tools select { flex: 1; min-width: 0; }
   .cad-list-head { display: none; }
   .cad-row { grid-template-columns: minmax(0, 1fr) 64px; }
   .cad-row .lcol { grid-column: 1 / -1; order: 3; }

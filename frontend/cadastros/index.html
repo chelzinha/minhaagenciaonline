@@ -38,10 +38,11 @@
       <div class="cad-kpi"><span>Fora do cadastro</span><strong id="kFora">-</strong><small id="kForaSub">&nbsp;</small></div>
     </section>
 
-    <nav class="cad-tabs" role="tablist" aria-label="Origem do cadastro" id="tabs">
+    <p class="cad-sec-tit">Fonte do cadastro (CLIENTE PORTAL)</p>
+    <nav class="cad-tabs" role="tablist" aria-label="Fonte do cadastro (CLIENTE PORTAL)" id="tabs">
       <button role="tab" data-aba="PORTAL" class="on"><b>CLIENTE PORTAL</b><small data-c="PORTAL">-</small></button>
       <button role="tab" data-aba="BALCAO"><b>BALCÃO</b><small data-c="BALCAO">-</small></button>
-      <button role="tab" data-aba="METRO"><b>METRÔ</b><small data-c="METRO">-</small></button>
+      <button role="tab" data-aba="METRO"><b>GAS SHOPPING METRO</b><small data-c="METRO">-</small></button>
     </nav>
 
     <div class="cad-modes" role="tablist" aria-label="Visão">
@@ -55,6 +56,12 @@
         <div class="cad-tools">
           <label class="cad-search"><span class="material-symbols-rounded">search</span>
             <input id="busca" type="search" placeholder="Buscar nome ou grafia recebida" autocomplete="off"></label>
+          <select id="local" aria-label="LOCAL da postagem">
+            <option value="">LOCAL: todos</option>
+            <option value="AGF">LOCAL: AGF</option>
+            <option value="BALCAO">LOCAL: BALCÃO</option>
+            <option value="METRO">LOCAL: METRÔ</option>
+          </select>
           <select id="ordem" aria-label="Ordenar">
             <option value="postagens">Mais postagens</option>
             <option value="nome">Nome (A-Z)</option>

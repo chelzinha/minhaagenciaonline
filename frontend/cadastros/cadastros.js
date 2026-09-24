@@ -3,7 +3,7 @@
   'use strict';
 
   const API = String(window.AGF_CADASTROS_API_URL || '').replace(/\/+$/, '');
-  const ABA_NOME = { PORTAL: 'CLIENTE PORTAL', BALCAO: 'BALCÃO', METRO: 'METRÔ' };
+  const ABA_NOME = { PORTAL: 'CLIENTE PORTAL', BALCAO: 'BALCÃO', METRO: 'GAS SHOPPING METRO' };
   const LOCAL_NOME = { AGF: 'AGF', BALCAO: 'BALCÃO', METRO: 'METRÔ', '': 'Sem LOCAL' };
   const LOCAL_COR = { AGF: 'var(--l-agf)', BALCAO: 'var(--l-balcao)', METRO: 'var(--l-metro)', '': 'var(--l-vazio)' };
   const REGRA_TXT = {
@@ -17,7 +17,7 @@
   };
   const ORIGEM_TXT = { PORTAL: 'Cliente Portal', BALCAO: 'Remetente Balcão', METRO: 'Remetente Metrô', CF: 'Remetente Centro Fashion' };
 
-  const st = { aba: 'PORTAL', pagina: 1, q: '', ordem: 'postagens', sel: null, modo: 'lista', sugPagina: 1, sugMin: 0, resumo: null };
+  const st = { aba: 'PORTAL', pagina: 1, q: '', local: '', ordem: 'postagens', sel: null, modo: 'lista', sugPagina: 1, sugMin: 0, resumo: null };
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const num = (n) => Number(n || 0).toLocaleString('pt-BR');
@@ -76,7 +76,7 @@
     else if (c.fonte_nome === 'MANUAL') out.push('<span class="chip manual">Nome corrigido</span>');
     if (Number(c.grafias) > 1) out.push(`<span class="chip">${num(c.grafias)} grafias</span>`);
     const abas = String(c.abas || '').split(',').filter((a) => a && a !== st.aba);
-    if (abas.length) out.push(`<span class="chip">também em ${abas.map((a) => ABA_NOME[a]).join(', ')}</span>`);
+    if (abas.length) out.push(`<span class="chip" title="Também aparece nesta fonte do cadastro (CLIENTE PORTAL)">fonte também: ${abas.map((a) => ABA_NOME[a]).join(', ')}</span>`);
     if (Number(c.sugestoes)) out.push(`<span class="chip sug"><span class="material-symbols-rounded">merge</span>${num(c.sugestoes)} ${Number(c.sugestoes) > 1 ? 'sugestões' : 'sugestão'}</span>`);
     return out.join('');
   }
@@ -124,7 +124,7 @@
     const el = $('lista');
     el.innerHTML = '<div class="skel"></div>'.repeat(8);
     try {
-      const qs = new URLSearchParams({ aba: st.aba, pagina: st.pagina, por: 50, ordem: st.ordem, q: st.q });
+      const qs = new URLSearchParams({ aba: st.aba, pagina: st.pagina, por: 50, ordem: st.ordem, q: st.q, local: st.local });
       const r = await api('/api/v2/clientes?' + qs);
       if (!r.clientes.length) {
         el.innerHTML = `<div class="cad-msg">${st.q ? 'Nenhum cliente encontrado para essa busca.' : 'Nenhum cliente nesta origem.'}</div>`;
@@ -137,7 +137,7 @@
           </button>`).join('');
         el.querySelectorAll('.cad-row').forEach((b) => b.addEventListener('click', () => abrirFicha(b.dataset.id)));
       }
-      paginador($('pager'), r.pagina, r.paginas, r.total, `${num(r.total)} clientes · ${num(r.postagens)} postagens em ${ABA_NOME[st.aba]}`, (p) => { st.pagina = p; carregarLista(); $('lista').scrollIntoView({ block: 'start', behavior: 'smooth' }); });
+      paginador($('pager'), r.pagina, r.paginas, r.total, `${num(r.total)} clientes · ${num(r.postagens)} postagens em ${ABA_NOME[st.aba]}${st.local ? ` · com postagens no LOCAL ${LOCAL_NOME[st.local]}` : ''}`, (p) => { st.pagina = p; carregarLista(); $('lista').scrollIntoView({ block: 'start', behavior: 'smooth' }); });
     } catch (e) {
       el.innerHTML = `<div class="cad-msg err">${esc(e.message)}<br><button class="cad-btn" type="button" id="tentarLista">Tentar de novo</button></div>`;
       $('tentarLista').addEventListener('click', carregarLista);
@@ -172,7 +172,7 @@
         <button type="button" class="cad-btn ghost f-voltar" id="fVoltar"><span class="material-symbols-rounded">arrow_back</span>Voltar</button>
         <div class="f-kicker">Ficha de identidade · ${esc(c.id)}</div>
         <div class="f-nome">${esc(c.nome)}</div>
-        <div class="cad-row-meta">${fonte}${r.abas.map((a) => `<span class="chip">${ABA_NOME[a.aba]}: ${num(a.postagens)}</span>`).join('')}</div>
+        <div class="cad-row-meta">${fonte}${r.abas.map((a) => `<span class="chip" title="Fonte do cadastro (CLIENTE PORTAL)">Fonte ${ABA_NOME[a.aba]}: ${num(a.postagens)}</span>`).join('')}</div>
         <div class="f-actions">
           <button type="button" class="cad-btn pri" id="fAgrupar"><span class="material-symbols-rounded">merge</span>Agrupar com outro cadastro</button>
           ${ehPortal ? '' : '<button type="button" class="cad-btn" id="fNome"><span class="material-symbols-rounded">edit</span>Corrigir nome</button>'}
@@ -337,6 +337,7 @@
   $('kSugBtn').addEventListener('click', () => trocarModo('sug'));
   let bt;
   $('busca').addEventListener('input', () => { clearTimeout(bt); bt = setTimeout(() => { st.q = $('busca').value.trim(); st.pagina = 1; carregarLista(); }, 300); });
+  $('local').addEventListener('change', () => { st.local = $('local').value; st.pagina = 1; carregarLista(); });
   $('ordem').addEventListener('change', () => { st.ordem = $('ordem').value; st.pagina = 1; carregarLista(); });
   $('sugMin').addEventListener('change', () => { st.sugMin = Number($('sugMin').value); st.sugPagina = 1; carregarSugestoes(); });
   $('btnRecarregar').addEventListener('click', () => { carregarResumo(); st.modo === 'lista' ? carregarLista() : carregarSugestoes(); });
