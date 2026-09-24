@@ -44,6 +44,11 @@
     setCustomerModules: (id, modules) => request('/api/customers/' + encodeURIComponent(id) + '/modules', {
       method: 'PUT',
       body: { modules }
+    }),
+    getCorreiosIntegration: (id) => request('/api/customers/' + encodeURIComponent(id) + '/integrations/correios'),
+    setCorreiosIntegration: (id, body) => request('/api/customers/' + encodeURIComponent(id) + '/integrations/correios', {
+      method: 'PUT',
+      body
     })
   });
 })(window);
