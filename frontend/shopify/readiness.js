@@ -9,6 +9,11 @@
     return normalized || fallback || '—';
   }
 
+  function digitsLabel(value) {
+    const normalized = String(value == null ? '' : value).replace(/\D/g, '');
+    return normalized || 'Não informado';
+  }
+
   function isCorreiosService(shipping) {
     const value = [shipping && shipping.title, shipping && shipping.code]
       .filter(Boolean)
@@ -40,6 +45,22 @@
     return row;
   }
 
+  function createDetailField(labelText, valueText) {
+    const field = document.createElement('div');
+    field.className = 'detail-field';
+
+    const label = document.createElement('span');
+    label.className = 'detail-label';
+    label.textContent = labelText;
+
+    const value = document.createElement('strong');
+    value.className = 'detail-value';
+    value.textContent = valueText;
+
+    field.append(label, value);
+    return field;
+  }
+
   function normalizeAddressLabels(container) {
     const blocks = Array.from(container.querySelectorAll('.detail-block'));
     const addressBlock = blocks.find((block) => {
@@ -55,20 +76,96 @@
     const grid = addressBlock.querySelector('.detail-grid');
     if (!grid || grid.querySelector('[data-agf-district]')) return;
 
-    const field = document.createElement('div');
-    field.className = 'detail-field';
+    const field = createDetailField('Bairro', 'A validar pelo CEP');
     field.dataset.agfDistrict = '1';
-
-    const label = document.createElement('span');
-    label.className = 'detail-label';
-    label.textContent = 'Bairro';
-
-    const value = document.createElement('strong');
-    value.className = 'detail-value';
-    value.textContent = 'A validar pelo CEP';
-
-    field.append(label, value);
     grid.appendChild(field);
+  }
+
+  function renderCorreiosAccount(container, correios) {
+    const previous = container.querySelector('.agf-correios-account');
+    if (previous) previous.remove();
+
+    const block = document.createElement('section');
+    block.className = 'detail-block detail-block-wide agf-correios-account';
+
+    const heading = document.createElement('h3');
+    heading.textContent = 'Conta Correios do cliente';
+
+    const grid = document.createElement('div');
+    grid.className = 'detail-grid';
+
+    if (!correios) {
+      grid.appendChild(createDetailField('Situação', 'Não cadastrada no AGF Core'));
+      grid.appendChild(createDetailField('Próxima ação', 'Cadastrar contrato e cartão de postagem'));
+    } else {
+      grid.appendChild(createDetailField('Contrato', digitsLabel(correios.contractNumber)));
+      grid.appendChild(createDetailField('Cartão de postagem', digitsLabel(correios.postingCard)));
+      grid.appendChild(createDetailField('CNPJ do contrato', digitsLabel(correios.documentNumber)));
+      grid.appendChild(createDetailField('DR', text(correios.dr, 'Não informado')));
+      grid.appendChild(createDetailField('DRS', text(correios.drs, 'Não informado')));
+      grid.appendChild(createDetailField('Status', text(correios.status, 'Não informado')));
+      grid.appendChild(createDetailField(
+        'Credenciais CWS',
+        correios.credentialsConfigured ? 'Configuradas' : 'Ainda não configuradas'
+      ));
+    }
+
+    block.append(heading, grid);
+
+    const warning = container.querySelector('.detail-warning');
+    if (warning) container.insertBefore(block, warning);
+    else container.appendChild(block);
+  }
+
+  function accountReadiness(correios) {
+    if (!correios) {
+      return {
+        status: 'block',
+        note: 'Nenhuma integração CORREIOS foi cadastrada para este cliente no AGF Core.'
+      };
+    }
+
+    const hasContract = Boolean(String(correios.contractNumber || '').trim());
+    const hasPostingCard = Boolean(String(correios.postingCard || '').trim());
+    if (!hasContract || !hasPostingCard) {
+      return {
+        status: 'block',
+        note: 'A conta foi localizada, mas número do contrato e cartão de postagem ainda não estão completos.'
+      };
+    }
+
+    if (String(correios.status || '').toUpperCase() === 'DISABLED') {
+      return {
+        status: 'block',
+        note: 'Contrato ' + text(correios.contractNumber) + ' localizado, mas a integração está desabilitada.'
+      };
+    }
+
+    if (String(correios.status || '').toUpperCase() === 'ERROR') {
+      return {
+        status: 'block',
+        note: 'Contrato ' + text(correios.contractNumber) + ' localizado, mas a integração está em estado de erro.'
+      };
+    }
+
+    if (!correios.credentialsConfigured) {
+      return {
+        status: 'block',
+        note: 'Contrato ' + text(correios.contractNumber) + ' e cartão ' + text(correios.postingCard) + ' encontrados; faltam as credenciais CWS.'
+      };
+    }
+
+    if (String(correios.status || '').toUpperCase() !== 'CONNECTED') {
+      return {
+        status: 'block',
+        note: 'Contrato e cartão encontrados, mas a integração Correios ainda não está ativa.'
+      };
+    }
+
+    return {
+      status: 'ok',
+      note: 'Contrato ' + text(correios.contractNumber) + ' e cartão ' + text(correios.postingCard) + ' prontos para uso.'
+    };
   }
 
   function renderReadiness(data) {
@@ -87,6 +184,9 @@
     const shipping = draft.shipping || {};
     const packageData = draft.package || {};
     const documentData = recipient.document || null;
+    const correios = data && data.agfCore ? data.agfCore.correios : null;
+
+    renderCorreiosAccount(container, correios);
 
     const block = document.createElement('section');
     block.className = 'detail-block detail-block-wide agf-readiness';
@@ -145,11 +245,8 @@
         : 'Frete Shopify "' + text(shipping.title, 'não informado') + '" ainda não está mapeado para SEDEX, PAC ou Mini Envios.'
     ));
 
-    grid.appendChild(createCheck(
-      'Conta Correios',
-      'block',
-      'O Conector Shopify ainda não está lendo contrato e cartão de postagem da integração CORREIOS do AGF Core.'
-    ));
+    const account = accountReadiness(correios);
+    grid.appendChild(createCheck('Conta Correios', account.status, account.note));
 
     const fulfilled = String(order.fulfillmentStatus || '').toUpperCase() === 'FULFILLED';
     grid.appendChild(createCheck(
@@ -162,15 +259,44 @@
 
     const footer = document.createElement('div');
     footer.className = 'readiness-footer';
-    footer.innerHTML = '<strong>Próxima etapa:</strong> ligar a conta Correios do cliente no AGF Core e mapear a opção de frete para um serviço Correios. Nenhuma etiqueta é gerada enquanto houver itens bloqueantes.';
+
+    if (!correios) {
+      footer.innerHTML = '<strong>Próxima etapa:</strong> cadastrar a conta Correios deste cliente no AGF Core. Depois disso, ainda será necessário mapear o frete Shopify e configurar as credenciais CWS.';
+    } else if (!correios.credentialsConfigured) {
+      footer.innerHTML = '<strong>Próxima etapa:</strong> as referências do contrato já estão no AGF Core. Falta configurar as credenciais CWS e mapear a opção de frete para um serviço Correios.';
+    } else if (!serviceMapped) {
+      footer.innerHTML = '<strong>Próxima etapa:</strong> a conta Correios está disponível. Falta mapear a opção de frete Shopify para SEDEX, PAC ou Mini Envios.';
+    } else {
+      footer.innerHTML = '<strong>Próxima etapa:</strong> revisar os itens restantes antes de habilitar a preparação da postagem. Nenhuma etiqueta é gerada enquanto houver itens bloqueantes.';
+    }
 
     block.append(head, grid, footer);
     container.appendChild(block);
   }
 
+  async function loadAgfCoreContext() {
+    const select = document.getElementById('customerSelect');
+    const customerId = select ? String(select.value || '').trim() : '';
+    if (!customerId || !global.AgfCore || typeof global.AgfCore.getCustomer !== 'function') {
+      return { customerId: customerId || null, correios: null };
+    }
+
+    try {
+      const data = await global.AgfCore.getCustomer(customerId);
+      return {
+        customerId,
+        correios: data && data.correios ? data.correios : null
+      };
+    } catch (error) {
+      console.warn('[AGF_SHOPIFY_READINESS] Não foi possível consultar o AGF Core:', error && error.message ? error.message : error);
+      return { customerId, correios: null, error: error && error.message ? error.message : 'AGF Core indisponível' };
+    }
+  }
+
   global.AgfShopify = Object.freeze(Object.assign({}, original, {
     getOrder: async function (shop, orderId) {
       const data = await original.getOrder(shop, orderId);
+      data.agfCore = await loadAgfCoreContext();
       setTimeout(function () { renderReadiness(data); }, 0);
       return data;
     }
