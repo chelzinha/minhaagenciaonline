@@ -2,6 +2,17 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-24 - CRM etapas 2 e 3: responsavel com LOCAIS e aba CLIENTES pelo Visao 360
+
+### Adicionado
+- Cadastro de usuarios: LOCAIS da carteira (AGF, BALCAO, METRO) no vinculo com o CRM; `crm.locais` na sessao (AGF_AUTH).
+- `18_CRM_FONTE_D1.js` (base-metro): CLIENTES_MASTER montada com as metricas do D1, chave `CRM_FONTE_CLIENTES`, troca de LOCAIS e filtro por LOCAL do responsavel.
+- Ponte de IDs antigos do CRM (`crm_id_legado`, migracao 0103) e rotas de integracao `/api/v2/crm/integracao/*` com segredo compartilhado.
+- CRM: lista de clientes com "Mostrar mais" no lugar do corte em 500.
+
+### Alterado
+- `op_buildMasterRows_`: parte final extraida para `op_finalizeMasterRows_` (mesmo resultado; paridade testada).
+
 ## 2026-09-24 - CRM aba CLIENTES: motor no Worker (etapa 1)
 
 ### Adicionado

@@ -26,6 +26,8 @@ const AGF_AUTH_CFG = Object.freeze({
   }),
   ROLES: Object.freeze(['admin', 'manager', 'user']),
   CRM_SCOPES: Object.freeze(['OWN', 'TEAM', 'ALL']),
+  // LOCAIS da carteira do CRM (os mesmos do Visao 360). Admin enxerga todos.
+  CRM_LOCAIS: Object.freeze(['AGF', 'BALCAO', 'METRO']),
   APPS: Object.freeze([
     Object.freeze({ key: 'intra', label: 'Gerencial', path: '/intra/', category: 'Operação da agência', protected: true, roles: Object.freeze(['admin', 'manager']) }),
     Object.freeze({ key: 'manuais', label: 'Manuais', path: '/intra/manuais/', category: 'Operação da agência', protected: true, defaultEnabled: false, roles: Object.freeze(['admin', 'manager', 'user']) }),
@@ -90,7 +92,8 @@ const AGF_USERS_HEADERS = Object.freeze([
   'created_at', 'updated_at', 'last_login_at', 'allowed_apps_json',
   'crm_responsavel_id', 'crm_linked', 'crm_agenda_scope',
   'crm_can_edit_clients', 'crm_can_edit_prospects', 'crm_can_move_funnel',
-  'crm_can_complete_activities', 'crm_can_view_team', 'crm_can_view_indicators'
+  'crm_can_complete_activities', 'crm_can_view_team', 'crm_can_view_indicators',
+  'crm_locais_json'
 ]);
 
 const AGF_SESSIONS_HEADERS = Object.freeze([
@@ -105,5 +108,5 @@ const AGF_CRM_RESPONSAVEIS_HEADERS = Object.freeze([
   'RESPONSAVEL_ID', 'USERNAME', 'DISPLAY_NAME', 'ROLE', 'USER_ACTIVE',
   'CRM_LINKED', 'AGENDA_SCOPE', 'CAN_EDIT_CLIENTS', 'CAN_EDIT_PROSPECTS',
   'CAN_MOVE_FUNNEL', 'CAN_COMPLETE_ACTIVITIES', 'CAN_VIEW_TEAM',
-  'CAN_VIEW_INDICATORS', 'UPDATED_AT'
+  'CAN_VIEW_INDICATORS', 'UPDATED_AT', 'LOCAIS'
 ]);

@@ -22,7 +22,7 @@ function setupAgfAuth() {
     agfEnsureSheet_(ss, AGF_AUTH_CFG.SHEETS.SESSIONS, AGF_SESSIONS_HEADERS);
     agfEnsureSheet_(ss, AGF_AUTH_CFG.SHEETS.UI, AGF_UI_HEADERS);
     agfEnsureSheet_(ss, AGF_AUTH_CFG.SHEETS.LOGS, AGF_LOG_HEADERS);
-    CacheService.getScriptCache().put('agf_schema_v5_ready', '1', 21600);
+    CacheService.getScriptCache().put('agf_schema_v8_ready', '1', 21600);
 
     const users = agfReadUsers_();
     let initialAdminPassword = '';
@@ -71,7 +71,7 @@ function migrateAgfAuthV5() {
     agfEnsureSheet_(ss, AGF_AUTH_CFG.SHEETS.LOGS, AGF_LOG_HEADERS);
     CacheService.getScriptCache().remove('users_all');
     CacheService.getScriptCache().remove('agf_schema_v4_ready');
-    CacheService.getScriptCache().put('agf_schema_v5_ready', '1', 21600);
+    CacheService.getScriptCache().put('agf_schema_v8_ready', '1', 21600);
     const projection = agfTrySyncCrmProjection_('migration');
     agfLog_('SCHEMA_V5_MIGRATED', 'system', 'Campos CRM validados;projection=' + JSON.stringify(projection));
     return { ok: true, message: 'Estrutura V5 validada. Campos CRM e catálogo de aplicativos atualizados.', projection: projection };
@@ -109,15 +109,16 @@ function agfGetDb_() {
 
 function agfEnsureRuntimeSchema_(ss) {
   const cache = CacheService.getScriptCache();
-  if (cache.get('agf_schema_v5_ready')) return;
+  if (cache.get('agf_schema_v8_ready')) return;   // v8: coluna crm_locais_json
   agfEnsureSheet_(ss, AGF_AUTH_CFG.SHEETS.USERS, AGF_USERS_HEADERS);
-  cache.put('agf_schema_v5_ready', '1', 21600);
+  cache.put('agf_schema_v8_ready', '1', 21600);
 }
 
 /** Permite acrescentar novas colunas somente ao final, preservando dados existentes. */
 function agfEnsureSheet_(ss, name, headers) {
   let sh = ss.getSheetByName(name);
   if (!sh) sh = ss.insertSheet(name);
+  if (sh.getMaxColumns() < headers.length) sh.insertColumnsAfter(sh.getMaxColumns(), headers.length - sh.getMaxColumns());
   if (sh.getLastRow() === 0) {
     sh.getRange(1, 1, 1, headers.length).setValues([headers]);
   } else {
@@ -384,7 +385,8 @@ function agfSyncCrmProjection_() {
       Boolean(entry.crm.canCompleteActivities),
       Boolean(entry.crm.canViewTeam),
       Boolean(entry.crm.canViewIndicators),
-      now
+      now,
+      (entry.crm.locais || []).join(';')
     ]);
   const lastRow = sh.getLastRow();
   if (lastRow > 1) sh.getRange(2, 1, lastRow - 1, AGF_CRM_RESPONSAVEIS_HEADERS.length).clearContent();
@@ -405,7 +407,7 @@ function migrateAgfAuthV6() {
     agfEnsureSheet_(ss, AGF_AUTH_CFG.SHEETS.LOGS, AGF_LOG_HEADERS);
     CacheService.getScriptCache().remove('users_all');
     CacheService.getScriptCache().remove('ui_config');
-    CacheService.getScriptCache().put('agf_schema_v5_ready', '1', 21600);
+    CacheService.getScriptCache().put('agf_schema_v8_ready', '1', 21600);
     const apps = agfListApps_();
     agfLog_('SCHEMA_V6_MIGRATED', 'system', 'Catálogo atualizado com reverso-admin, reverso-coleta e reverso-expedicao.');
     return {

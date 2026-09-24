@@ -7,6 +7,7 @@ import { sincronizar } from './sincronizacao.js';
 import { REGRAS, MOTIVOS_SUGESTAO, MOTOR_VERSAO, nomeExibicao } from './motor.js';
 import { calcularCrmD1, crmPronto } from './crm_persistencia.js';
 import { CRM_LOCAIS, CRM_MOTOR_VERSAO } from './crm_motor.js';
+import { segredoValido, ponteLegado, exportarMaster, assinaturaCrm } from './crm_legado.js';
 
 const ABAS = ['PORTAL', 'BALCAO', 'METRO', 'CF'];
 
@@ -390,7 +391,7 @@ async function renomear(request, env, autor) {
 // LOCAIS que o usuario enxerga: admin ve todos; responsavel ve so os LOCAIS vinculados a ele no cadastro de usuarios.
 function locaisDoUsuario(u) {
   if (String(u.role || '').toLowerCase() === 'admin') return [...CRM_LOCAIS, 'SEM_LOCAL'];
-  let v = u.locais ?? u.crm_locais ?? u.locais_json ?? [];
+  let v = u.crm?.locais ?? u.locais ?? [];                  // vem do cadastro de usuarios (AGF_AUTH: crm.locais)
   if (typeof v === 'string') { try { v = JSON.parse(v); } catch { v = v.split(','); } }
   return (Array.isArray(v) ? v : []).map((x) => limpar(x).toUpperCase()).filter((x) => CRM_LOCAIS.includes(x));
 }
@@ -444,6 +445,16 @@ async function feedCrm(url, env) {
 async function rotear(request, env) {
   const url = new URL(request.url), p = url.pathname, m = request.method;
   if (p === '/health' && m === 'GET') return json({ ok: true, servico: 'agf-cadastros-api', versao: 2, motor: MOTOR_VERSAO });
+  // Integracao servidor a servidor com o CRM (Apps Script): segredo compartilhado, sem sessao de usuario
+  if (p.startsWith('/api/v2/crm/integracao/')) {
+    const sv = segredoValido(request, env);
+    if (sv === 'nao_configurado') return json({ ok: false, erro: 'Integracao com o CRM nao configurada (CRM_EXPORT_SEGREDO).' }, 503);
+    if (sv !== 'ok') return json({ ok: false, erro: 'Segredo invalido.' }, 401);
+    if (p === '/api/v2/crm/integracao/assinatura' && m === 'GET') return json({ ok: true, ...(await assinaturaCrm(env)) });
+    if (p === '/api/v2/crm/integracao/exportar' && m === 'GET') return json({ ok: true, ...(await exportarMaster(url, env)) });
+    if (p === '/api/v2/crm/integracao/ponte-legado' && m === 'POST') { const r = await ponteLegado(request, env); return json({ ok: !r.erro, ...r }, r.erro ? 400 : 200); }
+    return json({ ok: false, erro: 'Rota nao encontrada.' }, 404);
+  }
   if (p === '/api/v2/crm/postagens' && m === 'GET') { await exigirCrm(request, env); return json({ ok: true, ...(await feedCrm(url, env)) }); }
   if (p === '/api/v2/crm/clientes' && m === 'GET') { const u = await exigirCrm(request, env); return json({ ok: true, ...(await crmClientes(url, env, u)) }); }
   if (p === '/api/v2/crm/resumo' && m === 'GET') { const u = await exigirCrm(request, env); return json({ ok: true, ...(await crmResumo(url, env, u)) }); }

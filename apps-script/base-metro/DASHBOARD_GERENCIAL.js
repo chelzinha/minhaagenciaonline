@@ -39,6 +39,8 @@ function doGet(e){
     var isPublicGet=(p.action==='ping')||(String(p.route||'').toLowerCase()==='health');
     if(!isPublicGet){
       var gateGet=agfGateCheck_(p.st||p.auth_token||'', 'GET '+(p.action||p.route||''));
+      // Escopo por LOCAL do responsavel (18_CRM_FONTE_D1): identifica o usuario mesmo em modo monitor.
+      if(typeof CRMD1_USUARIO_!=='undefined'){try{CRMD1_USUARIO_=gateGet.user||agfGateVerifyToken_(p.st||p.auth_token||'');}catch(errU){CRMD1_USUARIO_=null;}}
       if(!gateGet.allowed){
         return ContentService.createTextOutput(JSON.stringify(agfGateDeniedResponse_()))
           .setMimeType(ContentService.MimeType.JSON);

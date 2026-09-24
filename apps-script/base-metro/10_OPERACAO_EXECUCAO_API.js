@@ -160,6 +160,8 @@ function op_invalidateOperationCaches_(){
 }
 
 function op_jsonOut_(obj){
+  // Responsavel (nao admin) so recebe clientes dos LOCAIS dele quando a fonte D1 esta ligada.
+  if (typeof crmd1_aplicarEscopo_ === 'function') obj = crmd1_aplicarEscopo_(obj);
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 

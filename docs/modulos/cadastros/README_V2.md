@@ -109,3 +109,34 @@ O cálculo que o Apps Script fazia na planilha `CLIENTES_MASTER` agora roda no W
 - `GET /api/v2/crm/resumo?local=` - contagem por LOCAL, ação e curva, último cálculo.
 - `GET /api/v2/crm/clientes?local=&acao=&curva=&q=&pagina=&por=` - fila paginada na ordem do CRM (prioridade, score, share, nome).
 - Admin vê os 3 LOCAIS. Responsável vê só os LOCAIS vinculados a ele (etapa 2: vínculo no cadastro de usuários).
+
+## CRM - etapa 2: responsável com LOCAIS
+
+- Cadastro de usuários (`/agf/usuarios`): no vínculo com o CRM, caixas AGF, BALCÃO e METRO. Responsável (não admin) precisa de ao menos um LOCAL para salvar. Admin vê os 3 sem marcar.
+- AGF_AUTH (`apps-script/autenticacao`): coluna nova `crm_locais_json` no fim da aba Usuarios (criada sozinha), `crm.locais` no login, no validate e na lista de usuários; coluna `LOCAIS` no fim da aba CRM_RESPONSAVEIS. Mudar os LOCAIS de alguém encerra as sessões dele (mesma regra das outras permissões do CRM).
+- Worker: `/api/v2/crm/clientes` e `/crm/resumo` usam `user.crm.locais`.
+
+## CRM - etapa 3: aba CLIENTES lendo o Visão 360
+
+A CLIENTES_MASTER passa a ser montada com as métricas do D1 em vez da BASE_TOTAL. Todo o resto do CRM (cadastro manual, tratativas, funil, agenda, prospects) continua igual, lendo a CLIENTES_MASTER.
+
+- Chave liga/desliga: Script Property `CRM_FONTE_CLIENTES = D1` no projeto `base-metro`. Sem ela, o CRM funciona exatamente como antes.
+- `apps-script/base-metro/18_CRM_FONTE_D1.js`: busca as métricas (`/api/v2/crm/integracao/exportar`), monta a master pela mesma parte final do `op_buildMasterRows_` (agora `op_finalizeMasterRows_`), troca os LOCAIS do CRM para AGF, BALCÃO e METRO e filtra, para responsável não admin, clientes e tratativas de clientes fora dos LOCAIS dele (config, cadastro e funil).
+- IDs: cliente que já existia no CRM continua com o `CLIENTE_ID` antigo (CLI_000123). A ponte (`crm_id_legado`, migração 0103) casa o nome antigo (CLIENTES_ALIAS e CLIENTES_CADASTRO) com o cliente do Cadastro v2: nome igual, depois núcleo do nome. Nenhuma planilha tem ID reescrito. Cliente novo usa o ID do Cadastro v2.
+- Cliente que só existe no cadastro manual (sem postagem no Visão 360) continua na lista, como antes. LOCAL antigo CF vira METRO.
+- Segmento e categoria: o Visão 360 não tem; a master nova mantém o valor que o cliente já tinha.
+- Integração servidor a servidor: header `X-AGF-Segredo` = secret `CRM_EXPORT_SEGREDO` do Worker = Script Property `AGF_CADASTROS_API_SEGREDO` do base-metro. O valor não fica em código.
+- Tela Clientes do CRM: a lista deixa de cortar em 500; botão "Mostrar mais".
+
+### Rotinas no editor do base-metro
+
+1. `crmd1_diagnostico()`: testa a conexão, não grava nada. Na primeira vez pede autorização (acesso a serviço externo).
+2. `crmd1_ativarFonteD1()`: envia a ponte de IDs, troca os LOCAIS, liga a chave e reconstrói a CLIENTES_MASTER.
+3. `crmd1_enviarPonteLegado()`: reenvia a ponte (pode repetir).
+4. `crmd1_voltarParaBaseTotal()`: desliga a chave, devolve os LOCAIS antigos e reconstrói pela BASE_TOTAL.
+
+### Limites conhecidos
+
+- O Dashboard Gerencial continua lendo a BASE_TOTAL.
+- Agenda não é filtrada por LOCAL (fora do escopo desta etapa).
+- Se dois IDs antigos com histórico caírem no mesmo cliente novo, vale o de menor número; o outro continua como cliente só do cadastro. `crmd1_diagnostico()` mostra quantos conflitos existem.

@@ -155,6 +155,23 @@ function agfNormalizeCrmScope_(value, fallback) {
   return AGF_AUTH_CFG.CRM_SCOPES.indexOf(scope) >= 0 ? scope : 'OWN';
 }
 
+/** LOCAIS do CRM: aceita array ou JSON; devolve só valores válidos, sem repetir, na ordem oficial. */
+function agfNormalizeCrmLocais_(value) {
+  let list = value;
+  if (typeof list === 'string') {
+    const raw = list.trim();
+    if (!raw) list = [];
+    else { try { list = JSON.parse(raw); } catch (err) { list = raw.split(/[;,]/); } }
+  }
+  if (!Array.isArray(list)) list = [];
+  const wanted = {};
+  list.forEach((item) => {
+    const key = String(item || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
+    if (key) wanted[key] = true;
+  });
+  return AGF_AUTH_CFG.CRM_LOCAIS.filter((local) => wanted[local]);
+}
+
 /** Defaults conservadores: vínculo CRM não concede acesso ou edição implicitamente. */
 function agfCrmDefaultsForRole_(role) {
   const safeRole = agfNormalizeRole_(role);
@@ -167,7 +184,8 @@ function agfCrmDefaultsForRole_(role) {
     canMoveFunnel: true,
     canCompleteActivities: true,
     canViewTeam: safeRole === 'admin' || safeRole === 'manager',
-    canViewIndicators: safeRole === 'admin' || safeRole === 'manager'
+    canViewIndicators: safeRole === 'admin' || safeRole === 'manager',
+    locais: []
   };
 }
 
@@ -183,7 +201,8 @@ function agfCrmProfileFromUser_(user) {
     canMoveFunnel: agfToBool_(raw.crm_can_move_funnel, defaults.canMoveFunnel),
     canCompleteActivities: agfToBool_(raw.crm_can_complete_activities, defaults.canCompleteActivities),
     canViewTeam: agfToBool_(raw.crm_can_view_team, defaults.canViewTeam),
-    canViewIndicators: agfToBool_(raw.crm_can_view_indicators, defaults.canViewIndicators)
+    canViewIndicators: agfToBool_(raw.crm_can_view_indicators, defaults.canViewIndicators),
+    locais: agfNormalizeCrmLocais_(raw.crm_locais_json)
   };
 }
 
@@ -209,7 +228,8 @@ function agfNormalizeCrmProfile_(raw, existingUser, role) {
     canMoveFunnel: agfToBool_(pick(['canMoveFunnel', 'crmCanMoveFunnel', 'crm_can_move_funnel'], existing.canMoveFunnel), defaults.canMoveFunnel),
     canCompleteActivities: agfToBool_(pick(['canCompleteActivities', 'crmCanCompleteActivities', 'crm_can_complete_activities'], existing.canCompleteActivities), defaults.canCompleteActivities),
     canViewTeam: agfToBool_(pick(['canViewTeam', 'crmCanViewTeam', 'crm_can_view_team'], existing.canViewTeam), defaults.canViewTeam),
-    canViewIndicators: agfToBool_(pick(['canViewIndicators', 'crmCanViewIndicators', 'crm_can_view_indicators'], existing.canViewIndicators), defaults.canViewIndicators)
+    canViewIndicators: agfToBool_(pick(['canViewIndicators', 'crmCanViewIndicators', 'crm_can_view_indicators'], existing.canViewIndicators), defaults.canViewIndicators),
+    locais: agfNormalizeCrmLocais_(pick(['locais', 'crmLocais', 'crm_locais_json'], existing.locais))
   };
 }
 
@@ -218,7 +238,8 @@ function agfCrmProfileToUserCells_(profile) {
   return [
     String(safe.responsavelId || ''), Boolean(safe.linked), String(safe.agendaScope || 'OWN'),
     Boolean(safe.canEditClients), Boolean(safe.canEditProspects), Boolean(safe.canMoveFunnel),
-    Boolean(safe.canCompleteActivities), Boolean(safe.canViewTeam), Boolean(safe.canViewIndicators)
+    Boolean(safe.canCompleteActivities), Boolean(safe.canViewTeam), Boolean(safe.canViewIndicators),
+    JSON.stringify(agfNormalizeCrmLocais_(safe.locais))
   ];
 }
 
