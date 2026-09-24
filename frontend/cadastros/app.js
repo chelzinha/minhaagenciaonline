@@ -66,7 +66,7 @@
     if (request !== state.reviewRequest) return;
     state.pending.push(...data.pending);
     state.reviewOffset += data.pending.length;
-    $('reviewList').innerHTML = state.pending.length ? state.pending.map((p,i)=>`<div class="row"><div><strong>${esc(p.sender_name || '(sem remetente)')}</strong><small>${esc(p.portal_name || '(sem Cliente Portal)')} · ${Number(p.postings).toLocaleString('pt-BR')} postagens · ${Number(p.local_count)} locais</small><small>Exemplo: ${esc(p.sample_local || 'LOCAL vazio')} · contrato ${esc(p.sample_contract || '—')} · cartão ${esc(p.sample_card || '—')}</small></div><button type="button" class="button secondary" data-review="${i}">Revisar</button></div>`).join('') : '<div class="empty">Nenhum nome pendente nesta busca.</div>';
+    $('reviewList').innerHTML = state.pending.length ? state.pending.map((p,i)=>`<div class="row"><div><strong>${esc(p.sender_name || '(sem remetente)')}</strong><small>${esc(p.portal_names || '(sem Cliente Portal)')} · ${Number(p.postings).toLocaleString('pt-BR')} postagens · ${Number(p.local_count)} locais</small><small>Exemplo: ${esc(p.sample_local || 'LOCAL vazio')} · contrato ${esc(p.sample_contract || '—')} · cartão ${esc(p.sample_card || '—')}</small></div><button type="button" class="button secondary" data-review="${i}">Revisar</button></div>`).join('') : '<div class="empty">Nenhum nome pendente nesta busca.</div>';
     $('moreReview').hidden = data.pending.length < 50;
   }
   function renderDetail(data) {
@@ -83,7 +83,7 @@
   async function refresh() { await Promise.all([refreshStatus(),loadCustomers(),loadReview()]); if(state.selected) await openCustomer(state.selected); }
   function resolve(row) {
     state.resolving=row;
-    $('resolveContext').textContent=`${row.sender_name || '(sem remetente)'} · ${row.portal_name || '(sem Cliente Portal)'} · ${Number(row.postings)} postagens`;
+    $('resolveContext').textContent=`${row.sender_name || '(sem remetente)'} · ${row.portal_names || '(sem Cliente Portal)'} · ${Number(row.postings)} postagens`;
     $('resolveCustomer').innerHTML='<option value="">Selecione um cadastro</option>'+state.customers.map(c=>`<option value="${esc(c.id)}">${esc(c.canonical_name)}</option>`).join('');
     $('resolveDialog').showModal();
   }

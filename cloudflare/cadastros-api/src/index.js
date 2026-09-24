@@ -254,12 +254,14 @@ async function listReview(url, env) {
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit')) || 50));
   const offset = Math.max(0, Number(url.searchParams.get('offset')) || 0);
   const q = clean(url.searchParams.get('q')).slice(0, 100);
-  const rows = await env.DB.prepare(`SELECT portal_norm,sender_norm,MAX(portal_name) portal_name,
+  const rows = await env.DB.prepare(`SELECT MAX(portal_norm) portal_norm,sender_norm,
+    GROUP_CONCAT(DISTINCT portal_name) portal_names,
     MAX(sender_name) sender_name,COUNT(*) postings,COUNT(DISTINCT local_code) local_count,
     MAX(local_code) sample_local,MAX(contract_number) sample_contract,MAX(posting_card) sample_card,
     MIN(source_id) first_source_id FROM source_postings WHERE resolution='PENDING'
     AND (?='' OR portal_name LIKE ? OR sender_name LIKE ?)
-    GROUP BY portal_norm,sender_norm ORDER BY postings DESC,portal_norm,sender_norm LIMIT ? OFFSET ?`)
+    GROUP BY CASE WHEN portal_norm IN ('BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION') THEN 'SHARED' ELSE portal_norm END,sender_norm
+    ORDER BY postings DESC,portal_norm,sender_norm LIMIT ? OFFSET ?`)
     .bind(q,`%${q}%`,`%${q}%`,limit,offset).all();
   return { pending: rows.results || [], limit, offset };
 }
