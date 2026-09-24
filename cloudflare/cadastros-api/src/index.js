@@ -1,4 +1,4 @@
-import { clean, key, isSharedPortal, resolveIdentity } from './identity.js';
+import { clean, key, isSharedPortal, isNamePrefix, resolveIdentity } from './identity.js';
 
 const FEED_SQL = `
   SELECT r.id, r.nome_remetente sender_name, cp.cliente_portal portal_name,
@@ -86,9 +86,59 @@ async function backfillExactShared(env) {
   return env.DB.prepare(`UPDATE source_postings SET
     customer_id=(SELECT a.customer_id FROM customer_aliases a WHERE a.kind='PORTAL' AND a.normalized_name=source_postings.sender_norm),
     resolution='SENDER_ALIAS',updated_at=CURRENT_TIMESTAMP
-    WHERE resolution='PENDING' AND portal_norm IN ('BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION')
+    WHERE resolution='PENDING' AND (portal_norm IN ('BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION') OR portal_norm='')
     AND sender_norm<>'' AND EXISTS(SELECT 1 FROM customer_aliases a WHERE a.kind='PORTAL' AND a.normalized_name=source_postings.sender_norm)
     AND NOT EXISTS(SELECT 1 FROM customer_aliases a WHERE a.kind='SENDER' AND a.normalized_name=source_postings.sender_norm)`).run();
+}
+
+async function reconcileNamePrefixes(env) {
+  const [pendingResult, portalsResult, senderAliasesResult] = await env.DB.batch([
+    env.DB.prepare(`SELECT sender_norm,MAX(sender_name) sender_name FROM source_postings WHERE resolution='PENDING' AND sender_norm<>'' GROUP BY sender_norm`),
+    env.DB.prepare(`SELECT normalized_name,customer_id FROM customer_aliases WHERE kind='PORTAL'`),
+    env.DB.prepare(`SELECT normalized_name FROM customer_aliases WHERE kind='SENDER'`)
+  ]);
+  const pending = pendingResult.results || [];
+  const portals = portalsResult.results || [];
+  const senderAliases = new Set((senderAliasesResult.results || []).map(a => a.normalized_name));
+  const candidates = new Map();
+  for (const row of pending) {
+    const prefix = row.sender_norm.split(' ').slice(0,2).join(' ');
+    if (!candidates.has(prefix)) candidates.set(prefix, []);
+    candidates.get(prefix).push(row);
+  }
+  const matches = [];
+  for (const short of pending) {
+    if (senderAliases.has(short.sender_norm)) continue;
+    const portalMatches = portals.filter(p => isNamePrefix(short.sender_norm,p.normalized_name));
+    if (portalMatches.length === 1) {
+      matches.push({short,target:portalMatches[0].normalized_name,customerId:portalMatches[0].customer_id,kind:'PORTAL'});
+      continue;
+    }
+    if (portalMatches.length > 1) continue;
+    const pool = candidates.get(short.sender_norm.split(' ').slice(0,2).join(' ')) || [];
+    const longer = pool.filter(p => isNamePrefix(short.sender_norm,p.sender_norm));
+    if (longer.length !== 1 || !/(?: LTDA| ME| EPP)$/.test(longer[0].sender_norm)) continue;
+    matches.push({short,target:longer[0].sender_norm,targetName:longer[0].sender_name,kind:'SENDER'});
+  }
+  let resolved = 0;
+  for (const match of matches) {
+    const id = match.customerId || await directId(match.target);
+    if (match.kind === 'SENDER') {
+      const existing = await env.DB.prepare(`SELECT customer_id FROM customer_aliases WHERE kind='SENDER' AND normalized_name=?`).bind(match.target).first();
+      if (existing && existing.customer_id !== id) continue;
+      await env.DB.batch([
+        env.DB.prepare(`INSERT OR IGNORE INTO customers(id,canonical_name) VALUES(?,?)`).bind(id,match.targetName),
+        env.DB.prepare(`INSERT OR IGNORE INTO customer_aliases(kind,normalized_name,original_name,customer_id,source) VALUES('SENDER',?,?,?,'AUTO_PREFIX')`).bind(match.target,match.targetName,id)
+      ]);
+    }
+    const existingShort = await env.DB.prepare(`SELECT customer_id FROM customer_aliases WHERE kind='SENDER' AND normalized_name=?`).bind(match.short.sender_norm).first();
+    if (existingShort && existingShort.customer_id !== id) continue;
+    await env.DB.prepare(`INSERT OR IGNORE INTO customer_aliases(kind,normalized_name,original_name,customer_id,source) VALUES('SENDER',?,?,?,'AUTO_PREFIX')`).bind(match.short.sender_norm,match.short.sender_name,id).run();
+    await env.DB.prepare(`UPDATE source_postings SET customer_id=?,resolution='SENDER_ALIAS',updated_at=CURRENT_TIMESTAMP WHERE resolution='PENDING' AND sender_norm=?`).bind(id,match.short.sender_norm).run();
+    if (match.kind === 'SENDER') await env.DB.prepare(`UPDATE source_postings SET customer_id=?,resolution='SENDER_ALIAS',updated_at=CURRENT_TIMESTAMP WHERE resolution='PENDING' AND sender_norm=?`).bind(id,match.target).run();
+    resolved++;
+  }
+  return { resolved, candidates: matches.length };
 }
 
 async function syncPageUnlocked(env, limit = 200) {
@@ -98,6 +148,8 @@ async function syncPageUnlocked(env, limit = 200) {
   const rows = feed.results || [];
   if (!rows.length) {
     if (cursor > 0) await env.DB.prepare(`DELETE FROM source_postings WHERE source_system='ATENDE' AND last_seen_pass<?`).bind(Number(state.completed_passes) + 1).run();
+    await backfillExactShared(env);
+    await reconcileNamePrefixes(env);
     await env.DB.prepare(`UPDATE sync_state SET cursor_id=0,completed_passes=completed_passes+1,updated_at=CURRENT_TIMESTAMP WHERE source_system='ATENDE' AND cursor_id=?`).bind(cursor).run();
     return { read: 0, changed: 0, cursor: 0, completedPass: true };
   }
@@ -107,7 +159,9 @@ async function syncPageUnlocked(env, limit = 200) {
     contractNumber: clean(r.contract_number), postingCard: clean(r.posting_card),
     postedAt: clean(r.posted_at), valueAmount: Number(r.value_amount || 0)
   }));
-  const specs = input.map(r => ({ kind: isSharedPortal(r.portalNorm) ? 'SENDER' : 'PORTAL', normalized: isSharedPortal(r.portalNorm) ? r.senderNorm : r.portalNorm }));
+  const specs = input.flatMap(r => isSharedPortal(r.portalNorm) || !r.portalNorm
+    ? [{kind:'SENDER',normalized:r.senderNorm},{kind:'PORTAL',normalized:r.senderNorm}]
+    : [{kind:'PORTAL',normalized:r.portalNorm}]);
   const aliases = await getAliases(env, specs);
   const newPortals = new Map();
   input.forEach(r => {
@@ -236,7 +290,7 @@ async function saveAlias(request, env, actor) {
     auditStmt(env,actor,'ASSIGN','alias',`${kind}:${normalized}`,{ customerId:old?.customer_id || null },{ customerId })];
   await env.DB.batch(statements);
   const condition = kind === 'SENDER'
-    ? `portal_norm IN ('BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION') AND sender_norm=?`
+    ? `(portal_norm IN ('BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION') OR portal_norm='') AND sender_norm=?`
     : `portal_norm=? AND portal_norm NOT IN ('BALCAO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION')`;
   await env.DB.prepare(`UPDATE source_postings SET customer_id=?,resolution=?,updated_at=CURRENT_TIMESTAMP
     WHERE resolution<>'OVERRIDE' AND ${condition}`).bind(customerId,kind==='SENDER'?'SENDER_ALIAS':'PORTAL',normalized).run();

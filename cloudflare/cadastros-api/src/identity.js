@@ -19,10 +19,21 @@ export function isSharedPortal(portal) {
   return SHARED_PORTALS.has(key(portal));
 }
 
+export function isNamePrefix(shortName, longName) {
+  const short = key(shortName).split(' ');
+  const long = key(longName).split(' ');
+  if (short.length < 3 || key(shortName).length < 20 || long.length <= short.length) return false;
+  return short.every((word, i) => word === long[i] ||
+    (i === short.length - 1 && word.length >= 5 && `${word}S` === long[i]));
+}
+
 export function resolveIdentity(portal, sender, aliases) {
   const portalNorm = key(portal);
   const senderNorm = key(sender);
-  if (!portalNorm) return { customerId: null, resolution: 'PENDING', reason: 'SEM_CLIENTE_PORTAL' };
+  if (!portalNorm) {
+    const customerId = aliases.get(`SENDER:${senderNorm}`) || aliases.get(`PORTAL:${senderNorm}`) || null;
+    return { customerId, resolution: customerId ? 'SENDER_ALIAS' : 'PENDING', reason: customerId ? '' : 'SEM_CLIENTE_PORTAL' };
+  }
   if (isSharedPortal(portalNorm)) {
     if (!senderNorm) return { customerId: null, resolution: 'PENDING', reason: 'SEM_REMETENTE' };
     // O alias confirmado do remetente vence; a coincidência exata com um

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { key, resolveIdentity, isSharedPortal } from '../src/identity.js';
+import { key, resolveIdentity, isSharedPortal, isNamePrefix } from '../src/identity.js';
 
 test('somente os três CLIENTES PORTAL declarados usam NOME REMETENTE', () => {
   for (const portal of ['BALCÃO','GAS SHOPPING METRO','GAS SHOPPING CENTRO FASHION']) assert.equal(isSharedPortal(portal),true);
@@ -35,4 +35,13 @@ test('grafias desconhecidas e ausência de portal ou remetente ficam em revisão
   assert.equal(resolveIdentity('BALCÃO','Nova grafia',aliases).resolution,'PENDING');
   assert.equal(resolveIdentity('BALCÃO','',aliases).reason,'SEM_REMETENTE');
   assert.equal(resolveIdentity('','Acme',aliases).reason,'SEM_CLIENTE_PORTAL');
+});
+
+test('nome abreviado encontra continuação completa e plural no último termo', () => {
+  assert.equal(isNamePrefix('DILOHAN COMERCIO ATACADISTA DE','DILOHAN COMERCIO ATACADISTA DE ROUPAS LTDA'),true);
+  assert.equal(isNamePrefix('DONA LUIZA ATACADISTA DE CALCADO','DONA LUIZA ATACADISTA DE CALCADOS LTDA'),true);
+  assert.equal(isNamePrefix('DONA LUIZA ATACADISTA DE CALCADO','DONA LUIZA ATACADISTA DE CALCADO NOVO'),true);
+  assert.equal(isNamePrefix('DONA LUIZA','DONA LUIZA ATACADISTA DE CALCADOS LTDA'),false);
+  assert.equal(isNamePrefix('CARLOS EDUARDO SILVA','CARLOS EDUARDO SOUZA LTDA'),false);
+  assert.equal(resolveIdentity('','DONA LUIZA ATACADISTA DE CALCADO',new Map([['SENDER:DONA LUIZA ATACADISTA DE CALCADO','cus_dona']])).customerId,'cus_dona');
 });
