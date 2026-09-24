@@ -1162,7 +1162,7 @@ th.desc .sa{
   <section class="vw on" id="v-cl"></section>
   <section class="vw" id="v-ac"></section>
 
-  <div class="ftn">Dados atualizados em D-1 • Painel conectado ao Apps Script</div>
+  <div class="ftn">Dados atualizados em D-1 • Dados do Visão 360</div>
 </div>
 </main>
 
@@ -1518,7 +1518,7 @@ function rD(data,ttl,fmtV){
    API = endpoint do Apps Script
    S   = estado da interface
    ========================================================= */
-var API='https://script.google.com/macros/s/AKfycbytPcqQl8Rk62YclOVx0BH-zEgHtYFv0b-aUrTfyR_QKKr0VmjGbJc9GpX19rJ-1YV0OA/exec';
+var API=(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)?'http://127.0.0.1:8787':'https://agf-cadastros-api.chelzinha.workers.dev')+'/api/crm'; /* Worker do CRM (D1, Visão 360) */
 
 var S={
   f:{ym:'',sd:'',ed:'',u:'',t:'',i:'',s:'',q:'',pm:'month',anchor:''},

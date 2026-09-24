@@ -224,8 +224,6 @@ function op_setupOperacao(force) {
 }
 
 function op_getBaseSheetSignature_(){
-  // Fonte D1 ligada (18_CRM_FONTE_D1): a assinatura vem do Worker, nao da BASE_TOTAL.
-  if (typeof crmd1_ativo_ === 'function' && crmd1_ativo_()) return crmd1_assinatura_();
   var ss = op_getSpreadsheet_();
   var sh = ss.getSheetByName(OP_CFG.SHEETS.BASE);
   if (!sh) throw new Error('Aba base não encontrada: ' + OP_CFG.SHEETS.BASE);
@@ -352,8 +350,6 @@ function op_updateClientesMaster(baseSig) {
   return op_withDocumentLock_(function(){ return op_updateClientesMasterUnlocked_(baseSig); });
 }
 function op_updateClientesMasterUnlocked_(baseSig) {
-  // Fonte D1 ligada (18_CRM_FONTE_D1): metricas prontas do Visao 360; o resto do fluxo e o mesmo.
-  if (typeof crmd1_ativo_ === 'function' && crmd1_ativo_()) return crmd1_atualizarMasterUnlocked_(baseSig);
   var ss = op_getSpreadsheet_();
   var baseSh = ss.getSheetByName(OP_CFG.SHEETS.BASE);
   if (!baseSh) throw new Error('Aba base não encontrada: ' + OP_CFG.SHEETS.BASE);
@@ -888,17 +884,8 @@ function op_buildMasterRows_(grouped, refDate){
     m.INATIVO_60D = m.DIAS_SEM_POSTAR >= 60 ? 'SIM' : 'NAO';
   });
 
-  return op_finalizeMasterRows_(metrics, refDate);
-}
-
-/**
- * Parte final comum da CLIENTES_MASTER: clientes so do cadastro, acao, campos manuais, midia e ordem da fila.
- * opts.acaoPronta = true (fonte D1): recalcula a acao so de quem ainda nao tem (clientes so do cadastro).
- */
-function op_finalizeMasterRows_(metrics, refDate, opts){
-  opts = opts || {};
   if (typeof crm_appendCadastroOnlyMetrics_ === 'function') metrics = crm_appendCadastroOnlyMetrics_(metrics, refDate);
-  metrics.forEach(function(m){ if (!opts.acaoPronta || !m.ACAO) op_calculateAcao_(m); });
+  metrics.forEach(function(m){ op_calculateAcao_(m); });
 
   var manualMap = op_readExistingManualFields_();
   if (typeof crm_applyCadastroOverlayToManualMap_ === 'function') manualMap = crm_applyCadastroOverlayToManualMap_(manualMap);

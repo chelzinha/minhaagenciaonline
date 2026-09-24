@@ -7,7 +7,7 @@ import { sincronizar } from './sincronizacao.js';
 import { REGRAS, MOTIVOS_SUGESTAO, MOTOR_VERSAO, nomeExibicao } from './motor.js';
 import { calcularCrmD1, crmPronto } from './crm_persistencia.js';
 import { CRM_LOCAIS, CRM_MOTOR_VERSAO } from './crm_motor.js';
-import { segredoValido, ponteLegado, exportarMaster, assinaturaCrm } from './crm_legado.js';
+import { atenderCrm } from './crm/api.js';
 
 const ABAS = ['PORTAL', 'BALCAO', 'METRO', 'CF'];
 
@@ -55,8 +55,8 @@ async function validarNoAuth(env, token) {
   if (resp.ok && data && data.ok !== false && data.user) return { user: data.user };
   return { recusado: true };
 }
-async function usuarioDaSessao(request, env) {
-  const token = (request.headers.get('Authorization') || '').match(/^Bearer\s+(.+)$/i)?.[1];
+async function usuarioDaSessao(request, env, tokenInformado) {
+  const token = tokenInformado || (request.headers.get('Authorization') || '').match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) erro('Faca login para continuar.', 401);
   if (!env.AGF_AUTH_API_URL) erro('Validacao de sessao nao configurada.', 503);
   const h = await hashToken(token);
@@ -442,18 +442,21 @@ async function feedCrm(url, env) {
 }
 
 // ---------------------------------------------------------------- roteador
-async function rotear(request, env) {
+async function rotear(request, env, ctxAtual) {
   const url = new URL(request.url), p = url.pathname, m = request.method;
   if (p === '/health' && m === 'GET') return json({ ok: true, servico: 'agf-cadastros-api', versao: 2, motor: MOTOR_VERSAO });
-  // Integracao servidor a servidor com o CRM (Apps Script): segredo compartilhado, sem sessao de usuario
-  if (p.startsWith('/api/v2/crm/integracao/')) {
-    const sv = segredoValido(request, env);
-    if (sv === 'nao_configurado') return json({ ok: false, erro: 'Integracao com o CRM nao configurada (CRM_EXPORT_SEGREDO).' }, 503);
-    if (sv !== 'ok') return json({ ok: false, erro: 'Segredo invalido.' }, 401);
-    if (p === '/api/v2/crm/integracao/assinatura' && m === 'GET') return json({ ok: true, ...(await assinaturaCrm(env)) });
-    if (p === '/api/v2/crm/integracao/exportar' && m === 'GET') return json({ ok: true, ...(await exportarMaster(url, env)) });
-    if (p === '/api/v2/crm/integracao/ponte-legado' && m === 'POST') { const r = await ponteLegado(request, env); return json({ ok: !r.erro, ...r }, r.erro ? 400 : 200); }
-    return json({ ok: false, erro: 'Rota nao encontrada.' }, 404);
+  // CRM (mesmo contrato do Web App antigo; token no parametro st, como o front ja envia)
+  if (p === '/api/crm' && (m === 'GET' || m === 'POST')) {
+    let corpoCrm = {};
+    if (m === 'POST') { try { corpoCrm = JSON.parse((await request.text()) || '{}'); } catch { return json({ ok: false, error: 'JSON inválido.' }); } }
+    const token = limpar(url.searchParams.get('st') || corpoCrm.st || corpoCrm.auth_token || '') || (request.headers.get('Authorization') || '').match(/^Bearer\s+(.+)$/i)?.[1] || '';
+    if (url.searchParams.get('action') === 'ping') return json({ ok: true, now: new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 19) });
+    let u;
+    try { u = await usuarioDaSessao(request, env, token); } catch (e) {
+      return json({ ok: false, error: e.status === 503 ? e.message : 'Sessão necessária. Faça login no Portal AGF e tente novamente.', code: e.status === 503 ? 'AUTH_UNAVAILABLE' : 'AUTH_REQUIRED' });
+    }
+    if (String(u.role || '').toLowerCase() !== 'admin' && !(u.apps || []).includes('crm')) return json({ ok: false, error: 'Seu usuário não tem acesso ao CRM.', code: 'FORBIDDEN' });
+    return json(await atenderCrm(request, env, u, token, url, corpoCrm, ctxAtual));
   }
   if (p === '/api/v2/crm/postagens' && m === 'GET') { await exigirCrm(request, env); return json({ ok: true, ...(await feedCrm(url, env)) }); }
   if (p === '/api/v2/crm/clientes' && m === 'GET') { const u = await exigirCrm(request, env); return json({ ok: true, ...(await crmClientes(url, env, u)) }); }
@@ -486,9 +489,9 @@ async function rotear(request, env) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') return comCors(new Response(null, { status: 204 }), request, env);
-    try { return comCors(await rotear(request, env), request, env); }
+    try { return comCors(await rotear(request, env, ctx), request, env); }
     catch (e) {
       const status = e.status || 500;
       if (status >= 500) console.error('[CADASTROS_V2]', e?.stack || e);

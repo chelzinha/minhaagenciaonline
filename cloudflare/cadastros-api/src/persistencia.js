@@ -4,6 +4,7 @@
  * Saida:   cid_clientes, cid_nos, cid_grafias, cid_sugestoes, cid_ids_fundidos, cid_resumo.
  */
 import { executarMotor, MOTOR_VERSAO, analisarNome, nomeExibicao } from './motor.js';
+import { statementsFusaoCrm } from './crm/fundir.js';
 
 const LOTE = 90;
 
@@ -183,6 +184,7 @@ export async function executarMotorD1(env, autor = 'SISTEMA') {
   }
   for (const [k] of entrada.nosAtuais) if (!r.nos.has(k)) stmts.push(db.prepare(`DELETE FROM cid_nos WHERE chave=?`).bind(k));
   await emLotes(db, stmts);
+  if (fundidos.length) await emLotes(db, statementsFusaoCrm(db, fundidos));   // CRM acompanha a juncao de clientes
 
   // grafias (INSERT OR REPLACE, so o necessario)
   const gstmts = [];

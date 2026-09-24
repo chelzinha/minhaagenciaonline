@@ -116,27 +116,23 @@ O cálculo que o Apps Script fazia na planilha `CLIENTES_MASTER` agora roda no W
 - AGF_AUTH (`apps-script/autenticacao`): coluna nova `crm_locais_json` no fim da aba Usuarios (criada sozinha), `crm.locais` no login, no validate e na lista de usuários; coluna `LOCAIS` no fim da aba CRM_RESPONSAVEIS. Mudar os LOCAIS de alguém encerra as sessões dele (mesma regra das outras permissões do CRM).
 - Worker: `/api/v2/crm/clientes` e `/crm/resumo` usam `user.crm.locais`.
 
-## CRM - etapa 3: aba CLIENTES lendo o Visão 360
+## CRM inteiro no Worker e no D1 (sem planilha e sem Apps Script)
 
-A CLIENTES_MASTER passa a ser montada com as métricas do D1 em vez da BASE_TOTAL. Todo o resto do CRM (cadastro manual, tratativas, funil, agenda, prospects) continua igual, lendo a CLIENTES_MASTER.
+O CRM (`/crm`) deixa de usar o Apps Script `base-metro` e as planilhas. Clientes, prospects, funis, tratativas, agenda, checklists, notas, interações e configurações ficam no D1 `agf-cadastros`. Os clientes vêm do Visão 360 (`/atende`), pelo Cadastro v2 e pelo motor do CRM (etapa 1). Nada é lido da BASE METRO.
 
-- Chave liga/desliga: Script Property `CRM_FONTE_CLIENTES = D1` no projeto `base-metro`. Sem ela, o CRM funciona exatamente como antes.
-- `apps-script/base-metro/18_CRM_FONTE_D1.js`: busca as métricas (`/api/v2/crm/integracao/exportar`), monta a master pela mesma parte final do `op_buildMasterRows_` (agora `op_finalizeMasterRows_`), troca os LOCAIS do CRM para AGF, BALCÃO e METRO e filtra, para responsável não admin, clientes e tratativas de clientes fora dos LOCAIS dele (config, cadastro e funil).
-- IDs: cliente que já existia no CRM continua com o `CLIENTE_ID` antigo (CLI_000123). A ponte (`crm_id_legado`, migração 0103) casa o nome antigo (CLIENTES_ALIAS e CLIENTES_CADASTRO) com o cliente do Cadastro v2: nome igual, depois núcleo do nome. Nenhuma planilha tem ID reescrito. Cliente novo usa o ID do Cadastro v2.
-- Cliente que só existe no cadastro manual (sem postagem no Visão 360) continua na lista, como antes. LOCAL antigo CF vira METRO.
-- Segmento e categoria: o Visão 360 não tem; a master nova mantém o valor que o cliente já tinha.
-- Integração servidor a servidor: header `X-AGF-Segredo` = secret `CRM_EXPORT_SEGREDO` do Worker = Script Property `AGF_CADASTROS_API_SEGREDO` do base-metro. O valor não fica em código.
-- Tela Clientes do CRM: a lista deixa de cortar em 500; botão "Mostrar mais".
-
-### Rotinas no editor do base-metro
-
-1. `crmd1_diagnostico()`: testa a conexão, não grava nada. Na primeira vez pede autorização (acesso a serviço externo).
-2. `crmd1_ativarFonteD1()`: envia a ponte de IDs, troca os LOCAIS, liga a chave e reconstrói a CLIENTES_MASTER.
-3. `crmd1_enviarPonteLegado()`: reenvia a ponte (pode repetir).
-4. `crmd1_voltarParaBaseTotal()`: desliga a chave, devolve os LOCAIS antigos e reconstrói pela BASE_TOTAL.
+- Rota única: `GET/POST /api/crm?action=X&st=<token>`, mesmo contrato do Apps Script antigo (mesmos nomes de ação e mesmos campos). O front só trocou a URL (`frontend/crm/config.js`).
+- Ações da carteira: `GET /api/crm?route=dashboard` (página `/crm/acoes`), calculada das postagens do D1.
+- Acesso: sessão do AGF_AUTH; precisa ser admin ou ter o app `crm`. Responsável não admin vê e edita só clientes, prospects, cards e agenda dos LOCAIS dele (`crm.locais`).
+- Responsáveis: espelho do cadastro de usuários (`crm_responsaveis`), atualizado pelo próprio Worker a cada login e, para admin, pela lista do AGF_AUTH no máximo a cada 10 min. Não há mais aba CRM_RESPONSAVEIS.
+- Cliente = métricas calculadas (`crm_metricas`) + cadastro manual (`crm_cadastro`). Campo manual vazio (NULL) usa o valor calculado; só o que for alterado na tela é gravado. Cliente criado no CRM tem ORIGEM MANUAL e ID `CLI_M_xxxxxxxx`.
+- Agrupamento no Cadastro v2: quando dois clientes viram um, cadastro manual, tratativas, agenda, checklists, notas, interações e eventos passam para o ID que ficou (`src/crm/fundir.js`).
+- Dados começaram do zero. Configurações (funis, etapas, tipos de atividade, resultados, transições, listas, blocos, LOCAIS AGF/BALCÃO/METRO, segmento ENCOMENDAS) vêm da migração 0104 com os valores do código antigo. Mídias começam vazias. Alterar configuração hoje é pelo D1 (não há tela).
+- Código: `cloudflare/cadastros-api/src/crm/` (`api.js`, `config.js`, `entidades.js`, `jornada.js`, `agenda.js`, `acoes.js`, `fundir.js`, `util.js`).
+- Tela Clientes: a lista deixa de cortar em 500; botão "Mostrar mais".
 
 ### Limites conhecidos
 
-- O Dashboard Gerencial continua lendo a BASE_TOTAL.
-- Agenda não é filtrada por LOCAL (fora do escopo desta etapa).
-- Se dois IDs antigos com histórico caírem no mesmo cliente novo, vale o de menor número; o outro continua como cliente só do cadastro. `crmd1_diagnostico()` mostra quantos conflitos existem.
+- O Dashboard Gerencial (`/intra`) continua lendo a BASE_TOTAL.
+- Agenda é filtrada pelo LOCAL gravado no item.
+- A lista de clientes vem inteira na abertura (cerca de 5 mil linhas).
+- Ações da carteira: blocos de visão geral, dinâmica e operação ficam vazios (dependiam de dados da planilha).

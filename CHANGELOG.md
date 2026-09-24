@@ -2,6 +2,19 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-24 - CRM inteiro no Worker e no D1
+
+### Adicionado
+- `/api/crm` no Worker `agf-cadastros-api`: todas as ações do CRM (config, cadastro, prospects, jornada, agenda, checklists, notas, Ações da carteira) no mesmo contrato do Apps Script antigo.
+- Migração 0104: tabelas do CRM no D1 com os seeds de configuração do código antigo.
+- Agrupamento de clientes no Cadastro v2 leva junto os registros do CRM.
+
+### Alterado
+- Front do CRM (`/crm` e `/crm/acoes`) aponta para o Worker. Nenhuma leitura da BASE METRO nem de planilha.
+
+### Removido
+- `18_CRM_FONTE_D1.js`, ponte `crm_id_legado` e rotas `/api/v2/crm/integracao/*` (etapa 3 via Apps Script substituída). Arquivos do `base-metro` voltaram ao estado anterior.
+
 ## 2026-09-24 - CRM etapas 2 e 3: responsavel com LOCAIS e aba CLIENTES pelo Visao 360
 
 ### Adicionado
