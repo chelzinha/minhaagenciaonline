@@ -39,6 +39,9 @@
       body: { customerId, shop }
     }),
     listConnections: (customerId) => request('/api/shopify/connections?customer_id=' + encodeURIComponent(customerId)),
+    listOrders: (shop, limit) => request(
+      '/api/shopify/orders?shop=' + encodeURIComponent(shop) + '&limit=' + encodeURIComponent(limit || 20)
+    ),
     testConnection: (shop) => request('/api/shopify/test', {
       method: 'POST',
       body: { shop }
