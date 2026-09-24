@@ -81,6 +81,24 @@ button:disabled { opacity: .55; cursor: wait; }
 .order-statuses { display: flex; gap: 18px; flex-wrap: wrap; color: var(--shopify-muted); font-size: 12px; }
 .order-statuses strong { color: var(--shopify-text); }
 .order-items { padding-top: 10px; border-top: 1px solid #edf0f4; color: #3f4b5e; font-size: 13px; line-height: 1.5; }
+.order-actions { display: flex; justify-content: flex-end; }
+
+.order-detail-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.detail-block { border: 1px solid var(--shopify-border); border-radius: 10px; padding: 16px; min-width: 0; }
+.detail-block-wide { grid-column: 1 / -1; }
+.detail-block h3 { margin: 0 0 14px; font-size: 15px; }
+.detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
+.detail-field { min-width: 0; display: grid; gap: 4px; }
+.detail-label { color: var(--shopify-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.detail-value { font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+.detail-items { display: grid; gap: 10px; }
+.detail-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid #edf0f4; }
+.detail-item:first-child { border-top: 0; padding-top: 0; }
+.detail-item > div { min-width: 0; }
+.detail-item strong, .detail-item span { display: block; }
+.detail-item-meta { margin-top: 3px; color: var(--shopify-muted); font-size: 12px; }
+.detail-item-price { white-space: nowrap; font-size: 13px; }
+.detail-warning { grid-column: 1 / -1; padding: 12px 14px; border: 1px solid #ead79d; border-radius: 9px; background: #fffaf0; color: #745b15; font-size: 12px; line-height: 1.5; }
 
 @media (max-width: 760px) {
   .shopify-topbar { padding: 22px 20px; flex-direction: column; }
@@ -90,4 +108,9 @@ button:disabled { opacity: .55; cursor: wait; }
   .section-head, .connection-row, .order-header { align-items: stretch; flex-direction: column; }
   .connection-meta { justify-content: space-between; }
   .order-total { white-space: normal; }
+  .order-detail-content { grid-template-columns: 1fr; }
+  .detail-block-wide, .detail-warning { grid-column: auto; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .detail-item { align-items: flex-start; flex-direction: column; }
+  .detail-item-price { white-space: normal; }
 }
