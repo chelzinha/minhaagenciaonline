@@ -119,17 +119,17 @@ async function resumo(env) {
 
 // ---------------------------------------------------------------- LOCAL da carteira
 const LOCAIS = ['AGF', 'BALCAO', 'METRO'];
+// Clientes que postam em mais de um LOCAL (sinalizados). O LOCAL deles ja vem definido pela maioria das postagens.
 const SQL_FILA_LOCAL = `
-  SELECT c.id, c.nome, c.portal_chave IS NOT NULL eh_portal,
+  SELECT c.id, c.nome, c.portal_chave IS NOT NULL eh_portal, c.local_carteira, c.local_fonte,
     SUM(r.local_agf) agf, SUM(r.local_balcao) balcao, SUM(r.local_metro) metro, SUM(r.postagens) postagens, ROUND(SUM(r.valor),2) valor,
     MAX(r.ultima) ultima
   FROM cid_clientes c JOIN cid_resumo r ON r.cliente_id = c.id
-  WHERE c.local_carteira IS NULL
   GROUP BY c.id
-  HAVING (SUM(r.local_agf) > 0) + (SUM(r.local_balcao) > 0) + (SUM(r.local_metro) > 0) <> 1`;   // mais de um LOCAL, ou nenhum LOCAL informado
+  HAVING (SUM(r.local_agf) > 0) + (SUM(r.local_balcao) > 0) + (SUM(r.local_metro) > 0) > 1 OR c.local_carteira IS NULL`;
 
 async function contarFilaLocal(env) {
-  const r = await env.DB.prepare(`SELECT COUNT(*) n FROM (${SQL_FILA_LOCAL})`).first();
+  const r = await env.DB.prepare(`SELECT COUNT(*) n, SUM(local_carteira IS NULL) sem_local FROM (${SQL_FILA_LOCAL})`).first();
   return Number(r?.n || 0);
 }
 
@@ -144,7 +144,7 @@ async function filaLocal(url, env) {
   const por = Math.min(100, Math.max(10, Number(url.searchParams.get('por')) || 30));
   const pagina = Math.max(1, Math.trunc(Number(url.searchParams.get('pagina')) || 1));
   const [lista, total] = await env.DB.batch([
-    env.DB.prepare(`${SQL_FILA_LOCAL} ORDER BY valor DESC LIMIT ? OFFSET ?`).bind(por, (pagina - 1) * por),
+    env.DB.prepare(`${SQL_FILA_LOCAL} ORDER BY (local_carteira IS NULL) DESC, valor DESC LIMIT ? OFFSET ?`).bind(por, (pagina - 1) * por),
     env.DB.prepare(`SELECT COUNT(*) n FROM (${SQL_FILA_LOCAL})`),
   ]);
   const itens = (lista.results || []).map((x) => ({ ...x, ...sugestaoLocal(x) }));

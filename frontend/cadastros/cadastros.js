@@ -83,7 +83,9 @@
   function chipsCliente(c) {
     const out = [];
     if (c.local_carteira) out.push(`<span class="chip local" title="LOCAL da carteira${c.local_fonte === 'ADMIN' ? ' (definido pelo admin)' : ''}"><span class="material-symbols-rounded">location_on</span>${LOCAL_NOME[c.local_carteira] || esc(c.local_carteira)}</span>`);
-    else if ([c.local_agf, c.local_balcao, c.local_metro].filter((n) => Number(n) > 0).length > 1) out.push('<span class="chip fila" title="Posta em mais de um LOCAL: aguarda o admin na Fila de LOCAL"><span class="material-symbols-rounded">location_off</span>Na fila de LOCAL</span>');
+    const nLocais = [c.local_agf, c.local_balcao, c.local_metro].filter((n) => Number(n) > 0).length;
+    if (!c.local_carteira && nLocais) out.push('<span class="chip fila" title="Empate entre LOCAIS: escolha em Mais de um LOCAL"><span class="material-symbols-rounded">location_off</span>LOCAL a definir</span>');
+    else if (nLocais > 1) out.push(`<span class="chip fila" title="Posta em ${nLocais} LOCAIS. Ficou no LOCAL com mais postagens."><span class="material-symbols-rounded">call_split</span>${nLocais} LOCAIS</span>`);
     if (Number(c.eh_portal)) out.push('<span class="chip portal"><span class="material-symbols-rounded">verified</span>Portal</span>');
     else if (c.fonte_nome === 'MANUAL') out.push('<span class="chip manual">Nome corrigido</span>');
     if (Number(c.grafias) > 1) out.push(`<span class="chip">${num(c.grafias)} grafias</span>`);
@@ -191,7 +193,7 @@
             <option value="" ${c.local_carteira ? '' : 'selected'} disabled>${c.local_carteira ? '' : 'Não definido (fila)'}</option>
             ${['AGF', 'BALCAO', 'METRO'].map((l) => `<option value="${l}" ${c.local_carteira === l ? 'selected' : ''}>${LOCAL_NOME[l]}</option>`).join('')}
           </select>
-          <span class="f-sub">${c.local_fonte === 'ADMIN' ? 'definido pelo admin' : c.local_fonte === 'AUTO' ? 'automático: só posta neste LOCAL' : 'posta em mais de um LOCAL'}</span>
+          <span class="f-sub">${c.local_fonte === 'ADMIN' ? 'definido pelo admin' : c.local_fonte === 'AUTO' ? 'do Visão 360: só posta neste LOCAL' : c.local_fonte === 'PREDOMINANTE' ? 'do Visão 360: LOCAL com mais postagens' : 'empate entre LOCAIS: escolha um'}</span>
         </div>
         <div class="f-actions">
           <button type="button" class="cad-btn pri" id="fAgrupar"><span class="material-symbols-rounded">merge</span>Agrupar com outro cadastro</button>
@@ -351,24 +353,22 @@
     el.innerHTML = '<div class="skel"></div>'.repeat(6);
     try {
       const r = await api('/api/v2/fila-local?' + new URLSearchParams({ pagina: st.localPagina, por: 30 }));
-      const bf = $('localFortes');
-      bf.hidden = !r.fortes;
-      $('localFortesTx').textContent = `Aplicar sugestão aos ${num(r.fortes)} com 90%+ num LOCAL`;
+      $('localFortes').hidden = true;
       if (!r.itens.length) {
-        el.innerHTML = '<div class="cad-msg">Nenhum cliente na fila. Todos já têm LOCAL da carteira.</div>';
+        el.innerHTML = '<div class="cad-msg">Nenhum cliente posta em mais de um LOCAL.</div>';
       } else {
         el.innerHTML = r.itens.map((x) => `
           <div class="l-item" data-id="${esc(x.id)}">
             <div><div class="l-nome">${esc(x.nome)}</div><div class="cad-row-meta">${Number(x.eh_portal) ? '<span class="chip portal">Portal</span>' : ''}<span class="chip">${num(x.postagens)} postagens · ${brl(x.valor)}</span><span class="chip">última ${dataBr(x.ultima)}</span></div></div>
             <div>${barraLocal({ local_agf: x.agf, local_balcao: x.balcao, local_metro: x.metro, local_vazio: 0 }, true)}</div>
-            <div class="l-botoes">${['AGF', 'BALCAO', 'METRO'].map((l) => `<button type="button" class="cad-btn ${l === x.sugerido ? 'sug' : ''}" data-local="${l}" title="${l === x.sugerido ? 'Sugerido: ' + x.participacao + '% das postagens' : ''}">${LOCAL_NOME[l]}${l === x.sugerido ? ` <small>${x.participacao}%</small>` : ''}</button>`).join('')}</div>
+            <div class="l-botoes">${['AGF', 'BALCAO', 'METRO'].map((l) => { const pct = x.postagens ? Math.floor((100 * (l === 'AGF' ? x.agf : l === 'BALCAO' ? x.balcao : x.metro)) / x.postagens) : 0; return `<button type="button" class="cad-btn ${l === x.local_carteira ? 'sug' : ''}" data-local="${l}" title="${l === x.local_carteira ? (x.local_fonte === 'ADMIN' ? 'Definido pelo admin' : 'LOCAL com mais postagens') : 'Trocar para ' + LOCAL_NOME[l]}">${LOCAL_NOME[l]} <small>${pct}%</small></button>`; }).join('')}</div>
           </div>`).join('');
         el.querySelectorAll('.l-item').forEach((item) => item.querySelectorAll('[data-local]').forEach((b) => b.addEventListener('click', async () => {
-          const ok = await acao('Gravando LOCAL...', () => api('/api/v2/definir-local', { method: 'POST', body: { itens: [{ clienteId: item.dataset.id, local: b.dataset.local }] } }), `Cliente definido como ${LOCAL_NOME[b.dataset.local]}.`);
-          if (ok) { item.classList.add('feito'); item.querySelectorAll('button').forEach((x) => { x.disabled = true; }); $('modoLocalN').textContent = ok.filaLocal ? num(ok.filaLocal) : ''; }
+          const ok = await acao('Gravando LOCAL...', () => api('/api/v2/definir-local', { method: 'POST', body: { itens: [{ clienteId: item.dataset.id, local: b.dataset.local }] } }), `Cliente agora é do LOCAL ${LOCAL_NOME[b.dataset.local]}.`);
+          if (ok) { item.querySelectorAll('[data-local]').forEach((x) => x.classList.toggle('sug', x === b)); }
         })));
       }
-      paginador($('localPager'), r.pagina, r.paginas, r.total, `${num(r.total)} clientes aguardando LOCAL`, (p) => { st.localPagina = p; carregarFilaLocal(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      paginador($('localPager'), r.pagina, r.paginas, r.total, `${num(r.total)} clientes postam em mais de um LOCAL`, (p) => { st.localPagina = p; carregarFilaLocal(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
     } catch (e) {
       el.innerHTML = `<div class="cad-msg err">${esc(e.message)}</div>`;
     }

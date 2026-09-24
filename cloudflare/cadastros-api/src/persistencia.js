@@ -19,7 +19,9 @@ export async function emLotes(db, stmts) {
 async function carregarEntrada(db) {
   const [nomes, decisoes, planilha, nosAtuais, clientesAtuais, locaisDec] = await db.batch([
     db.prepare(`SELECT origem, grafia, COUNT(*) postagens, ROUND(SUM(valor), 2) valor,
-        SUM(local_codigo = 'AGF') l_agf, SUM(local_codigo = 'BALCAO') l_balcao, SUM(local_codigo = 'METRO') l_metro
+        SUM(local_codigo = 'AGF') l_agf, SUM(local_codigo = 'BALCAO') l_balcao, SUM(local_codigo = 'METRO') l_metro,
+        SUM(CASE WHEN local_codigo = 'AGF' THEN valor ELSE 0 END) v_agf, SUM(CASE WHEN local_codigo = 'BALCAO' THEN valor ELSE 0 END) v_balcao,
+        SUM(CASE WHEN local_codigo = 'METRO' THEN valor ELSE 0 END) v_metro
       FROM cid_postagens WHERE origem <> 'SEM_PORTAL' GROUP BY origem, grafia`),
     db.prepare(`SELECT id, tipo, chave_a, chave_b, valor, autor, criado_em FROM cid_decisoes WHERE ativo = 1 ORDER BY id`),
     db.prepare(`SELECT grafia, nome_manual FROM cid_planilha_legado`),
@@ -33,7 +35,7 @@ async function carregarEntrada(db) {
     planilha: (planilha.results || []).map((r) => [r.grafia, r.nome_manual]),
     nosAtuais: new Map((nosAtuais.results || []).map((r) => [r.chave, r])),
     clientesAtuais: new Map((clientesAtuais.results || []).map((r) => [r.id, r])),
-    locaisPorGrafia: new Map((nomes.results || []).map((r) => [`${r.origem}\u0001${r.grafia}`, { AGF: r.l_agf || 0, BALCAO: r.l_balcao || 0, METRO: r.l_metro || 0 }])),
+    locaisPorGrafia: new Map((nomes.results || []).map((r) => [`${r.origem}\u0001${r.grafia}`, { AGF: r.l_agf || 0, BALCAO: r.l_balcao || 0, METRO: r.l_metro || 0, vAGF: r.v_agf || 0, vBALCAO: r.v_balcao || 0, vMETRO: r.v_metro || 0 }])),
     localDecisoes: new Map((locaisDec.results || []).map((r) => [r.chave, r])),
   };
 }
@@ -112,25 +114,30 @@ export async function executarMotorD1(env, autor = 'SISTEMA') {
   const novoIdDoNo = new Map();
   for (const g of grupos) for (const k of g.chaves) novoIdDoNo.set(k, g.id);
 
-  // ---- LOCAL da carteira: decisao do admin > LOCAL unico das postagens > fila (NULL)
+  // ---- LOCAL da carteira = LOCAL das postagens no Atende.
+  //      So um LOCAL: esse. Mais de um: o LOCAL com mais postagens (empate: mais valor). Empate total: fila (NULL).
+  //      O admin pode trocar; a troca dele vence.
   const locaisDoGrupo = new Map();
   for (const [gk, chave] of r.grafiaNo) {
     if (!chave) continue;
     const id = novoIdDoNo.get(chave), l = entrada.locaisPorGrafia.get(gk);
     if (!id || !l) continue;
-    const acc = locaisDoGrupo.get(id) || { AGF: 0, BALCAO: 0, METRO: 0 };
-    acc.AGF += l.AGF; acc.BALCAO += l.BALCAO; acc.METRO += l.METRO;
+    const acc = locaisDoGrupo.get(id) || { AGF: 0, BALCAO: 0, METRO: 0, vAGF: 0, vBALCAO: 0, vMETRO: 0 };
+    for (const x of ['AGF', 'BALCAO', 'METRO']) { acc[x] += l[x]; acc['v' + x] += l['v' + x]; }
     locaisDoGrupo.set(id, acc);
   }
   let naFila = 0;
   for (const g of grupos) {
     let dec = null;
     for (const k of g.chaves) { const d = entrada.localDecisoes.get(k); if (d && (!dec || d.em > dec.em)) dec = d; }
-    const cont = locaisDoGrupo.get(g.id) || { AGF: 0, BALCAO: 0, METRO: 0 };
-    const usados = Object.keys(cont).filter((x) => cont[x] > 0);
+    const cont = locaisDoGrupo.get(g.id) || { AGF: 0, BALCAO: 0, METRO: 0, vAGF: 0, vBALCAO: 0, vMETRO: 0 };
+    const usados = ['AGF', 'BALCAO', 'METRO'].filter((x) => cont[x] > 0)
+      .sort((a, b) => (cont[b] - cont[a]) || (cont['v' + b] - cont['v' + a]));
+    const empate = usados.length > 1 && cont[usados[0]] === cont[usados[1]] && cont['v' + usados[0]] === cont['v' + usados[1]];
     if (dec) { g.local = dec.local; g.localFonte = 'ADMIN'; }
     else if (usados.length === 1) { g.local = usados[0]; g.localFonte = 'AUTO'; }
-    else { g.local = null; g.localFonte = null; if (usados.length > 1) naFila++; }
+    else if (usados.length > 1 && !empate) { g.local = usados[0]; g.localFonte = 'PREDOMINANTE'; }
+    else { g.local = null; g.localFonte = null; if (usados.length) naFila++; }
   }
   const idsNovos = new Set(grupos.map((g) => g.id));
 
