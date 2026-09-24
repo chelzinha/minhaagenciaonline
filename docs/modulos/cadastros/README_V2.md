@@ -96,7 +96,7 @@ O cálculo que o Apps Script fazia na planilha `CLIENTES_MASTER` agora roda no W
 3. Tipo de negócio pelas colunas do Atende: INTERMEDIADOR `VR` = VR; `INTERMEDIADOR` = plataforma (todas as plataformas do Atende contam como marketplace, não só as 5 da lista antiga); `PORTAL POSTAL` ou `CONTRATO ECT` = contrato; sem contrato = balcão.
 4. Estorno soma o valor (negativo) mas não conta objeto nem dia ativo.
 5. Reverso = serviço com subgrupo `Reverso` na classificação de serviços do Atende.
-6. As métricas usam todas as postagens do cliente (inclusive em outro LOCAL); a comparação da curva é só com os clientes do mesmo LOCAL.
+6. As métricas usam só as postagens feitas no LOCAL da carteira. Ex.: SERVAL (BALCÃO) conta as 247 postagens do BALCÃO; as 7 do METRO ficam fora e aparecem só como informação (`POSTAGENS_OUTROS_LOCAIS`). Exceção: cliente que o admin colocou num LOCAL onde não tem postagem usa todas e fica marcado `POSTAGENS_DO_LOCAL = NAO`, para não sumir do CRM.
 
 ### Quando recalcula
 

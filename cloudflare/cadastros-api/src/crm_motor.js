@@ -9,6 +9,10 @@
  *  3. Tipo de negocio vem das colunas INTERMEDIADOR e TIPO do Atende:
  *     VR -> VR | INTERMEDIADOR -> plataforma (marketplace) | PORTAL POSTAL / CONTRATO ECT -> CONTRATO | sem contrato -> BALCAO.
  *  4. Postagem estornada soma o valor (negativo) mas nao conta como objeto nem como dia ativo.
+ *  4b. As metricas usam SO as postagens feitas no LOCAL da carteira do cliente. Postagens dele em outro LOCAL
+ *      ficam fora (contadas em POSTAGENS_OUTROS_LOCAIS, so para informacao).
+ *      Excecao: cliente sem nenhuma postagem no LOCAL da carteira (so acontece quando o admin escolhe um LOCAL
+ *      onde ele nao posta) usa todas as postagens e sai marcado POSTAGENS_DO_LOCAL = 'NAO', para nao sumir do CRM.
  *  5. REVERSO = servico classificado no Atende com subgrupo "Reverso".
  * Todo o resto (pesos, cortes, pisos, limiares, textos das acoes) e identico.
  */
@@ -276,9 +280,13 @@ export function executarCrm(clientes, linhasPorCliente, refDateForcada) {
   for (const [id, linhas] of linhasPorCliente) {
     const c = clientes.get(id);
     if (!c) continue;
-    const m = metricasDoCliente(id, linhas, refDate);
+    const doLocal = c.local ? linhas.filter((l) => l.local === c.local) : linhas;
+    const usarTodas = !!c.local && !doLocal.length;
+    const m = metricasDoCliente(id, usarTodas ? linhas : doLocal, refDate);
     if (!m) continue;
     m.CLIENTE = c.nome; m.LOCAL = c.local || 'SEM_LOCAL';
+    m.POSTAGENS_DO_LOCAL = usarTodas ? 'NAO' : 'SIM';
+    m.POSTAGENS_OUTROS_LOCAIS = usarTodas ? 0 : linhas.filter((l) => c.local && l.local !== c.local && !l.estorno).reduce((t, l) => t + num(l.qtd), 0);
     if (!grupos.has(m.LOCAL)) grupos.set(m.LOCAL, []);
     grupos.get(m.LOCAL).push(m);
   }

@@ -86,14 +86,26 @@ for (const [n, refDate] of [[60, '2026-09-23'], [400, '2026-09-05'], [1500, '202
 // Curva dentro do LOCAL: o mesmo cliente muda de curva conforme os vizinhos do LOCAL, nunca pelos outros locais.
 {
   const ref = '2026-09-23';
-  const linhas = (qtdDia, dias) => Array.from({ length: dias }, (_, d) => ({ data: new Date(Date.parse(ref) - d * 864e5).toISOString().slice(0, 10), qtd: qtdDia, valor: qtdDia * 30, estorno: 0, local: 'X', intermediador: 'CONTRATO ECT', contratoTipo: '', subgrupo: 'SEDEX', contrato: '1', cartao: '' }));
-  const mapa = new Map([['GRANDE_METRO', linhas(20, 120)], ['PEQ_BALCAO', linhas(2, 120)], ...Array.from({ length: 30 }, (_, i) => [`M${i}`, linhas(1, 20)])]);
+  const linhas = (qtdDia, dias) => Array.from({ length: dias }, (_, d) => ({ data: new Date(Date.parse(ref) - d * 864e5).toISOString().slice(0, 10), qtd: qtdDia, valor: qtdDia * 30, estorno: 0, local: 'METRO', intermediador: 'CONTRATO ECT', contratoTipo: '', subgrupo: 'SEDEX', contrato: '1', cartao: '' }));
+  const mapa = new Map([['GRANDE_METRO', linhas(20, 120)], ['PEQ_BALCAO', linhas(2, 120).map((l) => ({ ...l, local: 'BALCAO' }))], ...Array.from({ length: 30 }, (_, i) => [`M${i}`, linhas(1, 20)])]);
   const cl = new Map([['GRANDE_METRO', { nome: 'G', local: 'METRO' }], ['PEQ_BALCAO', { nome: 'P', local: 'BALCAO' }], ...Array.from({ length: 30 }, (_, i) => [`M${i}`, { nome: 'M' + i, local: 'METRO' }])]);
   const r = executarCrm(cl, mapa, ref);
   const peq = r.metricas.find((m) => m.CLIENTE_ID === 'PEQ_BALCAO');
   ok(peq.SHARE_LOCAL_30D === 1, 'cliente sozinho no BALCAO tem share 100% do BALCAO');
   ok(r.porLocal.METRO === 31 && r.porLocal.BALCAO === 1, 'grupos por LOCAL');
   ok(r.metricas.find((m) => m.CLIENTE_ID === 'GRANDE_METRO').CURVA === 'TOP', 'maior do METRO e TOP no METRO');
+}
+
+// Postagens separadas pelo LOCAL da carteira (ex.: SERVAL, 247 no BALCAO e 7 no METRO -> conta so as 247)
+{
+  const ref = '2026-09-23';
+  const dia = (d, local) => ({ data: new Date(Date.parse(ref) - d * 864e5).toISOString().slice(0, 10), qtd: 1, valor: 20, estorno: 0, local, intermediador: '', contratoTipo: '', subgrupo: 'SEDEX', contrato: '', cartao: '' });
+  const linhas = [...Array.from({ length: 247 }, (_, i) => dia(i % 100, 'BALCAO')), ...Array.from({ length: 7 }, (_, i) => dia(i, 'METRO'))];
+  const r = executarCrm(new Map([['SERVAL', { nome: 'SERVAL', local: 'BALCAO' }]]), new Map([['SERVAL', linhas]]), ref);
+  const m = r.metricas[0];
+  ok(m.QTD_TOTAL === 247 && m.POSTAGENS_OUTROS_LOCAIS === 7 && m.POSTAGENS_DO_LOCAL === 'SIM', `so postagens do LOCAL: ${m.QTD_TOTAL} / fora ${m.POSTAGENS_OUTROS_LOCAIS}`);
+  const r2 = executarCrm(new Map([['X', { nome: 'X', local: 'AGF' }]]), new Map([['X', linhas]]), ref);
+  ok(r2.metricas.length === 1 && r2.metricas[0].POSTAGENS_DO_LOCAL === 'NAO' && r2.metricas[0].QTD_TOTAL === 254, 'LOCAL escolhido sem postagens: nao some do CRM');
 }
 
 // Tipo de negocio pelas colunas do Atende
