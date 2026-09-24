@@ -301,3 +301,10 @@ Todas as mudancas relevantes deste projeto serao registradas aqui.
 ### Escopo
 - Ajuste isolado em `frontend/crm/app.js`.
 - Nao altera backend, Apps Script, dados, layout da Home ou performance inicial.
+
+
+## 2026-09-24 - Agrupamento assistido no Cadastro de Clientes
+
+- Quatro origens em abas com busca e paginação; nome padronizado apresentado em maiúsculas.
+- Sugestões para consolidar grafias e opção de busca manual; transferência transacional de postagens, aliases e contratos com auditoria e confirmação.
+- Explicação dos campos de associação de grafia; postagens por LOCAL e contratos observados preservados.
