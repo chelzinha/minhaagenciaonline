@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Conector Shopify | Plataforma AGF</title>
   <link rel="stylesheet" href="/shared/ui/agf-ui.css" />
-  <link rel="stylesheet" href="./shopify.css?v=20260924-1" />
+  <link rel="stylesheet" href="./shopify.css?v=20260924-2" />
 
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
@@ -15,8 +15,8 @@
   <script src="/shared/auth/agf-route-guard.js"></script>
   <script src="/shared/core/agf-core-config.js"></script>
   <script src="/shared/core/agf-core-client.js"></script>
-  <script src="/shared/shopify/agf-shopify-config.js?v=20260924-1"></script>
-  <script src="/shared/shopify/agf-shopify-client.js?v=20260924-1"></script>
+  <script src="/shared/shopify/agf-shopify-config.js?v=20260924-2"></script>
+  <script src="/shared/shopify/agf-shopify-client.js?v=20260924-2"></script>
 </head>
 <body>
   <header class="shopify-topbar">
@@ -86,9 +86,22 @@
       <div id="ordersEmpty" class="empty-state">Nenhuma loja selecionada.</div>
       <div id="ordersList" class="orders-list" hidden></div>
     </section>
+
+    <section id="orderDetailCard" class="shopify-card" hidden>
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Expedição</span>
+          <h2 id="orderDetailTitle">Detalhes do pedido</h2>
+          <p class="section-note">Prévia dos dados que poderão alimentar o fluxo Correios. Nenhuma postagem é criada nesta etapa.</p>
+        </div>
+        <button id="closeOrderDetailBtn" class="btn-secondary" type="button">Fechar</button>
+      </div>
+
+      <div id="orderDetailContent" class="order-detail-content"></div>
+    </section>
   </main>
 
-  <script src="./shopify.js?v=20260924-1"></script>
+  <script src="./shopify.js?v=20260924-2"></script>
   <script>
     if (document.documentElement.classList.contains('agf-auth-ready')) {
       window.dispatchEvent(new CustomEvent('agf:auth-ready', { detail: { cached: true, replayed: true } }));
