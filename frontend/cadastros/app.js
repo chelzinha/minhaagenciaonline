@@ -116,7 +116,19 @@
       : '<p class="hint">Nenhuma sugestão próxima. Busque pelo nome para escolher outra ficha.</p>';
   }
   async function openCustomer(id) { renderDetail(await api(`/api/customers/${encodeURIComponent(id)}`)); $('detail').scrollIntoView({behavior:'smooth'}); await loadSuggestions(id); }
-  async function refresh() { await Promise.all([refreshStatus(),loadCustomers(),loadReview()]); if(state.selected) await openCustomer(state.selected); }
+  async function refresh() {
+    const results=await Promise.allSettled([refreshStatus(),loadCustomers(),loadReview()]);
+    if(results[1].status==='rejected') $('customerList').innerHTML='<div class="empty">Não foi possível carregar clientes. Use “Recarregar dados”.</div>';
+    if(results[2].status==='rejected') $('reviewList').innerHTML='<div class="empty">Não foi possível carregar a revisão. Use “Recarregar dados”.</div>';
+    const error=results.find(result=>result.status==='rejected');
+    if(error) {
+      const reason=error.reason?.message || 'Falha na conexão com a API.';
+      notice(`A leitura do cadastro falhou: ${reason}. Confira se abriu a prévia da branch e tente Recarregar dados.`,true);
+      return false;
+    }
+    if(state.selected) await openCustomer(state.selected);
+    return true;
+  }
   function resolve(row) {
     state.resolving=row;
     $('resolveContext').textContent=`${row.sender_name || '(sem remetente)'} · ${row.portal_names || '(sem Cliente Portal)'} · ${Number(row.postings)} postagens`;
@@ -127,14 +139,15 @@
   async function start() {
     if(started)return; started=true;
     $('reviewList').textContent='Carregando pendências…'; $('customerList').textContent='Carregando cadastros…';
-    await task(refresh);
-    try { await api('/api/suggestions?id=__capability_check__'); state.mergeReady=true; }
+    const loaded=await refresh();
+    if(loaded) try { await api('/api/suggestions?id=__capability_check__'); state.mergeReady=true; }
     catch (error) { state.mergeReady=error.message==='Cliente não encontrado.'; }
     if(!state.mergeReady) {
       document.querySelectorAll('.origin-tabs button').forEach(button=>{if(button.dataset.origin)button.disabled=true;});
       document.querySelector('.origin-tabs').insertAdjacentHTML('afterend','<p class="hint">Os filtros por origem e o agrupamento aguardam a publicação da API.</p>');
       $('mergeForm').querySelector('[type=submit]').disabled=true;
     }
+    $('retryButton').addEventListener('click',()=>task(async()=>{const loaded=await refresh();if(loaded){$('notice').hidden=true;}},$('retryButton')));
     $('reviewSearch').addEventListener('input',debounce(()=>task(()=>loadReview())));
     document.querySelector('.origin-tabs').addEventListener('click',e=>{const button=e.target.closest('[data-origin]');if(!button || !state.mergeReady)return;state.origin=button.dataset.origin;document.querySelectorAll('[data-origin]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));task(()=>loadCustomers(true));});
     $('suggestions').addEventListener('click',e=>{const id=e.target.closest('[data-merge]')?.dataset.merge;if(id)selectMerge(id);});
