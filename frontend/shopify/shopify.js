@@ -4,7 +4,8 @@
   const state = {
     initialized: false,
     customers: [],
-    selectedCustomerId: ''
+    selectedCustomerId: '',
+    selectedShop: ''
   };
 
   const els = {};
@@ -18,6 +19,10 @@
     els.refreshBtn = document.getElementById('refreshBtn');
     els.connectionsEmpty = document.getElementById('connectionsEmpty');
     els.connectionsList = document.getElementById('connectionsList');
+    els.refreshOrdersBtn = document.getElementById('refreshOrdersBtn');
+    els.ordersShopLabel = document.getElementById('ordersShopLabel');
+    els.ordersEmpty = document.getElementById('ordersEmpty');
+    els.ordersList = document.getElementById('ordersList');
   }
 
   function showMessage(message, type) {
@@ -35,6 +40,37 @@
 
   function customerName(customer) {
     return customer.trade_name || customer.legal_name || customer.id;
+  }
+
+  function formatDate(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat('pt-BR', {
+      dateStyle: 'short',
+      timeStyle: 'short'
+    }).format(date);
+  }
+
+  function formatMoney(money) {
+    if (!money) return '—';
+    const amount = Number(money.amount);
+    if (!Number.isFinite(amount)) return String(money.amount || '—');
+    try {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: money.currencyCode || 'BRL'
+      }).format(amount);
+    } catch {
+      return amount.toFixed(2) + ' ' + (money.currencyCode || '');
+    }
+  }
+
+  function statusLabel(value) {
+    return String(value || '—')
+      .toLowerCase()
+      .replace(/_/g, ' ')
+      .replace(/^./, (char) => char.toUpperCase());
   }
 
   async function loadEligibleCustomers() {
@@ -88,6 +124,7 @@
       els.connectionsList.hidden = true;
       els.connectionsEmpty.hidden = false;
       els.connectionsEmpty.textContent = 'Nenhuma loja Shopify conectada para este cliente.';
+      resetOrders();
       return;
     }
 
@@ -114,7 +151,14 @@
 
       const status = document.createElement('span');
       status.className = 'connection-status';
-      status.textContent = shop.status || '—';
+      status.textContent = shop.credential_ready === 0 ? 'CREDENCIAL PENDENTE' : (shop.status || '—');
+
+      const ordersBtn = document.createElement('button');
+      ordersBtn.type = 'button';
+      ordersBtn.className = 'btn-secondary';
+      ordersBtn.textContent = 'Ver pedidos';
+      ordersBtn.disabled = shop.status !== 'ACTIVE' || shop.credential_ready === 0;
+      ordersBtn.addEventListener('click', () => loadOrders(shop.shop_domain));
 
       const testBtn = document.createElement('button');
       testBtn.type = 'button';
@@ -122,9 +166,74 @@
       testBtn.textContent = 'Testar conexão';
       testBtn.addEventListener('click', () => testConnection(shop.shop_domain, testBtn));
 
-      meta.append(status, testBtn);
+      meta.append(status, ordersBtn, testBtn);
       row.append(main, meta);
       els.connectionsList.appendChild(row);
+    }
+  }
+
+  function resetOrders() {
+    state.selectedShop = '';
+    els.refreshOrdersBtn.disabled = true;
+    els.ordersShopLabel.textContent = 'Selecione uma loja vinculada para carregar os pedidos.';
+    els.ordersList.innerHTML = '';
+    els.ordersList.hidden = true;
+    els.ordersEmpty.hidden = false;
+    els.ordersEmpty.textContent = 'Nenhuma loja selecionada.';
+  }
+
+  function renderOrders(orders) {
+    els.ordersList.innerHTML = '';
+
+    if (!orders.length) {
+      els.ordersList.hidden = true;
+      els.ordersEmpty.hidden = false;
+      els.ordersEmpty.textContent = 'Nenhum pedido recente foi retornado pela Shopify.';
+      return;
+    }
+
+    els.ordersEmpty.hidden = true;
+    els.ordersList.hidden = false;
+
+    for (const order of orders) {
+      const row = document.createElement('article');
+      row.className = 'order-row';
+
+      const header = document.createElement('div');
+      header.className = 'order-header';
+
+      const identity = document.createElement('div');
+      const number = document.createElement('strong');
+      number.textContent = order.name || order.id;
+      const date = document.createElement('span');
+      date.textContent = formatDate(order.createdAt);
+      identity.append(number, date);
+
+      const total = document.createElement('strong');
+      total.className = 'order-total';
+      total.textContent = formatMoney(order.total);
+
+      header.append(identity, total);
+
+      const status = document.createElement('div');
+      status.className = 'order-statuses';
+      status.innerHTML = '<span>Financeiro: <strong>' + statusLabel(order.financialStatus) + '</strong></span>' +
+        '<span>Expedição: <strong>' + statusLabel(order.fulfillmentStatus) + '</strong></span>';
+
+      const items = document.createElement('div');
+      items.className = 'order-items';
+      const lines = Array.isArray(order.lineItems) ? order.lineItems : [];
+      if (!lines.length) {
+        items.textContent = 'Sem itens retornados.';
+      } else {
+        items.textContent = lines.map((item) => {
+          const sku = item.sku ? ' · SKU ' + item.sku : '';
+          return item.quantity + '× ' + (item.name || 'Item') + sku;
+        }).join(' | ');
+      }
+
+      row.append(header, status, items);
+      els.ordersList.appendChild(row);
     }
   }
 
@@ -135,18 +244,53 @@
       els.connectionsList.hidden = true;
       els.connectionsEmpty.hidden = false;
       els.connectionsEmpty.textContent = 'Selecione um cliente para consultar as lojas conectadas.';
+      resetOrders();
       return;
     }
 
     els.refreshBtn.disabled = true;
     try {
       const data = await window.AgfShopify.listConnections(state.selectedCustomerId);
-      renderConnections(Array.isArray(data.shops) ? data.shops : []);
+      const shops = Array.isArray(data.shops) ? data.shops : [];
+      renderConnections(shops);
+
+      const active = shops.filter((shop) => shop.status === 'ACTIVE' && shop.credential_ready !== 0);
+      if (active.length === 1) {
+        await loadOrders(active[0].shop_domain);
+      } else if (!active.some((shop) => shop.shop_domain === state.selectedShop)) {
+        resetOrders();
+      }
     } catch (error) {
       renderConnections([]);
       showMessage(error.message || 'Não foi possível consultar as conexões Shopify.', 'error');
     } finally {
       els.refreshBtn.disabled = false;
+    }
+  }
+
+  async function loadOrders(shopOverride) {
+    const shop = shopOverride || state.selectedShop;
+    if (!shop) {
+      resetOrders();
+      return;
+    }
+
+    state.selectedShop = shop;
+    els.ordersShopLabel.textContent = shop + ' · últimos pedidos disponíveis para o app';
+    els.refreshOrdersBtn.disabled = true;
+    els.ordersEmpty.hidden = false;
+    els.ordersEmpty.textContent = 'Carregando pedidos...';
+    els.ordersList.hidden = true;
+
+    try {
+      const data = await window.AgfShopify.listOrders(shop, 20);
+      renderOrders(Array.isArray(data.orders) ? data.orders : []);
+    } catch (error) {
+      els.ordersList.hidden = true;
+      els.ordersEmpty.hidden = false;
+      els.ordersEmpty.textContent = error.message || 'Não foi possível carregar os pedidos da Shopify.';
+    } finally {
+      els.refreshOrdersBtn.disabled = false;
     }
   }
 
@@ -228,6 +372,7 @@
     els.customerSelect.addEventListener('change', loadConnections);
     els.connectBtn.addEventListener('click', startConnection);
     els.refreshBtn.addEventListener('click', loadConnections);
+    els.refreshOrdersBtn.addEventListener('click', () => loadOrders());
     els.shopInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -236,6 +381,7 @@
     });
 
     handleCallbackMessage();
+    resetOrders();
 
     try {
       await loadEligibleCustomers();
