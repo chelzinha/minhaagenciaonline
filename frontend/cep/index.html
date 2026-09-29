@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="/shared/address/address-widget.css" />
   <link rel="stylesheet" href="/cep/cep-page.css" />
 <link rel="stylesheet" href="/shared/ui/agf-ui.css"/>
-<link rel="stylesheet" href="/shared/ui/agf-header.css?v=1"/>
+<link rel="stylesheet" href="/shared/ui/agf-header.css?v=2"/>
 <script src="/shared/auth/agf-auth-config.js"></script>
 <script src="/shared/auth/agf-auth-client.js"></script>
 <link rel="manifest" href="/cep/manifest.webmanifest"/>
@@ -85,19 +85,18 @@
   <script src="/shared/address/address-client.js"></script>
   <script src="/cep/cep-page.js"></script>
 <script src="/shared/ui/agf-ui.js"></script>
-<script src="/shared/ui/agf-header.js?v=1"></script>
+<script src="/shared/ui/agf-header.js?v=2"></script>
 <script>
-  /* Cabecalho padrao: /cep e rota publica, entao o slot do usuario
-     mostra Entrar. As duas acoes replicam os links do header antigo. */
+  /* Cabecalho padrao v1.1.0: /cep e rota publica. A sessao e lida pelo
+     proprio componente: funcionario logado ve o avatar, visitante ve o
+     slot vazio. As duas acoes replicam os links do header antigo. */
   AgfHeader.mount({
     route: '/cep',
-    user: null,
     actions: [
       { id:'postagens', label:'Postagens', icon:'parcel',
         onClick: function(){ window.open('/app/', '_blank', 'noopener,noreferrer'); } },
-      { id:'inicio', label:'Início', icon:'globe', href:'/' }
-    ],
-    onLogin: function(){ window.location.href = '/agf/'; }
+      { id:'inicio', label:'In\u00EDcio', icon:'globe', href:'/' }
+    ]
   });
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/cep/sw.js').catch(()=>{}));}</script>

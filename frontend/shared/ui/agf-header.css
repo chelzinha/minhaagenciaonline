@@ -1,6 +1,6 @@
 /* ============================================================================
    agf-header.css - Cabecalho padrao da Plataforma AGF Jose Bonifacio
-   Versao 1.0.1
+   Versao 1.1.0 - pele "Selo solido" (opcao C, escolhida em 29/09/2026)
    Namespace obrigatorio: .agf-hd-*  (Trava A)
    Depende de: nada. Nao importa nenhum outro arquivo.
    ========================================================================== */
@@ -11,21 +11,29 @@
   --agf-hd-max: 1180px;
   --agf-hd-pad: 12px;
 
-  --agf-hd-accent: #0F3057;          /* sobrescrito inline por rota */
-  --agf-hd-ink: #10233D;
-  --agf-hd-ink-2: #2C3E58;
-  --agf-hd-muted: #8A99AC;
-  --agf-hd-icon: #5B6B80;
-  --agf-hd-line: rgba(16,35,61,.12);
-  --agf-hd-hover: rgba(16,35,61,.06);
-  --agf-hd-surface: #FFFFFF;
-  --agf-hd-radius: 8px;
+  --agf-hd-accent: #0B2D58;          /* sobrescrito inline por rota */
+  --agf-hd-ink: #0B2D58;             /* Azul Profundo da marca */
+  --agf-hd-ink-2: #374151;           /* Grafite da marca */
+  --agf-hd-muted: #6B7280;
+  --agf-hd-icon: #4B5563;
+  --agf-hd-line: color-mix(in srgb, var(--agf-hd-accent) 16%, #E5E7EB);
+  --agf-hd-hover: color-mix(in srgb, var(--agf-hd-accent) 9%, #FFFFFF);
+  --agf-hd-radius: 9px;
   --agf-hd-font: "Inter","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
 
-  /* intensidade do gloss. Baixar para 4% se o brilho parecer pesado. */
-  --agf-hd-tint-rest: 8%;
+  /* tinta da rota no fundo. Repouso 4% (spec 9.3), rolado 6% (spec 9.4) */
+  --agf-hd-tint-rest: 4%;
   --agf-hd-tint-scroll: 6%;
 }
+
+/* O position:sticky morre quando html e body tem overflow-x:hidden
+   (regra global do agf-ui.css). "clip" recorta igual sem criar contexto
+   de rolagem. Escopado so as paginas que montam o cabecalho. */
+html:has(.agf-hd),
+html:has(.agf-hd) body{ overflow-x: clip; }
+
+/* Elementos do topo antigo mantidos so para o JS de cada pagina. Nunca aparecem. */
+.agf-legacy-topbar{ display: none !important; }
 
 /* ------------------------------------------------------------ 2. ESTRUTURA */
 .agf-hd,
@@ -37,43 +45,33 @@
   position: sticky;
   top: 0;
   z-index: 900;
+  display: block;
   height: var(--agf-hd-h);
   font-family: var(--agf-hd-font);
   line-height: 1.5;
-  background: var(--agf-hd-surface);
+  text-align: left;
+  background: color-mix(in srgb, var(--agf-hd-accent) var(--agf-hd-tint-rest), #FFFFFF);
   border-bottom: 1px solid transparent;
   transition: background-color .22s ease, border-color .22s ease, box-shadow .22s ease;
-  /* gloss em repouso */
-  box-shadow:
-    0 1px 1px rgba(16,35,61,.035),
-    0 8px 24px -10px color-mix(in srgb, var(--agf-hd-accent) 46%, transparent);
 }
 
-/* camada de brilho isolada: permite animar a saida do gloss,
-   porque gradiente e cor chapada nao interpolam entre si em CSS */
+/* brilho de 1px no topo: leitura de superficie polida */
 .agf-hd__glow{
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 1;
-  transition: opacity .22s ease;
-  background: linear-gradient(
-    180deg,
-    #FFFFFF 0%,
-    color-mix(in srgb, var(--agf-hd-accent) var(--agf-hd-tint-rest), #FFFFFF) 100%
-  );
   box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
 }
 
-/* estado rolado: material translucido tingido pela cor da rota */
+/* estado rolado: material translucido tingido pela cor da rota.
+   92% de opacidade nao e estetica: abaixo disso o conteudo vaza (spec 9.4) */
 .agf-hd.is-scrolled{
   background: color-mix(in srgb, var(--agf-hd-accent) var(--agf-hd-tint-scroll), rgba(255,255,255,.92));
   -webkit-backdrop-filter: blur(18px) saturate(180%);
   backdrop-filter: blur(18px) saturate(180%);
-  border-bottom-color: color-mix(in srgb, var(--agf-hd-accent) 22%, #E3E8EF);
-  box-shadow: 0 1px 12px rgba(16,35,61,.06);
+  border-bottom-color: color-mix(in srgb, var(--agf-hd-accent) 20%, transparent);
+  box-shadow: 0 8px 22px -12px color-mix(in srgb, var(--agf-hd-accent) 40%, transparent);
 }
-.agf-hd.is-scrolled .agf-hd__glow{ opacity: 0; }
 
 .agf-hd__in{
   position: relative;
@@ -93,6 +91,7 @@
   height: 34px;
   flex: none;
   border: 0;
+  margin: 0;
   padding: 0;
   background: transparent;
   border-radius: var(--agf-hd-radius);
@@ -104,7 +103,7 @@
   transition: background-color .15s ease, color .15s ease;
 }
 .agf-hd__launcher:hover,
-.agf-hd__icon-btn:hover{ background: var(--agf-hd-hover); }
+.agf-hd__icon-btn:hover{ background: var(--agf-hd-hover); color: var(--agf-hd-ink); }
 .agf-hd__launcher svg,
 .agf-hd__icon-btn svg{ width: 20px; height: 20px; display: block; }
 
@@ -122,6 +121,8 @@
   gap: 10px;
   min-width: 0;
 }
+
+/* Selo solido: bloco cheio na cor da rota, glifo branco com linha de base */
 .agf-hd__mark{
   width: 32px;
   height: 32px;
@@ -129,9 +130,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--agf-hd-accent);
+  border-radius: var(--agf-hd-radius);
+  color: #FFFFFF;
+  background: var(--agf-hd-accent);
+  box-shadow:
+    inset 0 -2px 0 rgba(0,0,0,.16),
+    0 2px 6px -2px color-mix(in srgb, var(--agf-hd-accent) 60%, transparent);
 }
-.agf-hd__mark svg{ width: 24px; height: 24px; display: block; }
+.agf-hd__mark svg{ width: 21px; height: 21px; display: block; }
 
 .agf-hd__titles{
   min-width: 0;
@@ -140,6 +146,7 @@
   justify-content: center;
 }
 .agf-hd__title{
+  display: block;
   font-size: 15px;
   font-weight: 650;
   letter-spacing: -.008em;
@@ -149,14 +156,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.agf-hd__t-short{ display: none; }
 .agf-hd__sub{
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: .09em;
   text-transform: uppercase;
   line-height: 1.3;
-  color: var(--agf-hd-muted);
+  margin-top: 2px;
+  color: color-mix(in srgb, var(--agf-hd-accent) 70%, #1F2937);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ------------------------------------------------- 4. ZONA B: ESPACADOR */
@@ -169,8 +180,11 @@
   gap: 6px;
   flex: none;
 }
+.agf-hd__actions:empty{ display: none; }
+.agf-hd__actions:empty + .agf-hd__rule{ margin-left: 0; }
 .agf-hd__btn{
   height: 32px;
+  margin: 0;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -179,14 +193,18 @@
   font-family: var(--agf-hd-font);
   font-size: 13px;
   font-weight: 600;
+  line-height: 1;
   white-space: nowrap;
   cursor: pointer;
-  color: var(--agf-hd-ink-2);
-  background: rgba(255,255,255,.72);
-  border: 1px solid var(--agf-hd-line);
+  color: color-mix(in srgb, var(--agf-hd-accent) 78%, #111827);
+  background: #FFFFFF;
+  border: 1px solid color-mix(in srgb, var(--agf-hd-accent) 24%, #E5E7EB);
   transition: background-color .15s ease, border-color .15s ease;
 }
-.agf-hd__btn:hover{ background: #FFFFFF; border-color: rgba(16,35,61,.2); }
+.agf-hd__btn:hover{
+  background: color-mix(in srgb, var(--agf-hd-accent) 8%, #FFFFFF);
+  border-color: color-mix(in srgb, var(--agf-hd-accent) 40%, #E5E7EB);
+}
 .agf-hd__btn svg{ width: 15px; height: 15px; flex: none; }
 
 /* ------------------------------------------------- 6. ZONA C: USUARIO */
@@ -196,52 +214,37 @@
   width: 32px;
   height: 32px;
   flex: none;
-  margin-left: 8px;
+  margin: 0 0 0 8px;
   padding: 0;
   border: 0;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
-  background: #C9D3E0;
+  background: color-mix(in srgb, var(--agf-hd-accent) 12%, #FFFFFF);
+  box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 3px color-mix(in srgb, var(--agf-hd-accent) 30%, transparent);
   display: block;
 }
 .agf-hd__avatar img{ width: 100%; height: 100%; object-fit: cover; display: block; }
 
-.agf-hd__enter{
-  height: 32px;
-  margin-left: 8px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: var(--agf-hd-radius);
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-family: var(--agf-hd-font);
-  font-size: 13px;
-  font-weight: 650;
-  color: #FFFFFF;
-  background: var(--agf-hd-accent);
-  cursor: pointer;
-}
-.agf-hd__enter:hover{ filter: brightness(1.08); }
-.agf-hd__enter svg{ width: 15px; height: 15px; flex: none; }
+/* sem sessao em rota publica: espaco reservado, nada visivel (spec 4.1) */
+.agf-hd__slot{ width: 32px; height: 32px; margin-left: 8px; flex: none; display: block; }
 
 /* --------------------------------------------------------- 7. MENUS */
 .agf-hd__menu{
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 8px);
   z-index: 950;
   min-width: 246px;
   background: #FFFFFF;
-  border: 1px solid #E3E8EF;
+  border: 1px solid #E5E7EB;
   border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(10,37,64,.18);
+  box-shadow: 0 18px 40px -12px rgba(11,45,88,.28);
   overflow: hidden;
   display: none;
 }
 .agf-hd__menu[data-open="true"]{ display: block; }
-.agf-hd__menu--user{ right: 0; }
-.agf-hd__menu--apps{ left: 0; width: 288px; max-height: 74vh; overflow-y: auto; }
+.agf-hd__menu--user{ right: var(--agf-hd-pad); width: 246px; }
+.agf-hd__menu--apps{ left: var(--agf-hd-pad); width: 300px; max-height: 74vh; overflow-y: auto; padding-bottom: 6px; }
 
 .agf-hd__menu-head{
   display: flex;
@@ -252,42 +255,55 @@
 }
 .agf-hd__menu-head img{ width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex: none; }
 .agf-hd__menu-name{ font-size: 13.5px; font-weight: 700; color: var(--agf-hd-ink); line-height: 1.25; }
-.agf-hd__menu-role{ font-size: 11.5px; color: #6B7C93; line-height: 1.3; }
+.agf-hd__menu-role{ font-size: 12px; color: var(--agf-hd-muted); line-height: 1.3; }
 
 .agf-hd__menu-item{
   display: flex;
   align-items: center;
   gap: 11px;
   width: 100%;
-  padding: 11px 14px;
+  min-height: 40px;
+  margin: 0;
+  padding: 9px 14px;
   border: 0;
   background: none;
   font-family: var(--agf-hd-font);
   font-size: 13.5px;
   font-weight: 500;
-  color: var(--agf-hd-ink);
+  line-height: 1.3;
+  color: var(--agf-hd-ink-2);
   text-align: left;
   text-decoration: none;
   cursor: pointer;
 }
-.agf-hd__menu-item:hover{ background: #F4F7FB; }
-.agf-hd__menu-item > svg{ width: 17px; height: 17px; flex: none; color: #6B7C93; }
-.agf-hd__menu-mark{ display: flex; flex: none; }
-.agf-hd__menu-mark svg{ width: 19px; height: 19px; display: block; }
-.agf-hd__menu-item--danger{ color: #9F1239; }
-.agf-hd__menu-item--danger > svg{ color: #9F1239; }
-.agf-hd__menu-item[aria-current="page"]{ background: #F4F7FB; font-weight: 700; }
-.agf-hd__menu-sep{ height: 1px; background: #EEF2F7; }
+.agf-hd__menu-item:hover{ background: #F5F7FA; color: var(--agf-hd-ink); }
+.agf-hd__menu-item > svg{ width: 17px; height: 17px; flex: none; color: var(--agf-hd-muted); }
+.agf-hd__menu-mark{
+  width: 26px;
+  height: 26px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: #FFFFFF;
+}
+.agf-hd__menu-mark svg{ width: 18px; height: 18px; display: block; }
+.agf-hd__menu-item--danger{ color: #B91C1C; }
+.agf-hd__menu-item--danger > svg{ color: #B91C1C; }
+.agf-hd__menu-item--danger:hover{ background: #FDECEC; color: #B91C1C; }
+.agf-hd__menu-item[aria-current="page"]{ background: #EEF3FA; color: var(--agf-hd-ink); font-weight: 650; }
+.agf-hd__menu-sep{ height: 1px; background: #EEF2F7; margin: 4px 0; }
 .agf-hd__menu-label{
-  padding: 12px 14px 6px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .12em;
-  text-transform: uppercase;
+  padding: 12px 14px 4px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .04em;
   color: var(--agf-hd-muted);
 }
-.agf-hd__menu-ext{ margin-left: auto; color: var(--agf-hd-muted); }
+.agf-hd__menu-ext{ margin-left: auto; color: var(--agf-hd-muted); display: inline-flex; }
 .agf-hd__menu-ext svg{ width: 13px; height: 13px; }
+.agf-hd__sr{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ------------------------------------------------- 8. CARREGAMENTO */
 .agf-hd__load{
@@ -317,22 +333,112 @@
 @keyframes agf-hd-done{ to{ transform: scaleX(1) } }
 
 /* --------------------------------------------------------- 9. FOCO */
-.agf-hd :focus-visible{
-  outline: 2px solid var(--agf-hd-accent);
+.agf-hd :focus-visible,
+.agf-hd-dlg :focus-visible{
+  outline: 2px solid var(--agf-hd-accent, #0078D4);
   outline-offset: 2px;
-  border-radius: var(--agf-hd-radius);
 }
+.agf-hd__avatar:focus-visible{ outline-offset: 3px; }
 
-/* ------------------------------------------------- 10. RESPONSIVO */
+/* ------------------------------------------- 10. DIALOGO DE SENHA */
+.agf-hd-dlg{
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(11,45,88,.42);
+  font-family: "Inter","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;
+}
+.agf-hd-dlg[data-open="true"]{ display: flex; }
+.agf-hd-dlg__card{
+  width: min(420px, 100%);
+  margin: 0;
+  background: #FFFFFF;
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(11,45,88,.28);
+  overflow: hidden;
+  color: #374151;
+}
+.agf-hd-dlg__head{ display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid #E5E7EB; }
+.agf-hd-dlg__head strong{ font-size: 15px; color: #0B2D58; }
+.agf-hd-dlg__x{ margin-left: auto; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: #6B7280; cursor: pointer; display: grid; place-items: center; }
+.agf-hd-dlg__x:hover{ background: #F5F7FA; }
+.agf-hd-dlg__x svg{ width: 18px; height: 18px; }
+.agf-hd-dlg__body{ padding: 16px; display: grid; gap: 12px; }
+.agf-hd-dlg__field{ display: grid; gap: 5px; }
+.agf-hd-dlg__field span{ font-size: 12.5px; font-weight: 600; color: #374151; }
+.agf-hd-dlg__field input{
+  width: 100%;
+  height: 44px;
+  border: 1px solid #9CA3AF;
+  border-radius: 9px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 16px;               /* evita zoom automatico no iOS */
+  color: #111827;
+  background: #FFFFFF;
+}
+.agf-hd-dlg__field input:focus{ outline: none; border-color: #0078D4; box-shadow: 0 0 0 3px rgba(0,120,212,.18); }
+.agf-hd-dlg__field small{ font-size: 12px; color: #6B7280; line-height: 1.4; }
+.agf-hd-dlg__err{ display: none; background: #FDECEC; color: #B91C1C; border-radius: 8px; padding: 9px 11px; font-size: 13px; }
+.agf-hd-dlg__err[data-on="true"]{ display: block; }
+.agf-hd-dlg__actions{ display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.agf-hd-dlg__btn{
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 9px;
+  border: 1px solid #D1D5DB;
+  background: #FFFFFF;
+  color: #0B2D58;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.agf-hd-dlg__btn--primary{ background: #0B2D58; border-color: #0B2D58; color: #FFFFFF; }
+.agf-hd-dlg__btn[disabled]{ opacity: .6; cursor: progress; }
+
+/* ------------------------------------------------------ 11. AVISO */
+.agf-hd-toast{
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  z-index: 1300;
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #0B2D58;
+  color: #FFFFFF;
+  font: 600 13px/1.4 "Inter","Segoe UI",Roboto,Arial,sans-serif;
+  box-shadow: 0 12px 30px rgba(11,45,88,.24);
+  transform: translate(-50%, 12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.agf-hd-toast[data-on="true"]{ opacity: 1; transform: translate(-50%, 0); }
+.agf-hd-toast[data-err="true"]{ background: #B91C1C; }
+
+/* ------------------------------------------------- 12. RESPONSIVO */
 @media (max-width: 640px){
   .agf-hd{ --agf-hd-h: 52px; --agf-hd-pad: 8px; }
-  .agf-hd__rule{ margin: 0 7px; }
+  .agf-hd__rule{ margin: 0 6px; }
+  .agf-hd__brand{ gap: 8px; }
+  /* subtitulo nunca e abreviado (regra 3): tracking menor para caber em 360px */
+  .agf-hd__sub{ letter-spacing: .05em; }
+  /* titulo curto no celular; o completo continua para leitor de tela */
+  .agf-hd__t-full{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .agf-hd__t-short{ display: inline; }
   .agf-hd__btn{ width: 32px; padding: 0; justify-content: center; }
   .agf-hd__btn .agf-hd__btn-label{ display: none; }
-  .agf-hd__menu--apps{ width: min(288px, calc(100vw - 16px)); }
+  .agf-hd__menu--apps{ width: min(300px, calc(100vw - 16px)); }
+  .agf-hd__menu--user{ width: min(246px, calc(100vw - 16px)); }
 }
 
-/* --------------------------------------- 11. PREFERENCIAS DO SISTEMA */
+/* --------------------------------------- 13. PREFERENCIAS DO SISTEMA */
 @media (prefers-reduced-transparency: reduce){
   .agf-hd.is-scrolled{
     background: color-mix(in srgb, var(--agf-hd-accent) var(--agf-hd-tint-scroll), #FFFFFF);
@@ -342,25 +448,26 @@
 }
 @media (prefers-reduced-motion: reduce){
   .agf-hd,
-  .agf-hd__glow,
+  .agf-hd-toast,
   .agf-hd__load{ transition: none; }
   .agf-hd__load i{ animation: none; transform: scaleX(.6); }
 }
 
 /* fallback: navegador sem color-mix cai para branco solido, sem quebrar nada */
 @supports not (background: color-mix(in srgb, red 10%, white)){
-  .agf-hd__glow{ background: #FFFFFF; }
-  .agf-hd.is-scrolled{ background: rgba(255,255,255,.96); border-bottom-color: #E3E8EF; }
-  .agf-hd{ box-shadow: 0 1px 1px rgba(16,35,61,.05); }
+  .agf-hd{ --agf-hd-line: #E5E7EB; --agf-hd-hover: #F5F7FA; background: #FFFFFF; }
+  .agf-hd.is-scrolled{ background: rgba(255,255,255,.96); border-bottom-color: #E5E7EB; box-shadow: 0 1px 8px rgba(11,45,88,.08); }
+  .agf-hd__sub{ color: var(--agf-hd-muted); }
+  .agf-hd__btn{ color: var(--agf-hd-ink); border-color: #E5E7EB; }
+  .agf-hd__avatar{ background: #E6F1FB; box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 3px #CBD5E1; }
 }
 
-/* ------------------------------------------------------- 12. IMPRESSAO */
+/* ------------------------------------------------------- 14. IMPRESSAO
+   Todos os topos antigos saiam da impressao (CRM, Balcao com etiqueta
+   105x148mm, proposta do Comparador). O padrao mantem esse contrato. */
 @media print{
-  .agf-hd{ position: static; box-shadow: none; border-bottom: 1px solid #999; }
-  .agf-hd__glow,
-  .agf-hd__load,
-  .agf-hd__launcher,
-  .agf-hd__icon-btn,
-  .agf-hd__actions,
-  .agf-hd__user{ display: none !important; }
+  .agf-hd,
+  [data-agf-header],
+  .agf-hd-toast,
+  .agf-hd-dlg{ display: none !important; }
 }

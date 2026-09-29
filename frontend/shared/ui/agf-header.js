@@ -1,57 +1,78 @@
 /* ============================================================================
    agf-header.js - Cabecalho padrao da Plataforma AGF Jose Bonifacio
-   Versao 1.0.1
+   Versao 1.1.0 (pele "Selo solido", opcao C)
 
    O cabecalho e dado, nao markup. Cada app declara apenas a rota.
-   Titulo, icone, cor e visibilidade publica vem do registro abaixo.
+   Titulo, titulo curto, icone, cor e visibilidade publica vem do registro.
+
+   Novidades da 1.1.0
+   - Sessao lida sozinha via AgfAuth quando mount() nao recebe "user".
+   - Sem sessao: slot vazio de 32px. Botao Entrar removido (spec 4.2).
+   - Conta embutida: foto (getMyAvatar/uploadMyAvatar), troca de senha
+     (changeMyPassword) e Sair. Cada app pode sobrescrever os handlers.
+   - Titulo curto abaixo de 640px (campo "short" do registro).
+   - Alternador filtra os apps pelo perfil do usuario.
+   - API nova: setActions(), toast().
 
    Uso minimo:
-     <link rel="stylesheet" href="/shared/ui/agf-header.css?v=1">
+     <link rel="stylesheet" href="/shared/ui/agf-header.css?v=2">
      <div data-agf-header data-route="/crm"></div>
-     <script src="/shared/ui/agf-header.js?v=1" defer></script>
+     <script src="/shared/ui/agf-header.js?v=2"></script>
    ========================================================================== */
 (function (global, document) {
   'use strict';
 
-  var VERSION = '1.0.1';
-  var SUBTITLE = 'AGF Jos\u00E9 Bonif\u00E1cio';
+  var VERSION = '1.1.0';
+  var SUBTITLE = 'AGF José Bonifácio';
+  var AVATAR_KEY = 'agf_jb_avatar_v1';            /* mesmo cache usado pelo CRM e pelo Visao 360 */
+  var LOGOUT_URL = '/agf/?reason=logout';
+  var PASSWORD_URL = '/agf/?reason=password-changed';
+  var ROLE_LABELS = { admin: 'Administrador', manager: 'Gestor', user: 'Usuário' };
 
   /* =========================================================== 1. ROTAS ===
-     Fonte unica da verdade. Para adicionar um app novo, acrescente aqui.
+     Fonte unica da verdade. roles/app espelham o AGF_ACCESS de cada pagina
+     e servem so para filtrar o alternador; quem protege a rota e o guard.
      ===================================================================== */
   var ROUTES = {
-    '/agf':           { title: 'Portal Interno',  glyph: 'portal',  accent: '#B07207', group: 'Opera\u00E7\u00E3o', publico: false },
-    '/intra':         { title: 'Gerencial',       glyph: 'painel',  accent: '#0F766E', group: 'Opera\u00E7\u00E3o', publico: false },
-    '/crm':           { title: 'CRM Comercial',   glyph: 'crm',     accent: '#6D28D9', group: 'Opera\u00E7\u00E3o', publico: false },
-    '/balcao':        { title: 'Balc\u00E3o',     glyph: 'balcao',  accent: '#C2410C', group: 'Opera\u00E7\u00E3o', publico: false },
-    '/atende':        { title: 'Atendimento',     glyph: 'atende',  accent: '#9F1239', group: 'Opera\u00E7\u00E3o', publico: false },
-    '/caixa':         { title: 'Caixa Balc\u00E3o', glyph: 'caixa', accent: '#15803D', group: 'Opera\u00E7\u00E3o', publico: false },
-    '/cep':           { title: 'Consulta de CEP', glyph: 'cep',     accent: '#0083CA', group: 'Consulta', publico: true },
-    '/reverso-admin': { title: 'Admin Reverso',   glyph: 'reverso', accent: '#3F4A5F', group: 'Log\u00EDstica reversa', publico: false }
+    '/agf':          { title: 'Portal Interno',        short: 'Portal',    glyph: 'portal',     accent: '#B07207', group: 'Operação', publico: false },
+    '/intra':        { title: 'Gerencial',             short: 'Gerencial', glyph: 'painel',     accent: '#0F766E', group: 'Operação', publico: false, roles: ['admin', 'manager'], app: 'intra' },
+    '/crm':          { title: 'CRM Comercial',         short: 'CRM',       glyph: 'crm',        accent: '#6D28D9', group: 'Operação', publico: false, app: 'crm' },
+    '/balcao':       { title: 'Balcão',           short: 'Balcão', glyph: 'balcao',   accent: '#C2410C', group: 'Operação', publico: false, app: 'balcao' },
+    '/atende':       { title: 'Visão 360',        short: 'Visão 360', glyph: 'atende', accent: '#9F1239', group: 'Operação', publico: false, app: 'atende' },
+    '/cadastros':    { title: 'Cadastro de Clientes',  short: 'Clientes',  glyph: 'cadastros',  accent: '#4338CA', group: 'Operação', publico: false, roles: ['admin'] },
+    '/comparador':   { title: 'Comparador de Tarifas', short: 'Tarifas',   glyph: 'comparador', accent: '#047857', group: 'Consulta', publico: false, roles: ['admin', 'manager'], app: 'intra' },
+    '/cep':          { title: 'Consulta de CEP',       short: 'CEP',       glyph: 'cep',        accent: '#0083CA', group: 'Consulta', publico: true },
+    '/agf/usuarios': { title: 'Usuários Internos', short: 'Usuários', glyph: 'usuarios', accent: '#B07207', group: 'Administração', publico: false, roles: ['admin'] },
+    '/agf/icones':   { title: 'Biblioteca de Ícones', short: 'Ícones', glyph: 'icones', accent: '#B07207', group: 'Administração', publico: false, roles: ['admin'] }
   };
 
-  /* Apps deliberadamente FORA do padrao. Nao aplicar agf-header nestes. */
+  /* Apps FORA do padrao de topo (spec secao 7). Aparecem no alternador como links. */
   var EXTERNOS = [
-    { href: '/app',              title: 'Minhas Postagens' },
-    { href: '/nuvemshop',        title: 'Nuvemshop' },
-    { href: '/superfrete-admin', title: 'SuperFrete Admin' },
+    { href: '/app',              title: 'Minhas Postagens', publico: true },
+    { href: '/caixa',            title: 'Caixa Balcão', app: 'caixa' },
+    { href: '/nuvemshop',        title: 'Nuvemshop',        app: 'nuvemshop' },
+    { href: '/superfrete-admin', title: 'SuperFrete Admin', app: 'superfrete-admin' },
     { href: '/reverso',          title: 'Home Reverso' },
-    { href: '/reverso-coleta',   title: 'Coleta Reverso' }
+    { href: '/reverso-admin',    title: 'Admin Reverso',    app: 'reverso-admin' },
+    { href: '/reverso-coleta',   title: 'Coleta Reverso',   app: 'reverso-coleta' }
   ];
 
   /* ========================================================== 2. ICONES ===
-     SVG inline de proposito. Sprite externo passaria pelo service worker,
-     que hoje serve /shared/ui/ em cache-first e travaria a atualizacao.
+     SVG inline de proposito: nao depende de sprite nem de cache externo.
+     Grade 24, traco 1,8, ponta arredondada. A linha de base e adicionada
+     por markSVG() e e o DNA da familia. Nao remover.
      ===================================================================== */
   var GLYPHS = {
-    portal:  '<path d="M4.2 20.4V9.8L12 4.2l7.8 5.6v10.6"/><path d="M9 20.4v-5.6a3 3 0 0 1 6 0v5.6"/>',
-    painel:  '<path d="M5.4 19.2v-6.4"/><path d="M12 19.2V5.4"/><path d="M18.6 19.2v-9.6"/>',
-    crm:     '<path d="M4.4 5.6h15.2l-5.9 7v5.3l-3.4 2.1V12.6z"/>',
-    balcao:  '<path d="M3.6 9.6h16.8l-1.4-4.2H5z"/><path d="M5 9.6v9.6h14V9.6"/><path d="M9.4 19.2v-5h5.2v5"/>',
-    atende:  '<path d="M4.4 7.2A1.8 1.8 0 0 1 6.2 5.4h11.6a1.8 1.8 0 0 1 1.8 1.8v7.4a1.8 1.8 0 0 1-1.8 1.8h-6.4l-4.2 3.2v-3.2H6.2a1.8 1.8 0 0 1-1.8-1.8z"/><path d="M8.4 9.6h7.2"/><path d="M8.4 12.6h4.4"/>',
-    cep:     '<path d="M12 20.6s6-5.7 6-9.6a6 6 0 1 0-12 0c0 3.9 6 9.6 6 9.6z"/><circle cx="12" cy="10.8" r="2.2"/>',
-    caixa:   '<rect x="3.2" y="6.4" width="17.6" height="11.2" rx="2"/><circle cx="12" cy="12" r="2.7"/><path d="M6.6 9.4v5.2"/><path d="M17.4 9.4v5.2"/>',
-    reverso: '<path d="M6.6 5.6h10.8l2.6 4.4v8.4H4V10z"/><path d="M12 15.6V8.8"/><path d="M9.2 11.6 12 8.8l2.8 2.8"/>'
+    portal:     '<path d="M4.2 20.4V9.8L12 4.2l7.8 5.6v10.6"/><path d="M9 20.4v-5.6a3 3 0 0 1 6 0v5.6"/>',
+    painel:     '<path d="M5.4 19.2v-6.4"/><path d="M12 19.2V5.4"/><path d="M18.6 19.2v-9.6"/>',
+    crm:        '<path d="M4.4 5.6h15.2l-5.9 7v5.3l-3.4 2.1V12.6z"/>',
+    balcao:     '<path d="M3.6 9.6h16.8l-1.4-4.2H5z"/><path d="M5 9.6v9.6h14V9.6"/><path d="M9.4 19.2v-5h5.2v5"/>',
+    atende:     '<path d="M4.4 7.2A1.8 1.8 0 0 1 6.2 5.4h11.6a1.8 1.8 0 0 1 1.8 1.8v7.4a1.8 1.8 0 0 1-1.8 1.8h-6.4l-4.2 3.2v-3.2H6.2a1.8 1.8 0 0 1-1.8-1.8z"/><path d="M8.4 9.6h7.2"/><path d="M8.4 12.6h4.4"/>',
+    cep:        '<path d="M12 20.6s6-5.7 6-9.6a6 6 0 1 0-12 0c0 3.9 6 9.6 6 9.6z"/><circle cx="12" cy="10.8" r="2.2"/>',
+    comparador: '<path d="M12 4.4v15"/><path d="M5.2 7.2h13.6"/><path d="M5.2 7.2 2.8 13a2.6 2.6 0 0 0 4.8 0z"/><path d="M18.8 7.2 16.4 13a2.6 2.6 0 0 0 4.8 0z"/><path d="M8.6 19.4h6.8"/>',
+    cadastros:  '<rect x="3.6" y="5.6" width="16.8" height="12.8" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M5.8 15.6c.6-1.4 1.8-2.1 3.2-2.1s2.6.7 3.2 2.1"/><path d="M14.4 10h3.6"/><path d="M14.4 13.4h2.6"/>',
+    usuarios:   '<circle cx="9.4" cy="8.6" r="3.2"/><path d="M3.6 19.2c.8-3.3 3-5 5.8-5s5 1.7 5.8 5"/><path d="M15.6 5.8a3 3 0 0 1 0 5.8"/><path d="M17.8 14.6c1.3.7 2.2 2.2 2.6 4.6"/>',
+    icones:     '<rect x="4" y="4" width="6.6" height="6.6" rx="1.6"/><circle cx="16.7" cy="7.3" r="3.3"/><path d="M7.3 13.4 10.8 20H3.8z"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="3.3"/>'
   };
 
   function s(inner, w) {
@@ -66,15 +87,17 @@
     shield:   s('<path d="M12 3.4 5 6.2v5c0 4.3 2.9 8.1 7 9.4 4.1-1.3 7-5.1 7-9.4v-5z"/><path d="M9.4 12.2l1.9 1.9 3.5-3.6"/>'),
     parcel:   s('<path d="M20.4 8.2v7.6L12 20.4l-8.4-4.6V8.2L12 3.6z"/><path d="M3.6 8.2 12 12.8l8.4-4.6"/><path d="M12 12.8v7.6"/>'),
     swap:     s('<path d="M4.4 8.4h13.4l-3.2-3.2"/><path d="M19.6 15.6H6.2l3.2 3.2"/>'),
+    database: s('<ellipse cx="12" cy="6" rx="7.4" ry="2.6"/><path d="M4.6 6v12c0 1.4 3.3 2.6 7.4 2.6s7.4-1.2 7.4-2.6V6"/><path d="M4.6 12c0 1.4 3.3 2.6 7.4 2.6s7.4-1.2 7.4-2.6"/>'),
+    print:    s('<path d="M7 9V3.8h10V9"/><path d="M7 17.2H5.2a1.6 1.6 0 0 1-1.6-1.6v-5a1.6 1.6 0 0 1 1.6-1.6h13.6a1.6 1.6 0 0 1 1.6 1.6v5a1.6 1.6 0 0 1-1.6 1.6H17"/><path d="M7 14h10v6.2H7z"/>'),
+    wand:     s('<path d="M4.4 19.6 15 9"/><path d="M13.2 7.2 16.8 10.8"/><path d="M17.6 3.6v2.8"/><path d="M19 5h-2.8"/><path d="M8.4 4.4v2"/><path d="M9.4 5.4h-2"/><path d="M19.6 13.6v2"/><path d="M20.6 14.6h-2"/>'),
+    download: s('<path d="M12 4v11"/><path d="M7.6 10.6 12 15l4.4-4.4"/><path d="M5 19.6h14"/>'),
     camera:   s('<path d="M3.6 8.4h3.6l1.6-2.4h6.4l1.6 2.4h3.6v10.2H3.6z"/><circle cx="12" cy="13.2" r="3"/>'),
     key:      s('<circle cx="8.2" cy="12" r="3.6"/><path d="M11.8 12h8.6"/><path d="M17.4 12v3"/><path d="M20.4 12v2.2"/>'),
     exit:     s('<path d="M14.4 4.6H6.2v14.8h8.2"/><path d="M11 12h9.2"/><path d="M17.4 8.8 20.6 12l-3.2 3.2"/>'),
-    login:    s('<path d="M10.4 4.6h7.4v14.8h-7.4"/><path d="M13.6 12H4.4"/><path d="M7.6 8.8 4.4 12l3.2 3.2"/>'),
+    close:    s('<path d="M6 6l12 12"/><path d="M18 6 6 18"/>'),
     external: s('<path d="M13.6 4.6h5.8v5.8"/><path d="M19.4 4.6 10.8 13.2"/><path d="M17.4 14v5.4H4.6V6.6H10"/>')
   };
 
-  /* Marca do app: glifo do Sistema 3 apoiado na linha de base.
-     A linha de base e o DNA da familia. Nao remover. */
   function markSVG(glyph) {
     var g = GLYPHS[glyph] || GLYPHS.portal;
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
@@ -95,7 +118,9 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  /* Casa o prefixo mais longo, para /reverso-admin nao cair em /reverso. */
+  function auth() { return global.AgfAuth || null; }
+
+  /* Casa o prefixo mais longo, para /agf/usuarios nao cair em /agf. */
   function detectRoute() {
     var path = global.location.pathname.replace(/\/+$/, '') || '/';
     var best = null;
@@ -108,40 +133,116 @@
     return best;
   }
 
-  /* ========================================================= 4. COMPONENTE */
+  function storageGet(k) { try { return global.localStorage.getItem(k); } catch (e) { return null; } }
+  function storageSet(k, v) { try { global.localStorage.setItem(k, v); } catch (e) {} }
+
+  /* ============================================================ 4. SESSAO */
+  /* Usuario cru do AgfAuth. Mesma ordem de leitura do CRM e do Visao 360. */
+  function rawSessionUser() {
+    var a = auth();
+    if (!a) return null;
+    try {
+      var ls = a.getLocalSession ? a.getLocalSession() : null;
+      var u = (ls && ls.user) || (a.getCachedUser ? a.getCachedUser() : null);
+      if (!u && ls && ls.payload) u = { username: ls.payload.sub, role: ls.payload.role };
+      return u || null;
+    } catch (e) { return null; }
+  }
+
+  function token() {
+    var a = auth();
+    try { return (a && a.getToken) ? (a.getToken() || '') : ''; } catch (e) { return ''; }
+  }
+
+  /* Normaliza para o formato de exibicao. Aceita o formato antigo
+     { name, role:'Administrador', photo } passado por mount(). */
+  function normalizeUser(u) {
+    if (!u) return null;
+    var role = String(u.role || '');
+    return {
+      username: String(u.username || u.email || u.name || ''),
+      roleKey: role.toLowerCase(),
+      name: String(u.displayName || u.name || u.username || 'Usuário'),
+      role: ROLE_LABELS[role.toLowerCase()] || role,
+      apps: u.apps || [],
+      photo: u.photo || ''
+    };
+  }
+
+  function resolveUser() {
+    var cfg = state.cfg;
+    if (Object.prototype.hasOwnProperty.call(cfg, 'user')) return normalizeUser(cfg.user);
+    return normalizeUser(rawSessionUser());
+  }
+
+  function canSee(def, user) {
+    if (def.publico) return true;
+    if (!user) return false;
+    if (def.roles && def.roles.indexOf(user.roleKey) < 0) return false;
+    var a = auth();
+    if (def.app && a && a.hasApp) {
+      try { return a.hasApp({ apps: user.apps }, def.app); } catch (e) { return true; }
+    }
+    return true;
+  }
+
+  function cachedAvatar(user) {
+    try {
+      var raw = storageGet(AVATAR_KEY);
+      if (!raw || !user) return '';
+      var o = JSON.parse(raw);
+      return (o && o.u === user.username) ? (o.d || '') : '';
+    } catch (e) { return ''; }
+  }
+  function cacheAvatar(user, data) { storageSet(AVATAR_KEY, JSON.stringify({ u: user && user.username, d: data || '' })); }
+
+  function authPost(action, payload) {
+    var cfg = global.AGF_AUTH_CONFIG || {};
+    if (!cfg.apiUrl) return Promise.reject(new Error('Controle de acesso não configurado.'));
+    return fetch(cfg.apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(Object.assign({ action: action }, payload || {})),
+      redirect: 'follow'
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || d.ok === false) throw new Error((d && d.error) || 'Não foi possível concluir a operação.');
+      return d;
+    });
+  }
+
+  /* ========================================================= 5. COMPONENTE */
   var state = {
-    el: null, cfg: null, route: null, def: null,
+    el: null, cfg: null, route: null, def: null, user: null,
     userMenu: null, appsMenu: null,
     pending: 0, timer: null, loadEl: null,
     scrollTicking: false,
-    wired: false          // trava anti-duplicacao de listener
+    avatarFetched: '',
+    wired: false          /* trava anti-duplicacao de listener */
   };
 
   function buildActions(actions) {
     if (!actions || !actions.length) return '';
+    if (actions.length > 2) console.warn('[agf-header] maximo de 2 acoes (regra 4). As excedentes foram ignoradas.');
     return actions.slice(0, 2).map(function (a, i) {
       var icon = UI[a.icon] || '';
-      return '<button type="button" class="agf-hd__btn" data-agf-action="' + i + '">' +
+      return '<button type="button" class="agf-hd__btn" data-agf-action="' + i + '" title="' + esc(a.label) + '">' +
         icon + '<span class="agf-hd__btn-label">' + esc(a.label) + '</span></button>';
     }).join('');
   }
 
-  function buildUser(cfg) {
-    if (!cfg.user) {
-      return '<button type="button" class="agf-hd__enter" data-agf-login>' +
-        UI.login + '<span>Entrar</span></button>';
-    }
-    var photo = cfg.user.photo || FALLBACK_AVATAR;
-    var name = esc(cfg.user.name || 'Usu\u00E1rio');
-    var role = esc(cfg.user.role || '');
+  function avatarSrc(user) { return user.photo || cachedAvatar(user) || FALLBACK_AVATAR; }
+
+  function buildUser(user) {
+    if (!user) return '<span class="agf-hd__slot" aria-hidden="true"></span>';
+    var photo = esc(avatarSrc(user));
     return '' +
       '<button type="button" class="agf-hd__avatar" data-agf-usermenu ' +
-        'aria-haspopup="menu" aria-expanded="false" aria-label="Sua conta">' +
-        '<img src="' + esc(photo) + '" alt=""></button>' +
+        'aria-haspopup="menu" aria-expanded="false" aria-label="Sua conta: ' + esc(user.name) + '">' +
+        '<img src="' + photo + '" alt="" data-agf-avatar-img></button>' +
       '<div class="agf-hd__menu agf-hd__menu--user" role="menu" data-open="false" data-agf-usermenu-panel>' +
-        '<div class="agf-hd__menu-head"><img src="' + esc(photo) + '" alt="">' +
-          '<span><span class="agf-hd__menu-name">' + name + '</span>' +
-          '<br><span class="agf-hd__menu-role">' + role + '</span></span></div>' +
+        '<div class="agf-hd__menu-head"><img src="' + photo + '" alt="" data-agf-avatar-img>' +
+          '<span><span class="agf-hd__menu-name">' + esc(user.name) + '</span>' +
+          '<br><span class="agf-hd__menu-role">' + esc(user.role) + '</span></span></div>' +
         '<button type="button" class="agf-hd__menu-item" role="menuitem" data-agf-photo>' + UI.camera + 'Alterar foto</button>' +
         '<button type="button" class="agf-hd__menu-item" role="menuitem" data-agf-password>' + UI.key + 'Alterar senha</button>' +
         '<div class="agf-hd__menu-sep"></div>' +
@@ -150,11 +251,12 @@
       '</div>';
   }
 
-  function buildApps(current) {
+  function buildApps(current, user) {
     var groups = {}, order = [];
     for (var key in ROUTES) {
       if (!Object.prototype.hasOwnProperty.call(ROUTES, key)) continue;
       var r = ROUTES[key];
+      if (key !== current && !canSee(r, user)) continue;
       if (!groups[r.group]) { groups[r.group] = []; order.push(r.group); }
       groups[r.group].push({ href: key, r: r });
     }
@@ -162,20 +264,21 @@
     order.forEach(function (g) {
       html += '<div class="agf-hd__menu-label">' + esc(g) + '</div>';
       groups[g].forEach(function (it) {
-        html += '<a class="agf-hd__menu-item" role="menuitem" href="' + esc(it.href) + '"' +
+        html += '<a class="agf-hd__menu-item" role="menuitem" href="' + esc(it.href) + '/"' +
           (it.href === current ? ' aria-current="page"' : '') + '>' +
-          '<span class="agf-hd__menu-mark" style="color:' + it.r.accent + '">' + markSVG(it.r.glyph) + '</span>' +
+          '<span class="agf-hd__menu-mark" style="background:' + it.r.accent + '">' + markSVG(it.r.glyph) + '</span>' +
           esc(it.r.title) + '</a>';
       });
     });
-    if (EXTERNOS.length) {
+    var ext = EXTERNOS.filter(function (e) { return canSee({ publico: e.publico, app: e.app }, user); });
+    if (ext.length) {
       html += '<div class="agf-hd__menu-sep"></div><div class="agf-hd__menu-label">Aplicativos</div>';
       var newTab = global.matchMedia && global.matchMedia('(min-width: 768px)').matches;
-      EXTERNOS.forEach(function (e) {
-        html += '<a class="agf-hd__menu-item" role="menuitem" href="' + esc(e.href) + '"' +
+      ext.forEach(function (e) {
+        html += '<a class="agf-hd__menu-item" role="menuitem" href="' + esc(e.href) + '/"' +
           (newTab ? ' target="_blank" rel="noopener noreferrer"' : '') + '>' +
           esc(e.title) +
-          (newTab ? '<span class="agf-hd__menu-ext" title="Abre em nova aba">' + UI.external + '</span>' : '') +
+          (newTab ? '<span class="agf-hd__menu-ext" title="Abre em nova aba">' + UI.external + '<span class="agf-hd__sr">(abre em nova aba)</span></span>' : '') +
           '</a>';
       });
     }
@@ -185,10 +288,13 @@
 
   function render() {
     var cfg = state.cfg, def = state.def;
+    state.user = resolveUser();
     state.el.className = 'agf-hd';
     state.el.setAttribute('data-agf-route', state.route);
+    state.el.setAttribute('role', 'banner');
     state.el.style.setProperty('--agf-hd-accent', def.accent);
 
+    var shortTitle = def.short || def.title;
     state.el.innerHTML = '' +
       '<div class="agf-hd__glow" aria-hidden="true"></div>' +
       '<div class="agf-hd__load" data-on="false" role="progressbar" aria-label="Carregando"><i></i></div>' +
@@ -199,29 +305,51 @@
         '<div class="agf-hd__brand">' +
           '<span class="agf-hd__mark">' + markSVG(def.glyph) + '</span>' +
           '<span class="agf-hd__titles">' +
-            '<span class="agf-hd__title">' + esc(def.title) + '</span>' +
+            '<span class="agf-hd__title" title="' + esc(def.title) + '">' +
+              '<span class="agf-hd__t-full">' + esc(def.title) + '</span>' +
+              '<span class="agf-hd__t-short" aria-hidden="true">' + esc(shortTitle) + '</span>' +
+            '</span>' +
             '<span class="agf-hd__sub">' + esc(SUBTITLE) + '</span>' +
           '</span>' +
         '</div>' +
         '<span class="agf-hd__spacer"></span>' +
-        '<span class="agf-hd__actions">' + buildActions(cfg.actions) + '</span>' +
+        '<span class="agf-hd__actions" data-agf-actions>' + buildActions(cfg.actions) + '</span>' +
         '<span class="agf-hd__rule" aria-hidden="true"></span>' +
-        '<button type="button" class="agf-hd__icon-btn" data-agf-refresh aria-label="Atualizar">' + UI.refresh + '</button>' +
-        '<span class="agf-hd__user">' + buildUser(cfg) + buildApps(state.route) + '</span>' +
+        '<button type="button" class="agf-hd__icon-btn" data-agf-refresh aria-label="Atualizar" title="Atualizar">' + UI.refresh + '</button>' +
+        '<span class="agf-hd__user">' + buildUser(state.user) + '</span>' +
+        buildApps(state.route, state.user) +
       '</div>';
-
-    /* o painel de apps ancora na esquerda, nao no bloco do usuario */
-    var apps = state.el.querySelector('[data-agf-appsmenu-panel]');
-    if (apps) state.el.querySelector('.agf-hd__in').appendChild(apps);
 
     state.loadEl = state.el.querySelector('.agf-hd__load');
     state.userMenu = state.el.querySelector('[data-agf-usermenu-panel]');
-    state.appsMenu = apps;
+    state.appsMenu = state.el.querySelector('[data-agf-appsmenu-panel]');
     wire();
     onScroll();
+    refreshAvatar();
   }
 
-  /* ============================================================ 5. EVENTOS */
+  /* Busca a foto no servidor uma vez por usuario e atualiza as <img> no lugar. */
+  function refreshAvatar() {
+    var user = state.user;
+    if (!user || user.photo || !user.username) return;
+    if (state.avatarFetched === user.username) return;
+    var tk = token();
+    if (!tk) return;
+    state.avatarFetched = user.username;
+    authPost('getMyAvatar', { token: tk }).then(function (d) {
+      var data = (d && d.avatar) || '';
+      cacheAvatar(user, data);
+      paintAvatar(data);
+    }).catch(function () { /* sem foto: segue o avatar generico */ });
+  }
+
+  function paintAvatar(data) {
+    if (!state.el) return;
+    var src = data || FALLBACK_AVATAR;
+    Array.prototype.forEach.call(state.el.querySelectorAll('[data-agf-avatar-img]'), function (img) { img.src = src; });
+  }
+
+  /* ============================================================ 6. EVENTOS */
   function closeMenus(except) {
     [state.userMenu, state.appsMenu].forEach(function (m) {
       if (!m || m === except) return;
@@ -240,12 +368,16 @@
     if (!open) {
       panel.setAttribute('data-open', 'true');
       if (button) button.setAttribute('aria-expanded', 'true');
+      var first = panel.querySelector('[role="menuitem"]');
+      if (first && global.matchMedia && global.matchMedia('(hover: none)').matches === false) {
+        /* foco no primeiro item so para teclado/mouse; no toque rola a tela */
+        try { first.focus({ preventScroll: true }); } catch (e) {}
+      }
     }
   }
 
-  /* O listener e amarrado UMA vez no elemento de montagem. Ele le state.cfg
-     em tempo de clique, entao continua correto depois de qualquer re-render.
-     Amarrar dentro de render() duplicaria o handler a cada mount/setUser. */
+  /* O listener e amarrado UMA vez no elemento de montagem. Le state.cfg em
+     tempo de clique, entao continua correto depois de qualquer re-render. */
   function wire() {
     if (state.wired) return;
     state.wired = true;
@@ -275,19 +407,10 @@
         else global.location.reload();
         return;
       }
-      if (hit('[data-agf-login]'))    { call(cfg.onLogin, 'onLogin'); return; }
-      if (hit('[data-agf-photo]'))    { closeMenus(); call(cfg.onChangePhoto, 'onChangePhoto'); return; }
-      if (hit('[data-agf-password]')) { closeMenus(); call(cfg.onChangePassword, 'onChangePassword'); return; }
-      if (hit('[data-agf-logout]'))   { closeMenus(); call(cfg.onLogout, 'onLogout'); return; }
+      if (hit('[data-agf-photo]'))    { closeMenus(); (typeof cfg.onChangePhoto === 'function' ? cfg.onChangePhoto : changePhoto)(); return; }
+      if (hit('[data-agf-password]')) { closeMenus(); (typeof cfg.onChangePassword === 'function' ? cfg.onChangePassword : openPassword)(); return; }
+      if (hit('[data-agf-logout]'))   { closeMenus(); (typeof cfg.onLogout === 'function' ? cfg.onLogout : logout)(); return; }
     });
-
-    /* Sem handler, o item ficaria morto e silencioso.
-       Nao inventamos URL de destino: avisamos alto no console. */
-    function call(fn, nome) {
-      if (typeof fn === 'function') { fn(); return; }
-      console.error('[agf-header] "' + nome + '" nao foi informado no mount(). ' +
-        'O item do menu nao tem para onde ir. Rota: ' + state.route);
-    }
   }
 
   function onScroll() {
@@ -307,13 +430,153 @@
     if (!state.el.contains(ev.target)) closeMenus();
   });
   document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape' && state.el) closeMenus();
+    if (ev.key !== 'Escape' || !state.el) return;
+    if (dlg && dlg.getAttribute('data-open') === 'true') { closePassword(); return; }
+    closeMenus();
   });
   global.addEventListener('scroll', onScroll, { passive: true });
 
-  /* ====================================================== 6. CARREGAMENTO
-     Contador de requisicoes. So aparece se passar de 400ms, senao pisca
-     e vira ruido. Amarrar a chamadas reais, nunca a animacao decorativa.
+  /* Sessao confirmada pelo guard depois do primeiro render: atualiza o slot. */
+  global.addEventListener('agf:auth-ready', function () {
+    if (!state.el || Object.prototype.hasOwnProperty.call(state.cfg, 'user')) return;
+    render();
+  });
+
+  /* ========================================================== 7. CONTA === */
+  function logout() {
+    var a = auth();
+    var done = function () { global.location.href = LOGOUT_URL; };
+    if (a && a.logout) Promise.resolve(a.logout()).then(done, done);
+    else done();
+  }
+
+  /* Foto: recorta quadrado, reduz para 128px JPEG e envia. Mesmo contrato do CRM. */
+  var fileInput = null;
+  function changePhoto() {
+    if (!fileInput) {
+      fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/png,image/jpeg,image/webp';
+      fileInput.hidden = true;
+      document.body.appendChild(fileInput);
+      fileInput.addEventListener('change', function () {
+        var f = fileInput.files && fileInput.files[0];
+        fileInput.value = '';
+        if (!f) return;
+        if (!/^image\/(png|jpeg|webp)$/i.test(f.type)) { toast('Use uma imagem PNG, JPEG ou WebP.', true); return; }
+        if (f.size > 8 * 1024 * 1024) { toast('Imagem muito grande. Escolha um arquivo de até 8 MB.', true); return; }
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var S = 128, c = document.createElement('canvas');
+            c.width = S; c.height = S;
+            var side = Math.min(img.width, img.height);
+            c.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, S, S);
+            var data = c.toDataURL('image/jpeg', 0.82);
+            if (data.length > 45000) data = c.toDataURL('image/jpeg', 0.6);
+            var user = state.user;
+            toast('Enviando foto…');
+            AgfHeader.loading.start();
+            authPost('uploadMyAvatar', { token: token(), avatarData: data })
+              .then(function () { cacheAvatar(user, data); paintAvatar(data); toast('Foto atualizada.'); })
+              .catch(function (err) { toast(err.message || 'Não foi possível atualizar a foto.', true); })
+              .then(function () { AgfHeader.loading.done(); });
+          } catch (e) { toast('Não foi possível processar a imagem.', true); }
+          finally { URL.revokeObjectURL(img.src); }
+        };
+        img.onerror = function () { URL.revokeObjectURL(img.src); toast('Arquivo de imagem inválido.', true); };
+        img.src = URL.createObjectURL(f);
+      });
+    }
+    fileInput.click();
+  }
+
+  /* Senha: dialogo proprio, namespaced, montado uma vez no body. */
+  var dlg = null, lastFocus = null;
+  function buildPassword() {
+    dlg = document.createElement('div');
+    dlg.className = 'agf-hd-dlg';
+    dlg.setAttribute('data-open', 'false');
+    dlg.innerHTML = '' +
+      '<form class="agf-hd-dlg__card" role="dialog" aria-modal="true" aria-labelledby="agfHdPwdTitle" novalidate>' +
+        '<div class="agf-hd-dlg__head"><strong id="agfHdPwdTitle">Alterar senha</strong>' +
+          '<button type="button" class="agf-hd-dlg__x" data-agf-dlg-close aria-label="Fechar">' + UI.close + '</button></div>' +
+        '<div class="agf-hd-dlg__body">' +
+          '<div class="agf-hd-dlg__err" role="alert" data-agf-dlg-err></div>' +
+          '<label class="agf-hd-dlg__field"><span>Senha atual</span><input type="password" name="cur" autocomplete="current-password" required></label>' +
+          '<label class="agf-hd-dlg__field"><span>Nova senha</span><input type="password" name="nv" autocomplete="new-password" minlength="8" required>' +
+            '<small>Mínimo de 8 caracteres. Ao confirmar, você sai de todos os dispositivos e entra de novo.</small></label>' +
+          '<label class="agf-hd-dlg__field"><span>Confirmar nova senha</span><input type="password" name="cf" autocomplete="new-password" minlength="8" required></label>' +
+          '<div class="agf-hd-dlg__actions">' +
+            '<button type="button" class="agf-hd-dlg__btn" data-agf-dlg-close>Cancelar</button>' +
+            '<button type="submit" class="agf-hd-dlg__btn agf-hd-dlg__btn--primary">Alterar senha</button>' +
+          '</div>' +
+        '</div>' +
+      '</form>';
+    document.body.appendChild(dlg);
+
+    dlg.addEventListener('click', function (e) {
+      if (e.target === dlg || (e.target.closest && e.target.closest('[data-agf-dlg-close]'))) closePassword();
+    });
+    var form = dlg.querySelector('form');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var err = dlg.querySelector('[data-agf-dlg-err]');
+      var cur = form.cur.value, nv = form.nv.value, cf = form.cf.value;
+      var fail = function (m) { err.textContent = m; err.setAttribute('data-on', 'true'); };
+      err.setAttribute('data-on', 'false');
+      if (!cur) return fail('Informe a senha atual.');
+      if (nv.length < 8) return fail('A nova senha deve ter ao menos 8 caracteres.');
+      if (nv !== cf) return fail('A confirmação não confere com a nova senha.');
+      var save = form.querySelector('[type="submit"]');
+      save.disabled = true;
+      save.textContent = 'Alterando…';
+      authPost('changeMyPassword', { token: token(), currentPassword: cur, newPassword: nv })
+        .then(function () {
+          closePassword();
+          toast('Senha alterada. Entre novamente com a nova senha.');
+          var a = auth();
+          if (a && a.clearSession) a.clearSession();
+          setTimeout(function () { global.location.href = PASSWORD_URL; }, 900);
+        })
+        .catch(function (ex) { fail(ex.message || 'Não foi possível alterar a senha.'); })
+        .then(function () { save.disabled = false; save.textContent = 'Alterar senha'; });
+    });
+  }
+  function openPassword() {
+    if (!dlg) buildPassword();
+    lastFocus = document.activeElement;
+    dlg.querySelector('form').reset();
+    dlg.querySelector('[data-agf-dlg-err]').setAttribute('data-on', 'false');
+    dlg.setAttribute('data-open', 'true');
+    setTimeout(function () { var f = dlg.querySelector('input'); if (f) f.focus(); }, 40);
+  }
+  function closePassword() {
+    if (!dlg) return;
+    dlg.setAttribute('data-open', 'false');
+    if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) {} }
+  }
+
+  /* Aviso curto, fora do fluxo da pagina. */
+  var toastEl = null, toastTimer = null;
+  function toast(msg, isErr) {
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.className = 'agf-hd-toast';
+      toastEl.setAttribute('role', 'status');
+      toastEl.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = msg;
+    toastEl.setAttribute('data-err', isErr ? 'true' : 'false');
+    toastEl.setAttribute('data-on', 'true');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.setAttribute('data-on', 'false'); }, isErr ? 4200 : 2600);
+  }
+
+  /* ====================================================== 8. CARREGAMENTO
+     Contador de requisicoes. So aparece se passar de 400ms.
+     Amarrar a chamadas reais, nunca a animacao decorativa.
      ===================================================================== */
   var loading = {
     start: function () {
@@ -351,7 +614,7 @@
     }
   };
 
-  /* ======================================================== 7. API PUBLICA */
+  /* ======================================================== 9. API PUBLICA */
   function mount(options) {
     var cfg = options || {};
     var target = cfg.target || '[data-agf-header]';
@@ -368,20 +631,16 @@
       def = ROUTES[route];
     }
 
+    if (state.el && state.el !== el) state.wired = false;
     state.el = el;
     state.cfg = cfg;
     state.route = route;
     state.def = def;
     render();
 
-    /* Auditoria de integracao: falha alto na montagem, nao no clique. */
-    if (cfg.user && typeof cfg.onLogout !== 'function') {
-      console.error('[agf-header] rota ' + route + ' montada com sessao mas sem onLogout. ' +
-        'O botao Sair nao vai funcionar.');
-    }
-    if (!cfg.user && def.publico === false) {
-      console.warn('[agf-header] rota privada ' + route + ' montada sem usuario. ' +
-        'Sera exibido o botao Entrar. Confirme se o guard de sessao rodou.');
+    if (!state.user && def.publico === false) {
+      console.warn('[agf-header] rota privada ' + route + ' sem sessao no momento da montagem. ' +
+        'O slot do usuario fica vazio ate o guard confirmar a sessao.');
     }
     return AgfHeader;
   }
@@ -392,10 +651,20 @@
     render();
   }
 
-  function setTitle(text) {
+  function setTitle(text, shortText) {
     if (!state.el) return;
-    var t = state.el.querySelector('.agf-hd__title');
-    if (t) t.textContent = text;
+    var f = state.el.querySelector('.agf-hd__t-full');
+    var sh = state.el.querySelector('.agf-hd__t-short');
+    if (f) f.textContent = text;
+    if (sh) sh.textContent = shortText || text;
+  }
+
+  /* Troca as acoes sem re-renderizar a barra (ex.: Admin so para admin). */
+  function setActions(actions) {
+    if (!state.el) return;
+    state.cfg.actions = actions || [];
+    var box = state.el.querySelector('[data-agf-actions]');
+    if (box) box.innerHTML = buildActions(state.cfg.actions);
   }
 
   var AgfHeader = {
@@ -405,6 +674,8 @@
     mount: mount,
     setUser: setUser,
     setTitle: setTitle,
+    setActions: setActions,
+    toast: toast,
     loading: loading,
     close: closeMenus
   };
@@ -412,7 +683,7 @@
   global.AgfHeader = AgfHeader;
 
   /* Montagem automatica quando existe [data-agf-header] no HTML.
-     App que precise passar usuario ou acoes chama mount() manualmente. */
+     App que precise de acoes ou handlers proprios chama mount() manualmente. */
   function auto() {
     var el = document.querySelector('[data-agf-header]');
     if (el && !state.el) mount({ target: el });
