@@ -13,6 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./styles/balcao.css" />
 <link rel="stylesheet" href="/shared/ui/agf-ui.css"/>
+<link rel="stylesheet" href="/shared/ui/agf-header.css?v=2">
 <script src="/shared/auth/agf-auth-config.js"></script>
 <script src="/shared/auth/agf-auth-client.js"></script>
 <script>window.AGF_ACCESS={roles:['admin','manager','user'],app:'balcao'};</script>
@@ -23,18 +24,11 @@
 <link rel="apple-touch-icon" href="/assets/pwa/balcao/apple-touch-icon.png"/>
 </head>
 <body>
-  <header class="topbar agf-standard-topbar">
-    <div class="topbar-inner agf-standard-topbar-inner">
-      <a class="brand agf-standard-brand" href="/agf/" aria-label="Voltar ao portal interno">
-        <span class="brand-logo agf-standard-brand-tile"><img src="/assets/correios-logo-2.png" alt="" /></span>
-        <span class="agf-standard-copy"><strong>Atendimento Balcão</strong><small>AGF JOSÉ BONIFÁCIO</small></span>
-      </a>
-      <div class="topbar-actions agf-standard-actions">
-        <span class="version-pill"><span class="material-symbols-rounded">bolt</span><span id="versionText">v—</span></span>
-        <a class="agf-standard-action" href="/agf/" title="Portal interno"><span class="material-symbols-rounded">apps</span><span>Portal</span></a>
-      </div>
-    </div>
-  </header>
+  <!-- Topo padrao (agf-header v1.1.0). Os elementos abaixo sao do topo antigo e ficam
+       ocultos so porque o JS da pagina ainda amarra eventos neles pelo id.
+       O cabecalho novo aciona esses botoes. Nao remover sem ajustar o JS. -->
+  <div data-agf-header data-route="/balcao"></div>
+  <div class="agf-legacy-topbar" hidden aria-hidden="true"><span id="versionText">v—</span></div>
 
   <main class="app-shell">
      <div class="grid-main">
@@ -328,5 +322,11 @@
   <script src="./js/balcao.js"></script>
 <script src="/shared/ui/agf-ui.js"></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/balcao/sw.js').catch(()=>{}));}</script>
+<script src="/shared/ui/agf-header.js?v=2"></script>
+<script>
+/* Topo padrao do Balcao. #versionText segue no DOM (oculto) porque o
+   balcao.js escreve nele no carregamento. */
+AgfHeader.mount({ route: '/balcao' });
+</script>
 </body>
 </html>
