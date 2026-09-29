@@ -1096,7 +1096,7 @@ th.desc .sa{
     --v-line:#E2E8F0;
     --v-line2:#CBD5E1;
     --v-text:#253347;
-    --v-muted:#6B7B8F;
+    --v-muted:#5F6F84;            /* fix A11Y: #6B7B8F dava 3,9-4,3:1; agora >= 4,6:1 em todos os fundos */
     --v-soft:#F8FAFC;
     --v-track:#F1F5F9;
     --v-hover:#EEF5FA;
@@ -1142,7 +1142,7 @@ th.desc .sa{
     background:#fff!important;
     border:1px solid var(--v-card-bd);border-radius:var(--v-r);
     box-shadow:var(--v-card-sh);
-    top:6px;
+    position:static;
   }
   .tab{
     flex:0 0 auto;align-items:center;gap:7px;
@@ -1300,7 +1300,7 @@ th.desc .sa{
   #v-cl .bx>*{grid-column:1/-1;min-width:0}
   #v-cl .bx>.bx-t{grid-column:1;grid-row:1;margin:0;justify-content:flex-start;gap:10px}
   #v-cl .bx>div:not([class]){
-    grid-column:2;grid-row:1;margin:0!important;font-size:9.5px!important;
+    grid-column:2;grid-row:1;margin:0!important;font-size:10px!important;
     justify-content:flex-end;gap:4px!important;
   }
   #v-cl .bx>div:not([class]) .bg{padding:3px 7px;border-radius:6px}
@@ -1315,7 +1315,7 @@ th.desc .sa{
     background:var(--v-track);border:1px solid var(--v-line);border-radius:var(--v-rc);
   }
   .lf-lb{
-    margin:0 4px 0 6px;font-size:9px;font-weight:900;letter-spacing:.3px;color:var(--v-muted);white-space:nowrap;
+    margin:0 4px 0 6px;font-size:10px;font-weight:900;letter-spacing:.3px;color:var(--v-muted);white-space:nowrap;
   }
   .lf-chip{
     height:28px;padding:0 9px;border:0;border-radius:7px;
@@ -1329,14 +1329,13 @@ th.desc .sa{
   /* 8) Tabelas - cabeçalho navy fixo, como no Visão 360 */
   .mw,.tw{
     border:1px solid var(--v-line);border-radius:10px;background:#fff;
-    overscroll-behavior:contain;
   }
   #v-cl .mw{max-height:var(--crm360-mw-h,600px)}
-  .ac-wallet-wrap{max-height:calc(100vh - 120px)}
+  .ac-wallet-wrap{max-height:calc(100vh - 96px)}
   .mw table,.tw table{border-collapse:separate;border-spacing:0}
   .mw table th,.tw table th{
     background:var(--v-nv);color:#fff;
-    padding:8px 8px;font-size:9.5px;font-weight:850;letter-spacing:.3px;
+    padding:8px 8px;font-size:10px;font-weight:850;letter-spacing:.3px;
     border-bottom:1px solid var(--v-nv2);border-right:1px solid rgba(255,255,255,.08);
   }
   .mw table th:first-child{background:var(--v-nv);z-index:3}
@@ -1356,6 +1355,10 @@ th.desc .sa{
   .mw table td:first-child,.mw table th:first-child{min-width:240px;max-width:320px}
   .mw .cli-cell{max-width:300px}
   .cli-cell .cli-nm{color:var(--v-text)}
+  /* fix A11Y: etiquetas do grid com 10px (antes 8-9px) e contraste mínimo */
+  .mw .bg,.tw .bg{font-size:10px;padding:3px 7px;letter-spacing:.2px}
+  .mw table td.m-at{color:#2F62C9}          /* mês atual: 4,2:1 -> 5,1:1 */
+  .mw table td.m-sm{color:#7B8A9C}          /* "sem dados": 1,5:1 -> 3,4:1 (símbolo) */
   .tk-hl{background:#FFF8DB}
   .mw table tbody tr:nth-child(even) td.tk-hl,.tw table tbody tr:nth-child(even) td.tk-hl{background:#FFF4C7}
   /* tabelas simples dentro de cards (ex.: resumo por ação) */
@@ -1379,6 +1382,11 @@ th.desc .sa{
   .mw::-webkit-scrollbar,.tw::-webkit-scrollbar{width:10px;height:10px}
   .mw::-webkit-scrollbar-thumb,.tw::-webkit-scrollbar-thumb{background:#C5D3E0;border-radius:10px;border:2px solid #fff}
   .mw::-webkit-scrollbar-track,.tw::-webkit-scrollbar-track{background:transparent}
+}
+
+/* Movimento reduzido: respeita a preferência do sistema */
+@media screen and (prefers-reduced-motion:reduce){
+  .tab,.period-chip,.lf-chip,.btn-filter,.pg-ctrl button,.pnav-btn{transition:none}
 }
 
 /* Notebook / tablet largo */
@@ -1421,6 +1429,29 @@ th.desc .sa{
 }
 @media screen and (max-width:420px){
   .fb .dim-grid{grid-template-columns:1fr}
+}
+
+/* Exportação PDF (menu Exportar do CRM): imprime só o grid com cabeçalho simples */
+#crm360Print{display:none}
+@media print{
+  body.crm360-printing .app-shell{display:none!important}
+  body.crm360-printing #crm360Print{display:block!important}
+  #crm360Print{font-family:'Inter',Arial,sans-serif;color:#253347;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .crm360-print-head{border-left:3px solid #00416B;padding:1px 0 1px 8px;margin:0 0 8px}
+  .crm360-print-brand{font-size:7pt;font-weight:800;color:#5F6F84;text-transform:uppercase;letter-spacing:.3px}
+  .crm360-print-title{font-size:14pt;font-weight:900;color:#00416B;margin:1px 0 2px}
+  .crm360-print-meta{font-size:8pt;font-weight:700;color:#253347}
+  .crm360-print-filters{font-size:7.5pt;font-weight:600;color:#5F6F84;margin-top:2px}
+  #crm360Print table{width:100%!important;table-layout:auto!important;border-collapse:separate!important;border-spacing:0;font-size:7.5pt!important;border:.5pt solid #E2E8F0;background:#fff}
+  #crm360Print thead{display:table-header-group}
+  #crm360Print tr{break-inside:avoid}
+  #crm360Print th{position:static!important;background:#00416B!important;color:#fff!important;font-size:6.8pt!important;font-weight:800;text-transform:uppercase;letter-spacing:.2px;padding:4px 5px!important;white-space:nowrap;border:0}
+  #crm360Print td{padding:3px 5px!important;font-size:7.5pt;border-bottom:.5pt solid #E8EDF3;white-space:nowrap;vertical-align:middle;line-height:1.25}
+  #crm360Print tbody tr:nth-child(even) td:not([class*="m-"]){background:#FAFCFE}
+  .crm360-scope-cl th,.crm360-scope-cl td{text-align:center}
+  .crm360-scope-cl th:first-child,.crm360-scope-cl td:first-child{text-align:left}
+  #crm360Print .cli-cell{max-width:72mm}
+  .crm360-print-foot{margin-top:6px;font-size:7pt;font-weight:600;color:#5F6F84}
 }
 </style>
 </head>
@@ -3171,19 +3202,39 @@ ld();
     raf=0;
     if(mqMobile.matches) return;
     var mw=document.querySelector('#v-cl.on .mw');
-    if(!mw) return;
+    if(!mw){ bindWheel(document.querySelector('#v-ac.on .ac-wallet-wrap')); return; }
     var ftn=document.querySelector('.ftn');
     var pb=document.querySelector('.page-body');
     var mwRect=mw.getBoundingClientRect();
     var below=0;
     if(ftn) below=ftn.getBoundingClientRect().bottom-mwRect.bottom;
     if(pb) below+=parseFloat(getComputedStyle(pb).paddingBottom)||0;
-    var top=mwRect.top+(window.scrollY||0);
-    var h=Math.floor(window.innerHeight-top-below-2);
+    /* grid ocupa a tela inteira quando a página rola até ele (filtros sobem e saem de vista) */
+    var h=Math.floor(window.innerHeight-below-8);
     if(h<280) h=280;
     document.documentElement.style.setProperty('--crm360-mw-h',h+'px');
+    bindWheel(mw);
+    bindWheel(document.querySelector('#v-ac.on .ac-wallet-wrap'));
   }
-  function scheduleFit(){ if(!raf) raf=window.requestAnimationFrame(fit); }
+
+  /* rolar para baixo sobre o grid: primeiro a página desce até o fim, depois o grid rola */
+  function onGridWheel(e){
+    if(mqMobile.matches || e.ctrlKey || e.deltaY<=0) return;
+    var se=document.scrollingElement||document.documentElement;
+    var max=se.scrollHeight-window.innerHeight;
+    if(se.scrollTop<max-1){
+      e.preventDefault();
+      var dy=e.deltaMode===1 ? e.deltaY*16 : (e.deltaMode===2 ? e.deltaY*window.innerHeight : e.deltaY);
+      window.scrollBy(0,dy);
+    }
+  }
+  function bindWheel(el){
+    if(!el || el.dataset.crm360Wheel==='1') return;
+    el.dataset.crm360Wheel='1';
+    el.addEventListener('wheel',onGridWheel,{passive:false});
+  }
+  /* setTimeout (não rAF): continua funcionando com a aba em segundo plano */
+  function scheduleFit(){ if(!raf) raf=window.setTimeout(fit,40); }
 
   window.addEventListener('resize',scheduleFit);
   /* .pg cresce/encolhe com filtros, chips e avisos: recalcula a altura livre */
@@ -3191,6 +3242,8 @@ ld();
   if(window.ResizeObserver && pgEl){ try{ new ResizeObserver(scheduleFit).observe(pgEl); }catch(e){} }
   var vcl=document.getElementById('v-cl');
   if(vcl) new MutationObserver(scheduleFit).observe(vcl,{childList:true,attributes:true,attributeFilter:['class']});
+  var vac=document.getElementById('v-ac');
+  if(vac) new MutationObserver(scheduleFit).observe(vac,{childList:true,attributes:true,attributeFilter:['class']});
   ['sL','sE'].forEach(function(id){
     var el=document.getElementById(id);
     if(el) new MutationObserver(scheduleFit).observe(el,{attributes:true,attributeFilter:['style','class']});
@@ -3199,6 +3252,289 @@ ld();
 
   syncCount();
   setOpen(lsGet()==='1',false);
+})();
+</script>
+<script id="crm-acoes-v360-export">
+/* CRM Ações - exportação PNG/PDF fiel à tela (2026-09-29)
+   Exporta só o grid da aba ativa (Raio-X ou Carteira), com as linhas da página atual,
+   na ordem e com as cores da tela, sob um cabeçalho simples.
+   Chamado pelo CRM (menu Exportar) via window.crm360Export('png'|'pdf').
+   Somente leitura do DOM: não altera S, filtros, paginação nem chama API. */
+(function(){
+  'use strict';
+  var FONT='Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif';
+
+  function txt(el){ return ((el && (el.innerText!=null?el.innerText:el.textContent))||'').replace(/\s+/g,' ').trim(); }
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function stamp(){ var d=new Date(); return pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad2(d.getHours())+':'+pad2(d.getMinutes()); }
+  function isoToday(){ var d=new Date(); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+
+  /* ---------- contexto da aba ativa ---------- */
+  function activeScope(){
+    var on=document.querySelector('.tab.on');
+    var v=(on && on.getAttribute('data-v'))||'cl';
+    if(v==='ac') return { key:'ac', title:'Carteira inteligente', slug:'carteira', table:document.getElementById('cTbl') };
+    return { key:'cl', title:'Raio-X de Clientes', slug:'raio-x', table:document.getElementById('xTbl') };
+  }
+
+  function collectFilters(card){
+    var out=[];
+    if(card){
+      card.querySelectorAll('.lf-row').forEach(function(row){
+        var lb=txt(row.querySelector('.lf-lb'));
+        var on=[].slice.call(row.querySelectorAll('.lf-chip.on')).map(function(c){
+          var clone=c.cloneNode(true); var cnt=clone.querySelector('.cnt'); if(cnt) cnt.remove();
+          return txt(clone);
+        }).filter(function(t){ return t && t.toUpperCase()!=='TODOS'; });
+        if(on.length) out.push(lb+': '+on.join(', '));
+      });
+    }
+    document.querySelectorAll('#fb .dim-grid .f').forEach(function(f){
+      var lb=txt(f.querySelector('label'));
+      var val=txt(f.querySelector('.ms-btn .value'));
+      if(val && val!=='Todos') out.push(lb+': '+val);
+    });
+    var q=document.getElementById('fQ');
+    if(q && q.value.trim()) out.push('Cliente: '+q.value.trim());
+    return out;
+  }
+
+  function buildHeader(scope){
+    var card=scope.table ? scope.table.closest('.bx') : null;
+    var period=[].slice.call(document.querySelectorAll('#cxP .pill')).map(txt).filter(Boolean).join(' · ');
+    var count=card ? txt(card.querySelector('.bx-sub')) : '';
+    var pgInfo=card ? txt(card.querySelector('.pg-info')) : '';
+    var pgNum='';
+    if(card){
+      var spans=card.querySelectorAll('.pg-btns span');
+      if(spans.length) pgNum=txt(spans[0]);
+    }
+    var filtros=collectFilters(card);
+    var meta=[];
+    if(period) meta.push('Período: '+period);
+    if(count) meta.push(count);
+    if(pgInfo) meta.push('Linhas '+pgInfo+(pgNum?' (página '+pgNum+')':''));
+    return {
+      brand:'AGF José Bonifácio · CRM Comercial',
+      title:scope.title,
+      meta:meta.join('   |   '),
+      filters:filtros.length ? 'Filtros: '+filtros.join('   |   ') : 'Filtros: nenhum',
+      generated:'Gerado em '+stamp()
+    };
+  }
+
+  function headerLabels(table){
+    var col=table.getAttribute('data-sort-col'), dir=table.getAttribute('data-sort-dir');
+    return [].slice.call(table.tHead.rows[0].cells).map(function(th,i){
+      var clone=th.cloneNode(true); var sa=clone.querySelector('.sa'); if(sa) sa.remove();
+      var label=txt(clone);
+      if(col!=null && String(i)===col) label+=(dir==='asc'?' ▲':' ▼');
+      return label;
+    });
+  }
+
+  /* ---------- PNG: desenho direto no canvas com as cores computadas da tela ---------- */
+  function roundRect(ctx,x,y,w,h,r){
+    r=Math.min(r,h/2,w/2);
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+  function isTransparent(c){ return !c || c==='transparent' || /rgba\([^)]*,\s*0\)$/.test(c); }
+  function fit(ctx,text,max){
+    if(ctx.measureText(text).width<=max) return text;
+    var t=text;
+    while(t.length>1 && ctx.measureText(t+'…').width>max) t=t.slice(0,-1);
+    return t+'…';
+  }
+  function fontOf(cs,fallbackPx){
+    var px=parseFloat(cs.fontSize)||fallbackPx;
+    return (cs.fontWeight||'600')+' '+px+'px '+FONT;
+  }
+
+  function cellModel(td){
+    var cs=getComputedStyle(td);
+    var badges=[].slice.call(td.querySelectorAll('.bg')).map(function(b){
+      var bcs=getComputedStyle(b);
+      return { text:txt(b), bg:bcs.backgroundColor, color:bcs.color, font:fontOf(bcs,9) };
+    });
+    var textEl=td.querySelector('.cli-nm') || td.querySelector('strong') || td.querySelector('.dl') || td;
+    var tcs=textEl===td ? cs : getComputedStyle(textEl);
+    var clone=td.cloneNode(true);
+    clone.querySelectorAll('.bg').forEach(function(b){ b.remove(); });
+    var align=cs.textAlign;
+    if(align==='start' || align==='-webkit-auto') align='left';
+    if(align==='end') align='right';
+    /* setas de variação vêm de ::before na tela (.dl.up / .dl.dn) */
+    var pre='';
+    if(textEl!==td && textEl.classList.contains('dl')) pre=textEl.classList.contains('up')?'▲ ':(textEl.classList.contains('dn')?'▼ ':'');
+    var body=txt(clone);
+    return { bg:cs.backgroundColor, color:tcs.color, font:fontOf(tcs,11), text:body?pre+body:'', align:align, badges:badges };
+  }
+
+  async function renderPng(scope,head){
+    var table=scope.table;
+    var ths=[].slice.call(table.tHead.rows[0].cells);
+    var widths=ths.map(function(th){ return Math.max(24,Math.round(th.getBoundingClientRect().width)); });
+    var labels=headerLabels(table);
+    var rows=[].slice.call(table.tBodies[0].rows);
+    var models=rows.map(function(tr){ return [].slice.call(tr.cells).map(cellModel); });
+
+    var PAD=24, HEAD=96, TH=30, ROW=26, FOOT=34;
+    var tableW=widths.reduce(function(a,b){ return a+b; },0);
+    var W=Math.max(900,tableW+PAD*2);
+    var H=HEAD+TH+Math.max(1,models.length)*ROW+FOOT+PAD;
+    var scale=Math.max(0.6,Math.min(2,32000/H,Math.sqrt(240e6/(W*H))));
+
+    if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready; }catch(e){} }
+
+    var canvas=document.createElement('canvas');
+    canvas.width=Math.round(W*scale); canvas.height=Math.round(H*scale);
+    var ctx=canvas.getContext('2d',{alpha:false});
+    if(!ctx) throw new Error('Canvas indisponível neste navegador.');
+    ctx.scale(scale,scale);
+    ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,W,H);
+    ctx.textBaseline='middle';
+
+    /* cabeçalho simples */
+    ctx.fillStyle='#00416B'; ctx.fillRect(PAD,PAD-6,4,56);
+    ctx.fillStyle='#5F6F84'; ctx.font='800 10px '+FONT; ctx.fillText(head.brand.toUpperCase(),PAD+14,PAD+2);
+    ctx.fillStyle='#00416B'; ctx.font='900 20px '+FONT; ctx.fillText(head.title,PAD+14,PAD+22);
+    ctx.fillStyle='#253347'; ctx.font='700 11px '+FONT; ctx.fillText(fit(ctx,head.meta,W-PAD*2-190),PAD+14,PAD+42);
+    ctx.fillStyle='#5F6F84'; ctx.font='600 10.5px '+FONT; ctx.fillText(fit(ctx,head.filters,W-PAD*2-20),PAD+14,PAD+58);
+    ctx.textAlign='right'; ctx.font='700 10px '+FONT; ctx.fillText(head.generated,W-PAD,PAD+2); ctx.textAlign='left';
+
+    /* moldura da tabela */
+    var x0=PAD, y0=HEAD, tableH=TH+Math.max(1,models.length)*ROW;
+    ctx.save(); roundRect(ctx,x0,y0,tableW,tableH,10); ctx.clip();
+
+    /* cabeçalho navy */
+    ctx.fillStyle='#00416B'; ctx.fillRect(x0,y0,tableW,TH);
+    ctx.font='850 10px '+FONT; ctx.fillStyle='#FFFFFF';
+    var x=x0;
+    labels.forEach(function(lb,i){
+      var w=widths[i];
+      var alignLeft=(scope.key==='ac') || i===0;
+      ctx.textAlign=alignLeft?'left':'center';
+      ctx.fillText(fit(ctx,lb.toUpperCase(),w-14),alignLeft?x+8:x+w/2,y0+TH/2+1);
+      if(i<labels.length-1){ ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fillRect(x+w-1,y0,1,TH); ctx.fillStyle='#FFFFFF'; }
+      x+=w;
+    });
+
+    /* linhas */
+    models.forEach(function(cells,r){
+      var y=y0+TH+r*ROW;
+      var cx=x0;
+      cells.forEach(function(c,i){
+        var w=widths[i]||60;
+        ctx.fillStyle=isTransparent(c.bg)?(r%2?'#FAFCFE':'#FFFFFF'):c.bg;
+        ctx.fillRect(cx,y,w,ROW);
+        var inner=w-16, cy=y+ROW/2+0.5;
+        var bw=0;
+        c.badges.forEach(function(b){ ctx.font=b.font; b.w=Math.ceil(ctx.measureText(b.text).width)+12; bw+=b.w+4; });
+        ctx.font=c.font;
+        var text=c.text ? fit(ctx,c.text,Math.max(10,inner-bw)) : '';
+        var tw=text ? ctx.measureText(text).width : 0;
+        var total=tw+(text&&bw?6:0)+(bw?bw-4:0);
+        var sx=c.align==='center' ? cx+(w-total)/2 : (c.align==='right' ? cx+w-8-total : cx+8);
+        if(text){ ctx.fillStyle=c.color; ctx.textAlign='left'; ctx.fillText(text,sx,cy); sx+=tw+(bw?6:0); }
+        c.badges.forEach(function(b){
+          ctx.fillStyle=isTransparent(b.bg)?'#EDF1F5':b.bg;
+          roundRect(ctx,sx,y+5,b.w,ROW-10,8); ctx.fill();
+          ctx.fillStyle=b.color; ctx.font=b.font; ctx.textAlign='center';
+          ctx.fillText(b.text,sx+b.w/2,cy);
+          sx+=b.w+4;
+        });
+        cx+=w;
+      });
+      ctx.fillStyle='#EEF2F6'; ctx.fillRect(x0,y+ROW-1,tableW,1);
+    });
+    if(!models.length){
+      ctx.fillStyle='#5F6F84'; ctx.font='600 12px '+FONT; ctx.textAlign='center';
+      ctx.fillText('Nenhum cliente com esses filtros.',x0+tableW/2,y0+TH+ROW/2);
+    }
+    ctx.restore();
+    ctx.strokeStyle='#E2E8F0'; ctx.lineWidth=1; roundRect(ctx,x0+.5,y0+.5,tableW-1,tableH-1,10); ctx.stroke();
+
+    /* rodapé */
+    ctx.textAlign='left'; ctx.fillStyle='#5F6F84'; ctx.font='600 10px '+FONT;
+    ctx.fillText('Dados atualizados em D-1 · Dados do Visão 360',PAD,y0+tableH+18);
+
+    var blob=await new Promise(function(resolve,reject){
+      try{ canvas.toBlob(function(b){ b?resolve(b):reject(new Error('Falha ao gerar o PNG.')); },'image/png'); }catch(e){ reject(e); }
+    });
+    var url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download='crm-acoes-'+scope.slug+'-'+isoToday()+'.png'; a.style.display='none';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); },3000);
+  }
+
+  /* ---------- PDF: impressão só do grid com cabeçalho simples ---------- */
+  function renderPdf(scope,head){
+    var old=document.getElementById('crm360Print'); if(old) old.remove();
+    var box=document.createElement('section');
+    box.id='crm360Print';
+    box.className='crm360-print crm360-scope-'+scope.key;
+    var h=document.createElement('header'); h.className='crm360-print-head';
+    function line(cls,t){ var d=document.createElement('div'); d.className=cls; d.textContent=t; h.appendChild(d); }
+    line('crm360-print-brand',head.brand+'   ·   '+head.generated);
+    line('crm360-print-title',head.title);
+    line('crm360-print-meta',head.meta);
+    line('crm360-print-filters',head.filters);
+    box.appendChild(h);
+    var clone=scope.table.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.querySelectorAll('[id]').forEach(function(el){ el.removeAttribute('id'); });
+    clone.querySelectorAll('th').forEach(function(th){ th.removeAttribute('onclick'); });
+    var labels=headerLabels(scope.table);
+    [].slice.call(clone.tHead.rows[0].cells).forEach(function(th,i){ th.textContent=labels[i]; });
+    box.appendChild(clone);
+    var ft=document.createElement('footer'); ft.className='crm360-print-foot'; ft.textContent='Dados atualizados em D-1 · Dados do Visão 360';
+    box.appendChild(ft);
+    document.body.appendChild(box);
+
+    var pageStyle=document.createElement('style');
+    pageStyle.id='crm360PrintPage';
+    pageStyle.textContent='@media print{@page{size:A4 landscape;margin:8mm 7mm}}';
+    document.head.appendChild(pageStyle);
+
+    var oldTitle=document.title;
+    document.title='crm-acoes-'+scope.slug+'-'+isoToday();
+    document.body.classList.add('crm360-printing');
+
+    var done=false;
+    function cleanup(){
+      if(done) return; done=true;
+      document.body.classList.remove('crm360-printing');
+      document.title=oldTitle;
+      if(pageStyle.parentNode) pageStyle.parentNode.removeChild(pageStyle);
+      if(box.parentNode) box.parentNode.removeChild(box);
+      window.removeEventListener('afterprint',cleanup);
+    }
+    window.addEventListener('afterprint',cleanup);
+    return new Promise(function(resolve){
+      setTimeout(function(){
+        try{ window.focus(); window.print(); }
+        finally{ setTimeout(function(){ cleanup(); resolve(); },400); }
+      },60);
+    });
+  }
+
+  window.crm360Export=function(kind){
+    var scope=activeScope();
+    if(!scope.table || !scope.table.tHead || !scope.table.tBodies[0]){
+      return Promise.reject(new Error('Tabela ainda não carregada. Aguarde os dados e tente de novo.'));
+    }
+    var head=buildHeader(scope);
+    try{
+      return kind==='pdf' ? renderPdf(scope,head) : renderPng(scope,head);
+    }catch(err){
+      return Promise.reject(err);
+    }
+  };
 })();
 </script>
 </body>
