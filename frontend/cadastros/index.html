@@ -15,22 +15,18 @@
   <script src="/shared/auth/agf-route-guard.js"></script>
   <script src="./config.js?v=20260925b"></script>
   <link rel="stylesheet" href="./cadastros.css?v=20260925b">
+<link rel="stylesheet" href="/shared/ui/agf-header.css?v=2">
 </head>
 <body>
 <div class="cad-shell">
-  <header class="cad-top">
-    <a class="cad-top-btn" href="/agf/" title="Voltar ao Portal AGF" aria-label="Voltar ao Portal AGF"><span class="material-symbols-rounded">apps</span></a>
-    <span class="cad-top-div" aria-hidden="true"></span>
-    <div class="cad-brand"><span class="cad-brand-ic"><span class="material-symbols-rounded">badge</span></span>
-      <span><strong>Cadastro de Clientes</strong><small>IDENTIDADE COMERCIAL PARA O CRM</small></span></div>
-    <div class="cad-top-actions">
-      <span class="cad-sync" id="syncInfo" title="Última sincronização com o Atende"></span>
-      <button class="cad-top-act" id="btnMotor" type="button" title="Aplicar as regras de limpeza agora"><span class="material-symbols-rounded">auto_fix_high</span><span>Rodar limpeza</span></button>
-      <button class="cad-top-btn" id="btnRecarregar" type="button" title="Recarregar" aria-label="Recarregar"><span class="material-symbols-rounded">refresh</span></button>
-    </div>
-  </header>
+  <!-- Topo padrao (agf-header v1.1.0). Os elementos abaixo sao do topo antigo e ficam
+       ocultos so porque o JS da pagina ainda amarra eventos neles pelo id.
+       O cabecalho novo aciona esses botoes. Nao remover sem ajustar o JS. -->
+  <div data-agf-header data-route="/cadastros"></div>
+  <div class="agf-legacy-topbar" hidden aria-hidden="true"><button id="btnMotor" type="button" tabindex="-1"><span class="material-symbols-rounded">auto_fix_high</span><span>Rodar limpeza</span></button><button id="btnRecarregar" type="button" tabindex="-1">Recarregar</button></div>
 
   <main class="cad-main">
+    <p class="cad-sync" id="syncInfo" title="Última sincronização com o Atende" style="margin:0;text-align:right;color:#64748b;font-size:12px;min-height:16px"></p>
     <section class="cad-kpis" id="kpis" aria-label="Resumo">
       <div class="cad-kpi"><span>Clientes</span><strong id="kClientes">-</strong><small id="kClientesSub">&nbsp;</small></div>
       <div class="cad-kpi"><span>Postagens</span><strong id="kPostagens">-</strong><small id="kPostagensSub">&nbsp;</small></div>
@@ -126,5 +122,19 @@
 <div class="cad-busy" id="busy" hidden><div><span class="cad-spin"></span><p id="busyMsg">Processando...</p></div></div>
 
 <script src="./cadastros.js?v=20260925b"></script>
+<script src="/shared/ui/agf-header.js?v=2"></script>
+<script>
+/* Topo padrao do Cadastro de Clientes. O rotulo da acao e lido do botao
+   antigo, entao acompanha qualquer mudanca de texto feita no JS da pagina. */
+(function(){
+  var motor = document.getElementById('btnMotor');
+  var label = (motor.querySelector('span:last-child') || motor).textContent.trim() || 'Rodar limpeza';
+  AgfHeader.mount({
+    route: '/cadastros',
+    actions: [{ id:'motor', label: label, icon:'wand', onClick: function(){ motor.click(); } }],
+    onRefresh: function(){ document.getElementById('btnRecarregar').click(); }
+  });
+})();
+</script>
 </body>
 </html>
