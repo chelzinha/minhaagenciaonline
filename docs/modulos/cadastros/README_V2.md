@@ -116,6 +116,18 @@ O cálculo que o Apps Script fazia na planilha `CLIENTES_MASTER` agora roda no W
 - AGF_AUTH (`apps-script/autenticacao`): coluna nova `crm_locais_json` no fim da aba Usuarios (criada sozinha), `crm.locais` no login, no validate e na lista de usuários; coluna `LOCAIS` no fim da aba CRM_RESPONSAVEIS. Mudar os LOCAIS de alguém encerra as sessões dele (mesma regra das outras permissões do CRM).
 - Worker: `/api/v2/crm/clientes` e `/crm/resumo` usam `user.crm.locais`.
 
+## Revisor automático das sugestões
+
+Depois de cada limpeza, o Worker decide sozinho as sugestões seguras e grava `UNIR` em `cid_decisoes` com autor `REVISOR_AUTO`. As duvidosas continuam em Sugestões para decisão humana. O revisor nunca grava `SEPARAR`.
+
+- Grafia: mesmo número de palavras, uma palavra diferente, 1 letra de diferença, 4+ letras (ex.: CRISTAL x CRISTIAL).
+- Nome contido: o nome curto aparece dentro do longo, na mesma ordem (inicial solta casa com a palavra da mesma letra). Curto com 3+ palavras une; com 2 palavras, só com candidato único e palavra rara.
+- Fica para decisão humana: nome curto com candidatos diferentes entre si, nome curto que cabe em outro cliente da base, FILHO/JUNIOR/NETO, palavras em ordem diferente, primeiro nome diferente, dois Portais.
+- Código: `src/revisor.js` (regras, testado em `test/revisor.test.mjs`) e `src/revisor_d1.js` (gravação).
+- Roda no cron logo após a limpeza e uma vez a cada versão nova (`cid_estado.revisor_versao`). Manual (admin): `POST /api/v2/revisor`.
+- Resumo da última execução: `cid_estado.revisor_ultimo`.
+- Desfazer tudo: `UPDATE cid_decisoes SET ativo=0 WHERE autor='REVISOR_AUTO'` e rodar a limpeza (`POST /api/v2/motor`). Desfazer um caso: "Tirar grafia" ou "Não é o mesmo" na ficha do cliente.
+
 ## CRM inteiro no Worker e no D1 (sem planilha e sem Apps Script)
 
 O CRM (`/crm`) deixa de usar o Apps Script `base-metro` e as planilhas. Clientes, prospects, funis, tratativas, agenda, checklists, notas, interações e configurações ficam no D1 `agf-cadastros`. Os clientes vêm do Visão 360 (`/atende`), pelo Cadastro v2 e pelo motor do CRM (etapa 1). Nada é lido da BASE METRO.

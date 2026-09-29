@@ -2,6 +2,12 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-29 - Cadastro v2: revisor automático das sugestões
+
+### Adicionado
+- Revisor automático (`REVISOR_AUTO`): une sozinho as sugestões seguras (grafia com 1 letra de diferença e nome contido sem ambiguidade) logo após cada limpeza. Duvidosas continuam para decisão humana. Reversível.
+- Rota admin `POST /api/v2/revisor`.
+
 ## 2026-09-24 - CRM inteiro no Worker e no D1
 
 ### Adicionado

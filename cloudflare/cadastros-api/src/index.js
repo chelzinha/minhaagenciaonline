@@ -8,6 +8,8 @@ import { REGRAS, MOTIVOS_SUGESTAO, MOTOR_VERSAO, nomeExibicao } from './motor.js
 import { calcularCrmD1, crmPronto } from './crm_persistencia.js';
 import { CRM_LOCAIS, CRM_MOTOR_VERSAO } from './crm_motor.js';
 import { atenderCrm } from './crm/api.js';
+import { revisarD1 } from './revisor_d1.js';
+import { REVISOR_VERSAO, REVISOR_AUTOR } from './revisor.js';
 
 const ABAS = ['PORTAL', 'BALCAO', 'METRO', 'CF'];
 
@@ -480,6 +482,10 @@ async function rotear(request, env, ctxAtual) {
   if (p === '/api/v2/fila-local' && m === 'GET') return json({ ok: true, ...(await filaLocal(url, env)) });
   if (p === '/api/v2/definir-local' && m === 'POST') return json({ ok: true, ...(await definirLocal(request, env, autor)) });
   if (p === '/api/v2/motor' && m === 'POST') return json({ ok: true, motor: await executarMotorD1(env, autor) });
+  if (p === '/api/v2/revisor' && m === 'POST') {
+    const revisor = await revisarD1(env);
+    return json({ ok: true, revisor, motor: revisor.unidos ? await executarMotorD1(env, REVISOR_AUTOR) : null });
+  }
   if (p === '/api/v2/crm/recalcular' && m === 'POST') return json({ ok: true, crm: await calcularCrmD1(env, autor) });
   if (p === '/api/v2/sincronizar' && m === 'POST') {
     const s = await sincronizar(env, { paginas: 10, orcamentoMs: 15000 });
@@ -507,7 +513,14 @@ export default {
         const pend = await env.DB.prepare(`SELECT valor FROM cid_estado WHERE chave='motor_pendente'`).first();
         const vazio = await env.DB.prepare(`SELECT COUNT(*) n FROM cid_clientes`).first();
         // primeira carga: roda a limpeza assim que houver postagens, sem esperar o fim da passagem
-        if (!s.ocupado && pend?.valor === '1' && (s.fimDaPassagem || !Number(vazio?.n))) await executarMotorD1(env, 'SISTEMA');
+        let rodouMotor = false;
+        if (!s.ocupado && pend?.valor === '1' && (s.fimDaPassagem || !Number(vazio?.n))) { await executarMotorD1(env, 'SISTEMA'); rodouMotor = true; }
+        // revisor automatico: decide as sugestoes seguras logo apos a limpeza (e uma vez a cada versao nova do revisor)
+        const rev = await env.DB.prepare(`SELECT valor FROM cid_estado WHERE chave='revisor_versao'`).first();
+        if (!s.ocupado && Number(vazio?.n) && (rodouMotor || rev?.valor !== REVISOR_VERSAO)) {
+          const r = await revisarD1(env);
+          if (r.unidos) await executarMotorD1(env, REVISOR_AUTOR);
+        }
         // CRM: recalcula quando algo mudou (postagens, agrupamentos ou LOCAL), sempre depois da limpeza
         const crm = await crmPronto(env.DB);
         const motorAinda = await env.DB.prepare(`SELECT valor FROM cid_estado WHERE chave='motor_pendente'`).first();
