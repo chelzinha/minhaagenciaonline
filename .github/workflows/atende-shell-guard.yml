@@ -33,7 +33,7 @@ jobs:
 
           required_markers=(
             'class="atende-shell"'
-            'class="atende-topbar"'
+            'data-agf-header data-route="/atende"'
             'id="adminTopBtn"'
             'id="refreshFrameBtn"'
             'id="userAvBtn"'
@@ -69,4 +69,4 @@ jobs:
           done
 
           echo 'OK - shell permanente do Atende preservado.'
-          echo 'OK - topo, Admin, refresh, avatar, bridge de autenticacao e navegacao no-store encontrados.'
+          echo 'OK - topo padrao agf-header, Admin, refresh, avatar, bridge de autenticacao e navegacao no-store encontrados.'
