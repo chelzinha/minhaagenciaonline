@@ -19,7 +19,7 @@
   function hideBoot() { bootView && bootView.classList.add('hide'); }
   function reasonText() {
     const reason = new URLSearchParams(location.search).get('reason');
-    const map = { config:'Configure primeiro o URL do Apps Script de autenticação.', perfil:'Seu perfil não permite acessar essa página.', sessao:'Sua sessão foi encerrada. Entre novamente.', login:'Faça login para acessar os aplicativos internos.' };
+    const map = { config:'Configure primeiro o URL do Apps Script de autenticação.', perfil:'Seu perfil não permite acessar essa página.', sessao:'Sua sessão foi encerrada. Entre novamente.', login:'Faça login para acessar os aplicativos internos.', logout:'Você saiu do acesso interno.', 'password-changed':'Senha alterada. Entre com a nova senha.' };
     return map[reason] || '';
   }
   function safeNext(user) {

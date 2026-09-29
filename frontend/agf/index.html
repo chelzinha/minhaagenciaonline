@@ -16,24 +16,17 @@
   <link rel="manifest" href="/agf/manifest.webmanifest">
   <link rel="stylesheet" href="/shared/ui/agf-ui.css?v=ver-senha-v3">
   <link rel="stylesheet" href="/agf/agf.css?v=reverso-home-v168">
+  <link rel="stylesheet" href="/shared/ui/agf-header.css?v=2">
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
 </head>
 <body>
   <div class="portal-shell">
-    <header class="portal-topbar">
-      <div class="portal-topbar-inner">
-        <a class="portal-brand" href="/" aria-label="Voltar para a página principal">
-          <span class="agf-brand-tile"><span class="material-symbols-rounded" data-agf-icon="admin">admin_panel_settings</span></span>
-          <span class="portal-brand-copy"><strong>Portal Interno</strong><small>AGF JOSÉ BONIFÁCIO</small></span>
-        </a>
-        <div class="portal-top-actions">
-          <span class="user-pill hide" id="topUserPill"><span class="material-symbols-rounded">person</span><span id="userName">Usuário</span> · <span id="userRole">Perfil</span></span>
-          <a class="agf-icon-button" href="/" title="Página principal"><span class="material-symbols-rounded" data-agf-icon="home">home</span><span>Site</span></a>
-          <button class="agf-icon-button" id="logoutButton" type="button" title="Sair"><span class="material-symbols-rounded">logout</span><span>Sair</span></button>
-        </div>
-      </div>
-    </header>
+    <!-- Topo padrao (agf-header v1.1.0). Os elementos abaixo sao do topo antigo e ficam
+         ocultos so porque o agf.js ainda escreve neles pelo id (#topUserPill, #userName,
+         #userRole, #logoutButton). O cabecalho novo aciona o Sair do portal. -->
+    <div data-agf-header data-route="/agf"></div>
+    <div class="agf-legacy-topbar" hidden aria-hidden="true"><span class="user-pill hide" id="topUserPill"><span id="userName">Usuário</span><span id="userRole">Perfil</span></span><button id="logoutButton" type="button" tabindex="-1">Sair</button></div>
 
     <section id="portalBoot" class="portal-boot"><span class="portal-boot-spinner" aria-hidden="true"></span><span>Validando acesso…</span></section>
     <section id="loginView" class="login-layout hide">
@@ -53,10 +46,18 @@
     <main id="portalView" class="portal-main hide">
       <div class="portal-section-title first"><h2>Operação da agência</h2></div>
       <section class="app-grid" aria-label="Aplicativos internos">
+        <!-- Gerencial (/intra) oculto do Portal em 29/09/2026. A rota continua no ar e acessivel
+             pelo endereco direto e pelo alternador do topo. Para voltar, descomente o card abaixo.
         <a class="app-card" data-app="intra" data-roles="admin,manager" href="/intra/">
           <div class="card-top"><span class="card-icon"><span class="material-symbols-rounded" data-agf-icon="dashboard">dashboard</span></span><span class="card-badge manager">Gestão</span></div>
           <div class="card-copy"><h2>Gerencial</h2><p>Visão financeira, operacional e quantitativa da agência.</p></div>
           <div class="card-bottom"><span>/intra</span><span class="material-symbols-rounded">arrow_forward</span></div>
+        </a>
+        -->
+        <a class="app-card" data-app="atende" href="/atende/">
+          <div class="card-top"><span class="card-icon"><span class="material-symbols-rounded" data-agf-icon="atendimento">support_agent</span></span><span class="card-badge">Interno</span></div>
+          <div class="card-copy"><h2>Visão 360</h2><p>Dados consolidados, filtros avançados e dashboards de operação, comercial e gestão.</p></div>
+          <div class="card-bottom"><span>/atende</span><span class="material-symbols-rounded">arrow_forward</span></div>
         </a>
 
         <a class="app-card" data-app="crm" href="/crm/">
@@ -69,11 +70,6 @@
           <div class="card-top"><span class="card-icon"><span class="material-symbols-rounded" data-agf-icon="balcao">storefront</span></span><span class="card-badge">Interno</span></div>
           <div class="card-copy"><h2>Balcão</h2><p>Cotação e apoio operacional para atendimento presencial.</p></div>
           <div class="card-bottom"><span>/balcao</span><span class="material-symbols-rounded">arrow_forward</span></div>
-        </a>
-        <a class="app-card" data-app="atende" href="/atende/">
-          <div class="card-top"><span class="card-icon"><span class="material-symbols-rounded" data-agf-icon="atendimento">support_agent</span></span><span class="card-badge">Interno</span></div>
-          <div class="card-copy"><h2>Visão 360</h2><p>Dados consolidados, filtros avançados e dashboards de operação, comercial e gestão.</p></div>
-          <div class="card-bottom"><span>/atende</span><span class="material-symbols-rounded">arrow_forward</span></div>
         </a>
         <a class="app-card" data-app="cep" href="/cep/">
           <div class="card-top"><span class="card-icon"><span class="material-symbols-rounded" data-agf-icon="cep">location_on</span></span><span class="card-badge">Público</span></div>
@@ -159,7 +155,26 @@
     </main>
   </div>
   <script src="/shared/ui/agf-ui.js?v=ver-senha-v3"></script>
-  <script src="/agf/agf.js?v=reverso-home-v168"></script>
+  <script src="/agf/agf.js?v=topo-c-v1"></script>
+  <script src="/shared/ui/agf-header.js?v=2"></script>
+  <script>
+  /* Topo padrao do Portal. O portal e tambem a tela de login e troca de estado
+     sem recarregar (entrar e sair). O agf.js mostra ou esconde #topUserPill
+     nessas trocas; o cabecalho remonta nesse momento e le a sessao de novo:
+     sem sessao, slot vazio; com sessao, avatar e menu da conta. */
+  (function(){
+    var pill = document.getElementById('topUserPill');
+    function montar(){
+      AgfHeader.mount({
+        route: '/agf',
+        actions: [{ id:'site', label:'Site', icon:'globe', href:'/' }],
+        onLogout: function(){ document.getElementById('logoutButton').click(); }
+      });
+    }
+    montar();
+    new MutationObserver(montar).observe(pill, { attributes:true, attributeFilter:['class'] });
+  })();
+  </script>
   <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/agf/sw.js').catch(()=>{}));}</script>
 </body>
 </html>
