@@ -1079,6 +1079,350 @@ th.desc .sa{
   setTimeout(ensureIndicatorAccess,0);
 })();
 </script>
+<style id="crm-acoes-v360">
+/* ============================================================
+   CRM Ações - padrão visual Visão 360 (2026-09-29)
+   Camada somente visual: não altera ids, funções nem dados.
+   Para reverter: apagar este bloco style e o script crm-acoes-v360-ui (fim do body).
+   Tudo em @media screen para não interferir na impressão/PDF.
+   ============================================================ */
+@media screen{
+  /* 1) Tokens - paleta do Visão 360 */
+  :root{
+    --v-nv:#00416B;
+    --v-nv2:#00355A;
+    --v-yl:#FFD400;
+    --v-bg:#F4F7FA;
+    --v-line:#E2E8F0;
+    --v-line2:#CBD5E1;
+    --v-text:#253347;
+    --v-muted:#6B7B8F;
+    --v-soft:#F8FAFC;
+    --v-track:#F1F5F9;
+    --v-hover:#EEF5FA;
+    --v-sel:#EAF4FB;
+    --v-focus:#0B72D9;
+    --v-card-bd:rgba(0,65,107,.10);
+    --v-card-sh:0 3px 12px rgba(15,23,42,.07);
+    --v-r:12px;
+    --v-rc:9px;
+    --v-h:36px;
+    /* remapeia os tokens antigos do painel para a paleta nova */
+    --bg:var(--v-bg);
+    --sf2:var(--v-soft);
+    --ln:var(--v-line);
+    --ln2:var(--v-line2);
+    --nv:var(--v-nv);
+    --nvd:var(--v-nv2);
+    --tx:var(--v-text);
+    --mt:var(--v-muted);
+    --blp:var(--v-sel);
+    --r:var(--v-rc);
+    --rs:10px;
+    --sh:var(--v-card-sh);
+  }
+  html,body{background:var(--v-bg)}
+  body{color:var(--v-text)}
+
+  /* 2) Moldura da página - sobrescreve o bloco inline que já usa !important */
+  .page-body{padding:10px 12px 8px!important}
+  .pg{
+    display:grid;
+    grid-template-columns:max-content minmax(0,1fr);
+    column-gap:12px;
+    align-items:center;
+  }
+  .pg>*{grid-column:1/-1;min-width:0}
+
+  /* 3) Abas Raio-X / Carteira: segmented igual ao Visão 360 */
+  .pg>.tabs{
+    grid-column:1;grid-row:1;
+    display:flex;width:max-content;max-width:100%;
+    gap:3px;padding:4px!important;margin:0 0 8px;
+    background:#fff!important;
+    border:1px solid var(--v-card-bd);border-radius:var(--v-r);
+    box-shadow:var(--v-card-sh);
+    top:6px;
+  }
+  .tab{
+    flex:0 0 auto;align-items:center;gap:7px;
+    padding:0 14px;height:34px;border-radius:var(--v-rc);
+    color:var(--v-nv);font:800 12px/1 'Inter',system-ui,sans-serif;
+  }
+  .tab::before{
+    font-family:'Material Symbols Rounded';font-weight:normal;font-size:18px;line-height:1;
+    font-variation-settings:'FILL' 0,'wght' 500,'GRAD' 0,'opsz' 20;
+    content:'query_stats';
+  }
+  .tab[data-v="ac"]::before{content:'account_balance_wallet'}
+  .tab:hover{background:var(--v-hover);color:var(--v-nv)}
+  .tab.on{background:var(--v-nv);color:#fff;box-shadow:0 2px 6px rgba(0,65,107,.25)}
+
+  /* 4) Contexto do período (mesma linha das abas, à direita) */
+  .pg>.cx{
+    grid-column:2;grid-row:1;
+    justify-content:flex-end;gap:6px;
+    margin:0 0 8px;padding:0;
+    background:transparent;border:0;border-radius:0;
+    color:var(--v-muted);font-size:11px;
+  }
+  .pg>.cx #cxT{display:none}
+  .cx .pill{
+    background:#EDF3F8;border:0;border-radius:6px;
+    padding:5px 9px;color:var(--v-nv);font-size:10.5px;font-weight:800;
+    font-variant-numeric:tabular-nums;
+  }
+  .cx .pill:first-child{background:var(--v-yl)}
+
+  /* 5) Card de filtros - linha única + "Mais filtros" recolhível */
+  .fb{
+    grid-template-columns:max-content minmax(220px,1fr) max-content;
+    grid-template-rows:auto;
+    align-items:end;gap:8px 10px;
+    padding:10px 12px;margin-bottom:8px;
+    background:#fff;border:1px solid var(--v-card-bd);border-radius:var(--v-r);
+    box-shadow:var(--v-card-sh);
+  }
+  .fb .f label,
+  .fb .f.fq label,
+  .fb .dim-grid .f label,
+  .period-title{
+    display:block;margin:0 0 4px 2px;
+    font-size:10px;font-weight:800;line-height:1.1;letter-spacing:.3px;
+    text-transform:uppercase;color:var(--v-muted);
+  }
+  .fb .period-shell{
+    grid-column:1;grid-row:1;
+    display:grid;grid-template-columns:max-content minmax(240px,320px);
+    gap:0 8px;align-items:center;
+  }
+  .period-title{grid-column:1/-1}
+  .period-bar{
+    display:flex;flex-wrap:nowrap;gap:2px;padding:2px;height:var(--v-h);
+    background:var(--v-track);border:1px solid var(--v-line2);border-radius:var(--v-rc);
+  }
+  .period-chip{
+    min-height:0;height:100%;padding:0 11px;border:0;border-radius:7px;
+    background:transparent;color:var(--v-nv);font:750 11px/1 'Inter',system-ui,sans-serif;white-space:nowrap;
+  }
+  .period-chip:hover{background:#fff;border:0}
+  .period-chip.on{background:var(--v-nv);color:#fff;font-weight:800;box-shadow:0 1px 3px rgba(0,65,107,.25)}
+  .period-stage{gap:4px;min-width:0}
+  .period-row{gap:5px}
+  .pnav-btn{
+    width:var(--v-h);height:var(--v-h);flex:0 0 var(--v-h);
+    border:1px solid var(--v-line2);border-radius:var(--v-rc);background:#fff;color:var(--v-nv);
+  }
+  .pnav-btn:hover{background:var(--v-hover);border-color:var(--v-line2)}
+  .period-input-zone input,
+  .prf input{
+    height:var(--v-h);border:1px solid var(--v-line2);border-radius:var(--v-rc);
+    background:var(--v-soft);color:var(--v-text);font:700 12px/1 'Inter',system-ui,sans-serif;
+    font-variant-numeric:tabular-nums;
+  }
+  .period-range-row.show,
+  .period-range-row[style*="grid"]{gap:6px}
+  .prf{flex-direction:row;align-items:center;gap:5px}
+  .prf label{margin:0;font-size:9px;color:var(--v-muted)}
+  .period-note.show{
+    display:flex;align-items:center;min-height:var(--v-h);
+    padding:0 10px;border:1px dashed var(--v-line2);border-radius:var(--v-rc);
+    background:var(--v-soft);font-size:11px;color:var(--v-muted);
+  }
+
+  .fb .f.fq{grid-column:2;grid-row:1;min-width:0}
+  .ms-btn,.search-wrap{
+    height:var(--v-h);min-height:var(--v-h);
+    border:1px solid var(--v-line2);border-radius:var(--v-rc);
+    background:#fff;color:var(--v-text);font:600 12px/1 'Inter',system-ui,sans-serif;
+  }
+  .search-wrap{padding-left:34px}
+  .search-wrap::before{
+    content:'search';position:absolute;left:10px;top:50%;transform:translateY(-50%);
+    font-family:'Material Symbols Rounded';font-size:18px;line-height:1;color:var(--v-muted);
+    pointer-events:none;
+  }
+  .search-wrap input{font:600 12px/1 'Inter',system-ui,sans-serif;color:var(--v-text)}
+  .search-wrap:focus-within,.ms.open .ms-btn{outline:2px solid var(--v-focus);outline-offset:1px}
+  .ms-btn .caret{font-size:11px}
+  .ms-panel,.search-suggest{border-radius:10px;border-color:var(--v-line2);box-shadow:0 16px 38px rgba(15,23,42,.18)}
+  .ms-opt input{accent-color:var(--v-nv)}
+
+  .fb .actions-row{
+    grid-column:3;grid-row:1;
+    flex-wrap:nowrap;align-items:center;gap:6px;
+  }
+  .btn-filter{
+    height:var(--v-h);display:inline-flex;align-items:center;justify-content:center;gap:5px;
+    padding:0 12px;border:1px solid var(--v-line2);border-radius:var(--v-rc);
+    background:#fff;color:var(--v-nv);font:800 11px/1 'Inter',system-ui,sans-serif;white-space:nowrap;
+  }
+  .btn-filter .mi{font-size:17px;line-height:1}
+  .btn-filter.secondary:hover,.crm360-more-btn:hover{background:var(--v-hover);border-color:var(--v-line2)}
+  .btn-filter.primary{background:var(--v-nv);border-color:var(--v-nv);color:#fff;padding:0 16px}
+  .btn-filter.primary:hover{background:var(--v-nv2)}
+  .crm360-more-btn.has-filter{background:var(--v-sel);border-color:#7AA8C7}
+  .crm360-more-n{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:17px;height:17px;padding:0 5px;border-radius:999px;
+    background:var(--v-yl);color:var(--v-nv);font-size:10px;font-weight:900;
+  }
+  .crm360-more-n[hidden]{display:none}
+
+  /* dimensões (LOCAL, TIPO, INTERMEDIÁRIO, SEGMENTO) recolhidas por padrão */
+  .fb .dim-grid{
+    grid-column:1/-1;grid-row:2;
+    display:none;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;
+    padding:8px;border:1px solid var(--v-line);border-radius:10px;background:#F8FBFD;
+  }
+  .fb.crm360-more-on .dim-grid{display:grid}
+
+  /* 6) Cards */
+  .bx,.k{
+    background:#fff;border:1px solid var(--v-card-bd);border-radius:var(--v-r);
+    box-shadow:var(--v-card-sh);
+  }
+  .bx{padding:10px 12px}
+  .bx-t{margin-bottom:6px;justify-content:flex-start;font-size:13px;font-weight:900;color:var(--v-nv);letter-spacing:-.1px}
+  .bx-t .bx-sub{margin-left:auto}
+  #v-cl .bx-t .bx-sub{margin-left:0}
+  .bx-sub{
+    font-size:10.5px;font-weight:800;color:var(--v-nv);
+    background:#EDF3F8;border-radius:6px;padding:4px 8px;font-variant-numeric:tabular-nums;
+  }
+  .k-v{color:var(--v-nv)}
+
+  /* Raio-X: título e legenda na mesma linha, tabela ocupa o resto */
+  #v-cl .bx{
+    display:grid;grid-template-columns:minmax(0,1fr) auto;
+    column-gap:12px;align-items:center;
+  }
+  #v-cl .bx>*{grid-column:1/-1;min-width:0}
+  #v-cl .bx>.bx-t{grid-column:1;grid-row:1;margin:0;justify-content:flex-start;gap:10px}
+  #v-cl .bx>div:not([class]){
+    grid-column:2;grid-row:1;margin:0!important;font-size:9.5px!important;
+    justify-content:flex-end;gap:4px!important;
+  }
+  #v-cl .bx>div:not([class]) .bg{padding:3px 7px;border-radius:6px}
+
+  /* 7) Filtros rápidos (Ação / Prioridade / Última postagem) em linha única */
+  .lf-wrap{
+    flex-direction:row;flex-wrap:wrap;align-items:center;
+    gap:6px 14px;margin:8px 0;
+  }
+  .lf-row{
+    flex-wrap:nowrap;gap:2px;padding:2px;
+    background:var(--v-track);border:1px solid var(--v-line);border-radius:var(--v-rc);
+  }
+  .lf-lb{
+    margin:0 4px 0 6px;font-size:9px;font-weight:900;letter-spacing:.3px;color:var(--v-muted);white-space:nowrap;
+  }
+  .lf-chip{
+    height:28px;padding:0 9px;border:0;border-radius:7px;
+    background:transparent;color:var(--v-nv);font:750 10.5px/1 'Inter',system-ui,sans-serif;
+  }
+  .lf-chip:hover{background:#fff;border:0}
+  .lf-chip.on{background:var(--v-nv);color:#fff;box-shadow:0 1px 3px rgba(0,65,107,.25)}
+  .lf-chip .cnt{background:rgba(0,65,107,.08);color:inherit;font-size:9.5px;font-weight:800;font-variant-numeric:tabular-nums}
+  .lf-chip.on .cnt{background:rgba(255,255,255,.2)}
+
+  /* 8) Tabelas - cabeçalho navy fixo, como no Visão 360 */
+  .mw,.tw{
+    border:1px solid var(--v-line);border-radius:10px;background:#fff;
+    overscroll-behavior:contain;
+  }
+  #v-cl .mw{max-height:var(--crm360-mw-h,600px)}
+  .ac-wallet-wrap{max-height:calc(100vh - 120px)}
+  .mw table,.tw table{border-collapse:separate;border-spacing:0}
+  .mw table th,.tw table th{
+    background:var(--v-nv);color:#fff;
+    padding:8px 8px;font-size:9.5px;font-weight:850;letter-spacing:.3px;
+    border-bottom:1px solid var(--v-nv2);border-right:1px solid rgba(255,255,255,.08);
+  }
+  .mw table th:first-child{background:var(--v-nv);z-index:3}
+  .mw table th:hover,.tw table th:hover{background:var(--v-nv2);color:#fff}
+  .mw table th .sa,.tw table th .sa{opacity:.55}
+  .mw table th.asc .sa,.mw table th.desc .sa,
+  .tw table th.asc .sa,.tw table th.desc .sa{opacity:1;color:var(--v-yl)}
+  .mw table td,.tw table td{
+    padding:6px 8px;font-size:11px;vertical-align:middle;
+    border-bottom:1px solid #EEF2F6;font-variant-numeric:tabular-nums;
+  }
+  .mw table tbody tr:nth-child(even) td:not([class*="m-"]),
+  .tw table tbody tr:nth-child(even) td{background:#FAFCFE}
+  .mw table tbody tr:hover td:not([class*="m-"]),
+  .tw table tbody tr:hover td{background:var(--v-hover)}
+  .mw table tbody tr:hover td[class*="m-"]{filter:brightness(.97)}
+  .mw table td:first-child,.mw table th:first-child{min-width:240px;max-width:320px}
+  .mw .cli-cell{max-width:300px}
+  .cli-cell .cli-nm{color:var(--v-text)}
+  .tk-hl{background:#FFF8DB}
+  .mw table tbody tr:nth-child(even) td.tk-hl,.tw table tbody tr:nth-child(even) td.tk-hl{background:#FFF4C7}
+  /* tabelas simples dentro de cards (ex.: resumo por ação) */
+  .bx>table th{background:#EDF3F8;color:var(--v-nv);border-bottom:1px solid var(--v-line)}
+
+  /* 9) Paginação no rodapé do card */
+  .pg-ctrl{margin-top:6px;padding:6px 2px 0;border-top:0;font-size:11px;color:var(--v-muted)}
+  .pg-ctrl .pg-info{color:var(--v-muted);font-weight:700;font-variant-numeric:tabular-nums}
+  .pg-ctrl button{height:30px;min-width:30px;padding:0 9px;border:1px solid var(--v-line2);border-radius:8px;color:var(--v-nv);font-weight:800}
+  .pg-ctrl button:hover:not(:disabled){background:var(--v-hover);border-color:var(--v-line2)}
+  .pg-ctrl select{height:30px;border:1px solid var(--v-line2);border-radius:8px;color:var(--v-nv);font-weight:700}
+
+  /* 10) Estados, rodapé e foco */
+  .stb{border-radius:10px;font-size:12px;padding:8px 12px;margin-bottom:8px}
+  .stb.ld{background:var(--v-sel);border-color:#BFD7EA;color:var(--v-nv)}
+  .ftn{margin-top:4px;padding:4px 0 0;font-size:10px}
+  .tab:focus-visible,.period-chip:focus-visible,.pnav-btn:focus-visible,.btn-filter:focus-visible,
+  .lf-chip:focus-visible,.pg-ctrl button:focus-visible,.pg-ctrl select:focus-visible,.ms-btn:focus-visible,
+  .mw table th:focus-visible,.tw table th:focus-visible{outline:2px solid var(--v-focus);outline-offset:2px}
+  .period-input-zone input:focus,.prf input:focus{border-color:var(--v-nv);box-shadow:0 0 0 3px rgba(11,114,217,.14)}
+  .mw::-webkit-scrollbar,.tw::-webkit-scrollbar{width:10px;height:10px}
+  .mw::-webkit-scrollbar-thumb,.tw::-webkit-scrollbar-thumb{background:#C5D3E0;border-radius:10px;border:2px solid #fff}
+  .mw::-webkit-scrollbar-track,.tw::-webkit-scrollbar-track{background:transparent}
+}
+
+/* Notebook / tablet largo */
+@media screen and (max-width:1180px){
+  .fb{grid-template-columns:minmax(0,1fr) max-content}
+  .fb .period-shell{grid-column:1/-1;grid-row:1}
+  .fb .f.fq{grid-column:1;grid-row:2}
+  .fb .actions-row{grid-column:2;grid-row:2}
+  .fb .dim-grid{grid-row:3}
+  #v-cl .bx>div:not([class]){grid-column:1/-1;grid-row:auto;justify-content:flex-start;margin-top:6px!important}
+}
+
+/* Celular */
+@media screen and (max-width:720px){
+  :root{--v-h:38px}
+  .page-body{padding:6px 8px 8px!important}
+  .pg{display:flex;flex-direction:column}
+  .pg>*{order:2}
+  .pg>.tabs{order:0}
+  .pg>.cx,.pg>#sL,.pg>#sE{order:1}
+  .pg>.tabs{width:100%;margin-bottom:6px}
+  .tab{flex:1 1 0;justify-content:center;padding:0 8px;height:36px;font-size:11.5px}
+  .pg>.cx{justify-content:flex-start;margin:0 0 6px}
+  .fb{grid-template-columns:1fr;padding:9px;gap:8px}
+  .fb .period-shell{grid-column:1;grid-row:auto;grid-template-columns:1fr;gap:6px}
+  .period-bar{flex-wrap:wrap;height:auto;min-height:var(--v-h)}
+  .period-chip{flex:1 1 auto;min-height:32px;padding:0 8px}
+  .fb .f.fq,.fb .actions-row,.fb .dim-grid{grid-column:1;grid-row:auto}
+  .fb .actions-row{display:flex;flex-wrap:nowrap;gap:6px}
+  .fb .actions-row .crm360-more-btn{flex:1 1 auto}
+  .fb .dim-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .lf-wrap{flex-direction:column;align-items:stretch;gap:6px}
+  .lf-row{overflow-x:auto;scrollbar-width:none}
+  .lf-row::-webkit-scrollbar{display:none}
+  .lf-chip{height:32px;flex:0 0 auto}
+  #v-cl .mw{max-height:70vh}
+  .ac-wallet-wrap{max-height:70vh}
+  .mw table td:first-child,.mw table th:first-child{min-width:150px;max-width:190px}
+  .mw .cli-cell{max-width:180px}
+}
+@media screen and (max-width:420px){
+  .fb .dim-grid{grid-template-columns:1fr}
+}
+</style>
 </head>
 
 <body>
@@ -2772,5 +3116,90 @@ aT('cl');
 ld();
 </script>
 <script src="/shared/ui/agf-ui.js"></script>
+<script id="crm-acoes-v360-ui">
+/* CRM Ações - padrão Visão 360 (2026-09-29)
+   Somente apresentação: adiciona o botão "Mais filtros" (recolhe LOCAL/TIPO/INTERMEDIÁRIO/SEGMENTO)
+   e ajusta a altura da tabela do Raio-X à tela. Não chama API, não altera S, filtros nem funções existentes. */
+(function(){
+  'use strict';
+  var KEY='crm360AcoesMaisFiltros';
+  var fb=document.getElementById('fb');
+  if(!fb) return;
+  var dims=fb.querySelector('.dim-grid');
+  var row=fb.querySelector('.actions-row');
+  if(!dims||!row) return;
+
+  function lsGet(){ try{ return window.localStorage.getItem(KEY); }catch(e){ return null; } }
+  function lsSet(v){ try{ window.localStorage.setItem(KEY,v); }catch(e){} }
+
+  /* ---------- botão Mais filtros ---------- */
+  var btn=document.createElement('button');
+  btn.type='button';
+  btn.className='btn-filter crm360-more-btn';
+  btn.setAttribute('aria-expanded','false');
+  btn.innerHTML='<span class="mi" aria-hidden="true">tune</span><span class="crm360-more-txt">Mais filtros</span><span class="crm360-more-n" hidden></span>';
+  row.insertBefore(btn,row.firstChild);
+  var txt=btn.querySelector('.crm360-more-txt');
+  var badge=btn.querySelector('.crm360-more-n');
+
+  function setOpen(open,persist){
+    fb.classList.toggle('crm360-more-on',open);
+    btn.setAttribute('aria-expanded',open?'true':'false');
+    txt.textContent=open?'Menos filtros':'Mais filtros';
+    if(persist) lsSet(open?'1':'0');
+    scheduleFit();
+  }
+  btn.addEventListener('click',function(){ setOpen(!fb.classList.contains('crm360-more-on'),true); });
+
+  /* conta dimensões com seleção diferente de "Todos" */
+  function syncCount(){
+    var n=0;
+    dims.querySelectorAll('.ms-btn .value').forEach(function(v){
+      var t=(v.textContent||'').trim();
+      if(t && t!=='Todos') n++;
+    });
+    badge.hidden=!n;
+    badge.textContent=n?String(n):'';
+    btn.classList.toggle('has-filter',n>0);
+    btn.title=n?(n+' filtro(s) de LOCAL/TIPO/INTERMEDIÁRIO/SEGMENTO ativo(s)'):'Mostrar LOCAL, TIPO, INTERMEDIÁRIO e SEGMENTO';
+  }
+
+  /* ---------- altura da tabela do Raio-X = espaço livre da tela ---------- */
+  var raf=0;
+  var mqMobile=window.matchMedia('(max-width:720px)');
+  function fit(){
+    raf=0;
+    if(mqMobile.matches) return;
+    var mw=document.querySelector('#v-cl.on .mw');
+    if(!mw) return;
+    var ftn=document.querySelector('.ftn');
+    var pb=document.querySelector('.page-body');
+    var mwRect=mw.getBoundingClientRect();
+    var below=0;
+    if(ftn) below=ftn.getBoundingClientRect().bottom-mwRect.bottom;
+    if(pb) below+=parseFloat(getComputedStyle(pb).paddingBottom)||0;
+    var top=mwRect.top+(window.scrollY||0);
+    var h=Math.floor(window.innerHeight-top-below-2);
+    if(h<280) h=280;
+    document.documentElement.style.setProperty('--crm360-mw-h',h+'px');
+  }
+  function scheduleFit(){ if(!raf) raf=window.requestAnimationFrame(fit); }
+
+  window.addEventListener('resize',scheduleFit);
+  /* .pg cresce/encolhe com filtros, chips e avisos: recalcula a altura livre */
+  var pgEl=document.querySelector('.pg');
+  if(window.ResizeObserver && pgEl){ try{ new ResizeObserver(scheduleFit).observe(pgEl); }catch(e){} }
+  var vcl=document.getElementById('v-cl');
+  if(vcl) new MutationObserver(scheduleFit).observe(vcl,{childList:true,attributes:true,attributeFilter:['class']});
+  ['sL','sE'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) new MutationObserver(scheduleFit).observe(el,{attributes:true,attributeFilter:['style','class']});
+  });
+  new MutationObserver(function(){ syncCount(); }).observe(dims,{childList:true,subtree:true,characterData:true});
+
+  syncCount();
+  setOpen(lsGet()==='1',false);
+})();
+</script>
 </body>
 </html>
