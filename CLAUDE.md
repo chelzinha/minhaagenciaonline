@@ -31,10 +31,10 @@ Se houver conflito, AGENTS.md e instruções da Rachel têm prioridade.
 3. Repositório oficial: github.com/chelzinha/minhaagenciaonline. O GitHub sincroniza entre os 2 PCs.
 4. Trabalho em 2 PCs: git pull ao começar, git push ao terminar. Nunca os dois PCs editando ao mesmo tempo.
 
-## Frontend (Netlify)
-1. netlify.toml com publish = "frontend".
-2. Deploy automático: push na branch principal publica o frontend sozinho (Continuous Deployment via GitHub).
-3. .netlify/ deve estar no .gitignore.
+## Frontend (Cloudflare Pages)
+1. Projeto Cloudflare Pages `minhaagenciaonline`, ligado ao GitHub, diretório publicado `frontend`. Domínios: minhaagenciaonline.com.br e www.
+2. Deploy automático: push na `main` publica em produção. Push em qualquer outra branch gera prévia em `https://<branch-com-hifens>.minhaagenciaonline.pages.dev`.
+3. `netlify.toml` e `.netlify/` são legado da hospedagem anterior. Não usar como referência de deploy.
 
 ## Backend (Apps Script via clasp)
 1. clasp é a ferramenta oficial. GAS Sync não deve ser usado (evita conflito de sincronização).

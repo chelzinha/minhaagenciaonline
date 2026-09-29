@@ -15,6 +15,7 @@
   <link rel="preconnect" href="https://script.googleusercontent.com">
   <link rel="manifest" href="/atende/manifest.webmanifest">
   <link rel="stylesheet" href="/shared/ui/agf-ui.css">
+<link rel="stylesheet" href="/shared/ui/agf-header.css?v=2">
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
   <script>window.AGF_ACCESS={roles:["admin","manager","user"],app:"atende"};</script>
@@ -25,7 +26,7 @@
     html,body{height:100%;width:100%;max-width:100vw;margin:0;overflow:hidden!important}
     body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--agf-bg);color:var(--agf-text)}
     button{font:inherit}
-    .atende-shell{height:100vh;width:100%;max-width:100vw;min-width:0;overflow:hidden;display:grid;grid-template-rows:58px minmax(0,1fr)}
+    .atende-shell{height:100vh;width:100%;max-width:100vw;min-width:0;overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr)}
     .atende-topbar{min-width:0;max-width:100vw;overflow:visible;background:linear-gradient(90deg,var(--agf-top),#163b5f);color:#fff;box-shadow:0 1px 0 rgba(15,23,42,.08);position:relative;z-index:30}
     .atende-topbar-inner{width:100%;min-width:0;max-width:100%;height:58px;display:flex;align-items:center;padding:0 22px;gap:12px;overflow:visible}
     .portal-btn{width:36px;height:36px;border:0;background:transparent;color:#9ab1c9;border-radius:8px;display:grid;place-items:center;text-decoration:none;cursor:pointer;transition:.15s;flex:0 0 auto}
@@ -44,8 +45,12 @@
 </head>
 <body>
   <div class="atende-shell">
-    <header class="atende-topbar">
-      <div class="atende-topbar-inner">
+    <div data-agf-header data-route="/atende"></div>
+    <!-- Topo padrao (agf-header v1.1.0). Os elementos abaixo sao do topo antigo e ficam
+         ocultos so porque o JS da pagina ainda amarra eventos neles pelo id.
+         O cabecalho novo aciona esses botoes. Nao remover sem ajustar o JS. -->
+    <div class="agf-legacy-topbar" hidden aria-hidden="true">
+      <div>
         <a class="portal-btn" href="/agf/" title="Voltar ao Portal AGF" aria-label="Voltar ao Portal AGF"><span class="material-symbols-rounded">apps</span></a>
         <span class="top-divider" aria-hidden="true"></span>
         <a class="atende-brand" href="/agf/" aria-label="Voltar ao Portal AGF"><span class="brand-icon"><span class="material-symbols-rounded">support_agent</span></span><span><strong>Visão 360</strong><small>AGF JOSÉ BONIFÁCIO</small></span></a>
@@ -64,7 +69,7 @@
           </div>
         </div>
       </div>
-    </header>
+    </div>
     <main class="atende-frame-wrap">
 <iframe id="atendeFrame" src="https://script.google.com/macros/s/AKfycbwCBAG4gBVHMHh7cHgnIG215RL8m8CbymvsAaHcs4bXhp0RCyPeP_cr6IA5iZtsch_m1g/exec" data-agf-frame-src="https://script.google.com/macros/s/AKfycbwCBAG4gBVHMHh7cHgnIG215RL8m8CbymvsAaHcs4bXhp0RCyPeP_cr6IA5iZtsch_m1g/exec" title="Visão 360" loading="eager" scrolling="auto" referrerpolicy="strict-origin-when-cross-origin"></iframe>
     </main>
@@ -164,5 +169,22 @@
     })();
     if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/atende/sw.js').catch(()=>{}));}
   </script>
+<script src="/shared/ui/agf-header.js?v=2"></script>
+<script>
+/* Topo padrao do Visao 360. Admin aparece so quando o script da pagina
+   libera o botao antigo (perfil admin ou mensagem agf:admin-state). */
+(function(){
+  var adminBtn = document.getElementById('adminTopBtn');
+  var refreshBtn = document.getElementById('refreshFrameBtn');
+  var ADMIN = [{ id:'admin', label:'Admin', icon:'shield', onClick:function(){ adminBtn.click(); } }];
+  AgfHeader.mount({
+    route: '/atende',
+    onRefresh: function(){ refreshBtn.click(); }
+  });
+  function syncAdmin(){ AgfHeader.setActions(adminBtn.style.display === 'inline-flex' ? ADMIN : []); }
+  syncAdmin();
+  new MutationObserver(syncAdmin).observe(adminBtn, { attributes:true, attributeFilter:['style'] });
+})();
+</script>
 </body>
 </html>

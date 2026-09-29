@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>agf-header - página de referência</title>
-<link rel="stylesheet" href="agf-header.css">
+<link rel="stylesheet" href="agf-header.css?v=2">
 <style>
   :root{ --shell:1180px; --line:#E3E8EF; --muted:#6B7C93; --ink:#10233D }
   *{box-sizing:border-box}
@@ -36,7 +36,7 @@
 
 <main class="shell">
   <h1>Página de referência do cabeçalho</h1>
-  <p class="lead">Valida a instalação e serve de gabarito. Role para ver o gloss virar material tingido. Use os controles abaixo para testar rota, sessão e carregamento.</p>
+  <p class="lead">Valida a instalação e serve de gabarito. Role para ver o fundo virar material translúcido. Use os controles para testar rota, sessão (sem sessão o slot fica vazio), carregamento e, abaixo de 640px, o título curto.</p>
 
   <div class="panel">
     <b>Controles de teste</b>
@@ -54,7 +54,7 @@
   <div class="grid" id="g2"></div>
 </main>
 
-<script src="agf-header.js"></script>
+<script src="agf-header.js?v=2"></script>
 <script>
   var USER = { name:'Rachel', role:'Administrador', photo:null };
   var comSessao = true;
@@ -72,8 +72,7 @@
       onRefresh: function(){ carregar(900); },
       onChangePhoto: function(){ alert('Alterar foto'); },
       onChangePassword: function(){ alert('Alterar senha'); },
-      onLogout: function(){ comSessao = false; montar(); },
-      onLogin: function(){ comSessao = true; montar(); }
+      onLogout: function(){ comSessao = false; montar(); }
     });
   }
 
