@@ -65,7 +65,15 @@ Regras de escopo no servidor: LOCAL não liberado é recusado em todas as rotas 
 12. `/crm/?classico=1` mostra o CRM antigo funcionando.
 13. Home e Prospects iguais a antes.
 
-## 7. Pendências conhecidas
+## 7. Regra de contrato (motor 1.1.0, 30/09/2026)
+
+1. Contrato próprio = postagem nos últimos 60 dias com PORTAL POSTAL, CONTRATO ECT ou número de contrato. Não contam VR (Clube Correios, contrato coletivo 9912653619) nem INTERMEDIADOR (SuperFrete e similares).
+2. Quem tem contrato próprio aparece com contrato e com o número dele, mesmo que o canal que mais pesa seja VR ou balcão. O canal que mais pesa fica em `CANAL_PREDOMINANTE`.
+3. Com contrato próprio nunca é Converter nem Cancelar. Se 30% ou mais do valor em 60 dias foi fora do contrato, vira Fidelizar ("migrar o volume para o contrato"); prioridade alta quando mais da metade vai por fora e o cliente é relevante.
+4. Só VR: segue a regra VR do motor (Cancelar, a não ser que o faturamento justifique Converter) e não mostra o número do Clube Correios.
+5. A paridade com o Apps Script antigo continua testada com a regra AGF desligada (`regrasAgf: false`); a regra AGF tem testes próprios em `test/crm_integrado.test.mjs`.
+
+## 8. Pendências conhecidas
 
 - `crm_midias` está vazia: a mídia sugerida aparece só com o código, sem link. Precisa do conteúdo dos materiais.
 - WhatsApp vem do cadastro manual (`crm_cadastro`), que ainda está vazio: no começo quase todos mostram "Sem número" até o cadastro ser completado.

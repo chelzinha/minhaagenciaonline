@@ -86,7 +86,11 @@ export async function statusCarteira(env) {
 
 /** O CRM so calcula depois de uma passagem completa com as colunas do Atende (intermediador, tipo, subgrupo). */
 export async function crmPronto(db) {
-  const r = await db.prepare(`SELECT chave, valor FROM cid_estado WHERE chave IN ('sync_passagem','crm_min_passagem','crm_pendente')`).all();
+  const r = await db.prepare(`SELECT chave, valor FROM cid_estado WHERE chave IN ('sync_passagem','crm_min_passagem','crm_pendente','crm_ultimo')`).all();
   const e = Object.fromEntries((r.results || []).map((x) => [x.chave, x.valor]));
-  return { pronto: Number(e.sync_passagem || 0) >= Number(e.crm_min_passagem || 0), pendente: e.crm_pendente === '1' };
+  // motor com regra nova (versão diferente da última gravada) recalcula sozinho no próximo cron
+  let versaoGravada = '';
+  try { versaoGravada = JSON.parse(e.crm_ultimo || '{}').versao || ''; } catch { versaoGravada = ''; }
+  const versaoMudou = !!versaoGravada && versaoGravada !== CRM_MOTOR_VERSAO;
+  return { pronto: Number(e.sync_passagem || 0) >= Number(e.crm_min_passagem || 0), pendente: e.crm_pendente === '1' || versaoMudou };
 }

@@ -100,13 +100,18 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
   const LS = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem armazenamento: vale só nesta sessão */ } } };
   const tab = LS.get('crm_cix_tabelas_v1', {}) || {};
   const S = {
-    local: LS.get('crm_cix_local', ''), resp: null, ord: tab.ord || {}, srt: tab.srt || {}, w: tab.w || {}, flt: {},
+    local: LS.get('crm_cix_local', ''), resp: null, ord: tab.ord || {}, srt: tab.srt || {}, w: tab.w || {}, hid: tab.hid || {}, flt: {},
     acF: '', prF: '', funilLimite: {}, cadBusca: '', cadSemProx: false, cadLimite: 300, acoesLimite: 200,
-    curvaBusca: '', curvaFiltro: '', curvaNovo: false, curvaInter: '', curvaCtr: '', curvaLimite: 400,
+    curvaBusca: '', curvaFiltro: '', curvaNovo: false, curvaInter: '', curvaCtr: '', curvaLimite: 400, dspF: '',
     agTipo: '', agStatus: '',
     carteira: {}, abc: {}, carregando: {}, erro: {},
   };
-  const salvarTabelas = () => LS.set('crm_cix_tabelas_v1', { ord: S.ord, srt: S.srt, w: S.w });
+  /* filtro por tempo sem postar (mesmos cortes do motor: 30 e 60 dias). Vale para Curva ABC, Cadastro e Ações. */
+  const FAIXAS_DSP = [['ate30', 'menos de 30 dias'], ['30a60', '30 a 59 dias'], ['60mais', '60 dias ou mais']];
+  const faixaDsp = (d) => (d < 30 ? 'ate30' : d < 60 ? '30a60' : '60mais');
+  const passaDsp = (d) => !S.dspF || faixaDsp(Number(d)) === S.dspF;
+  const dspChip = () => selChip('dspF', ci('clock', V.orange, V.blue, 'sm'), 'Sem postar', S.dspF, FAIXAS_DSP, 'todos');
+  const salvarTabelas = () => LS.set('crm_cix_tabelas_v1', { ord: S.ord, srt: S.srt, w: S.w, hid: S.hid });
 
   /* ---------------- LOCAL (filtro pai) e responsável (filtro filho) ---------------- */
   function locaisPermitidos() {
@@ -146,7 +151,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     return `<label class="sel" title="Responsável">${ci('team', V.blue, V.orange, 'sm')}<span class="rl">Responsável: </span><select data-cx-resp aria-label="Responsável"><option value="">Todos</option>${respOptions().map(([id, nome]) => `<option value="${esc(id)}" ${norm(id) === norm(atual) ? 'selected' : ''}>${esc(nome)}</option>`).join('')}</select></label>`;
   }
   const respBate = (id, nome) => { const r = respAtual(); if (!r) return true; return norm(id) === norm(r) || norm(nome) === norm(C.responsibleDisplay(r)); };
-  const selChip = (key, icone, rotulo, valor, opcoes) => `<label class="sel">${icone}<span class="rl">${rotulo}: </span><select data-cx-sel="${key}" aria-label="${esc(rotulo)}"><option value="">todas</option>${opcoes.map(([v, t]) => `<option value="${esc(v)}" ${v === valor ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
+  const selChip = (key, icone, rotulo, valor, opcoes, vazio = 'todas') => `<label class="sel">${icone}<span class="rl">${rotulo}: </span><select data-cx-sel="${key}" aria-label="${esc(rotulo)}"><option value="">${vazio}</option>${opcoes.map(([v, t]) => `<option value="${esc(v)}" ${v === valor ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
 
   /* ---------------- dados ---------------- */
   const FRESCO_MS = 2 * 60e3;
@@ -237,8 +242,18 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       <div class="thc" title="${c.fixed ? '' : 'Arraste para mover a coluna'}"><span class="thl" title="${esc(c.t)}">${c.t}${seta ? ' ' + seta : ''}</span>${c.noSort ? '' : `<button type="button" class="srt" data-sortk="${c.k}" data-tb="${id}" aria-label="Ordenar por ${esc(c.t)}">${ic('sort')}</button>`}${c.noFilter ? '' : `<button type="button" class="flt" data-fltk="${c.k}" data-tb="${id}" aria-label="Filtrar ${esc(c.t)}">${ic('filter')}</button>`}</div>${rz(id, c.k)}</th>`;
   }
   /** Tabela genérica. rows já filtradas pela tela; aqui entram filtro por coluna, ordem e limite. */
+  /* esconder colunas (padrão do /atende): a escolha fica salva no navegador */
+  const oculta = (id, k) => !!(S.hid[id] && S.hid[id].includes(k));
+  const visiveis = (id, o) => o.filter((k) => !oculta(id, k));
+  function colunasMenu(id, cols) {
+    const podem = cols.filter((c) => !c.fixed && !c.hidden);
+    const n = podem.filter((c) => !oculta(id, c.k)).length;
+    return `<div class="menu"><button type="button" class="btn sm" data-cx-menu="col-${id}" title="Mostrar ou esconder colunas">${ci('grid', V.blue, V.orange, 'sm')}Colunas <span class="muted">${n}/${podem.length}</span></button>
+      <div class="menu-pop hidden cols-pop" data-cx-pop="col-${id}">${podem.map((c) => `<label><input type="checkbox" data-cx-hid="${id}|${c.k}" ${oculta(id, c.k) ? '' : 'checked'}> ${esc(c.tLong || c.t)}</label>`).join('')}
+        <button type="button" data-cx-hid-todas="${id}">${ic('refresh', 'sm')}Mostrar todas</button></div></div>`;
+  }
   function grid(id, cols, rows, { maxH = '', limite = 0, rowAttr = null, maisKey = '' } = {}) {
-    const o = ordem(id, cols), cm = Object.fromEntries(cols.map((c) => [c.k, c]));
+    const o = visiveis(id, ordem(id, cols)), cm = Object.fromEntries(cols.map((c) => [c.k, c]));
     const r = ordenar(id, filtrar(id, rows, cols), cols);
     const vis = limite ? r.slice(0, limite) : r;
     const larg = o.map((k) => W(id, k, defW(cm[k]))), total = larg.reduce((a, b) => a + b, 0);
@@ -371,7 +386,8 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const q = norm(S.cadBusca);
     let rows = lista.map((c) => { const t = trt.get(c.clienteId), a = abcMap && abcMap.get(c.clienteId); return { c, t, a, prox: t && t.proximaAtividade }; })
       .filter((x) => !q || norm([x.c.cliente, x.c.nomeFantasia, x.c.razaoSocial, x.c.cnpjCpf, x.c.numeroContrato, x.c.cartao, x.c.whatsapp].join(' ')).includes(q))
-      .filter((x) => !S.cadSemProx || !x.prox);
+      .filter((x) => !S.cadSemProx || !x.prox)
+      .filter((x) => passaDsp(num(x.c.diasSemPostar)));
     const ETO = Object.fromEntries(etapas().map((e, i) => [e.etapaId, i + 1]));
     const cols = [
       { k: 'nome', t: 'Cliente', w: 270, v: (x) => C.entityName(x.c), cls: 'cn', cell: (x) => `${esc(C.entityName(x.c))}${x.a && x.a.novo ? ' <span class="chip novo">NOVO</span>' : ''}<small>${esc(x.c.cnpjCpf || 'CNPJ a completar')}</small>` },
@@ -390,10 +406,11 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     <div class="tbar">
       <label class="search">${ic('search', 'sm')}<input data-cx-busca="cadBusca" value="${esc(S.cadBusca)}" placeholder="Nome, CNPJ, contrato ou cartão" aria-label="Pesquisar cliente"></label>
       <button type="button" class="btn sm ${S.cadSemProx ? 'pri' : ''}" data-cx-toggle="cadSemProx">${ic('alert', 'sm')}Sem próxima atividade</button>
+      ${dspChip()}
       ${C.can('canEditClients') ? `<button type="button" class="btn sm" data-cx-novo-cliente>${ic('plus', 'sm')}Novo cliente</button>` : ''}
-      <span class="chip" style="margin-left:auto;background:${V.blue}1A;color:${V.blue}">${ic('users', 'sm')}${n0(rows.length)} clientes</span>
+      <span class="chip" style="margin-left:auto;background:${V.blue}1A;color:${V.blue}">${ic('users', 'sm')}${n0(rows.length)} clientes</span><button type="button" class="btn sm" data-cx-foco title="Leva a tabela para o topo e usa a altura toda da tela">${ci('open', V.blue, V.orange, 'sm')}Tela cheia</button>${colunasMenu('cad', cols)}
     </div>
-    ${grid('cad', cols, rows, { limite: S.cadLimite, maisKey: 'cadLimite', maxH: '70vh' })}`;
+    ${grid('cad', cols, rows, { limite: S.cadLimite, maisKey: 'cadLimite', maxH: 'var(--cix-tabela-h)' })}`;
   };
 
   T['clientes-acoes'] = () => {
@@ -402,7 +419,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     if (!cart || !lista) return cab + carregandoHtml('Carregando as ações do LOCAL…');
     const L = cart.resumo, loc = NOME_LOCAL[localAtual()] || localAtual();
     const tot = Object.values(L.acoes).reduce((a, b) => a + b, 0);
-    const rows = lista.filter((c) => { const a = normAc(c.acaoEngine || c.acao); return a !== 'MANTER' && a !== 'CANCELAR' && (!S.acF || a === S.acF); })
+    const rows = lista.filter((c) => { const a = normAc(c.acaoEngine || c.acao); return a !== 'MANTER' && a !== 'CANCELAR' && (!S.acF || a === S.acF) && passaDsp(num(c.diasSemPostar)); })
       .map((c) => ({ c, t: trt.get(c.clienteId) }));
     const ETO = Object.fromEntries(etapas().map((e, i) => [e.etapaId, i + 1]));
     const canal = (v) => { const u = norm(v).toUpperCase(); return u.includes('VISITA') ? ['Visita', 'pin', V.orange, V.blue] : u.includes('LIGA') || u.includes('WHATS') ? ['WhatsApp e ligação', 'chat', '#16A34A', V.teal] : u ? [text(v).replace(/_/g, ' ').toLowerCase(), 'chat', '#16A34A', V.teal] : ['', '', '', '']; };
@@ -430,7 +447,8 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       <div class="card"><div class="card-h"><div>${h2i('pie', V.blue, V.orange, 'Carteira por ação')}<p>${n0(tot)} clientes${S.acF ? ` · filtrando ${acChip(S.acF)} <button type="button" class="link" data-cx-acf="">limpar</button>` : ''}</p></div></div>
         <div class="classes">${Object.entries(L.acoes).filter(([, v]) => v).sort((a, b) => (AC_ORD[b[0]] || 0) - (AC_ORD[a[0]] || 0)).map(([k, v]) => `<button type="button" class="cls clsb ${S.acF === k ? 'on' : ''}" data-cx-acf="${S.acF === k ? '' : k}" style="grid-template-columns:100px 1fr 60px;opacity:${S.acF && S.acF !== k ? .45 : 1}" title="${esc((AC_INFO[k] || {}).txt || '')}"><span>${acChip(k)}</span><span class="bar" style="height:12px"><i style="width:${v / Math.max(1, tot) * 100}%;background:${(AC_INFO[k] || AC_INFO.MANTER).cor}"></i></span><b class="num r">${n0(v)}</b></button>`).join('')}</div></div>
     </div>
-    ${grid('acoes', cols, rows, { limite: S.acoesLimite, maisKey: 'acoesLimite', maxH: '70vh' })}`;
+    <div class="tbar" style="justify-content:flex-end">${dspChip()}<span style="margin-left:auto"></span><span class="chip" style="background:${V.blue}1A;color:${V.blue}">${ic('users', 'sm')}${n0(rows.length)} clientes</span>${colunasMenu('acoes', cols)}</div>
+    ${grid('acoes', cols, rows, { limite: S.acoesLimite, maisKey: 'acoesLimite', maxH: 'var(--cix-tabela-h)' })}`;
   };
 
   /* ---------------- Curva ABC 12M ---------------- */
@@ -452,7 +470,8 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const q = norm(S.curvaBusca);
     return abc.rows.filter((r) => (!S.curvaFiltro || r.abc === S.curvaFiltro) && (!S.curvaNovo || r.novo)
       && (!S.curvaInter || r.intermediador === S.curvaInter) && (!S.curvaCtr || (S.curvaCtr === 'SIM') === !!r.contrato)
-      && (!q || norm(r.nome + ' ' + r.intermediador).includes(q)));
+      && (!q || norm(r.nome + ' ' + r.intermediador).includes(q))
+      && passaDsp(r.ultima ? Math.round((Date.parse(abc.ultimaPostagem) - Date.parse(r.ultima)) / 864e5) : 9999));
   }
   T['clientes-curva'] = () => {
     const id = 'curva', abc = curva(), loc = NOME_LOCAL[localAtual()] || localAtual();
@@ -468,8 +487,9 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       { k: 'nome', t: 'Cliente', fixed: 1, v: (c) => c.nome },
       { k: 'abc', t: 'ABC', v: (c) => c.abc },
       { k: 'rk', t: '#', r: 1, v: (c) => c.rank },
-      { k: 'inter', t: 'Intermediador', v: (c) => c.intermediador },
-      { k: 'meses', t: 'Meses', noSort: 1, noFilter: 1 },
+      { k: 'inter', t: 'Intermediador', tLong: 'Intermediador (TIPO do Atende)', v: (c) => c.intermediador },
+      { k: 'ult', t: 'Última postagem', v: (c) => c.ultima || '' },
+      { k: 'meses', t: 'Meses', tLong: 'Meses (quantidade e valor)', noSort: 1, noFilter: 1 },
       { k: 'tQ', t: 'Total QTD', r: 1, v: (c) => c.tQ },
       { k: 'tV', t: 'Total faturado', r: 1, v: (c) => c.tV },
       { k: 'tk', t: 'Ticket', r: 1, v: (c) => c.tk },
@@ -482,7 +502,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     let rows = ordenar(id, filtrar(id, linhasCurva(abc), cols), cols);
     const total = rows.length;
     rows = rows.slice(0, S.curvaLimite);
-    const o = ordem(id, cols.filter((c) => !c.hidden && c.k !== 'nome'));
+    const o = visiveis(id, ordem(id, cols.filter((c) => !c.hidden && c.k !== 'nome')));
     const cm = Object.fromEntries(cols.map((c) => [c.k, c]));
     const tot = R.total || 1;
     const cls = ['A', 'B', 'C'].map((c) => `<button type="button" class="cls clsb ${S.curvaFiltro === c ? 'on' : ''}" data-cx-cf="${S.curvaFiltro === c ? '' : c}">${abcChip(c)}<span class="bar" style="height:12px"><i style="width:${R[c][1] / tot * 100}%;background:var(--${c.toLowerCase()})"></i></span><span class="num r">${brlK(R[c][1])}</span><b class="num r">${n0(R[c][0])} cli.</b></button>`).join('');
@@ -495,9 +515,9 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       return `<td class="hc q ${cl} num">${n0(q)}</td><td class="hc ${cl} num">${brl(v)}${arr}</td>`;
     };
     const s = S.srt[id];
-    const DW = { nome: 260, abc: 92, rk: 78, inter: 150, sb: 76, tQ: 104, tV: 136, tk: 104, part: 84, acum: 84, ac: 116 };
+    const DW = { nome: 240, ult: 150, abc: 90, rk: 64, inter: 136, sb: 70, tQ: 92, tV: 122, tk: 92, part: 74, acum: 74, ac: 108 };
     const chaves = ['nome'].concat(...o.map((k) => (k === 'meses' ? (temSemBase ? ['sb'] : []).concat(...MB.map(([m]) => ['q_' + m, 'v_' + m])) : [k])));
-    const dw = (k) => DW[k] || (k.startsWith('q_') ? 70 : 112);
+    const dw = (k) => DW[k] || (k.startsWith('q_') ? 56 : 96);
     const largC = chaves.map((k) => W(id, k, dw(k))), totalC = largC.reduce((a, b) => a + b, 0);
     const colg = `<colgroup>${chaves.map((k, i) => `<col data-k="${k}" style="width:${largC[i]}px">`).join('')}</colgroup>`;
     const semBaseTxt = temSemBase ? `${ymLabel(abc.meses[0]).slice(0, 3)} a ${ymLabel(MB.length ? abc.meses[MB[0][1] - 1] : abc.meses[11]).slice(0, 3)}` : '';
@@ -509,7 +529,8 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const bodyCell = (c, k) => ({
       abc: () => `<td>${abcChip(c.abc)}</td>`,
       rk: () => `<td class="r num faint">${c.rank}</td>`,
-      inter: () => `<td style="font-size:12px;white-space:nowrap">${esc(c.intermediador)}</td>`,
+      inter: () => `<td style="white-space:nowrap" title="${esc(c.intermediador)}">${esc(c.intermediador)}</td>`,
+      ult: () => { const d = c.ultima ? Math.round((Date.parse(abc.ultimaPostagem) - Date.parse(c.ultima)) / 864e5) : null; return `<td class="num" style="white-space:nowrap">${c.ultima ? c.ultima.slice(8, 10) + '/' + c.ultima.slice(5, 7) + '/' + c.ultima.slice(2, 4) : '-'}${d != null && d > 0 ? ` <span class="faint" style="${d >= 30 ? 'color:#C81E1E;font-weight:700' : ''}">${d}d</span>` : ''}</td>`; },
       meses: () => `${temSemBase ? '<td class="hc q st-nob"></td>' : ''}${MB.map(([, i]) => cell(c, i)).join('')}`,
       tQ: () => `<td class="r num">${n0(c.tQ)}</td>`,
       tV: () => `<td class="r num" style="font-weight:800;color:#0B3A63">${brl(c.tV)}</td>`,
@@ -521,22 +542,20 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const nomeOn = s && s.k === 'nome', flNome = S.flt[id] && text(S.flt[id].nome);
     const inters = [...new Set(abc.rows.map((r) => r.intermediador))].sort();
     return cab + `
-    <div class="abc-top">
-      <div class="kpis">
+    <div class="kpis kpis6">
         ${kt('money', V.blue, V.green, 'Faturamento 12M', brlK(R.total), `<span class="muted">${nMesesBase} ${nMesesBase === 1 ? 'mês' : 'meses'} com base</span>`)}
         ${kt('box', V.orange, V.blue, 'Objetos 12M', n0(R.qtd), '<span class="muted">estornos não contam</span>')}
         ${kt('users', V.teal, V.orange, 'Clientes na janela', n0(R.clientes), `<span class="muted">com postagem no LOCAL ${esc(loc)}</span>`)}
-        ${kt('trend-up', V.green, V.blue, `${ymLabel(abc.mesParcial)} (parcial)`, brlK(vP), varP == null ? '' : `<span style="color:${varP >= 0 ? V.green : V.red}">${varP >= 0 ? '▲' : '▼'} ${pct(Math.abs(varP))} sobre o mês anterior</span>`)}
+        ${kt('trend-up', V.green, V.blue, `${ymLabel(abc.mesParcial)} (parcial)`, brlK(vP), varP == null ? '' : `<span style="color:${varP >= 0 ? V.green : V.red}" title="Comparado ao mês anterior inteiro">${varP >= 0 ? '▲' : '▼'} ${pct(Math.abs(varP))} vs ${ymLabel(abc.meses[iP - 1]).slice(0, 3)}</span>`)}
         ${kt('sparkle', V.purple, V.yellow, 'Clientes novos', n0(R.novos), `<span class="muted">${esc(novosTxt || 'desde ' + fmtD(abc.novoDesde) + '/' + abc.novoDesde.slice(0, 4))}</span>`)}
         ${kt('moon', V.red, V.yellow, `Sem postagem em ${ymLabel(abc.mesParcial).slice(0, 3)}`, n0(R.semPostagemMesAtual), '<span class="muted">postaram antes na janela</span>')}
-      </div>
-      <div class="card"><div class="card-h"><div>${h2i('pie', V.orange, V.blue, 'Participação por curva')}</div></div><div class="classes">${cls}</div>
-        <div id="cx-ch-evol" class="chx" style="height:200px;margin-top:6px" role="img" aria-label="Faturamento por curva e objetos por mês"></div></div>
     </div>
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-h"><div>${h2i('abc', V.blue, V.orange, 'Pareto da carteira')}</div>
+    <div class="abc-top abc-graf">
+      <div class="card"><div class="card-h"><div>${h2i('pie', V.orange, V.blue, 'Participação por curva')}</div></div><div class="classes">${cls}</div>
+        <div id="cx-ch-evol" class="chx" style="height:210px;margin-top:6px" role="img" aria-label="Faturamento por curva e objetos por mês"></div></div>
+      <div class="card"><div class="card-h"><div>${h2i('abc', V.blue, V.orange, 'Pareto da carteira')}</div>
         <div class="abcchips">${['A', 'B', 'C'].map((c) => `<span class="chip" style="background:var(--${c.toLowerCase()});color:#fff">${c} · ${n0(R[c][0])}</span>`).join('')}</div></div>
-      <div id="cx-ch-pareto" class="chx" style="height:300px" role="img" aria-label="Pareto do faturamento de 12 meses"></div>
+        <div id="cx-ch-pareto" class="chx grow" style="height:330px" role="img" aria-label="Pareto do faturamento de 12 meses"></div></div>
     </div>
     <div class="tbar">
       <label class="search">${ic('search', 'sm')}<input data-cx-busca="curvaBusca" value="${esc(S.curvaBusca)}" placeholder="Cliente ou intermediador" aria-label="Pesquisar"></label>
@@ -544,15 +563,16 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       <button type="button" class="btn sm ${S.curvaNovo ? 'pri' : ''}" data-cx-toggle="curvaNovo">${ic('sparkle', 'sm')}NOVO</button>
       ${selChip('curvaInter', '', 'Intermediador', S.curvaInter, inters.map((x) => [x, x]))}
       ${selChip('curvaCtr', '', 'Contrato', S.curvaCtr, [['SIM', 'Com contrato'], ['NAO', 'Sem contrato']])}
-      <button type="button" class="btn sm" style="margin-left:auto" data-cx-csv>${ci('download', V.green, V.blue, 'sm')}Exportar CSV</button>
+      ${dspChip()}
+      <span style="margin-left:auto"></span><button type="button" class="btn sm" data-cx-foco title="Leva a tabela para o topo e usa a altura toda da tela">${ci('open', V.blue, V.orange, 'sm')}Tela cheia</button>${colunasMenu('curva', cols)}<button type="button" class="btn sm" data-cx-csv>${ci('download', V.green, V.blue, 'sm')}Exportar CSV</button>
     </div>
-    <div class="tw heat fx" style="max-height:620px"><table style="width:${totalC}px">${colg}
+    <div class="tw heat fx" style="max-height:var(--cix-tabela-h)"><table style="width:${totalC}px">${colg}
       <thead><tr>
         <th class="stick fixed ${flNome ? 'filtered' : ''}" rowspan="2" data-tb="${id}" data-col="nome"><div class="thc" style="cursor:default"><span class="thl">Cliente${nomeOn ? (s.d < 0 ? ' ▼' : ' ▲') : ''}</span><button type="button" class="srt" data-sortk="nome" data-tb="${id}" aria-label="Ordenar por nome">${ic('sort')}</button><button type="button" class="flt" data-fltk="nome" data-tb="${id}" aria-label="Filtrar cliente">${ic('filter')}</button></div>${rz(id, 'nome')}</th>
         ${head1}
       </tr><tr>${head2}</tr></thead>
       <tbody>${rows.map((c) => `<tr>
-        <td class="stick cn" style="font-size:12.5px"><a class="ell" title="${esc(c.nome)}" href="#" data-cx-ficha="${esc(c.id)}" style="color:inherit;text-decoration:none">${esc(c.nome)}</a>${c.novo ? ' <span class="chip novo">NOVO</span>' : ''}<small>1ª postagem ${c.primeira ? c.primeira.split('-').reverse().join('/') : '-'}</small></td>
+        <td class="stick cn"><a class="ell" title="${esc(c.nome)}" href="#" data-cx-ficha="${esc(c.id)}" style="color:inherit;text-decoration:none">${esc(c.nome)}</a><small>1ª postagem ${c.primeira ? c.primeira.split('-').reverse().join('/') : '-'}${c.novo ? ' <span class="chip novo">NOVO</span>' : ''}</small></td>
         ${o.map((k) => bodyCell(c, k)).join('')}
       </tr>`).join('') || `<tr><td colspan="${chaves.length}"><div class="empty">Nenhum cliente com estes filtros.</div></td></tr>`}</tbody>
     </table></div>
@@ -566,10 +586,10 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const abc = S.abc[localAtual()];
     if (!abc) return;
     const MB = abc.meses.map((m, i) => [m, i]).filter(([m]) => m >= abc.baseIni);
-    const cabec = ['Cliente', 'ABC', 'Rank', 'Intermediador', 'Contrato', 'Primeira postagem', 'Novo', ...MB.flatMap(([m]) => [ymLabel(m) + ' QTD', ymLabel(m) + ' Valor']), 'Total QTD', 'Total faturado', 'Ticket', 'Participação', 'Acumulado', 'Ação CRM'];
+    const cabec = ['Cliente', 'ABC', 'Rank', 'Intermediador (TIPO do Atende)', 'Contrato', 'Primeira postagem', 'Última postagem', 'Novo', ...MB.flatMap(([m]) => [ymLabel(m) + ' QTD', ymLabel(m) + ' Valor']), 'Total QTD', 'Total faturado', 'Ticket', 'Participação', 'Acumulado', 'Ação CRM'];
     const q = (v) => { const t = String(v ?? ''); return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
     const nb = (v, d = 2) => num(v).toFixed(d).replace('.', ',');
-    const linhas = linhasCurva(abc).map((r) => [r.nome, r.abc, r.rank, r.intermediador, r.contrato ? 'SIM' : 'NAO', r.primeira, r.novo ? 'SIM' : 'NAO', ...MB.flatMap(([, i]) => [r.q[i], nb(r.v[i])]), r.tQ, nb(r.tV), nb(r.tk), nb(r.part * 100), nb(r.acum * 100), r.acao]);
+    const linhas = linhasCurva(abc).map((r) => [r.nome, r.abc, r.rank, r.intermediador, r.contrato ? 'SIM' : 'NAO', r.primeira, r.ultima || '', r.novo ? 'SIM' : 'NAO', ...MB.flatMap(([, i]) => [r.q[i], nb(r.v[i])]), r.tQ, nb(r.tV), nb(r.tk), nb(r.part * 100), nb(r.acum * 100), r.acao]);
     const csv = '﻿' + [cabec, ...linhas].map((l) => l.map(q).join(';')).join('\r\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -1095,6 +1115,8 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       if ((b = q('[data-f-trt]'))) { const id = b.dataset.fTrt; fecharFicha(); C.openTreatmentModal(id); return; }
     }
     if ((b = q('[data-cx-menu]'))) { const pop = b.parentElement.querySelector('[data-cx-pop]'); const abrir = pop.classList.contains('hidden'); fecharPops(pop); pop.classList.toggle('hidden', !abrir); return; }
+    if ((b = q('[data-cx-hid-todas]'))) { delete S.hid[b.dataset.cxHidTodas]; salvarTabelas(); redesenhar(); return; }
+    if (q('.cols-pop')) return;
     if ((b = q('[data-cx-exp]'))) { fecharPops(); if (b.dataset.cxExp === 'png') C.saveCurrentViewAsImage({ currentTarget: b }); else window.print(); return; }
     if ((b = q('[data-fltk]'))) { e.stopPropagation(); abrirFiltroColuna(b); return; }
     if (q('.fpop')) return;
@@ -1110,6 +1132,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     if ((b = q('[data-cx-funil-mais]'))) { const k = b.dataset.cxFunilMais; S.funilLimite[k] = (S.funilLimite[k] || 25) + 25; redesenhar(); return; }
     if (q('[data-cx-recarregar]')) { invalidar(); redesenhar(); return; }
     if (q('[data-cx-csv]')) { exportarCsv(); return; }
+    if ((b = q('[data-cx-foco]'))) { const bar = b.closest('.tbar'); if (bar) bar.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if ((b = q('[data-cx-assumir]'))) { e.stopPropagation(); assumir(b.dataset.cxAssumir, b); return; }
     if ((b = q('[data-cx-concluir-trt]'))) { e.stopPropagation(); concluirTratativa(b.dataset.cxConcluirTrt, b); return; }
     if ((b = q('[data-cx-nova-cli]'))) { e.preventDefault(); e.stopPropagation(); const t = tratativaPorCliente().get(b.dataset.cxNovaCli); abrirNova({ type: 'CLIENTE', id: b.dataset.cxNovaCli, tratativaId: t && ['aberta', 'pausada'].includes(norm(t.statusTratativa)) ? t.tratativaId : '' }); return; }
@@ -1131,6 +1154,13 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const t = e.target;
     if (!t.closest || !t.closest('.cix')) return;
     if (t.matches('[data-cx-resp]')) { S.resp = t.value; redesenhar(); return; }
+    if (t.matches('[data-cx-hid]')) {
+      const [id, k] = t.dataset.cxHid.split('|'), l = new Set(S.hid[id] || []);
+      if (t.checked) l.delete(k); else l.add(k);
+      S.hid[id] = [...l]; salvarTabelas();
+      const pop = `col-${id}`; renderClientes(); const p = $(`.cix [data-cx-pop="${pop}"]`); if (p) p.classList.remove('hidden');
+      return;
+    }
     if (t.matches('[data-cx-sel]')) { S[t.dataset.cxSel] = t.value; redesenhar(); return; }
     if (M && t.matches('[data-m="data"]')) { lerCamposModal(); if (M.data && !diaUtil(M.data)) { M.erro = 'A agenda é de dias úteis. Escolha de segunda a sexta.'; desenharModal(); } else if (M.erro) { M.erro = ''; desenharModal(); } }
   });

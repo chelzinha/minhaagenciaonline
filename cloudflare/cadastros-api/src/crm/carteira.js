@@ -90,7 +90,7 @@ export async function getCarteira(env, p, user) {
     const d = js(r.dados), t = abertas.get(r.cliente_id);
     return { clienteId: r.cliente_id, cliente: text(r.nome), local, acao: normAc(r.acao), subAcao: text(r.sub_acao), prioridade: normPr(r.prioridade),
       curva: text(r.curva), fat30: num(r.fat_30d), diasSemPostar: num(d.DIAS_SEM_POSTAR), ultima: text(r.ultima), motivo: text(d.MOTIVO_REGRA),
-      canal: text(d.CANAL_SUGERIDO), midia: text(d.MIDIA), temContrato: text(d.TEM_CONTRATO) === 'SIM', intermediador: text(d.INTERMEDIADOR_PREDOMINANTE),
+      canal: text(d.CANAL_SUGERIDO), midia: text(d.MIDIA), temContrato: text(d.TEM_CONTRATO) === 'SIM', intermediador: text(d.TIPO_CONTRATO_PREDOMINANTE) || text(d.INTERMEDIADOR_PREDOMINANTE),
       whatsapp: wa.get(r.cliente_id) || '', tratativaId: t ? text(t.TRATATIVA_ID) : '', etapaId: t ? text(t.ETAPA_ID) : '',
       temAtividade: futuras.has(r.cliente_id) };
   });
@@ -165,10 +165,12 @@ export async function getCurvaAbc(env, p, user) {
 
   const meses = mesesJanela(ultima.slice(0, 7), 12), ini = meses[0];
   const [agg, pri] = await db.batch([
-    db.prepare(`SELECT n.cliente_id id, substr(p.data_postagem,1,7) ym, SUM(p.estorno = 0) q, ROUND(SUM(p.valor),2) v
+    // TIPO do Atende (SUPERFRETE, PLATINUM, CLUBE CORREIOS...); sem TIPO usa o INTERMEDIADOR; sem os dois = SEM CONTRATO
+    db.prepare(`SELECT n.cliente_id id, substr(p.data_postagem,1,7) ym, COALESCE(NULLIF(p.contrato_tipo,''), NULLIF(p.intermediador,''), 'SEM CONTRATO') tipo,
+      SUM(p.estorno = 0) q, ROUND(SUM(p.valor),2) v
       FROM cid_postagens p JOIN cid_grafias g ON g.origem = p.origem AND g.grafia = p.grafia JOIN cid_nos n ON n.chave = g.no_chave
-      WHERE n.cliente_id IS NOT NULL AND p.data_postagem <> '' AND p.local_codigo = ? AND substr(p.data_postagem,1,7) >= ? GROUP BY 1, 2`).bind(local, ini),
-    db.prepare(`SELECT n.cliente_id id, MIN(substr(p.data_postagem,1,10)) primeira
+      WHERE n.cliente_id IS NOT NULL AND p.data_postagem <> '' AND p.local_codigo = ? AND substr(p.data_postagem,1,7) >= ? GROUP BY 1, 2, 3`).bind(local, ini),
+    db.prepare(`SELECT n.cliente_id id, MIN(substr(p.data_postagem,1,10)) primeira, MAX(substr(p.data_postagem,1,10)) ultima
       FROM cid_postagens p JOIN cid_grafias g ON g.origem = p.origem AND g.grafia = p.grafia JOIN cid_nos n ON n.chave = g.no_chave
       WHERE n.cliente_id IS NOT NULL AND p.data_postagem <> '' AND p.local_codigo = ? AND p.estorno = 0 GROUP BY 1`).bind(local),
   ]);
@@ -178,10 +180,13 @@ export async function getCurvaAbc(env, p, user) {
     const i = idxMes[r.ym];
     if (i === undefined) continue;
     let x = porId.get(r.id);
-    if (!x) { x = { id: r.id, q: Array(12).fill(0), v: Array(12).fill(0), tQ: 0, tV: 0 }; porId.set(r.id, x); }
-    x.q[i] = num(r.q); x.v[i] = num(r.v); x.tQ += num(r.q); x.tV += num(r.v);
+    if (!x) { x = { id: r.id, q: Array(12).fill(0), v: Array(12).fill(0), tQ: 0, tV: 0, tipos: {} }; porId.set(r.id, x); }
+    x.q[i] += num(r.q); x.v[i] += num(r.v); x.tQ += num(r.q); x.tV += num(r.v);
+    x.tipos[r.tipo] = (x.tipos[r.tipo] || 0) + Math.abs(num(r.v)) + num(r.q) / 1e6;
   }
   const primeira = new Map((pri.results || []).map((r) => [r.id, text(r.primeira)]));
+  const ultimaDe = new Map((pri.results || []).map((r) => [r.id, text(r.ultima)]));
+  const tipoPred = (x) => Object.entries(x.tipos).sort((a, b) => b[1] - a[1])[0]?.[0] || 'SEM CONTRATO';
   // nomes e dados do motor em 2 consultas (evita dezenas de idas ao banco no BALCÃO)
   const info = new Map();
   const [mets, nomes] = await db.batch([
@@ -200,7 +205,7 @@ export async function getCurvaAbc(env, p, user) {
     const prim = primeira.get(x.id) || '';
     return { id: x.id, nome: i.nome || x.id, q: x.q, v: x.v.map((v) => Math.round(v * 100) / 100), tQ: x.tQ, tV: Math.round(x.tV * 100) / 100,
       tk: x.tQ ? Math.round(x.tV / x.tQ * 100) / 100 : 0, primeira: prim, novo: prim >= NOVO_DESDE, acao: i.acao || '', curva30: i.curva30 || '',
-      intermediador: i.intermediador || 'SEM CONTRATO', contrato: !!i.contrato, localCarteira: i.localCarteira || '' };
+      intermediador: tipoPred(x), canal: i.intermediador || '', contrato: !!i.contrato, localCarteira: i.localCarteira || '', ultima: ultimaDe.get(x.id) || '' };
   });
   const { rows, total } = classificarAbc(brutas);
   const cls = { A: [0, 0, 0], B: [0, 0, 0], C: [0, 0, 0] };

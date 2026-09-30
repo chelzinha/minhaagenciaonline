@@ -86,6 +86,7 @@ ok(abc.rows[0].id === 'C1' && abc.rows[0].abc === 'A', 'maior cliente é A');
 ok(abc.resumo.clientes === 5, 'clientes com postagem no LOCAL', abc.resumo);
 ok(abc.rows.find((r) => r.id === 'C5').novo === true, 'primeira postagem em jul = NOVO');
 ok(abc.rows.find((r) => r.id === 'C3').novo === false, 'cliente de mai não é NOVO');
+ok(abc.rows.find((r) => r.id === 'C3').ultima === '2026-06-10' && abc.rows[0].intermediador === 'SEM CONTRATO', 'última postagem e TIPO na Curva', abc.rows.find((r) => r.id === 'C3'));
 ok(Math.abs(abc.porMes[11].v - (58000 + 3100 + 1200 + 200)) < 0.01, 'total de setembro', abc.porMes[11]);
 ok(abc.resumo.semPostagemMesAtual === 1, 'um cliente sem postagem no mês atual');
 const abcCache = await chamar(admin, 'get_curva_abc_v1', { local: 'AGF' });
