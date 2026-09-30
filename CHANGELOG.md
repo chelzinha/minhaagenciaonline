@@ -2,6 +2,26 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-30 - Cadastro de Clientes: nome antigo e novo no Portal
+
+### Adicionado
+- Ficha do cliente do Portal mostra "Nome antigo ou novo no Portal?" quando outro cliente do Portal usa o mesmo contrato + cartão e um nome parou quando o outro começou (ou um nome é o começo do outro). Casos encontrados em 30/09: FUNDAÇÃO PARA O DESENVOLVIMENTO... / FIOTEC FUND DESENV CIENT E TECN SAUDE e M J L SANTOS BIJUTERIAS E ACESS / M J L SANTOS BIJUTERIAS E ACESSORIOS LTDA.
+- "É o mesmo: juntar": junta os dois, fica com o nome mais recente do Portal e soma o histórico. O CRM leva tratativas e agenda para o ID que ficou. Dá para desfazer pelo botão de separar na grafia.
+
+### Alterado
+- Regra "dois clientes do Portal nunca viram um só" ganha uma exceção manual (decisão `UNIR` com `PORTAL_RENOMEADO`). O motor e o revisor automático continuam sem juntar dois Portais sozinhos.
+- Motor do Cadastro `2026-09-30.1`: recebe a data da última postagem de cada grafia para escolher o nome atual do Portal. Sem mudança para os demais clientes.
+- Erros da API do Cadastro podem trazer `codigo` (ex.: `DOIS_PORTAIS`, `SEM_CARTAO_COMUM`).
+
+## 2026-09-30 - CRM: LOCAL com vários marcados
+
+### Alterado
+- Filtro LOCAL do CRM (Clientes e Agenda) aceita 1, 2 ou todos os LOCAIS ao mesmo tempo. Clique soma ou tira um LOCAL; "Todos" marca os três; sempre fica pelo menos um. A escolha fica salva no navegador (`crm_cix_locais`; a escolha antiga `crm_cix_local` é aproveitada).
+- Com mais de um LOCAL: Dashboard, Funil, Cadastro, Ações e Agenda somam os LOCAIS marcados. Cadastro, Ações e Curva ABC ganham a coluna LOCAL.
+- Curva ABC com vários LOCAIS: cada cliente mantém a classe A, B ou C do próprio LOCAL (regra aprovada da curva por LOCAL). Quem posta em mais de um LOCAL aparece numa linha por LOCAL; o card "Clientes na janela" conta o cliente uma vez e mostra quantos postam em mais de um LOCAL. O Pareto pinta cada barra com a curva do próprio LOCAL e não mostra as linhas de 80% e 95%.
+- Nova atividade sem vínculo com vários LOCAIS marcados: escolhe o LOCAL no modal. Com cliente ou prospect, vale o LOCAL do cadastro.
+- Só frontend (`crm-integrado.js` e `.css`, cache v=5). Servidor e banco sem mudança: a tela pede um LOCAL por vez e soma.
+
 ## 2026-09-30 - CRM: contrato próprio, Curva ABC com última postagem e colunas ocultáveis
 
 ### Alterado

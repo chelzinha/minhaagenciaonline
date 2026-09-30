@@ -6,7 +6,7 @@ Refeito do zero. Nenhum código da v1 (PR #68) foi aproveitado. As tabelas da v1
 
 1. CLIENTE PORTAL = BALCÃO, GAS SHOPPING METRO ou GAS SHOPPING CENTRO FASHION: a identidade vem do NOME REMETENTE limpo.
 2. Qualquer outro CLIENTE PORTAL: a identidade é o próprio CLIENTE PORTAL, com o nome do Portal.
-3. Dois clientes do Portal nunca viram um só.
+3. Dois clientes do Portal nunca viram um só automaticamente. Única exceção: o admin confirma na ficha que o Portal trocou o nome do mesmo cliente (ver "Nome antigo e novo no Portal").
 4. Decisão humana vence o motor. "Não é o mesmo" vira restrição permanente.
 5. LOCAL fica por postagem (regra do Atende). O cliente é único e os resultados saem separados por LOCAL.
 
@@ -25,6 +25,17 @@ Refeito do zero. Nenhum código da v1 (PR #68) foi aproveitado. As tabelas da v1
 Normalização: maiúsculas, sem acento, codificação quebrada corrigida (`Ã_x0083_`, `ANTO¿NIO`), sufixo de caixa removido (`C19`), LTDA/ME/EPP/S.A ignorados na comparação, repetição removida (`KAIKAI PRESENTES KAIKAI PRESENTES`).
 
 Nome final: Portal > nome corrigido à mão > planilha > mais palavras, nome inteiro vence o cortado, depois o mais usado.
+
+## Nome antigo e novo no Portal (30/09/2026)
+
+Quando o Portal troca o nome de um cliente (ex.: `FUNDAÇÃO PARA O DESENVOLVIMENTO CIENTÍFICO E TECNOLÓGICO EM` passou a vir como `FIOTEC FUND DESENV CIENT E TECN SAUDE` em 10/09), o Atende passa a mandar outro CLIENTE PORTAL e o cadastro ficava dividido: o nome antigo parecia cliente que parou de postar e o novo parecia cliente novo.
+
+1. A ficha de um cliente do Portal mostra "Nome antigo ou novo no Portal?" quando existe outro cliente do Portal com o mesmo contrato + cartão (cartão usado por no máximo 3 nomes do Portal) e um nome parou quando o outro começou (até 7 dias de folga) ou um nome é o começo do outro.
+2. "É o mesmo: juntar" grava `UNIR` com `valor = PORTAL_RENOMEADO` em `cid_decisoes`. Só admin, um par por vez. Sem contrato + cartão em comum, a tela pede uma segunda confirmação.
+3. O cliente fica com o nome mais recente do Portal (o nome que postou por último) e com o ID desse nome. O ID do outro vai para `cid_ids_fundidos` e o CRM leva junto tratativas, agenda, checklists, notas e cadastro manual.
+4. Agrupar pela busca também funciona: com dois clientes do Portal, a tela pergunta se o Portal mudou o nome.
+5. Desfazer: botão de separar no nome do Portal, na lista de grafias da ficha. "Não é" grava `SEPARAR` e o par não volta como candidato.
+6. O motor e o revisor automático continuam sem juntar dois Portais sozinhos. Código: `executarMotor` (`decisoes.unirPortal`, `portalAtual`), `candidatosPortalRenomeado` e `agrupar` em `src/index.js`. Testes: `test/motor.test.mjs` e `test/portal_renomeado_d1.test.mjs`.
 
 ## Sugestões (decisão humana)
 

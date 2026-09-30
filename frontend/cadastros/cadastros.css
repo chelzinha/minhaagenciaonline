@@ -232,3 +232,9 @@ button { cursor: pointer; }
   .l-item { grid-template-columns: minmax(0, 1fr); }
   .l-botoes .cad-btn { flex: 1; min-width: 0; min-height: 40px; }
 }
+
+/* nome antigo e novo do Portal (junção manual, 30/09/2026) */
+.f-ren { background: #FFF8E6; border-left: 3px solid #F5B301; }
+.f-ren .f-sug { align-items: flex-start; }
+.f-ren .f-sug .cad-btn { flex: none; }
+@media (max-width: 560px) { .f-ren .f-sug { flex-wrap: wrap; } .f-ren .f-sug-nome { flex-basis: 100%; } }

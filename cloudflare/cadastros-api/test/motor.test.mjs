@@ -87,4 +87,41 @@ t('iniciais diferentes nao viram sugestao (F & A x F W)', () => {
   const r = run([['BALCAO', 'F & A COMERCIO DE CONFECCOES LTDA ME'], ['METRO', 'F W COMERCIO DE CONFECCOES LTDA']]);
   assert.equal(r.sugestoes.length, 0);
 });
+t('dois Portais continuam separados sem decisao manual', () => {
+  const r = executarMotor([{ origem: 'PORTAL', nome: 'FUNDAÇÃO PARA O DESENVOLVIMENTO CIENTÍFICO E TECNOLÓGICO EM', postagens: 1349, ultima: '2026-09-09' },
+    { origem: 'PORTAL', nome: 'FIOTEC FUND DESENV CIENT E TECN SAUDE', postagens: 191, ultima: '2026-09-28' }]);
+  assert.equal(r.grupos.length, 2);
+  // UNIR comum tambem nao junta dois Portais
+  const kA = 'P:' + analisarNome('FUNDAÇÃO PARA O DESENVOLVIMENTO CIENTÍFICO E TECNOLÓGICO EM').core, kB = 'P:' + analisarNome('FIOTEC FUND DESENV CIENT E TECN SAUDE').core;
+  const r2 = executarMotor([{ origem: 'PORTAL', nome: 'FUNDAÇÃO PARA O DESENVOLVIMENTO CIENTÍFICO E TECNOLÓGICO EM', postagens: 1349, ultima: '2026-09-09' },
+    { origem: 'PORTAL', nome: 'FIOTEC FUND DESENV CIENT E TECN SAUDE', postagens: 191, ultima: '2026-09-28' }], { unir: [[kA, kB]] });
+  assert.ok(!mesmoGrupo(r2, kA, kB));
+});
+t('Portal renomeado: decisao manual junta e vale o nome mais recente do Portal', () => {
+  const nomes = [{ origem: 'PORTAL', nome: 'FUNDAÇÃO PARA O DESENVOLVIMENTO CIENTÍFICO E TECNOLÓGICO EM', postagens: 1349, ultima: '2026-09-09' },
+    { origem: 'PORTAL', nome: 'FIOTEC FUND DESENV CIENT E TECN SAUDE', postagens: 191, ultima: '2026-09-28' },
+    { origem: 'METRO', nome: 'Emanuel Gomes Pinto', postagens: 215, ultima: '2026-08-12' }];
+  const kA = 'P:' + analisarNome(nomes[0].nome).core, kB = 'P:' + analisarNome(nomes[1].nome).core;
+  for (const par of [[kA, kB], [kB, kA]]) {
+    const r = executarMotor(nomes, { unirPortal: [par] });
+    assert.ok(mesmoGrupo(r, kA, kB));
+    const g = r.grupos.find((x) => x.chaves.includes(kA));
+    assert.equal(g.portal, kB);
+    assert.equal(g.nome, 'FIOTEC FUND DESENV CIENT E TECN SAUDE');
+    assert.equal(g.fonteNome, 'PORTAL');
+  }
+});
+t('Portal renomeado respeita "nao e o mesmo" (separar vence)', () => {
+  const nomes = [{ origem: 'PORTAL', nome: 'EMPRESA ALFA COMERCIO LTDA', postagens: 50, ultima: '2026-06-01' }, { origem: 'PORTAL', nome: 'BETA SERVICOS LTDA', postagens: 40, ultima: '2026-09-01' }];
+  const kA = 'P:' + analisarNome(nomes[0].nome).core, kB = 'P:' + analisarNome(nomes[1].nome).core;
+  const r = executarMotor(nomes, { separar: [[kA, kB]], unirPortal: [[kA, kB]] });
+  assert.ok(!mesmoGrupo(r, kA, kB));
+});
+t('grupo com um Portal so: nome e ID do Portal como antes', () => {
+  const r = executarMotor([{ origem: 'PORTAL', nome: 'DILOHAN COMERCIO ATACADISTA DE ROUPAS LTDA', postagens: 10, ultima: '2026-01-01' }, { origem: 'METRO', nome: 'DILOHAN COMERCIO ATACADISTA DE', postagens: 99, ultima: '2026-09-01' }]);
+  const g = r.grupos[0];
+  assert.equal(r.grupos.length, 1);
+  assert.equal(g.portal, 'P:' + analisarNome('DILOHAN COMERCIO ATACADISTA DE ROUPAS LTDA').core);
+  assert.equal(g.nome, 'DILOHAN COMERCIO ATACADISTA DE ROUPAS LTDA');
+});
 console.log(`\n${ok} testes passaram`);

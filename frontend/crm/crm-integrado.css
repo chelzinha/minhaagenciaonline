@@ -559,3 +559,13 @@ body.resizing *{cursor:col-resize!important}
 .cix .cols-pop label input{width:16px;height:16px;accent-color:#0B3A63}
 .cix .cols-pop button{border-top:1px solid var(--line)!important;margin-top:4px}
 .cix .tbar .search{min-width:190px;max-width:280px}
+
+/* LOCAL com vários marcados (1, 2 ou todos) */
+.cix .lp .seg.multi button{position:relative}
+.cix .lp .seg.multi button.on::before{content:'';position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:#F5B301}
+.cix .lp .seg.multi button.todos{font-size:11.5px;padding-left:9px;padding-right:9px;opacity:.85}
+.cix .lp .seg.multi button.todos.on{display:none}
+@media (max-width:1535px) and (min-width:761px){.cix .ph .lp-l{font-size:0;gap:0}.cix .ph .lp-l .ic{width:16px;height:16px}}
+.cix .chip.loc{background:#0B3A631A;color:#0B3A63;font-weight:800;font-size:11px}
+.cix .multi-nota{display:flex;gap:8px;align-items:flex-start;margin:0 0 10px;padding:9px 12px;border-radius:10px;background:#EEF4FB;color:#17354B;font-size:12.5px;line-height:1.45}
+.cix .multi-nota .ic{flex:0 0 auto;margin-top:1px;color:#0B3A63}

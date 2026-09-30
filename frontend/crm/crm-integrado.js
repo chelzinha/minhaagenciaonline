@@ -100,11 +100,11 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
   const LS = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem armazenamento: vale só nesta sessão */ } } };
   const tab = LS.get('crm_cix_tabelas_v1', {}) || {};
   const S = {
-    local: LS.get('crm_cix_local', ''), resp: null, ord: tab.ord || {}, srt: tab.srt || {}, w: tab.w || {}, hid: tab.hid || {}, flt: {},
+    locais: (() => { const v = LS.get('crm_cix_locais', null); if (Array.isArray(v)) return v.map(String); const l = LS.get('crm_cix_local', ''); return l ? [l] : []; })(), resp: null, ord: tab.ord || {}, srt: tab.srt || {}, w: tab.w || {}, hid: tab.hid || {}, flt: {},
     acF: '', prF: '', funilLimite: {}, cadBusca: '', cadSemProx: false, cadLimite: 300, acoesLimite: 200,
     curvaBusca: '', curvaFiltro: '', curvaNovo: false, curvaInter: '', curvaCtr: '', curvaLimite: 400, dspF: '',
     agTipo: '', agStatus: '',
-    carteira: {}, abc: {}, carregando: {}, erro: {},
+    carteira: {}, abc: {}, junto: {}, carregando: {}, erro: {},
   };
   /* filtro por tempo sem postar (mesmos cortes do motor: 30 e 60 dias). Vale para Curva ABC, Cadastro e Ações. */
   const FAIXAS_DSP = [['ate30', 'menos de 30 dias'], ['30a60', '30 a 59 dias'], ['60mais', '60 dias ou mais']];
@@ -121,19 +121,28 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     if (!lista.length && C.state.user && C.state.user.role === 'admin') lista = LOCAIS_OFICIAIS.slice();
     return lista;
   }
-  function localAtual() {
+  /* LOCAL aceita 1, 2 ou todos ao mesmo tempo. Sempre fica pelo menos um marcado. */
+  function locaisAtivos() {
     const p = locaisPermitidos();
-    if (!p.length) return '';
-    if (!p.includes(S.local)) S.local = p[0];
-    return S.local;
+    if (!p.length) return [];
+    let a = p.filter((l) => S.locais.includes(l));
+    if (!a.length) { a = [p[0]]; S.locais = a.slice(); }
+    return a;
   }
+  const localAtual = () => locaisAtivos()[0] || '';                      // LOCAL principal (primeiro marcado)
+  const variosLocais = () => locaisAtivos().length > 1;
+  const noLocal = (v) => locaisAtivos().includes(norm(v).toUpperCase());
+  const nomeLocal = (v) => NOME_LOCAL[norm(v).toUpperCase()] || text(v);
+  const nomeLocais = () => locaisAtivos().map((l) => NOME_LOCAL[l] || l).join(' + ');
+  const rotLocal = () => (variosLocais() ? 'LOCAIS ' : 'LOCAL ') + nomeLocais();
   function localCtl() {
-    const p = locaisPermitidos(), atual = localAtual();
+    const p = locaisPermitidos(), at = locaisAtivos();
     if (!p.length) return `<div class="lp"><span class="lp-l">${ic('store', 'sm')}LOCAL</span><span class="lp-one">${ic('lock', 'sm')}sem LOCAL</span></div>`;
     const corpo = p.length > 1
-      ? `<div class="seg" role="group" aria-label="Escolher LOCAL">${p.map((k) => `<button type="button" class="${atual === k ? 'on' : ''}" data-cx-local="${k}" aria-pressed="${atual === k}">${NOME_LOCAL[k] || k}</button>`).join('')}</div>`
+      ? `<div class="seg multi" role="group" aria-label="Escolher LOCAIS. Pode marcar mais de um.">${p.map((k) => { const on = at.includes(k), nm = NOME_LOCAL[k] || k;
+        return `<button type="button" class="${on ? 'on' : ''}" data-cx-local="${k}" aria-pressed="${on}" title="${on ? (at.length > 1 ? 'Tirar ' + nm : 'Pelo menos um LOCAL fica marcado') : 'Somar ' + nm}">${nm}</button>`; }).join('')}${p.length > 2 ? `<button type="button" class="todos ${at.length === p.length ? 'on' : ''}" data-cx-local="*" aria-pressed="${at.length === p.length}" title="Marcar todos os LOCAIS">Todos</button>` : ''}</div>`
       : `<span class="lp-one" title="Seu usuário tem acesso só a este LOCAL">${ic('lock', 'sm')}${NOME_LOCAL[p[0]] || p[0]}</span>`;
-    return `<div class="lp" title="Filtro principal. Vale para todas as abas."><span class="lp-l">${ic('store', 'sm')}LOCAL</span>${corpo}</div>`;
+    return `<div class="lp" title="Filtro principal. Vale para todas as abas. Clique para somar ou tirar um LOCAL."><span class="lp-l">${ic('store', 'sm')}${at.length > 1 ? 'LOCAIS' : 'LOCAL'}</span>${corpo}</div>`;
   }
   const podeVerEquipe = () => C.effectiveResponsible('__TODOS__') === '__TODOS__';   // mesma regra do app.js (canViewTeam e escopo da agenda)
   function respAtual() {
@@ -155,7 +164,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
 
   /* ---------------- dados ---------------- */
   const FRESCO_MS = 2 * 60e3;
-  function invalidar() { S.carteira = {}; S.abc = {}; }
+  function invalidar() { S.carteira = {}; S.abc = {}; S.junto = {}; }
   function carregar(tipo, local, fn) {
     const chave = tipo + ':' + local;
     if (S.carregando[chave]) return S.carregando[chave];
@@ -165,22 +174,83 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       .finally(() => { delete S.carregando[chave]; redesenhar(); });
     return S.carregando[chave];
   }
-  function carteira(local = localAtual()) {
+  function carteiraDe(local) {
     const c = S.carteira[local];
     if (local && (!c || Date.now() - c._em > FRESCO_MS)) carregar('carteira', local, () => C.apiGet('get_carteira_v1', { local }));
     return c || null;
   }
-  function curva(local = localAtual()) {
+  function curvaDe(local) {
     const c = S.abc[local];
-    if (local && (!c || Date.now() - c._em > 10 * 60e3)) carregar('abc', local, () => C.apiGet('get_curva_abc_v1', { local }, { timeoutMs: 90000 }));
+    if (local && (!c || Date.now() - c._em > 10 * 60e3)) carregar('abc', local, () => C.apiGet('get_curva_abc_v1', { local }, { timeoutMs: 90000 })
+      .then((r) => { (r.rows || []).forEach((x) => { x.local = r.local || local; }); return r; }));
     return c || null;
   }
-  const erroDe = (tipo) => S.erro[tipo + ':' + localAtual()] || '';
-  const abcPorId = (local = localAtual()) => { const c = S.abc[local]; if (!c) return null; if (!c._map) c._map = new Map(c.rows.map((r) => [r.id, r])); return c._map; };
+  /* Vários LOCAIS: o servidor responde um LOCAL por vez e a tela soma aqui. Nada muda no servidor. */
+  function juntar(tipo, fn) {
+    const ls = locaisAtivos();
+    if (!ls.length) return null;
+    const partes = ls.map(fn);
+    if (partes.some((x) => !x)) return null;
+    if (partes.length === 1) return partes[0];
+    const k = ls.join('+'), em = partes.map((x) => x._em).join(','), c = S.junto[tipo];
+    if (c && c.k === k && c.em === em) return c.v;
+    const v = tipo === 'carteira' ? juntarCarteiras(partes, ls) : juntarCurvas(partes, ls);
+    if (v) S.junto[tipo] = { k, em, v };
+    return v;
+  }
+  function juntarCarteiras(ps, ls) {
+    const R = { tot: 0, ativos30: 0, esfriando: 0, inativos60: 0, fat30: 0, novos: 0, acoes: {}, fila: {} };
+    for (const p of ps) {
+      const L = p.resumo || {};
+      for (const k of ['tot', 'ativos30', 'esfriando', 'inativos60', 'fat30', 'novos']) R[k] += num(L[k]);
+      for (const [a, n] of Object.entries(L.acoes || {})) R.acoes[a] = (R.acoes[a] || 0) + num(n);
+      for (const [a, v] of Object.entries(L.fila || {})) { R.fila[a] = R.fila[a] || [0, 0]; R.fila[a][0] += num(v[0]); R.fila[a][1] += num(v[1]); }
+    }
+    R.fat30 = Math.round(R.fat30 * 100) / 100;
+    const PRK = { CRITICA: 2, ALTA: 1 };
+    const fila = ps.flatMap((p) => p.fila || []).sort((a, b) => (PRK[b.prioridade] || 0) - (PRK[a.prioridade] || 0) || num(b.fat30) - num(a.fat30));
+    return { ok: true, local: ls.join('+'), locais: ps[0].locais, geradoEm: ps[0].geradoEm, resumo: R, fila, sinais: ps.flatMap((p) => p.sinais || []), _em: Date.now() };
+  }
+  function juntarCurvas(ps, ls) {
+    const b = ps[0];
+    // janela diferente entre LOCAIS (virada de mês no meio do carregamento): recarrega o que ficou velho
+    const velhos = ps.filter((p) => (p.meses || []).join() !== (b.meses || []).join() || p.ultimaPostagem !== b.ultimaPostagem);
+    if (velhos.length) { ls.forEach((l) => { delete S.abc[l]; }); ls.forEach(curvaDe); return null; }
+    const rows = ps.flatMap((p) => p.rows || []);
+    const R = { total: 0, qtd: 0, clientes: 0, linhas: rows.length, A: [0, 0, 0], B: [0, 0, 0], C: [0, 0, 0], novos: 0, novosPorMes: {}, semPostagemMesAtual: 0 };
+    const porMes = (b.meses || []).map(() => ({ q: 0, v: 0, A: 0, B: 0, C: 0, cli: 0 }));
+    for (const p of ps) {
+      const r = p.resumo;
+      if (!r) continue;
+      R.total += num(r.total); R.qtd += num(r.qtd); R.novos += num(r.novos); R.semPostagemMesAtual += num(r.semPostagemMesAtual);
+      for (const c of ['A', 'B', 'C']) (r[c] || []).forEach((v, i) => { R[c][i] += num(v); });
+      for (const [m, n] of Object.entries(r.novosPorMes || {})) R.novosPorMes[m] = (R.novosPorMes[m] || 0) + num(n);
+      (p.porMes || []).forEach((x, i) => { if (porMes[i]) for (const k of ['q', 'v', 'A', 'B', 'C', 'cli']) porMes[i][k] += num(x[k]); });
+    }
+    const r2 = (v) => Math.round(v * 100) / 100;
+    R.total = r2(R.total); ['A', 'B', 'C'].forEach((c) => { R[c] = R[c].map(r2); });
+    porMes.forEach((m) => { for (const k of ['v', 'A', 'B', 'C']) m[k] = r2(m[k]); });
+    R.clientes = new Set(rows.map((x) => x.id)).size;                 // cliente que posta em 2 LOCAIS conta uma vez aqui
+    R.emVarios = R.linhas - R.clientes;
+    return { ok: true, multi: true, local: ls.join('+'), locais: ls.slice(), meses: b.meses, baseIni: b.baseIni, mesParcial: b.mesParcial, ultimaPostagem: b.ultimaPostagem,
+      novoDesde: b.novoDesde, regra: b.regra, resumo: b.resumo ? R : null, porMes, rows, _em: Date.now() };
+  }
+  const carteira = () => juntar('carteira', carteiraDe);
+  const curva = () => juntar('abc', curvaDe);
+  const erroDe = (tipo) => locaisAtivos().map((l) => S.erro[tipo + ':' + l]).filter(Boolean)[0] || '';
+  // cliente -> linha da curva. Com vários LOCAIS, vale a linha do LOCAL da carteira do cliente.
+  const abcPorId = () => {
+    const c = curva();
+    if (!c) return null;
+    if (!c._map) {
+      c._map = new Map();
+      for (const r of c.rows) { const o = c._map.get(r.id); if (!o || (r.local === r.localCarteira && o.local !== o.localCarteira)) c._map.set(r.id, r); }
+    }
+    return c._map;
+  };
   function clientesDoLocal() {
     if (!C.state.clientsReady) { C.loadCadastroClientes(true); return null; }
-    const l = localAtual();
-    return (C.state.clients || []).filter((c) => norm(c.local).toUpperCase() === l);
+    return (C.state.clients || []).filter((c) => noLocal(c.local));
   }
   // tratativas de clientes do LOCAL
   const etapas = () => ((C.state.journeyClients && C.state.journeyClients.columns) || []);
@@ -188,8 +258,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
   const corEtapa = (id, i = 0) => COR_ETAPA[id] || [V.purple, V.blue, V.indigo, V.yellow, V.orange, V.green, V.teal][i % 7];
   const nomeEtapa = (id) => { const e = etapas().find((x) => x.etapaId === id); return e ? text(e.nome) : ''; };
   function tratativasDoLocal() {
-    const l = localAtual();
-    return ((C.state.journeyClients && C.state.journeyClients.items) || []).filter((t) => norm(t.local).toUpperCase() === l);
+    return ((C.state.journeyClients && C.state.journeyClients.items) || []).filter((t) => noLocal(t.local));
   }
   const concluidaRecente = (t) => { const d = text(t.etapaAtualizadaEm || t.encerradaEm).slice(0, 10); return !d || d >= C.addDays(hojeYmd(), -30); };
   function tratativaPorCliente() {
@@ -201,12 +270,11 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
   const statusAt = (a) => { const s = norm(a.statusAtividade); return s.startsWith('conclu') ? 'done' : s.startsWith('cancel') ? 'cancel' : 'plan'; };
   const atrasada = (a) => statusAt(a) === 'plan' && (a.dataProgramada < hojeYmd() || (a.dataProgramada === hojeYmd() && a.horaFimProgramada && a.horaFimProgramada < agoraHm()));
   function agendaDoLocal(todas) {
-    const l = localAtual();
     const src = (C.state.agendaWin && C.state.agendaWin.items) || (C.state.agenda && C.state.agenda.items) || [];
-    return src.filter((a) => (!a.local || norm(a.local).toUpperCase() === l) && (todas || (respBate(a.responsavelId, a.responsavelNome)
+    return src.filter((a) => (!a.local || noLocal(a.local)) && (todas || (respBate(a.responsavelId, a.responsavelNome)
       && (!S.agTipo || a.tipoAtividadeId === S.agTipo) && (!S.agStatus || statusAt(a) === S.agStatus))));
   }
-  const vencidasDoLocal = () => { const l = localAtual(); return (C.state.overdue || []).filter((a) => (!a.local || norm(a.local).toUpperCase() === l) && respBate(a.responsavelId, a.responsavelNome)); };
+  const vencidasDoLocal = () => (C.state.overdue || []).filter((a) => (!a.local || noLocal(a.local)) && respBate(a.responsavelId, a.responsavelNome));
   const tituloAt = (a) => text(a.titulo) || text(a.cliente) || 'Atividade';
   const ordHora = (a, b) => (a.dataProgramada + (a.horaProgramada || '99')).localeCompare(b.dataProgramada + (b.horaProgramada || '99'));
 
@@ -217,7 +285,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
   function ordem(id, cols) {
     const base = cols.map((c) => c.k);
     const o = (S.ord[id] || base).filter((k) => base.includes(k));
-    base.forEach((k) => { if (!o.includes(k)) o.push(k); });
+    base.forEach((k, i) => { if (!o.includes(k)) o.splice(Math.min(i, o.length), 0, k); });   // coluna nova entra na posição padrão
     return o;
   }
   function valorDe(c, r) { return c.v ? c.v(r) : r[c.k]; }
@@ -288,9 +356,9 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
   const T = {};
 
   T['clientes-dashboard'] = () => {
-    const cart = carteira(), L = cart && cart.resumo, loc = NOME_LOCAL[localAtual()] || localAtual();
+    const cart = carteira(), L = cart && cart.resumo, loc = rotLocal();
     const cab = clientHead(true) + erroHtml(erroDe('carteira'));
-    if (!L) return cab + carregandoHtml('Carregando a carteira do LOCAL…');
+    if (!L) return cab + carregandoHtml('Carregando a carteira…');
     const ordemFila = ['RESGATAR', 'CONVERTER', 'FIDELIZAR'];
     const fila = ordemFila.filter((k) => L.fila[k]).map((k) => [k, L.fila[k]]).concat(Object.entries(L.fila).filter(([k]) => !ordemFila.includes(k)));
     const filaTot = fila.reduce((a, [, v]) => a + v[0] + v[1], 0);
@@ -308,13 +376,13 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const hoje = agendaDoLocal().filter((a) => a.dataProgramada === hojeYmd()).sort(ordHora);
     const feitas = hoje.filter((a) => statusAt(a) === 'done').length, atras = hoje.filter(atrasada).length, afazer = hoje.filter((a) => statusAt(a) === 'plan').length;
     const proxHoje = hoje.filter((a) => statusAt(a) === 'plan').slice(0, 5);
-    const hojeHtml = proxHoje.length ? proxHoje.map((a) => `<div class="li" data-cx-ag="${esc(a.agendaId)}"><span class="t num">${esc(a.horaProgramada || '--:--')}</span><div style="min-width:0;display:flex;gap:10px;align-items:center">${tipoIb(a.tipoAtividadeId)}<div style="min-width:0"><div class="n">${esc(tituloAt(a))}</div><div class="s">${esc(tipoInfo(a.tipoAtividadeId).nome)}${a.acao ? ' · ' + esc(a.acao.charAt(0) + a.acao.slice(1).toLowerCase()) : ''}</div></div></div><div class="rowacts">${atrasada(a) ? pill('ATRASADA', 'red') : ''}${a.avulsa ? '' : waBtn(a.whatsapp, tituloAt(a), a.entidadeTipo === 'CLIENTE' ? a.entidadeId : '', true)}</div></div>`).join('') : '<div class="empty">Nada pendente hoje neste LOCAL.</div>';
-    const abc = S.abc[localAtual()];
+    const hojeHtml = proxHoje.length ? proxHoje.map((a) => `<div class="li" data-cx-ag="${esc(a.agendaId)}"><span class="t num">${esc(a.horaProgramada || '--:--')}</span><div style="min-width:0;display:flex;gap:10px;align-items:center">${tipoIb(a.tipoAtividadeId)}<div style="min-width:0"><div class="n">${esc(tituloAt(a))}</div><div class="s">${esc(tipoInfo(a.tipoAtividadeId).nome)}${a.acao ? ' · ' + esc(a.acao.charAt(0) + a.acao.slice(1).toLowerCase()) : ''}</div></div></div><div class="rowacts">${atrasada(a) ? pill('ATRASADA', 'red') : ''}${a.avulsa ? '' : waBtn(a.whatsapp, tituloAt(a), a.entidadeTipo === 'CLIENTE' ? a.entidadeId : '', true)}</div></div>`).join('') : `<div class="empty">Nada pendente hoje em ${esc(nomeLocais())}.</div>`;
+    const abc = curva();
     const abcHtml = abc && abc.resumo ? (() => { const R = abc.resumo, t = R.total || 1; return `<div class="stack"><div style="width:${R.A[1] / t * 100}%;background:var(--a)">A · ${pct(R.A[1] / t)}</div><div style="width:${R.B[1] / t * 100}%;background:var(--b)">B</div><div style="width:${R.C[1] / t * 100}%;background:var(--c)"></div></div>
       <div class="legend">${['A', 'B', 'C'].map((k) => `<div><b class="num" style="display:flex;gap:6px;align-items:center">${abcChip(k, 'width:18px;height:18px;font-size:10.5px')}${n0(R[k][0])} clientes</b>${pct(R[k][1] / t)} do faturamento</div>`).join('')}</div>`; })() : (curva(), carregandoHtml('Calculando a curva…'));
     return cab + `
     <div class="pulse">
-      ${kt('users', V.blue, V.orange, 'Clientes na carteira', n0(L.tot), `<span class="muted">LOCAL ${esc(loc)}</span>`)}
+      ${kt('users', V.blue, V.orange, 'Clientes na carteira', n0(L.tot), `<span class="muted">${esc(loc)}</span>`)}
       ${kt('trend-up', V.green, V.blue, 'Ativos em 30 dias', n0(L.ativos30), `<span style="color:${V.green}">${pct(L.tot ? L.ativos30 / L.tot : 0, 0)} da carteira</span>`, ring(L.tot ? L.ativos30 / L.tot : 0, V.green))}
       ${kt('snow', V.orange, V.blue, 'Esfriando (30 a 59 dias)', n0(L.esfriando), `<span style="color:${V.orange}">pedem contato agora</span>`)}
       ${kt('moon', V.red, V.yellow, 'Inativos 60 dias ou mais', n0(L.inativos60), `<span class="muted">fora da fila</span>`)}
@@ -328,7 +396,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
         <div id="cx-ch-funil" class="chx" style="height:250px" role="img" aria-label="Tratativas por etapa"></div></div>
       <div class="card"><div class="card-h"><div>${h2i('cal', V.green, V.blue, 'Hoje na agenda')}<p>${pill(feitas + ' FEITAS', 'green')} ${atras ? pill(atras + ' ATRASADAS', 'red') : ''} ${pill(afazer + ' A FAZER', 'blue')}</p></div><button type="button" class="link" data-cx-ir-agenda>Abrir agenda${ic('right', 'sm')}</button></div>
         <div class="list">${hojeHtml}</div></div>
-      <div class="card"><div class="card-h"><div>${h2i('abc', V.orange, V.blue, 'Curva ABC 12M')}${abc && abc.resumo ? `<p>${n0(abc.resumo.clientes)} clientes com postagem no LOCAL ${esc(loc)}.</p>` : ''}</div><button type="button" class="link" data-cx-tela="clientes-curva">Abrir curva${ic('right', 'sm')}</button></div>${abcHtml}</div>
+      <div class="card"><div class="card-h"><div>${h2i('abc', V.orange, V.blue, 'Curva ABC 12M')}${abc && abc.resumo ? `<p>${n0(abc.resumo.clientes)} clientes com postagem em ${esc(nomeLocais())}.</p>` : ''}</div><button type="button" class="link" data-cx-tela="clientes-curva">Abrir curva${ic('right', 'sm')}</button></div>${abcHtml}</div>
     </div></div>`;
   };
 
@@ -378,11 +446,12 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
 
   const etapaHtml = (id) => { if (!id) return '<span class="faint">Sem tratativa</span>'; const i = etapas().findIndex((x) => x.etapaId === id); return `<span class="stage"><i style="background:${corEtapa(id, Math.max(0, i))}"></i>${esc(nomeEtapa(id) || id)}</span>`; };
   const proxHtml = (p) => p ? `<span class="stage">${tipoIc(p.tipoAtividadeId)}${p.dataProgramada === hojeYmd() ? 'hoje' : DIAS[C.toDate(p.dataProgramada).getDay()] + ' ' + fmtD(p.dataProgramada)}${p.horaProgramada ? ' ' + esc(p.horaProgramada) : ''}</span>` : '';
+  const colLocal = (fn) => (variosLocais() ? [{ k: 'loc', t: 'LOCAL', w: 104, v: (x) => nomeLocal(fn(x)), cell: (x) => `<span class="chip loc">${esc(nomeLocal(fn(x)))}</span>` }] : []);
   T['clientes-cadastro'] = () => {
     const lista = clientesDoLocal(), abcMap = abcPorId(), trt = tratativaPorCliente();
     if (!abcMap) curva();
     const cab = clientHead();
-    if (!lista) return cab + carregandoHtml('Carregando os cadastros do LOCAL…');
+    if (!lista) return cab + carregandoHtml('Carregando os cadastros…');
     const q = norm(S.cadBusca);
     let rows = lista.map((c) => { const t = trt.get(c.clienteId), a = abcMap && abcMap.get(c.clienteId); return { c, t, a, prox: t && t.proximaAtividade }; })
       .filter((x) => !q || norm([x.c.cliente, x.c.nomeFantasia, x.c.razaoSocial, x.c.cnpjCpf, x.c.numeroContrato, x.c.cartao, x.c.whatsapp].join(' ')).includes(q))
@@ -391,6 +460,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const ETO = Object.fromEntries(etapas().map((e, i) => [e.etapaId, i + 1]));
     const cols = [
       { k: 'nome', t: 'Cliente', w: 270, v: (x) => C.entityName(x.c), cls: 'cn', cell: (x) => `${esc(C.entityName(x.c))}${x.a && x.a.novo ? ' <span class="chip novo">NOVO</span>' : ''}<small>${esc(x.c.cnpjCpf || 'CNPJ a completar')}</small>` },
+      ...colLocal((x) => x.c.local),
       { k: 'abc', t: 'ABC 12M', w: 118, v: (x) => (x.a ? x.a.abc : 'Z'), cell: (x) => abcChip(x.a && x.a.abc) },
       { k: 'c30', t: 'Curva 30D', w: 124, v: (x) => x.c.curva || '', cell: (x) => x.c.curva ? `<span class="chip">${esc(x.c.curva)}</span>` : '' },
       { k: 'ac', t: 'Ação', w: 116, v: (x) => AC_ORD[normAc(x.c.acaoEngine || x.c.acao)] || 0, f: (x) => normAc(x.c.acaoEngine || x.c.acao), cell: (x) => acChip(x.c.acaoEngine || x.c.acao) },
@@ -416,8 +486,8 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
   T['clientes-acoes'] = () => {
     const cart = carteira(), lista = clientesDoLocal(), trt = tratativaPorCliente();
     const cab = clientHead(true) + erroHtml(erroDe('carteira'));
-    if (!cart || !lista) return cab + carregandoHtml('Carregando as ações do LOCAL…');
-    const L = cart.resumo, loc = NOME_LOCAL[localAtual()] || localAtual();
+    if (!cart || !lista) return cab + carregandoHtml('Carregando as ações…');
+    const L = cart.resumo, loc = rotLocal();
     const tot = Object.values(L.acoes).reduce((a, b) => a + b, 0);
     const rows = lista.filter((c) => { const a = normAc(c.acaoEngine || c.acao); return a !== 'MANTER' && a !== 'CANCELAR' && (!S.acF || a === S.acF) && passaDsp(num(c.diasSemPostar)); })
       .map((c) => ({ c, t: trt.get(c.clienteId) }));
@@ -425,6 +495,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const canal = (v) => { const u = norm(v).toUpperCase(); return u.includes('VISITA') ? ['Visita', 'pin', V.orange, V.blue] : u.includes('LIGA') || u.includes('WHATS') ? ['WhatsApp e ligação', 'chat', '#16A34A', V.teal] : u ? [text(v).replace(/_/g, ' ').toLowerCase(), 'chat', '#16A34A', V.teal] : ['', '', '', '']; };
     const cols = [
       { k: 'nome', t: 'Cliente', w: 250, v: (x) => C.entityName(x.c), cls: 'cn', cell: (x) => `<a href="#" data-cx-ficha="${esc(x.c.clienteId)}" style="text-decoration:none">${esc(C.entityName(x.c))}</a>` },
+      ...colLocal((x) => x.c.local),
       { k: 'ac', t: 'Ação', w: 112, v: (x) => normAc(x.c.acaoEngine || x.c.acao), cell: (x) => acChip(x.c.acaoEngine || x.c.acao) },
       { k: 'pr', t: 'Prioridade', w: 124, v: (x) => PR_ORD[normPr(x.c.prioridadeFila)] || 0, f: (x) => x.c.prioridadeFila, cell: (x) => prChip(x.c.prioridadeFila) },
       { k: 'mot', t: 'Motivo da regra', w: 250, v: (x) => x.c.motivoRegra || '', cell: (x) => `<span style="font-size:12.5px" title="${esc(x.c.motivoRegra)}">${esc(x.c.motivoRegra)}</span>` },
@@ -442,7 +513,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     if (!foco.length) foco.push(['ok', V.teal, 'Carteira equilibrada', 'Mantenha o acompanhamento semanal.']);
     return cab + `
     <div class="dash" style="grid-template-columns:1fr 1fr;margin-bottom:14px">
-      <div class="card"><div class="card-h"><div>${h2i('target', V.orange, V.blue, 'Foco da semana')}<p>LOCAL ${esc(loc)}</p></div><a class="link" href="/crm/acoes/" target="_blank" rel="noopener">Raio-X completo${ic('open', 'sm')}</a></div>
+      <div class="card"><div class="card-h"><div>${h2i('target', V.orange, V.blue, 'Foco da semana')}<p>${esc(loc)}</p></div><a class="link" href="/crm/acoes/" target="_blank" rel="noopener">Raio-X completo${ic('open', 'sm')}</a></div>
         <div class="list">${foco.map((f) => `<div class="li" style="grid-template-columns:34px 1fr">${ib(f[0], f[1], V.navy)}<div><div class="n">${f[2]}</div><div class="s">${f[3]}</div></div></div>`).join('')}</div></div>
       <div class="card"><div class="card-h"><div>${h2i('pie', V.blue, V.orange, 'Carteira por ação')}<p>${n0(tot)} clientes${S.acF ? ` · filtrando ${acChip(S.acF)} <button type="button" class="link" data-cx-acf="">limpar</button>` : ''}</p></div></div>
         <div class="classes">${Object.entries(L.acoes).filter(([, v]) => v).sort((a, b) => (AC_ORD[b[0]] || 0) - (AC_ORD[a[0]] || 0)).map(([k, v]) => `<button type="button" class="cls clsb ${S.acF === k ? 'on' : ''}" data-cx-acf="${S.acF === k ? '' : k}" style="grid-template-columns:100px 1fr 60px;opacity:${S.acF && S.acF !== k ? .45 : 1}" title="${esc((AC_INFO[k] || {}).txt || '')}"><span>${acChip(k)}</span><span class="bar" style="height:12px"><i style="width:${v / Math.max(1, tot) * 100}%;background:${(AC_INFO[k] || AC_INFO.MANTER).cor}"></i></span><b class="num r">${n0(v)}</b></button>`).join('')}</div></div>
@@ -474,10 +545,10 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       && passaDsp(r.ultima ? Math.round((Date.parse(abc.ultimaPostagem) - Date.parse(r.ultima)) / 864e5) : 9999));
   }
   T['clientes-curva'] = () => {
-    const id = 'curva', abc = curva(), loc = NOME_LOCAL[localAtual()] || localAtual();
+    const id = 'curva', abc = curva(), loc = nomeLocais(), multi = !!abc && !!abc.multi;
     const cab = clientHead() + erroHtml(erroDe('abc'));
     if (!abc) return cab + carregandoHtml('Calculando a Curva ABC dos últimos 12 meses…');
-    if (!abc.rows.length) return cab + '<div class="card"><div class="empty">Sem postagens neste LOCAL na janela de 12 meses.</div></div>';
+    if (!abc.rows.length) return cab + `<div class="card"><div class="empty">Sem postagens em ${esc(loc)} na janela de 12 meses.</div></div>`;
     const R = abc.resumo, MB = abc.meses.map((m, i) => [m, i]).filter(([m]) => m >= abc.baseIni), temSemBase = MB.length < abc.meses.length;
     const iP = abc.meses.indexOf(abc.mesParcial), vP = abc.porMes[iP] ? abc.porMes[iP].v : 0, vA = iP > 0 && abc.meses[iP - 1] >= abc.baseIni ? abc.porMes[iP - 1].v : 0;
     const varP = vA ? (vP - vA) / vA : null;
@@ -485,8 +556,9 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const novosTxt = Object.entries(R.novosPorMes || {}).sort().map(([m, n]) => `${n} ${ymLabel(m).slice(0, 3)}`).join(' · ');
     const cols = [
       { k: 'nome', t: 'Cliente', fixed: 1, v: (c) => c.nome },
-      { k: 'abc', t: 'ABC', v: (c) => c.abc },
-      { k: 'rk', t: '#', r: 1, v: (c) => c.rank },
+      ...(multi ? [{ k: 'loc', t: 'LOCAL', tLong: 'LOCAL da postagem', v: (c) => nomeLocal(c.local) }] : []),
+      { k: 'abc', t: 'ABC', tLong: multi ? 'ABC (curva do próprio LOCAL)' : 'ABC', v: (c) => c.abc },
+      { k: 'rk', t: '#', tLong: multi ? 'Posição na curva do LOCAL' : '#', r: 1, v: (c) => c.rank },
       { k: 'inter', t: 'Intermediador', tLong: 'Intermediador (TIPO do Atende)', v: (c) => c.intermediador },
       { k: 'ult', t: 'Última postagem', v: (c) => c.ultima || '' },
       { k: 'meses', t: 'Meses', tLong: 'Meses (quantidade e valor)', noSort: 1, noFilter: 1 },
@@ -515,7 +587,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       return `<td class="hc q ${cl} num">${n0(q)}</td><td class="hc ${cl} num">${brl(v)}${arr}</td>`;
     };
     const s = S.srt[id];
-    const DW = { nome: 240, ult: 150, abc: 90, rk: 64, inter: 136, sb: 70, tQ: 92, tV: 122, tk: 92, part: 74, acum: 74, ac: 108 };
+    const DW = { nome: 240, loc: 96, ult: 150, abc: 90, rk: 64, inter: 136, sb: 70, tQ: 92, tV: 122, tk: 92, part: 74, acum: 74, ac: 108 };
     const chaves = ['nome'].concat(...o.map((k) => (k === 'meses' ? (temSemBase ? ['sb'] : []).concat(...MB.map(([m]) => ['q_' + m, 'v_' + m])) : [k])));
     const dw = (k) => DW[k] || (k.startsWith('q_') ? 56 : 96);
     const largC = chaves.map((k) => W(id, k, dw(k))), totalC = largC.reduce((a, b) => a + b, 0);
@@ -527,6 +599,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       : thCell(id, cm[k], '', 'rowspan="2"')).join('');
     const head2 = MB.map(([m]) => `<th class="sub q">QTD${rz(id, 'q_' + m)}</th><th class="sub">Valor${rz(id, 'v_' + m)}</th>`).join('');
     const bodyCell = (c, k) => ({
+      loc: () => `<td><span class="chip loc">${esc(nomeLocal(c.local))}</span></td>`,
       abc: () => `<td>${abcChip(c.abc)}</td>`,
       rk: () => `<td class="r num faint">${c.rank}</td>`,
       inter: () => `<td style="white-space:nowrap" title="${esc(c.intermediador)}">${esc(c.intermediador)}</td>`,
@@ -545,7 +618,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     <div class="kpis kpis6">
         ${kt('money', V.blue, V.green, 'Faturamento 12M', brlK(R.total), `<span class="muted">${nMesesBase} ${nMesesBase === 1 ? 'mês' : 'meses'} com base</span>`)}
         ${kt('box', V.orange, V.blue, 'Objetos 12M', n0(R.qtd), '<span class="muted">estornos não contam</span>')}
-        ${kt('users', V.teal, V.orange, 'Clientes na janela', n0(R.clientes), `<span class="muted">com postagem no LOCAL ${esc(loc)}</span>`)}
+        ${kt('users', V.teal, V.orange, 'Clientes na janela', n0(R.clientes), `<span class="muted">${multi && R.emVarios ? `${n0(R.emVarios)} postam em mais de um LOCAL` : 'com postagem em ' + esc(loc)}</span>`)}
         ${kt('trend-up', V.green, V.blue, `${ymLabel(abc.mesParcial)} (parcial)`, brlK(vP), varP == null ? '' : `<span style="color:${varP >= 0 ? V.green : V.red}" title="Comparado ao mês anterior inteiro">${varP >= 0 ? '▲' : '▼'} ${pct(Math.abs(varP))} vs ${ymLabel(abc.meses[iP - 1]).slice(0, 3)}</span>`)}
         ${kt('sparkle', V.purple, V.yellow, 'Clientes novos', n0(R.novos), `<span class="muted">${esc(novosTxt || 'desde ' + fmtD(abc.novoDesde) + '/' + abc.novoDesde.slice(0, 4))}</span>`)}
         ${kt('moon', V.red, V.yellow, `Sem postagem em ${ymLabel(abc.mesParcial).slice(0, 3)}`, n0(R.semPostagemMesAtual), '<span class="muted">postaram antes na janela</span>')}
@@ -553,10 +626,11 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     <div class="abc-top abc-graf">
       <div class="card"><div class="card-h"><div>${h2i('pie', V.orange, V.blue, 'Participação por curva')}</div></div><div class="classes">${cls}</div>
         <div id="cx-ch-evol" class="chx" style="height:210px;margin-top:6px" role="img" aria-label="Faturamento por curva e objetos por mês"></div></div>
-      <div class="card"><div class="card-h"><div>${h2i('abc', V.blue, V.orange, 'Pareto da carteira')}</div>
+      <div class="card"><div class="card-h"><div>${h2i('abc', V.blue, V.orange, 'Pareto da carteira')}${multi ? '<p>Cor = curva do próprio LOCAL</p>' : ''}</div>
         <div class="abcchips">${['A', 'B', 'C'].map((c) => `<span class="chip" style="background:var(--${c.toLowerCase()});color:#fff">${c} · ${n0(R[c][0])}</span>`).join('')}</div></div>
         <div id="cx-ch-pareto" class="chx grow" style="height:330px" role="img" aria-label="Pareto do faturamento de 12 meses"></div></div>
     </div>
+    ${multi ? `<div class="multi-nota">${ic('store', 'sm')}<span><b>${esc(loc)}</b> juntos: cada cliente fica na curva A, B ou C do próprio LOCAL. Quem posta em mais de um LOCAL aparece numa linha por LOCAL.</span></div>` : ''}
     <div class="tbar">
       <label class="search">${ic('search', 'sm')}<input data-cx-busca="curvaBusca" value="${esc(S.curvaBusca)}" placeholder="Cliente ou intermediador" aria-label="Pesquisar"></label>
       <div class="seg" role="group" aria-label="Filtrar curva">${['', 'A', 'B', 'C'].map((c) => `<button type="button" class="${S.curvaFiltro === c ? 'on' : ''}" data-cx-cf="${c}">${c ? abcChip(c, 'width:18px;height:18px;font-size:10.5px') : 'Todas'}</button>`).join('')}</div>
@@ -583,17 +657,18 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     </div>`;
   };
   function exportarCsv() {
-    const abc = S.abc[localAtual()];
+    const abc = curva();
     if (!abc) return;
+    const multi = !!abc.multi;
     const MB = abc.meses.map((m, i) => [m, i]).filter(([m]) => m >= abc.baseIni);
-    const cabec = ['Cliente', 'ABC', 'Rank', 'Intermediador (TIPO do Atende)', 'Contrato', 'Primeira postagem', 'Última postagem', 'Novo', ...MB.flatMap(([m]) => [ymLabel(m) + ' QTD', ymLabel(m) + ' Valor']), 'Total QTD', 'Total faturado', 'Ticket', 'Participação', 'Acumulado', 'Ação CRM'];
+    const cabec = [...(multi ? ['LOCAL'] : []), 'Cliente', 'ABC', 'Rank', 'Intermediador (TIPO do Atende)', 'Contrato', 'Primeira postagem', 'Última postagem', 'Novo', ...MB.flatMap(([m]) => [ymLabel(m) + ' QTD', ymLabel(m) + ' Valor']), 'Total QTD', 'Total faturado', 'Ticket', 'Participação', 'Acumulado', 'Ação CRM'];
     const q = (v) => { const t = String(v ?? ''); return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
     const nb = (v, d = 2) => num(v).toFixed(d).replace('.', ',');
-    const linhas = linhasCurva(abc).map((r) => [r.nome, r.abc, r.rank, r.intermediador, r.contrato ? 'SIM' : 'NAO', r.primeira, r.ultima || '', r.novo ? 'SIM' : 'NAO', ...MB.flatMap(([, i]) => [r.q[i], nb(r.v[i])]), r.tQ, nb(r.tV), nb(r.tk), nb(r.part * 100), nb(r.acum * 100), r.acao]);
+    const linhas = linhasCurva(abc).map((r) => [...(multi ? [nomeLocal(r.local)] : []), r.nome, r.abc, r.rank, r.intermediador, r.contrato ? 'SIM' : 'NAO', r.primeira, r.ultima || '', r.novo ? 'SIM' : 'NAO', ...MB.flatMap(([, i]) => [r.q[i], nb(r.v[i])]), r.tQ, nb(r.tV), nb(r.tk), nb(r.part * 100), nb(r.acum * 100), r.acao]);
     const csv = '﻿' + [cabec, ...linhas].map((l) => l.map(q).join(';')).join('\r\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    a.download = `curva-abc-12m-${localAtual().toLowerCase()}-${hojeYmd()}.csv`;
+    a.download = `curva-abc-12m-${locaisAtivos().join('-').toLowerCase()}-${hojeYmd()}.csv`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
@@ -727,14 +802,14 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const c = (C.state.clientsById || {})[id];
     if (c) return c;
     for (const cart of Object.values(S.carteira)) { const f = cart && cart.fila && cart.fila.find((x) => x.clienteId === id); if (f) return { clienteId: id, cliente: f.cliente, local: f.local, whatsapp: f.whatsapp, acaoEngine: f.acao, prioridadeFila: f.prioridade, curva: f.curva, diasSemPostar: f.diasSemPostar, motivoRegra: f.motivo, midia: f.midia }; }
-    for (const abc of Object.values(S.abc)) { const r = abc && abc._map && abc._map.get(id); if (r) return { clienteId: id, cliente: r.nome, local: abc.local, acaoEngine: r.acao, curva: r.curva30 }; }
+    for (const abc of Object.values(S.abc)) { const r = abc && abc.rows && abc.rows.find((x) => x.id === id); if (r) return { clienteId: id, cliente: r.nome, local: r.localCarteira || r.local || abc.local, acaoEngine: r.acao, curva: r.curva30 }; }
     return null;
   }
   function abrirNova(pre = {}) {
     fecharFicha();
     const tipoEnt = pre.type || 'CLIENTE';
     M = { vinc: pre.avulsa ? 'a' : 'c', ent: null, tipo: '', horaModo: 'hora', data: proximoDiaUtil(pre.data || hojeYmd()), hora: '', bloco: '', dur: 0, durTocada: false,
-      resp: C.ownResponsible() || '', obs: '', titulo: '', busca: '', salvando: false, erro: '', tratativaId: pre.tratativaId || '' };
+      resp: C.ownResponsible() || '', local: localAtual(), obs: '', titulo: '', busca: '', salvando: false, erro: '', tratativaId: pre.tratativaId || '' };
     if (pre.id) { const e = entidadeDe(tipoEnt, pre.id); M.ent = { type: tipoEnt, id: pre.id, entity: e || { cliente: pre.nome || pre.id } }; }
     const tipos = tiposPara(M.vinc, tipoEnt);
     const sug = M.ent && M.ent.entity && /VISITA/.test(norm(M.ent.entity.canalSugerido).toUpperCase()) ? 'ATV_VISITA' : '';
@@ -748,9 +823,8 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
   function opcoesEntidade() {
     const q = norm(M.busca);
     if (q.length < 2) return [];
-    const l = localAtual();
-    const cli = (C.state.clients || []).filter((c) => norm(c.local).toUpperCase() === l).map((x) => ({ type: 'CLIENTE', id: text(x.clienteId), e: x }));
-    const pro = (C.state.prospects || []).filter((p) => !p.local || norm(p.local).toUpperCase() === l || !LOCAIS_OFICIAIS.includes(norm(p.local).toUpperCase()))
+    const cli = (C.state.clients || []).filter((c) => noLocal(c.local)).map((x) => ({ type: 'CLIENTE', id: text(x.clienteId), e: x }));
+    const pro = (C.state.prospects || []).filter((p) => !p.local || noLocal(p.local) || !LOCAIS_OFICIAIS.includes(norm(p.local).toUpperCase()))
       .filter((p) => !/excluido/.test(norm(p.statusProspect))).map((x) => ({ type: 'PROSPECT', id: text(x.prospectId), e: x }));
     return cli.concat(pro).filter((x) => norm([C.entityName(x.e), x.e.cnpjCpf, x.e.whatsapp, x.e.nomeFantasia].join(' ')).includes(q)).slice(0, 12);
   }
@@ -773,7 +847,16 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const opts = opcoesEntidade(), q = norm(M.busca).length >= 2;
     if (opts.length) return `<div class="ent-opts">${opts.map((x) => `<button type="button" data-m-ent="${x.type}|${esc(x.id)}"><b>${esc(C.entityName(x.e))}</b><br><small>${x.type === 'CLIENTE' ? 'Cliente' : 'Prospect'} · ${esc(x.e.local || '')}${x.e.acaoEngine ? ' · ' + esc(normAc(x.e.acaoEngine).toLowerCase()) : ''}</small></button>`).join('')}</div>`;
     if (q && !C.state.legacyReady) return '<div class="loading">Carregando cadastros…</div>';
-    return q ? '<div class="empty">Ninguém encontrado neste LOCAL.</div>' : '';
+    return q ? `<div class="empty">Ninguém encontrado em ${esc(nomeLocais())}.</div>` : '';
+  }
+  /* LOCAL da atividade: com cliente ou prospect vale o LOCAL do cadastro; sem vínculo, escolhe entre os LOCAIS marcados */
+  const localDaEntidade = () => { const l = M && M.vinc === 'c' && M.ent && M.ent.entity ? norm(M.ent.entity.local).toUpperCase() : ''; return LOCAIS_OFICIAIS.includes(l) ? l : ''; };
+  const localDoModal = () => localDaEntidade() || (locaisAtivos().includes(M.local) ? M.local : localAtual());
+  function localModalHtml() {
+    const fixo = localDaEntidade(), at = locaisAtivos();
+    if (fixo || at.length < 2) return `<div class="picked" style="font-weight:700;justify-content:flex-start">${ic('store', 'sm')} ${esc(nomeLocal(fixo || localAtual()))}</div>`;
+    const atual = localDoModal();
+    return `<div class="seg" role="group" aria-label="LOCAL da atividade">${at.map((l) => `<button type="button" class="${atual === l ? 'on' : ''}" data-m-local="${l}" aria-pressed="${atual === l}">${esc(nomeLocal(l))}</button>`).join('')}</div>`;
   }
   function desenharModal() {
     if (!M) return;
@@ -800,7 +883,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
               <label class="fl"><span>Duração (min)</span><input class="inp" type="number" min="5" step="5" data-m="dur" value="${esc(M.dur)}"></label></div>
           </div>
           <div class="g2"><label class="fl"><span>Responsável</span><select class="inp" data-m="resp"><option value="">Sem responsável</option>${resps.map(([id, n]) => `<option value="${esc(id)}" ${norm(id) === norm(M.resp) ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
-            <div class="fl"><span>LOCAL</span><div class="picked" style="font-weight:700;justify-content:flex-start">${ic('store', 'sm')} ${esc(NOME_LOCAL[localAtual()] || localAtual())}</div></div></div>
+            <div class="fl"><span>LOCAL</span>${localModalHtml()}</div></div>
           <label class="fl"><span>Observação</span><textarea class="inp" rows="2" data-m="obs" placeholder="Contexto para quem vai executar">${esc(M.obs)}</textarea></label>
           ${M.erro ? `<div class="m-err">${esc(M.erro)}</div>` : ''}
         </div>
@@ -825,7 +908,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     else if (norm(tipoInfo(M.tipo).row.USA_BLOCO) === 'sim' && M.horaModo === 'sem') M.erro = 'Este tipo precisa de horário ou janela.';
     if (M.erro) return desenharModal();
     const base = { requestId: `WEB_${Date.now()}_${Math.random().toString(16).slice(2, 10).toUpperCase()}`, tipoAtividadeId: M.tipo, responsavelId: M.resp, dataProgramada: M.data,
-      blocoId: M.horaModo === 'janela' ? M.bloco : '', horaProgramada: M.horaModo === 'hora' ? M.hora : '', duracaoMin: M.dur || tipoInfo(M.tipo).dur, observacao: text(M.obs), updatedBy: C.ownResponsible(), local: localAtual() };
+      blocoId: M.horaModo === 'janela' ? M.bloco : '', horaProgramada: M.horaModo === 'hora' ? M.hora : '', duracaoMin: M.dur || tipoInfo(M.tipo).dur, observacao: text(M.obs), updatedBy: C.ownResponsible(), local: localDoModal() };
     const payload = M.vinc === 'a' ? Object.assign(base, { avulsa: true, titulo: text(M.titulo) })
       : Object.assign(base, { tipoEntidade: M.ent.type, entidadeId: M.ent.id, tratativaId: M.tratativaId || '' });
     M.salvando = true; desenharModal();
@@ -855,7 +938,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
   function desenharFicha() {
     if (!F) return;
     const id = F.id, e = entidadeDe('CLIENTE', id) || { cliente: id }, a = abcPorId(), r = a && a.get(id), t = tratativaPorCliente().get(id);
-    const abc = S.abc[localAtual()];
+    const abc = curva();
     const atividades = ((C.state.agendaWin && C.state.agendaWin.items) || []).concat(C.state.overdue || []).filter((x) => x.entidadeId === id);
     const vistos = new Set(), ativ = atividades.filter((x) => (vistos.has(x.agendaId) ? false : vistos.add(x.agendaId))).sort((x, y) => ordHora(y, x));
     const hist = [];
@@ -873,7 +956,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       <div class="dr-s"><h3 style="margin-bottom:10px;display:flex;gap:8px;align-items:center">${ib('trend-up', V.blue, V.orange, 'sm')}Postagens (Visão 360)</h3>
         ${r ? `<div class="kv"><div><small>Fat. 12M</small><b class="num" style="color:${V.blue}">${brlK(r.tV)}</b></div><div><small>Objetos 12M</small><b class="num" style="color:${V.orange}">${n0(r.tQ)}</b></div><div><small>Ticket</small><b class="num" style="color:${V.teal}">${brl(r.tk, 2)}</b></div></div>
           <div id="cx-ch-ficha" class="chx" style="height:130px;margin-top:6px" role="img" aria-label="Faturamento mensal do cliente"></div>`
-          : abc ? '<p class="muted" style="font-size:12.5px">Sem postagens neste LOCAL nos últimos 12 meses.</p>' : (curva(), carregandoHtml())}
+          : abc ? `<p class="muted" style="font-size:12.5px">Sem postagens em ${esc(nomeLocais())} nos últimos 12 meses.</p>` : (curva(), carregandoHtml())}
         ${e.motivoRegra ? `<p class="muted" style="font-size:12px;margin-top:6px">Motivo da regra: ${esc(e.motivoRegra)}.</p>` : ''}</div>
       <div class="dr-s"><h3 style="margin-bottom:8px;display:flex;gap:8px;align-items:center">${ib('kanban', V.purple, V.orange, 'sm')}Tratativa</h3>
         ${t ? `<div class="stage" style="margin-bottom:8px"><i style="background:${corEtapa(t.etapaId)}"></i>${esc(nomeEtapa(t.etapaId))}${t.abertaEm ? ' desde ' + fmtD(t.abertaEm) : ''}${t.responsavelId ? ' · ' + esc(C.responsibleDisplay(t.responsavelId)) : ''}</div>
@@ -941,7 +1024,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       }, () => irTela('clientes-funil'));
     }
     if (tela === 'clientes-curva' && $('#cx-ch-evol')) {
-      const abc = S.abc[localAtual()];
+      const abc = curva();
       if (!abc) return;
       const MS = abc.meses, lab = MS.map((m) => ymLabel(m).slice(0, 3)), semBase = (m) => m < abc.baseIni;
       const serie = (k, cor) => ({ name: 'Curva ' + k, type: 'bar', stack: 'fat', barWidth: '58%', data: MS.map((m, i) => (semBase(m) ? null : abc.porMes[i][k])), itemStyle: { color: cor, borderRadius: k === 'C' ? [6, 6, 0, 0] : 0 }, emphasis: { focus: 'series' } });
@@ -962,21 +1045,26 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
           { name: 'Objetos', type: 'line', yAxisIndex: 1, smooth: true, symbolSize: 7, data: MS.map((m, i) => (semBase(m) ? null : abc.porMes[i].q)), itemStyle: { color: '#0B3A63' }, lineStyle: { width: 2.5, type: 'dashed' } },
         ],
       }, null, (idx) => { const m = MS[idx]; if (!m || semBase(m)) return; S.srt.curva = { k: 'm_' + m, d: -1 }; salvarTabelas(); redesenhar(); const t = $('#cixClientes .tw.heat'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
-      const R = abc.resumo, rows = abc.rows, nA = R.A[0], nAB = R.A[0] + R.B[0];
-      const corDe = (i) => (i < nA ? V.blue : i < nAB ? V.teal : V.orange);
+      const R = abc.resumo, multi = !!abc.multi, nA = R.A[0], nAB = R.A[0] + R.B[0];
+      // vários LOCAIS: ordena pelo faturamento e pinta com a curva do próprio LOCAL de cada linha
+      const rows = multi ? abc.rows.slice().sort((a, b) => b.tV - a.tV) : abc.rows;
+      if (multi) { const tt = rows.reduce((a, r) => a + r.tV, 0) || 1; let ac = 0; rows.forEach((r) => { ac += r.tV; r._acumJ = ac / tt; }); }
+      const COR_ABC = { A: V.blue, B: V.teal, C: V.orange };
+      const corDe = (i) => (multi ? COR_ABC[rows[i].abc] || V.orange : i < nA ? V.blue : i < nAB ? V.teal : V.orange);
+      const acumDe = (r) => (multi ? r._acumJ : r.acum);
       const pos = rows.map((r) => r.tV);
       const fim = Math.min(100, Math.max(8, Math.round(60 / Math.max(1, rows.length) * 100)));
       grafico('cx-ch-pareto', {
         grid: { left: 4, right: 8, top: 30, bottom: 44, containLabel: true },
-        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (ps) => { const i = ps[0].dataIndex, r = rows[i]; return `<b>${esc(r.nome)}</b><br>Curva <b style="color:${corDe(i)}">${r.abc}</b> · ${i + 1}º do LOCAL<br>12M: <b>${brl(r.tV)}</b><br>Acumulado: <b>${(r.acum * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</b><br><span style="color:#9AA1B2">clique para abrir a ficha</span>`; } },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (ps) => { const i = ps[0].dataIndex, r = rows[i]; return `<b>${esc(r.nome)}</b><br>Curva <b style="color:${corDe(i)}">${r.abc}</b> · ${multi ? `${r.rank}º do LOCAL ${esc(nomeLocal(r.local))}` : `${i + 1}º do LOCAL`}<br>12M: <b>${brl(r.tV)}</b><br>Acumulado${multi ? ' dos LOCAIS juntos' : ''}: <b>${(acumDe(r) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</b><br><span style="color:#9AA1B2">clique para abrir a ficha</span>`; } },
         xAxis: { type: 'category', data: rows.map((_, i) => i + 1), axisLabel: { interval: 'auto', color: '#9AA1B2' } },
         yAxis: [{ type: 'log', logBase: 10, min: Math.max(1, Math.pow(10, Math.floor(Math.log10(Math.max(1, Math.min(...pos)))))), axisLabel: { formatter: (v) => brlC(v).replace('R$ ', '') } }, { type: 'value', min: 0, max: 100, splitLine: { show: false }, axisLabel: { formatter: '{value}%' } }],
         dataZoom: rows.length > 40 ? [{ type: 'inside', start: 0, end: fim }, { type: 'slider', start: 0, end: fim, height: 18, bottom: 6, borderColor: 'transparent', backgroundColor: '#F1F4F8', fillerColor: 'rgba(47,111,219,.15)', handleStyle: { color: V.blue }, dataBackground: { lineStyle: { color: '#C9D6EA' }, areaStyle: { color: '#E3EBF8' } }, labelFormatter: '' }] : [],
         series: [
           { name: 'Faturamento 12M', type: 'bar', barCategoryGap: '18%', data: rows.map((r, i) => ({ value: Math.max(1, r.tV), itemStyle: { color: corDe(i), borderRadius: [4, 4, 0, 0] } })) },
-          { name: 'Acumulado', type: 'line', yAxisIndex: 1, data: rows.map((r) => Math.round(r.acum * 1000) / 10), symbol: 'none', smooth: true, lineStyle: { width: 3, color: '#0B3A63' },
+          { name: 'Acumulado', type: 'line', yAxisIndex: 1, data: rows.map((r) => Math.round(acumDe(r) * 1000) / 10), symbol: 'none', smooth: true, lineStyle: { width: 3, color: '#0B3A63' },
             markLine: { symbol: 'none', silent: true, lineStyle: { type: 'dashed', width: 1.5 }, label: { position: 'insideEndTop', fontWeight: 800 },
-              data: [{ yAxis: 80, lineStyle: { color: V.blue }, label: { formatter: 'A até 80%', color: V.blue } }, { yAxis: 95, lineStyle: { color: V.teal }, label: { formatter: 'B até 95%', color: V.teal } }] } },
+              data: multi ? [] : [{ yAxis: 80, lineStyle: { color: V.blue }, label: { formatter: 'A até 80%', color: V.blue } }, { yAxis: 95, lineStyle: { color: V.teal }, label: { formatter: 'B até 95%', color: V.teal } }] } },
         ],
       }, (p) => { if (p.componentType === 'series' && rows[p.dataIndex]) abrirFicha(rows[p.dataIndex].id); });
     }
@@ -1102,6 +1190,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       if ((b = q('[data-m-fechar]')) && (b === alvo || b.tagName === 'BUTTON')) { fecharNova(); return; }
       if ((b = q('[data-m-vinc]'))) { lerCamposModal(); M.vinc = b.dataset.mVinc; const ts = tiposPara(M.vinc, M.ent ? M.ent.type : 'CLIENTE'); if (!ts.some((t) => t.TIPO_ATIVIDADE_ID === M.tipo)) { M.tipo = (ts[0] || {}).TIPO_ATIVIDADE_ID || ''; if (!M.durTocada) M.dur = tipoInfo(M.tipo).dur; } desenharModal(); return; }
       if ((b = q('[data-m-tipo]'))) { lerCamposModal(); M.tipo = b.dataset.mTipo; if (!M.durTocada) M.dur = tipoInfo(M.tipo).dur; desenharModal(); return; }
+      if ((b = q('[data-m-local]'))) { lerCamposModal(); M.local = b.dataset.mLocal; desenharModal(); return; }
       if ((b = q('[data-m-hmodo]'))) { lerCamposModal(); M.horaModo = b.dataset.mHmodo; desenharModal(); return; }
       if ((b = q('[data-m-ent]'))) { lerCamposModal(); const [type, id] = b.dataset.mEnt.split('|'); M.ent = { type, id, entity: entidadeDe(type, id) || {} }; const ts = tiposPara('c', type); if (!ts.some((t) => t.TIPO_ATIVIDADE_ID === M.tipo)) { M.tipo = (ts[0] || {}).TIPO_ATIVIDADE_ID || ''; if (!M.durTocada) M.dur = tipoInfo(M.tipo).dur; } desenharModal(); return; }
       if (q('[data-m-trocar]')) { lerCamposModal(); M.ent = null; M.tratativaId = ''; desenharModal(); setTimeout(() => { const f = $('#cixLayer [data-m-busca]'); if (f) f.focus(); }, 20); return; }
@@ -1122,7 +1211,14 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     if (q('.fpop')) return;
     fecharPops();
     if ((b = q('[data-sortk]'))) { const id = b.dataset.tb, k = b.dataset.sortk, s = S.srt[id]; S.srt[id] = { k, d: s && s.k === k ? -s.d : (k === 'nome' || k === 'rk' ? 1 : -1) }; salvarTabelas(); redesenhar(); return; }
-    if ((b = q('[data-cx-local]'))) { S.local = b.dataset.cxLocal; LS.set('crm_cix_local', S.local); S.cadLimite = 300; S.acoesLimite = 200; S.curvaLimite = 400; S.funilLimite = {}; redesenhar(); return; }
+    if ((b = q('[data-cx-local]'))) {
+      const k = b.dataset.cxLocal, p = locaisPermitidos();
+      let a = locaisAtivos();
+      if (k === '*') a = p.slice();
+      else if (a.includes(k)) { if (a.length < 2) return; a = a.filter((x) => x !== k); }
+      else a = p.filter((x) => a.includes(x) || x === k);
+      if (a.join() === locaisAtivos().join()) return;
+      S.locais = a; LS.set('crm_cix_locais', a); S.cadLimite = 300; S.acoesLimite = 200; S.curvaLimite = 400; S.funilLimite = {}; redesenhar(); return; }
     if ((b = q('[data-cx-tela]'))) { irTela(b.dataset.cxTela); return; }
     if ((b = q('[data-cx-funil-ac]'))) { S.acF = b.dataset.cxFunilAc; irTela('clientes-funil'); return; }
     if ((b = q('[data-cx-acf]'))) { S.acF = b.dataset.cxAcf; redesenhar(); return; }

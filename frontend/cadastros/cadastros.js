@@ -7,7 +7,7 @@
   const LOCAL_NOME = { AGF: 'AGF', BALCAO: 'BALCÃO', METRO: 'METRÔ', '': 'Sem LOCAL' };
   const LOCAL_COR = { AGF: 'var(--l-agf)', BALCAO: 'var(--l-balcao)', METRO: 'var(--l-metro)', '': 'var(--l-vazio)' };
   const REGRA_TXT = {
-    PORTAL: 'Cliente do Portal', NOME_UNICO: 'Nome base', DECISAO_MANUAL: 'Agrupado manualmente', DECISAO_PLANILHA: 'Planilha (decisão manual antiga)',
+    PORTAL: 'Cliente do Portal', NOME_UNICO: 'Nome base', DECISAO_MANUAL: 'Agrupado manualmente', PORTAL_RENOMEADO: 'Portal mudou o nome (junção manual)', DECISAO_PLANILHA: 'Planilha (decisão manual antiga)',
     IGUAL_PORTAL: 'Mesmo nome do Portal', SEM_ESPACO: 'Mesmo nome sem espaço/pontuação', MESMO_CNPJ_RAIZ: 'Mesmo CNPJ raiz',
     NOME_CORTADO: 'Nome cortado pelo sistema', MESMAS_PALAVRAS: 'Mesmas palavras', GRAFIA_QUASE_IGUAL: 'Erro de digitação mínimo',
   };
@@ -53,7 +53,7 @@
       if (sessaoValida && tentativa === 1) return api(caminho, opcoes, 2);
       throw new Error('Não foi possível confirmar seu acesso agora. Tente de novo em instantes.');
     }
-    if (!resp.ok || !data || data.ok === false) throw new Error((data && data.erro) || `Erro ${resp.status} na API.`);
+    if (!resp.ok || !data || data.ok === false) throw Object.assign(new Error((data && data.erro) || `Erro ${resp.status} na API.`), { codigo: (data && data.codigo) || '' });
     return data;
   }
 
@@ -179,6 +179,9 @@
   function desenharFicha(r) {
     const c = r.cliente, el = $('ficha');
     const ehPortal = !!c.portal_chave;
+    const nPortal = r.grafias.filter((g) => g.origem === 'PORTAL').length;
+    const cands = r.portalRenomeado || [];
+    const PAPEL_TXT = { ANTIGO: 'parece o nome antigo', NOVO: 'parece o nome novo' };
     const totL = r.locais.reduce((s, l) => s + l.postagens, 0) || 1;
     const fonte = ehPortal ? '<span class="chip portal"><span class="material-symbols-rounded">verified</span>Nome do Portal</span>'
       : c.fonte_nome === 'MANUAL' ? '<span class="chip manual">Nome corrigido manualmente</span>' : '<span class="chip">Nome mais completo recebido</span>';
@@ -187,7 +190,7 @@
         <button type="button" class="cad-btn ghost f-voltar" id="fVoltar"><span class="material-symbols-rounded">arrow_back</span>Voltar</button>
         <div class="f-kicker">Ficha de identidade · ${esc(c.id)}</div>
         <div class="f-nome">${esc(c.nome)}</div>
-        <div class="cad-row-meta">${fonte}${r.abas.map((a) => `<span class="chip" title="Fonte do cadastro (CLIENTE PORTAL)">Fonte ${ABA_NOME[a.aba]}: ${num(a.postagens)}</span>`).join('')}</div>
+        <div class="cad-row-meta">${fonte}${nPortal > 1 ? `<span class="chip portal" title="Nome antigo e novo do Portal juntos. Vale o nome mais recente do Portal."><span class="material-symbols-rounded">history</span>${nPortal} nomes no Portal</span>` : ''}${r.abas.map((a) => `<span class="chip" title="Fonte do cadastro (CLIENTE PORTAL)">Fonte ${ABA_NOME[a.aba]}: ${num(a.postagens)}</span>`).join('')}</div>
         <div class="f-local"><span class="material-symbols-rounded" style="font-size:17px;color:var(--c-muted)">location_on</span><b>LOCAL da carteira</b>
           <select id="fLocal" aria-label="LOCAL da carteira">
             <option value="" ${c.local_carteira ? '' : 'selected'} disabled>${c.local_carteira ? '' : 'Não definido (fila)'}</option>
@@ -200,6 +203,13 @@
           ${ehPortal ? '' : '<button type="button" class="cad-btn" id="fNome"><span class="material-symbols-rounded">edit</span>Corrigir nome</button>'}
         </div>
       </div>
+      ${cands.length ? `<div class="f-sec f-ren"><h3><span class="material-symbols-rounded">history</span>Nome antigo ou novo no Portal? <em>${cands.length}</em></h3>
+        <p class="f-sub" style="margin:-2px 0 10px">Mesmo contrato e cartão, e um nome parou quando o outro começou. Se for o mesmo cliente, junte: o cadastro fica com o nome mais recente do Portal e soma o histórico dos dois.</p>
+        ${cands.map((x) => `<div class="f-sug"><div class="f-sug-nome">${esc(x.nome)}${x.papel ? ` <span class="chip">${PAPEL_TXT[x.papel]}</span>` : x.motivo === 'NOME_CORTADO' ? ' <span class="chip">nome cortado</span>' : ''}
+            <div class="f-sub">No Portal de ${dataBr(x.de)} a ${dataBr(x.ate)} · ${num(x.postagens)} postagens · ${brl(x.valor)}</div>
+            <div class="f-sub">Contrato / cartão em comum: ${esc(x.cartoes)}</div></div>
+          <button type="button" class="cad-btn ok" data-ren="${esc(x.id)}">É o mesmo: juntar</button>
+          <button type="button" class="cad-btn ghost" data-sep="${esc(x.id)}" title="Não é o mesmo cliente">Não é</button></div>`).join('')}</div>` : ''}
       ${r.sugestoes.length ? `<div class="f-sec"><h3><span class="material-symbols-rounded">merge</span>Sugestões para este cliente <em>${r.sugestoes.length}</em></h3>
         ${r.sugestoes.map((s) => {
           const outro = s.cliente_a === c.id ? s.cliente_b : s.cliente_a;
@@ -216,7 +226,7 @@
         <table class="f-tbl"><thead><tr><th>Grafia recebida</th><th class="r">Post.</th><th></th></tr></thead><tbody>
         ${r.grafias.map((g) => `<tr><td><div class="f-graf">${esc(g.grafia)}</div><div class="f-sub">${ORIGEM_TXT[g.origem] || g.origem} · ${REGRA_TXT[g.regra] || g.regra} · última ${dataBr(g.ultima)}</div></td>
           <td class="n">${num(g.postagens)}</td>
-          <td class="r">${r.grafias.length > 1 && !(ehPortal && g.origem === 'PORTAL') ? `<button type="button" class="cad-btn ghost" data-tirar="${esc(g.chave)}" title="Esta grafia não é deste cliente"><span class="material-symbols-rounded">call_split</span></button>` : ''}</td></tr>`).join('')}
+          <td class="r">${r.grafias.length > 1 && !(g.origem === 'PORTAL' && nPortal < 2) ? `<button type="button" class="cad-btn ghost" data-tirar="${esc(g.chave)}" title="${g.origem === 'PORTAL' ? 'Este nome do Portal não é deste cliente (desfaz a junção)' : 'Esta grafia não é deste cliente'}"><span class="material-symbols-rounded">call_split</span></button>` : ''}</td></tr>`).join('')}
         </tbody></table>
       </div>
       <div class="f-sec"><h3><span class="material-symbols-rounded">description</span>Contratos observados <em>${r.contratos.length}</em></h3>
@@ -234,6 +244,10 @@
     });
     const fn = $('fNome'); if (fn) fn.addEventListener('click', () => abrirNome(c));
     el.querySelectorAll('[data-unir]').forEach((b) => b.addEventListener('click', () => agrupar([c.id, b.dataset.unir], '', c.id)));
+    el.querySelectorAll('[data-ren]').forEach((b) => b.addEventListener('click', () => {
+      if (!confirm(TXT_RENOMEADO)) return;
+      agrupar([c.id, b.dataset.ren], '', c.id, { portalRenomeado: true });
+    }));
     el.querySelectorAll('[data-sep]').forEach((b) => b.addEventListener('click', async () => {
       const ok = await acao('Registrando...', () => api('/api/v2/nao-e-o-mesmo', { method: 'POST', body: { clienteA: c.id, clienteB: b.dataset.sep } }), 'Sugestão descartada. Ela não volta mais.');
       if (ok) { abrirFicha(c.id); carregarResumo(); }
@@ -245,10 +259,28 @@
     }));
   }
 
-  async function agrupar(ids, nome, destino) {
-    const r = await acao('Agrupando e reaplicando a limpeza...', () => api('/api/v2/agrupar', { method: 'POST', body: { clientes: ids, nome, destino }, timeout: 90000 }),
-      (x) => `Agrupado. ${x.motor ? num(x.motor.clientes) + ' clientes no cadastro.' : ''}`);
-    if (r) { carregarResumo(); if (st.modo === 'lista') { carregarLista(); abrirFicha(r.clienteId); } }
+  const TXT_RENOMEADO = 'Os dois cadastros vêm do Portal.\n\nSó junte se for o MESMO cliente e o Portal trocou o nome (nome antigo e nome novo).\n'
+    + 'O cadastro fica com o nome mais recente do Portal e soma o histórico dos dois. Tratativas e agenda do CRM vão junto.\n\n'
+    + 'Dá para desfazer depois pelo botão de separar na grafia.\n\nJuntar?';
+  async function agrupar(ids, nome, destino, extra = {}) {
+    ocupado('Agrupando e reaplicando a limpeza...');
+    let r = null;
+    try {
+      r = await api('/api/v2/agrupar', { method: 'POST', body: { clientes: ids, nome, destino, ...extra }, timeout: 90000 });
+    } catch (e) {
+      livre();
+      // dois clientes do Portal: so com confirmacao de que o Portal mudou o nome
+      if (e.codigo === 'DOIS_PORTAIS' && !extra.portalRenomeado) return confirm(TXT_RENOMEADO) ? agrupar(ids, nome, destino, { ...extra, portalRenomeado: true }) : null;
+      if (e.codigo === 'SEM_CARTAO_COMUM' && !extra.forcar) {
+        const ok = confirm('Atenção: os dois nomes do Portal NÃO usam o mesmo contrato e cartão.\n\nNormalmente isso indica clientes diferentes. Só continue se você tiver certeza de que é o mesmo cliente.\n\nJuntar mesmo assim?');
+        return ok ? agrupar(ids, nome, destino, { ...extra, forcar: true }) : null;
+      }
+      toast(e.message, 'err');
+      return null;
+    }
+    livre();
+    toast(`Agrupado. ${r.motor ? num(r.motor.clientes) + ' clientes no cadastro.' : ''}`, 'ok');
+    carregarResumo(); if (st.modo === 'lista') { carregarLista(); abrirFicha(r.clienteId); }
     return r;
   }
 

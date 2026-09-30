@@ -15,7 +15,7 @@ const ABAS = ['PORTAL', 'BALCAO', 'METRO', 'CF'];
 
 // ---------------------------------------------------------------- http
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'cache-control': 'no-store' } });
-const erro = (mensagem, status = 400) => { throw Object.assign(new Error(mensagem), { status }); };
+const erro = (mensagem, status = 400, codigo = '') => { throw Object.assign(new Error(mensagem), { status, codigo }); };
 const limpar = (v) => String(v ?? '').trim();
 
 function origemPermitida(request, env) {
@@ -235,7 +235,64 @@ async function ficha(id, env) {
   ]);
   const listaContratos = contratos.results || [];
   await anexarTipoContrato(env, listaContratos);
-  return { cliente, grafias: grafias.results || [], locais: locais.results || [], contratos: listaContratos, sugestoes: sugestoes.results || [], abas: abas.results || [] };
+  const portalRenomeado = cliente.portal_chave ? await candidatosPortalRenomeado(env, id) : [];
+  return { cliente, grafias: grafias.results || [], locais: locais.results || [], contratos: listaContratos, sugestoes: sugestoes.results || [], abas: abas.results || [], portalRenomeado };
+}
+
+/** Cartao do contrato usado pelos dois nomes do Portal (evidencia de que e o mesmo cliente renomeado). */
+async function cartoesEmComum(env, idA, idB) {
+  const r = await env.DB.prepare(`WITH q AS (SELECT n.cliente_id, p.contrato, p.cartao, COUNT(*) postagens, MIN(substr(p.data_postagem,1,10)) de, MAX(substr(p.data_postagem,1,10)) ate
+      FROM cid_nos n JOIN cid_grafias g ON g.no_chave = n.chave AND g.origem = 'PORTAL' JOIN cid_postagens p ON p.origem = g.origem AND p.grafia = g.grafia
+      WHERE n.cliente_id IN (?, ?) AND n.tipo = 'P' AND p.cartao <> '' GROUP BY 1, 2, 3)
+    SELECT a.contrato, a.cartao FROM q a JOIN q b ON b.cartao = a.cartao AND b.contrato = a.contrato AND b.cliente_id = ? WHERE a.cliente_id = ?`).bind(idA, idB, idB, idA).all();
+  return r.results || [];
+}
+
+/**
+ * Clientes do Portal que parecem ser este mesmo cliente com o nome antigo ou novo no Portal.
+ * Evidencia obrigatoria: o mesmo contrato + cartao nas postagens do Portal dos dois, e esse cartao usado por no maximo
+ * 3 nomes do Portal (cartao de intermediador ou de terceiros aparece em muitos nomes e nao prova nada).
+ * E mais uma: no Portal, um nome parou quando o outro comecou (ate 7 dias de folga), ou um nome e o comeco do outro.
+ * Par marcado como "nao e o mesmo" nao volta.
+ */
+async function candidatosPortalRenomeado(env, id) {
+  const db = env.DB;
+  const r = await db.prepare(`WITH q AS (SELECT n.cliente_id id, p.contrato, p.cartao FROM cid_postagens p
+        JOIN cid_grafias g ON g.origem = p.origem AND g.grafia = p.grafia JOIN cid_nos n ON n.chave = g.no_chave AND n.tipo = 'P'
+        WHERE p.origem = 'PORTAL' AND p.cartao <> '' AND p.estorno = 0 AND n.cliente_id IS NOT NULL GROUP BY 1, 2, 3),
+      meus AS (SELECT contrato, cartao FROM q WHERE id = ?),
+      pop AS (SELECT q.contrato, q.cartao, COUNT(DISTINCT q.id) k FROM q JOIN meus m ON m.contrato = q.contrato AND m.cartao = q.cartao GROUP BY 1, 2)
+    SELECT q.id, c.nome, group_concat(q.contrato || ' / ' || q.cartao, ', ') cartoes FROM q JOIN pop ON pop.contrato = q.contrato AND pop.cartao = q.cartao AND pop.k <= 3
+      JOIN cid_clientes c ON c.id = q.id AND c.portal_chave IS NOT NULL WHERE q.id <> ? GROUP BY 1, 2 LIMIT 20`).bind(id, id).all();
+  const lista = r.results || [];
+  if (!lista.length) return [];
+  const ids = [id, ...lista.map((x) => x.id)], marcas = ids.map(() => '?').join(',');
+  const [per, nos, sep] = await db.batch([
+    // periodo de cada um so no Portal (remetente de balcao do mesmo cliente nao conta aqui)
+    db.prepare(`SELECT n.cliente_id id, COUNT(*) postagens, ROUND(SUM(p.valor),2) valor, MIN(substr(p.data_postagem,1,10)) de, MAX(substr(p.data_postagem,1,10)) ate
+      FROM cid_nos n JOIN cid_grafias g ON g.no_chave = n.chave AND g.origem = 'PORTAL' JOIN cid_postagens p ON p.origem = g.origem AND p.grafia = g.grafia
+      WHERE n.cliente_id IN (${marcas}) AND n.tipo = 'P' AND p.estorno = 0 GROUP BY 1`).bind(...ids),
+    db.prepare(`SELECT chave, cliente_id FROM cid_nos WHERE cliente_id IN (${marcas})`).bind(...ids),
+    db.prepare(`SELECT chave_a, chave_b FROM cid_decisoes WHERE tipo = 'SEPARAR' AND ativo = 1 AND chave_a IN (SELECT chave FROM cid_nos WHERE cliente_id IN (${marcas}))`).bind(...ids),
+  ]);
+  const P = new Map((per.results || []).map((x) => [x.id, x]));
+  const donoNo = new Map((nos.results || []).map((x) => [x.chave, x.cliente_id]));
+  const separados = new Set();
+  for (const d of sep.results || []) { const a = donoNo.get(d.chave_a), b = donoNo.get(d.chave_b); if (a && b) { separados.add(a + '|' + b); separados.add(b + '|' + a); } }
+  const eu = P.get(id) || {}, meuNome = (await db.prepare(`SELECT nome FROM cid_clientes WHERE id=?`).bind(id).first())?.nome || '';
+  const dia = (s) => (s ? Date.parse(s + 'T12:00:00Z') / 864e5 : NaN);
+  const core = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const out = [];
+  for (const x of lista) {
+    const o = P.get(x.id);
+    if (!o || !eu.de || separados.has(id + '|' + x.id)) continue;
+    const eleAntes = dia(o.ate) <= dia(eu.de) + 7, eleDepois = dia(eu.ate) <= dia(o.de) + 7;
+    const a = core(meuNome), b = core(x.nome), cortado = a.length >= 12 && b.length >= 12 && (a.startsWith(b) || b.startsWith(a));
+    if (!eleAntes && !eleDepois && !cortado) continue;
+    out.push({ id: x.id, nome: x.nome, cartoes: x.cartoes, postagens: o.postagens, valor: o.valor, de: o.de, ate: o.ate,
+      motivo: cortado ? 'NOME_CORTADO' : 'EM_SEQUENCIA', papel: cortado ? '' : eleAntes ? 'ANTIGO' : 'NOVO' });
+  }
+  return out;
 }
 
 /** TIPO do contrato com a mesma regra do Atende (coluna TIPO do Visao 360):
@@ -340,9 +397,17 @@ async function agrupar(request, env, autor) {
     nos.push({ id, chave: n[0], ehPortal: n[0].startsWith('P:') });
   }
   const portais = nos.filter((n) => n.ehPortal);
-  if (portais.length > 1) erro('Dois clientes do Portal nao podem virar um so. O Portal e a referencia oficial.', 409);
+  const renomeado = portais.length > 1;
+  if (renomeado) {
+    // excecao unica: o Portal trocou o nome do mesmo cliente. So 2 por vez, e com o mesmo contrato + cartao nos dois.
+    if (b.portalRenomeado !== true) erro('Os dois cadastros são do Portal. Só junte se for o mesmo cliente com o nome antigo e o novo no Portal.', 409, 'DOIS_PORTAIS');
+    if (ids.length !== 2 || portais.length !== 2) erro('Junte um par de nomes do Portal por vez.');
+    const comum = await cartoesEmComum(env, ids[0], ids[1]);
+    if (!comum.length && b.forcar !== true) erro('Os dois nomes do Portal não usam o mesmo contrato e cartão. Confira antes de juntar.', 409, 'SEM_CARTAO_COMUM');
+  }
   const destino = portais[0] || nos.find((n) => n.id === limpar(b.destino)) || nos[0];
-  const stmts = nos.filter((n) => n !== destino).map((n) => env.DB.prepare(`INSERT INTO cid_decisoes(tipo, chave_a, chave_b, autor) VALUES('UNIR',?,?,?)`).bind(destino.chave, n.chave, autor));
+  const stmts = nos.filter((n) => n !== destino).map((n) => env.DB.prepare(`INSERT INTO cid_decisoes(tipo, chave_a, chave_b, valor, autor) VALUES('UNIR',?,?,?,?)`)
+    .bind(destino.chave, n.chave, renomeado && n.ehPortal ? 'PORTAL_RENOMEADO' : '', autor));
   const nome = nomeExibicao(limpar(b.nome)).slice(0, 160);
   if (nome && !destino.ehPortal) stmts.push(env.DB.prepare(`INSERT INTO cid_decisoes(tipo, chave_a, valor, autor) VALUES('NOME',?,?,?)`).bind(destino.chave, nome, autor));
   // desativa "separar" antigos entre esses nos
@@ -501,7 +566,7 @@ export default {
     catch (e) {
       const status = e.status || 500;
       if (status >= 500) console.error('[CADASTROS_V2]', e?.stack || e);
-      return comCors(json({ ok: false, erro: status >= 500 ? 'Falha ao processar. Tente de novo em instantes.' : e.message }, status), request, env);
+      return comCors(json({ ok: false, erro: status >= 500 ? 'Falha ao processar. Tente de novo em instantes.' : e.message, ...(e.codigo ? { codigo: e.codigo } : {}) }, status), request, env);
     }
   },
   async scheduled(event, env, ctx) {

@@ -5,7 +5,7 @@ Publicado a partir do protótipo aprovado pela Rachel em 29/09/2026.
 ## 1. O que muda para quem usa
 
 1. Clientes tem 5 abas: Dashboard, Funil, Cadastro, Ações e Curva ABC.
-2. LOCAL é o filtro pai (bloco escuro no topo). Admin vê AGF, BALCÃO e METRÔ; os demais só os LOCAIS liberados no cadastro de usuários (`crm.locais`). Quem tem um LOCAL só vê o cadeado.
+2. LOCAL é o filtro pai (bloco escuro no topo). Admin vê AGF, BALCÃO e METRÔ; os demais só os LOCAIS liberados no cadastro de usuários (`crm.locais`). Quem tem um LOCAL só vê o cadeado. Dá para marcar 1, 2 ou todos ao mesmo tempo (ver seção 8).
 3. Responsável é o filtro filho. Quem só vê a própria agenda fica travado em si mesmo.
 4. Funil: a coluna Sinalizado mostra sozinha os clientes com prioridade crítica ou alta do motor. Nada é gravado. A tratativa nasce quando alguém clica em Agendar ou Assumir e o card vai para "Em tratativa".
 5. Dashboard: carteira do LOCAL, fila do motor, sinais do Visão 360 (voltou a postar, contrato detectado, queda relevante), funil, agenda de hoje e resumo da Curva ABC.
@@ -73,7 +73,16 @@ Regras de escopo no servidor: LOCAL não liberado é recusado em todas as rotas 
 4. Só VR: segue a regra VR do motor (Cancelar, a não ser que o faturamento justifique Converter) e não mostra o número do Clube Correios.
 5. A paridade com o Apps Script antigo continua testada com a regra AGF desligada (`regrasAgf: false`); a regra AGF tem testes próprios em `test/crm_integrado.test.mjs`.
 
-## 8. Pendências conhecidas
+## 8. Vários LOCAIS ao mesmo tempo (30/09/2026)
+
+1. Clique num LOCAL soma ou tira; "Todos" marca os três; o último marcado não sai. Salvo no navegador em `crm_cix_locais`.
+2. O servidor continua respondendo um LOCAL por vez (`get_carteira_v1` e `get_curva_abc_v1` com `local`). A tela pede cada LOCAL marcado e soma. Nenhuma rota nova, nenhuma permissão nova: LOCAL não liberado continua recusado no servidor.
+3. Carteira, fila, ações e sinais: somados. Fila crítica e alta ordenada por prioridade e depois por faturamento 30 dias.
+4. Curva ABC: cada linha é cliente + LOCAL e mantém a classe do próprio LOCAL. Não existe "curva somada". Cliente que posta em dois LOCAIS aparece em duas linhas; "Clientes na janela" conta uma vez. Na ficha e no Cadastro vale a linha do LOCAL da carteira do cliente.
+5. Coluna LOCAL aparece em Cadastro, Ações e Curva ABC só com mais de um LOCAL. Com um LOCAL a tela fica igual antes.
+6. Nova atividade: com cliente ou prospect usa o LOCAL do cadastro; sem vínculo, escolhe entre os LOCAIS marcados.
+
+## 9. Pendências conhecidas
 
 - `crm_midias` está vazia: a mídia sugerida aparece só com o código, sem link. Precisa do conteúdo dos materiais.
 - WhatsApp vem do cadastro manual (`crm_cadastro`), que ainda está vazio: no começo quase todos mostram "Sem número" até o cadastro ser completado.

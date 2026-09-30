@@ -7,7 +7,7 @@
     "deploy": "wrangler deploy",
     "migrate:remote": "wrangler d1 migrations apply agf-cadastros --remote",
     "test": "node test/motor.test.mjs && node test/crm_motor.test.mjs && node test/revisor.test.mjs && node test/crm_integrado.test.mjs",
-    "test:crm": "node --no-warnings test/crm_integrado.test.mjs && node --no-warnings test/crm_integrado_d1.test.mjs"
+    "test:crm": "node --no-warnings test/crm_integrado.test.mjs && node --no-warnings test/crm_integrado_d1.test.mjs && node --no-warnings test/portal_renomeado_d1.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
