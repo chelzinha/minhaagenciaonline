@@ -1,9 +1,10 @@
 /** Agenda (atividades), checklist de visita, anotacoes e indicadores do CRM. Regras do CRM3 antigo. */
-import { text, upper, upperNoAccents, isYes, nowIso, hoje, addDays, weekStart, diaSemana, somaMinutos, ymd, novoId, falhar, todos, um, insert, update, lote,
+import { text, upper, upperNoAccents, normResp, isYes, nowIso, hoje, addDays, weekStart, diaSemana, somaMinutos, ymd, novoId, falhar, todos, um, insert, update, lote,
   bumpRev, evento, tipoEntidade, funilDoTipo, tratativaAberta, temColeta } from './util.js';
 import { lerResponsaveis, indiceResponsaveis, pessoaId, resolverResponsavel, locaisPermitidos, localPermitido, projBloco, projMidia } from './config.js';
 import { obterEntidade, snapshotEntidade } from './entidades.js';
-import { projetarAgenda, lerMapasTipos, criarTratativa, tratativaAbertaDe, validarEtapa } from './jornada.js';
+import { projetarAgenda, lerMapasTipos, criarTratativa, tratativaAbertaDe, validarEtapa, moverTratativa } from './jornada.js';
+import { etapaAoAgendar, resolverLocal, ETAPA_SINALIZADO } from './carteira.js';
 
 // ------------------------------------------------------------ GET get_crm_agenda_v3
 export async function getAgenda(env, p, user) {
@@ -16,11 +17,83 @@ export async function getAgenda(env, p, user) {
     lerMapasTipos(db), lerResponsaveis(db)]);
   const idx = indiceResponsaveis(resp), quer = respParam ? pessoaId(respParam, idx) : '';
   const perm = locaisPermitidos(user);
+  const locPedido = upperNoAccents(p.local).trim();                      // CRM integrado: LOCAL como filtro pai (opcional)
   const items = rows.map((r) => projetarAgenda(r, mapas)).filter((a) => a.agendaId && !temColeta(`${a.tipoAtividadeId} ${a.tipoAtividadeNome}`)
     && (!status || upper(a.statusAtividade) === status) && (!tipoId || a.tipoAtividadeId === tipoId)
-    && (!quer || pessoaId(a.responsavelId, idx) === quer) && (!perm || !a.local || localPermitido(perm, a.local)));
+    && (!quer || pessoaId(a.responsavelId, idx) === quer) && (!perm || !a.local || localPermitido(perm, a.local))
+    && (!locPedido || upperNoAccents(a.local).trim() === locPedido));
+  await enriquecerAgenda(db, items);
   const uniq = (k) => [...new Set(items.map((x) => text(x[k])).filter(Boolean))].sort();
   return { ok: true, start, end, items, filters: { responsaveis: uniq('responsavelId'), tiposAtividade: uniq('tipoAtividadeId'), status: uniq('statusAtividade') } };
+}
+
+/** Acrescenta WhatsApp do cadastro e o contexto do motor (acao, prioridade, dias sem postar) a cada atividade. */
+export async function enriquecerAgenda(db, items) {
+  const cli = [...new Set(items.filter((a) => upper(a.entidadeTipo) === 'CLIENTE' && a.entidadeId).map((a) => a.entidadeId))];
+  const pro = [...new Set(items.filter((a) => upper(a.entidadeTipo) === 'PROSPECT' && a.entidadeId).map((a) => a.entidadeId))];
+  const wa = new Map(), ctx = new Map();
+  const partes = (l) => { const o = []; for (let i = 0; i < l.length; i += 90) o.push(l.slice(i, i + 90)); return o; };
+  for (const pt of partes(cli)) {
+    const m = pt.map(() => '?').join(',');
+    for (const r of await todos(db, `SELECT CLIENTE_ID, WHATSAPP, TELEFONE FROM crm_cadastro WHERE CLIENTE_ID IN (${m})`, ...pt)) { const w = text(r.WHATSAPP) || text(r.TELEFONE); if (w) wa.set(r.CLIENTE_ID, w); }
+    for (const r of await todos(db, `SELECT cliente_id, acao, prioridade, curva, json_extract(dados,'$.DIAS_SEM_POSTAR') dsp, json_extract(dados,'$.MOTIVO_REGRA') mot FROM crm_metricas WHERE cliente_id IN (${m})`, ...pt))
+      ctx.set(r.cliente_id, { acao: text(r.acao), prioridadeFila: text(r.prioridade), curva: text(r.curva), diasSemPostar: Number(r.dsp) || 0, motivo: text(r.mot) });
+  }
+  for (const pt of partes(pro)) {
+    for (const r of await todos(db, `SELECT PROSPECT_ID, WHATSAPP, TELEFONE_2 FROM crm_prospects WHERE PROSPECT_ID IN (${pt.map(() => '?').join(',')})`, ...pt)) { const w = text(r.WHATSAPP) || text(r.TELEFONE_2); if (w) wa.set(r.PROSPECT_ID, w); }
+  }
+  for (const a of items) { a.whatsapp = wa.get(a.entidadeId) || ''; const c = ctx.get(a.entidadeId); if (c) Object.assign(a, c); }
+  return items;
+}
+
+// ------------------------------------------------------------ escopo das atividades
+/**
+ * Confere se o usuario pode mexer na atividade: LOCAL liberado e, para quem ve so a propria agenda,
+ * ser o responsavel. Admin, gestor (manager) e quem tem canViewTeam podem mexer nas da equipe.
+ */
+export function podeMexerNaAtividade(user, a) {
+  const perm = locaisPermitidos(user);
+  if (perm && text(a.LOCAL) && !localPermitido(perm, a.LOCAL)) return 'Esta atividade pertence a um LOCAL que não está vinculado ao seu usuário.';
+  const role = String(user?.role || '').toLowerCase(), c = user?.crm || {};
+  if (role === 'admin' || role === 'manager' || c.canViewTeam === true || upper(c.agendaScope) === 'TEAM' || upper(c.agendaScope) === 'ALL') return '';
+  const meu = normResp(c.responsavelId), dono = normResp(a.RESPONSAVEL_ID);
+  if (dono && meu && dono !== meu) return 'Esta atividade é de outro responsável. Peça ao gestor para alterar.';
+  return '';
+}
+function exigirAtividade(user, a) { const m = podeMexerNaAtividade(user, a); if (m) falhar(m); }
+
+// ------------------------------------------------------------ POST save_atividade (sem vinculo)
+async function salvarAvulsa(env, p, user) {
+  const db = env.DB;
+  const req = text(p.requestId);
+  const titulo = text(p.titulo);
+  if (!titulo) falhar('Informe o título da atividade.');
+  const tipoId = text(p.tipoAtividadeId);
+  const t = await um(db, `SELECT * FROM crm_tipos_atividade WHERE TIPO_ATIVIDADE_ID=?`, tipoId);
+  if (!t || !isYes(t.ATIVA)) falhar('Tipo de atividade inválido ou inativo.');
+  if (!isYes(t.APLICA_AVULSA)) falhar('Este tipo de atividade precisa de um cliente ou prospect.');
+  const data = ymd(p.dataProgramada || p.data);
+  if (!data) falhar('Data programada obrigatória.');
+  const local = resolverLocal(user, p.local);
+  const bloco = text(p.blocoId) ? await um(db, `SELECT * FROM crm_blocos WHERE BLOCO_ID=?`, text(p.blocoId)) : null;
+  const b = bloco ? projBloco(bloco) : {};
+  const dur = Number(p.duracaoMin || t.DURACAO_PADRAO_MIN || 30) || 30;
+  const ini = text(p.horaProgramada || p.horaInicio) || text(b.horaInicio);
+  const fim = text(p.horaFimProgramada || p.horaFim) || text(b.horaFim) || (ini ? somaMinutos(ini, dur) : '');
+  const resp = resolverResponsavel(p.responsavelId, p.responsavel, await lerResponsaveis(db));
+  const agora = nowIso(), agId = novoId('AGD_', 8), obs = text(p.observacao || p.obsPlanejada);
+  const quem = text(p.updatedBy) || resp.id || text(user?.username) || 'CRM_PORTAL';
+  const row = {
+    AGENDA_ID: agId, TRATATIVA_ID: '', ENTIDADE_TIPO: 'AVULSA', ENTIDADE_ID: '', CLIENTE_ID: '', PROSPECT_ID: '', CLIENTE: titulo, TITULO: titulo, LOCAL: local,
+    DATA_PROGRAMADA: data, DIA_SEMANA: diaSemana(data), HORA_PROGRAMADA: ini, HORA_FIM_PROGRAMADA: fim, DURACAO_MIN: dur, BLOCO_ID: text(p.blocoId),
+    TIPO_ATIVIDADE_ID: tipoId, TIPO_ATIVIDADE: text(t.NOME_EXIBICAO), TIPO_COR: text(t.COR) || text(b.cor), STATUS_ATIVIDADE: 'PLANEJADO',
+    PRIORIDADE: text(p.prioridade) || 'MÉDIA', ORDEM_AGENDA: 999, RESPONSAVEL_ID: resp.id, RESPONSAVEL: resp.nome, OBSERVACAO: obs, OBS_PLANEJADA: obs,
+    REQUEST_ID: req || null, CRIADO_EM: agora, ATUALIZADO_EM: agora, CRIADO_POR: quem, ATUALIZADO_POR: quem,
+  };
+  await lote(db, [insert(db, 'crm_agenda', row),
+    evento(db, { entidadeTipo: 'AVULSA', entidadeId: agId, tipoEvento: 'ATIVIDADE_AGENDADA', valorNovo: agId, responsavelId: resp.id, metadata: { tipoAtividadeId: tipoId, data, hora: ini, titulo } }),
+    bumpRev(db)]);
+  return { ok: true, created: true, agendaId: agId, tratativaId: '', avulsa: true };
 }
 
 // ------------------------------------------------------------ POST save_atividade
@@ -28,17 +101,25 @@ export async function salvarAtividade(env, p, user) {
   const db = env.DB;
   const req = text(p.requestId);
   if (req) { const ja = await um(db, `SELECT AGENDA_ID FROM crm_agenda WHERE REQUEST_ID=?`, req); if (ja) return { ok: true, created: false, agendaId: ja.AGENDA_ID, idempotent: true }; }
+  if (isYes(p.avulsa) || upper(p.tipoEntidade) === 'AVULSA') return salvarAvulsa(env, p, user);
   const tipo = tipoEntidade(p.tipoEntidade || p.origemTipo);
   const entId = text(p.entidadeId || p.origemId || p.clienteId || p.prospectId);
   if (!entId) falhar('entidadeId obrigatório.');
   const ent = await obterEntidade(db, tipo, entId);
   if (!ent) falhar(`Entidade não encontrada: ${tipo} ${entId}`);
+  const permLocal = locaisPermitidos(user);
+  if (permLocal && text(ent.local) && !localPermitido(permLocal, ent.local)) falhar('Este cadastro pertence a um LOCAL que não está vinculado ao seu usuário.');
   let tratId = text(p.tratativaId), trat;
   if (!tratId) {
     trat = await tratativaAbertaDe(db, tipo, entId, funilDoTipo(tipo));
     if (!trat) {
-      const c = await criarTratativa(env, { tipoEntidade: tipo, entidadeId: entId, responsavelId: p.responsavelId, origem: 'AGENDA', createdBy: p.createdBy }, user);
+      // cliente agendado sai de Sinalizado e nasce em "Em tratativa" (CRM integrado)
+      const etapaId = tipo === 'CLIENTE' ? await etapaAoAgendar(db) : '';
+      const c = await criarTratativa(env, { tipoEntidade: tipo, entidadeId: entId, responsavelId: p.responsavelId, origem: 'AGENDA', createdBy: p.createdBy, etapaId }, user);
       trat = await um(db, `SELECT * FROM crm_tratativas WHERE TRATATIVA_ID=?`, c.tratativaId);
+    } else if (tipo === 'CLIENTE' && text(trat.ETAPA_ID) === ETAPA_SINALIZADO) {
+      const etapaId = await etapaAoAgendar(db);
+      if (etapaId) { await moverTratativa(env, { tratativaId: trat.TRATATIVA_ID, etapaId, responsavelId: p.responsavelId, updatedBy: p.updatedBy }, user, { semRev: true }); trat = await um(db, `SELECT * FROM crm_tratativas WHERE TRATATIVA_ID=?`, trat.TRATATIVA_ID); }
     }
     tratId = trat.TRATATIVA_ID;
   } else {
@@ -149,6 +230,7 @@ export async function concluirAtividade(env, p, user) {
   if (!agId) falhar('agendaId obrigatório.');
   const a = await um(db, `SELECT * FROM crm_agenda WHERE AGENDA_ID=?`, agId);
   if (!a) falhar('Atividade não encontrada.');
+  exigirAtividade(user, a);
   const antes = upper(a.STATUS_ATIVIDADE);
   if (antes === 'CONCLUIDO') return { ok: true, agendaId: agId, tratativaId: text(a.TRATATIVA_ID), idempotent: true, message: 'Atividade já concluída.' };
   const tipoId = text(a.TIPO_ATIVIDADE_ID) || text(p.tipoAtividadeId);
@@ -199,6 +281,7 @@ export async function cancelarAtividade(env, p, user) {
   if (!agId) falhar('agendaId obrigatório.');
   const a = await um(db, `SELECT * FROM crm_agenda WHERE AGENDA_ID=?`, agId);
   if (!a) falhar('Atividade não encontrada.');
+  exigirAtividade(user, a);
   const antes = upper(a.STATUS_ATIVIDADE);
   if (antes === 'CONCLUIDO') falhar('Atividade concluída não pode ser cancelada.');
   const motivo = text(p.motivo) || text(p.observacao), agora = nowIso();
@@ -211,12 +294,13 @@ export async function cancelarAtividade(env, p, user) {
   return { ok: true, agendaId: agId, status: 'CANCELADO' };
 }
 
-export async function excluirAtividade(env, p) {
+export async function excluirAtividade(env, p, user) {
   const db = env.DB;
   const agId = text(p.agendaId || p.id);
   if (!agId) falhar('agendaId obrigatório.');
   const a = await um(db, `SELECT * FROM crm_agenda WHERE AGENDA_ID=?`, agId);
   if (!a) falhar('Atividade não encontrada.');
+  exigirAtividade(user, a);
   if (upper(a.STATUS_ATIVIDADE) === 'CONCLUIDO') falhar('Atividade concluída não pode ser excluída. Use o histórico para preservar a auditoria.');
   const stmts = [evento(db, { entidadeTipo: a.ENTIDADE_TIPO, entidadeId: a.ENTIDADE_ID, tratativaId: a.TRATATIVA_ID, tipoEvento: 'ATIVIDADE_EXCLUIDA', valorAnterior: agId,
     responsavelId: text(p.responsavelId) || text(a.RESPONSAVEL_ID), metadata: { status: a.STATUS_ATIVIDADE, motivo: text(p.motivo) } }),

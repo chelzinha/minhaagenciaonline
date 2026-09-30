@@ -67,7 +67,7 @@ for (const [n, refDate] of [[60, '2026-09-23'], [400, '2026-09-05'], [1500, '202
   sandbox.__rows = antigos; sandbox.__ref = refDate;
   const velho = vm.runInContext(`op_buildMasterRows_(op_groupByClientId_(__rows), __ref)`, sandbox);
   const clientes = new Map([...novos.keys()].map((id) => [id, { nome: id, local: 'AGF' }]));
-  const novo = executarCrm(clientes, novos, refDate).metricas;
+  const novo = executarCrm(clientes, novos, refDate, { regrasAgf: false }).metricas;   // paridade pura com o Apps Script
   ok(velho.length === novo.length, `n=${n}: quantidade ${velho.length} x ${novo.length}`);
   const porId = new Map(novo.map((m) => [m.CLIENTE_ID, m]));
   let dif = 0;

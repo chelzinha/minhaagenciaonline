@@ -249,3 +249,28 @@ Controle aplicado: arquivos .clasp.json ignorados via .gitignore e verificacao i
 
 Commit relacionado: badf763.
 
+## 2026-09-29 - CRM integrado: LOCAL como filtro pai, escopo das atividades e CORS da prévia
+
+ATENÇÃO - dados ou segurança.
+
+### Mudança aplicada
+- Worker `agf-cadastros-api` (`/api/crm`): concluir, cancelar e excluir atividade passam a conferir, no servidor, se a atividade é de um LOCAL liberado para o usuário e, para quem só vê a própria agenda, se ele é o responsável. Admin, gestor (manager) e quem tem `canViewTeam` continuam podendo mexer nas atividades da equipe.
+- Agendar atividade para cliente ou prospect de LOCAL não liberado passa a ser recusado no servidor.
+- Rotas novas (`get_carteira_v1`, `get_curva_abc_v1`, `assumir_cliente_v1`) validam o LOCAL pedido contra `user.crm.locais` (admin vê todos).
+- `ALLOWED_ORIGINS` ganhou só a prévia da branch `feat/crm-integrado` (`https://feat-crm-integrado.minhaagenciaonline.pages.dev`). `PREVIEW_ORIGIN_SUFFIX` continua vazio: nenhuma outra prévia ganha acesso.
+
+### Dados envolvidos
+- Faturamento e quantidade de postagens por cliente e mês (Curva ABC 12M), WhatsApp do cadastro manual do cliente e contexto do motor (ação, prioridade, dias sem postar).
+
+### Risco principal
+- Usuário de um LOCAL ver ou alterar carteira e atividades de outro LOCAL.
+
+### Mitigação
+- Filtro e validação no Worker, não só na tela. O filtro de LOCAL da tela só oferece os LOCAIS que o servidor devolve para a sessão.
+- Testes automáticos: `test/crm_integrado.test.mjs` e `test/crm_integrado_d1.test.mjs` cobrem LOCAL recusado, outro responsável e usuário sem LOCAL.
+
+### Pendência
+- Remover a prévia de `ALLOWED_ORIGINS` depois do merge na `main`.
+
+### Segredos e dados reais
+- Nenhum token, credencial, telefone ou dado pessoal registrado neste documento.

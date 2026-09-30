@@ -18,7 +18,8 @@ const MANUAIS = ['CLIENTE', 'NOME_FANTASIA', 'RAZAO_SOCIAL', 'CNPJ_CPF', 'PESSOA
   'RESPONSAVEL_CARTEIRA', 'RESPONSAVEL_ID', 'STATUS_CADASTRO'];
 
 const nn = (v) => v !== null && v !== undefined;
-const intermediadorExibido = (m) => (upper(m.INTERMEDIADOR_PREDOMINANTE) === 'INTERMEDIADOR' && text(m.TIPO_CONTRATO_PREDOMINANTE)) ? text(m.TIPO_CONTRATO_PREDOMINANTE) : text(m.INTERMEDIADOR_PREDOMINANTE);
+// exibe o TIPO do Atende (SUPERFRETE, PLATINUM, CLUBE CORREIOS...) quando existir; senão o INTERMEDIADOR (decisão da Rachel, 30/09/2026)
+const intermediadorExibido = (m) => text(m.TIPO_CONTRATO_PREDOMINANTE) || text(m.INTERMEDIADOR_PREDOMINANTE);
 
 /** Linha no formato da antiga CLIENTES_MASTER. */
 function linhaMaster(m, cad, links) {

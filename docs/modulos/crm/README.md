@@ -68,3 +68,7 @@ O CRM é referência visual para outras telas internas. Deve preservar cabeçalh
 - mapear actions completas e contratos de resposta;
 - confirmar escopos por usuário/unidade;
 - revisar modularização futura do `app.js` sem refatoração ampla imediata.
+
+## CRM integrado (29/09/2026)
+
+Clientes (Dashboard, Funil, Cadastro, Ações, Curva ABC) e Agenda foram integrados e passam a ler o Worker `agf-cadastros-api` (D1), não mais o Apps Script. Detalhes, API, implantação, volta ao visual antigo e checklist: `docs/modulos/crm/CRM_INTEGRADO.md`.

@@ -2,6 +2,47 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-30 - CRM: contrato próprio, Curva ABC com última postagem e colunas ocultáveis
+
+### Alterado
+- Motor do CRM 1.1.0 (regra AGF): cliente que postou com contrato próprio (Portal Postal, Contrato ECT ou número de contrato) nos últimos 60 dias TEM contrato, mesmo que o volume maior vá por VR (Clube Correios) ou balcão. Nunca recebe Converter nem Cancelar; volume relevante fora do contrato vira Fidelizar com o motivo "migrar o volume para o contrato".
+- Clube Correios (VR) não conta como contrato do cliente. Cliente só VR segue a regra VR (Cancelar, salvo faturamento que justifique Converter) e não mostra mais o número do contrato coletivo.
+- O motor recalcula sozinho no primeiro cron após o deploy (versão diferente da última gravada).
+- Coluna Intermediador (Curva ABC, Cadastro, Ações) mostra o TIPO do Atende (SUPERFRETE, PLATINUM, CLUBE CORREIOS...), com o INTERMEDIADOR quando não há TIPO.
+
+### Adicionado
+- Curva ABC: coluna Última postagem (ordenável) e exportação no CSV.
+- Botão Colunas (Curva ABC, Cadastro, Ações) para esconder e mostrar colunas, salvo no navegador.
+- Tabelas ocupam a altura da tela e botão Tela cheia leva a tabela para o topo.
+- Filtro "Sem postar" (menos de 30 dias, 30 a 59 dias, 60 dias ou mais) na Curva ABC, no Cadastro e em Ações.
+
+## 2026-09-29 - CRM integrado: Clientes, Agenda e Curva ABC
+
+### Adicionado
+- Clientes com 5 abas integradas (Dashboard, Funil, Cadastro, Ações e Curva ABC nova) e Agenda (diária, semanal, mensal) no visual aprovado no protótipo: `frontend/crm/crm-integrado.js` e `crm-integrado.css`.
+- LOCAL como filtro pai no topo, vindo da autenticação (admin vê os 3).
+- Sinalizado automático no Funil: clientes com prioridade crítica ou alta do motor aparecem sem gravar nada; a tratativa nasce ao Agendar ou Assumir.
+- Sinais do Visão 360 no Dashboard: voltou a postar, contrato detectado e queda relevante.
+- Curva ABC 12M por LOCAL (A até 80%, B até 95% ou a partir de R$ 5.000, C o resto), com mapa de calor mensal, Pareto e exportação CSV.
+- Tabelas no padrão do /atende: ordenar, filtrar por coluna, arrastar e redimensionar colunas (largura salva no navegador).
+- Gráficos interativos com Apache ECharts 5.5.0 hospedado em `frontend/shared/vendor/echarts/` (carregado só nas abas com gráfico).
+- Botão de WhatsApp Web em toda atividade e cliente com número.
+- Atividade sem vínculo (reunião interna, treinamento), tipo novo "Reunião interna" e duração padrão pelo tipo.
+- Worker: `get_carteira_v1`, `get_curva_abc_v1`, `assumir_cliente_v1`; agenda com WhatsApp e contexto do motor; filtro opcional `local` na jornada e na agenda.
+- Migração 0105 (aditiva): `crm_agenda.TITULO`, `crm_tipos_atividade.APLICA_AVULSA`, tipo `ATV_REUNIAO_INTERNA` e índices.
+
+### Alterado
+- Cliente agendado ou assumido entra no funil em "Em tratativa" (antes nascia em "Sinalizado").
+- Concluir, cancelar e excluir atividade conferem LOCAL e responsável no servidor. ATENÇÃO - dados ou segurança.
+- `app.js`: ponte `window.CRM_CORE`, abertura de atividade fora da semana atual e aba Ações antiga (iframe) só no modo clássico.
+
+### Ajuste visual (Curva ABC)
+- Os 6 indicadores ficam numa faixa só e os gráficos de Participação e Pareto lado a lado.
+- Tabela da Curva ABC com fonte menor (meses em 11px) e colunas mais estreitas.
+
+### Como voltar ao visual antigo
+- Para um usuário: `/crm/?classico=1`. Para todos: `crmIntegrado: false` em `frontend/crm/config.js`.
+
 ## 2026-09-29 - Cadastro v2: revisor automático das sugestões
 
 ### Adicionado

@@ -33,7 +33,7 @@ export const CRM_CFG = Object.freeze({
     },
   },
 });
-export const CRM_MOTOR_VERSAO = 'crm-1.0.0';
+export const CRM_MOTOR_VERSAO = 'crm-1.1.0';   // 1.1.0: contrato próprio (regra AGF, 30/09/2026)
 export const CRM_LOCAIS = ['AGF', 'BALCAO', 'METRO'];
 const R = CRM_CFG.RULES, C = CRM_CFG.CURVA;
 
@@ -79,6 +79,15 @@ export function bucketDaPostagem(p) {
   if (inter || norm(p.contrato) || norm(p.cartao)) return 'CONTRATO';
   return 'BALCAO';
 }
+/**
+ * Regra AGF (30/09/2026): contrato PRÓPRIO do cliente = postagem com PORTAL POSTAL, CONTRATO ECT ou número de contrato,
+ * fora VR, intermediador (SuperFrete etc.) e Clube Correios. O contrato do Clube Correios é coletivo, não é do cliente.
+ */
+export function ehContratoProprio(p) {
+  const inter = upperNoAccents(p.intermediador), tipo = upperNoAccents(p.contratoTipo);
+  if (inter === 'VR' || inter === 'INTERMEDIADOR' || tipo.includes('CLUBE')) return false;
+  return inter === 'PORTAL POSTAL' || inter === 'CONTRATO ECT' || !!norm(p.contrato);
+}
 export function perfilComercial(m) {
   if (m.BUCKET_NEGOCIO === 'VR' || upperNoAccents(m.INTERMEDIADOR_PREDOMINANTE) === 'VR') return 'VR_INTERNO';
   if (m.BUCKET_NEGOCIO === 'INTERMEDIADOR') return 'INTERMEDIADOR_MARKETPLACE';
@@ -123,6 +132,35 @@ export function aplicarCurva(metrics, label, f) {
   const total = metrics.length || 1;
   metrics.sort((a, b) => b['SCORE_CURVA_' + label] - a['SCORE_CURVA_' + label]);
   metrics.forEach((m, idx) => { m[f.outField] = curveClamp(curveFromPos((idx + 1) / total), curveMaxByFloor(m, label)); });
+}
+
+// ------------------------------------------------------------ regra AGF: contrato próprio (30/09/2026)
+const CANAL_TEXTO = { VR: 'Clube Correios (VR)', BALCAO: 'balcão sem contrato', INTERMEDIADOR: 'intermediador' };
+/**
+ * Quem postou com contrato próprio nos últimos 60 dias TEM contrato, não importa o canal que pesa mais.
+ * O canal que pesa mais continua em CANAL_PREDOMINANTE. Cliente só VR não mostra o número do Clube Correios.
+ */
+export function aplicarContratoProprio(m) {
+  m.CANAL_PREDOMINANTE = m.BUCKET_NEGOCIO;
+  if (m.CONTRATO_PROPRIO !== 'SIM') {
+    if (m.PERFIL_COMERCIAL === 'VR_INTERNO') { m.NUMERO_CONTRATO = ''; m.TEM_CONTRATO = 'NAO'; }
+    return;
+  }
+  m.TEM_CONTRATO = 'SIM';
+  if (m.NUMERO_CONTRATO_PROPRIO) m.NUMERO_CONTRATO = m.NUMERO_CONTRATO_PROPRIO;
+  if (['VR_INTERNO', 'BALCAO_SEM_CONTRATO', 'SEM_CONTRATO_MISTO'].includes(m.PERFIL_COMERCIAL)) m.PERFIL_COMERCIAL = 'CONTRATO_ECT_DIRETO';
+}
+/** Com contrato próprio nunca é Converter nem Cancelar. Volume relevante fora do contrato vira Fidelizar: migrar para o contrato. */
+export function ajustarAcaoContratoProprio(m) {
+  if (m.CONTRATO_PROPRIO !== 'SIM') return;
+  const fora = Number(m.PCT_FORA_CONTRATO_60D) || 0;
+  const txt = `${Math.round(fora * 100)}% do valor em 60 dias foi por ${CANAL_TEXTO[m.CANAL_PREDOMINANTE] || 'fora do contrato'}`;
+  if (['CONVERTER', 'CANCELAR'].includes(m.ACAO) || (m.ACAO === 'MANTER' && fora >= 0.3)) {
+    const alta = fora >= 0.5 && (m.FAT_30D >= 1000 || m.SHARE_LOCAL_30D >= 0.01);
+    [m.ACAO, m.SUB_ACAO, m.PRIORIDADE_FILA, m.SCORE_PRIORIDADE, m.CANAL_SUGERIDO, m.CONTEUDO_SUGERIDO, m.MOTIVO_REGRA] =
+      ['FIDELIZAR', 'F6_CONTRATO_PROPRIO_MIGRAR_VOLUME', alta ? 'ALTA' : 'MEDIA', alta ? 80 : 62, 'WHATSAPP_LIGACAO', 'MIGRAR_VOLUME_CONTRATO',
+        `Tem contrato próprio (${m.NUMERO_CONTRATO || 'ativo'}), mas ${txt} - migrar o volume para o contrato`];
+  } else if (m.ACAO === 'FIDELIZAR' && fora >= 0.5) m.MOTIVO_REGRA = `${m.MOTIVO_REGRA} · ${txt}`;
 }
 
 // ------------------------------------------------------------ acao (copia literal das regras)
@@ -177,6 +215,7 @@ export function calcularAcao(m) {
 export function midiaDaSubAcao(key) {
   const k = upperNoAccents(key || '');
   if (k.includes('VR_ESTRATEGICO') || k.includes('VR_AQUECEU')) return 'PDF_CONTRATO';
+  if (k.includes('MIGRAR_VOLUME')) return 'FOLDER_RELACIONAMENTO';
   if (k.includes('BALCAO_MADURO') || k.includes('COMPARATIVO')) return 'COMPARATIVO_POSTAGENS_CONTRATO';
   if (k.includes('SEM_CONTRATO_MISTO') || k.includes('DIAGNOSTICO') || k.includes('AQUECEU_AGORA')) return 'DIAGNOSTICO_INICIAL';
   if (k.includes('RESGATE') || k.includes('CONTRATO_INATIVO') || k.includes('INTERMEDIADOR_BOM_ESFRIOU') || k.includes('CLIENTE_FORTE_DO_PASSADO')) return 'APRESENTACAO_RESGATE';
@@ -205,6 +244,7 @@ export function metricasDoCliente(clienteId, linhas, refDate) {
   const diasSemPostar = diffDays(refDate, lastDate);
   const localMap = {}, tipoMap = {}, interMap = {}, ctipoMap = {}, bucketMap = {}, contratoMap = {}, cartaoMap = {};
   let qtdTotal = 0, valorTotal = 0; const recent = [], prev = [], diasHist = new Set(), mesesHist = new Set();
+  const proprioMap = {}, proprio60Map = {}; let valor60 = 0, valorProprio60 = 0;          // regra AGF: contrato próprio
   for (const r of rows) {
     const q = r.estorno ? 0 : num(r.qtd), v = num(r.valor), peso = v || 1;
     qtdTotal += q; valorTotal += v;
@@ -216,6 +256,11 @@ export function metricasDoCliente(clienteId, linhas, refDate) {
     inc(bucketMap, bucketDaPostagem(r), peso);
     if (norm(r.contrato)) inc(contratoMap, norm(r.contrato), 1);
     if (norm(r.cartao)) inc(cartaoMap, norm(r.cartao), 1);
+    if (!r.estorno) {
+      const proprio = ehContratoProprio(r), em60 = r.data >= prevStart;
+      if (proprio && norm(r.contrato)) inc(proprioMap, norm(r.contrato), 1);
+      if (em60) { valor60 += Math.abs(v); if (proprio) { valorProprio60 += Math.abs(v); inc(proprio60Map, norm(r.contrato) || '-', 1); } }
+    }
     const linha = { data: r.data, qtd: q, valor: v, ativo: !r.estorno };
     if (r.data >= recentStart && r.data <= refDate) recent.push(linha);
     if (r.data >= prevStart && r.data <= prevEnd) prev.push(linha);
@@ -239,11 +284,15 @@ export function metricasDoCliente(clienteId, linhas, refDate) {
     RECORRENTE_30D: dias30 >= R.MIN_RECORRENCIA_DIAS_30D ? 'SIM' : 'NAO',
     RECORRENCIA_NIVEL: dias30 >= 4 ? 'FORTE' : dias30 >= 3 ? 'MEDIA' : dias30 >= 1 ? 'PONTUAL' : 'SEM_BASE',
     FD_PCT: pctDelta(fat30, fatPrev), QD_PCT: pctDelta(qtd30, qtdPrev), DD_PCT: pctDelta(dias30, diasPrev),
+    // regra AGF (fora da paridade com o Apps Script)
+    CONTRATO_PROPRIO: Object.keys(proprio60Map).length ? 'SIM' : 'NAO',
+    NUMERO_CONTRATO_PROPRIO: [topKey(proprio60Map), topKey(proprioMap)].find((x) => x && x !== '-') || '',
+    PCT_FORA_CONTRATO_60D: valor60 > 0 ? Math.max(0, 1 - valorProprio60 / valor60) : 0,
   };
 }
 
 /** Pos-processamento de um LOCAL: curva, share, alertas, perfil e acao. Mesmo fluxo do op_buildMasterRows_. */
-export function fecharLocal(metrics, refDate) {
+export function fecharLocal(metrics, refDate, { regrasAgf = true } = {}) {
   const selYm = refDate.slice(0, 7);
   aplicarCurva(metrics, 'ATUAL', { fatField: 'FAT_30D', qtdField: 'QTD_30D', ticketField: 'TICKET_30D', diasField: 'DIAS_ATIVOS_30D', outField: 'CURVA' });
   aplicarCurva(metrics, 'ANTERIOR', { fatField: 'FAT_31_60D', qtdField: 'QTD_31_60D', ticketField: 'TICKET_31_60D', diasField: 'DIAS_ATIVOS_31_60D', outField: 'CURVA_ANTERIOR' });
@@ -258,12 +307,13 @@ export function fecharLocal(metrics, refDate) {
     m.NIVEL_ALERTA = quedaPersist ? 'QUEDA_PERSISTENTE' : (m.QUEDA_REAL === 'SIM' ? 'QUEDA_REAL' : (upperNoAccents(m.TENDENCIA) === 'CAINDO' ? 'ALERTA' : 'SAUDAVEL'));
     m.PERFIL_COMERCIAL = perfilComercial(m);
     if (m.PERFIL_COMERCIAL === 'VR_INTERNO') m.TEM_CONTRATO = 'NAO';
+    if (regrasAgf) aplicarContratoProprio(m);
     m.IS_REVERSO_BAIXO = isReversoBaixo(m) ? 'SIM' : 'NAO';
     m.NOVO_CLIENTE = (m.DATA_PRIMEIRA_VALIDA_NAO_REVERSO && m.DATA_PRIMEIRA_VALIDA_NAO_REVERSO.slice(0, 7) === selYm) ? 'SIM' : 'NAO';
     m.INATIVO_30D = m.DIAS_SEM_POSTAR >= 30 ? 'SIM' : 'NAO';
     m.INATIVO_60D = m.DIAS_SEM_POSTAR >= 60 ? 'SIM' : 'NAO';
   }
-  for (const m of metrics) { calcularAcao(m); m.MIDIA = midiaDaSubAcao(m.SUB_ACAO || m.ACAO) || ''; }
+  for (const m of metrics) { calcularAcao(m); if (regrasAgf) ajustarAcaoContratoProprio(m); m.MIDIA = midiaDaSubAcao(m.SUB_ACAO || m.ACAO) || ''; }
   return metrics;
 }
 
@@ -272,7 +322,7 @@ export function fecharLocal(metrics, refDate) {
  * Retorna { refDate, porLocal: {AGF:n,...}, metricas: [...] } com a curva calculada DENTRO de cada LOCAL.
  * Cliente sem LOCAL da carteira (empate exato) fica no grupo SEM_LOCAL, que tambem tem curva propria.
  */
-export function executarCrm(clientes, linhasPorCliente, refDateForcada) {
+export function executarCrm(clientes, linhasPorCliente, refDateForcada, opcoes = {}) {
   let refDate = refDateForcada || '';
   if (!refDate) for (const ls of linhasPorCliente.values()) for (const l of ls) if (!l.estorno && l.data > refDate) refDate = l.data;
   if (!refDate) return { refDate: '', porLocal: {}, metricas: [] };
@@ -291,7 +341,7 @@ export function executarCrm(clientes, linhasPorCliente, refDateForcada) {
     grupos.get(m.LOCAL).push(m);
   }
   const metricas = [], porLocal = {};
-  for (const [local, ms] of grupos) { fecharLocal(ms, refDate); porLocal[local] = ms.length; metricas.push(...ms); }
+  for (const [local, ms] of grupos) { fecharLocal(ms, refDate, opcoes); porLocal[local] = ms.length; metricas.push(...ms); }
   metricas.sort((a, b) => (priorityRank(b.PRIORIDADE_FILA) - priorityRank(a.PRIORIDADE_FILA)) || ((b.SCORE_PRIORIDADE || 0) - (a.SCORE_PRIORIDADE || 0)) ||
     ((b.SHARE_LOCAL_30D || 0) - (a.SHARE_LOCAL_30D || 0)) || String(a.CLIENTE || '').localeCompare(String(b.CLIENTE || ''), 'pt-BR'));
   return { refDate, porLocal, metricas };

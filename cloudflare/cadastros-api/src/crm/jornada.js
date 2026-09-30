@@ -1,5 +1,5 @@
 /** Funis, tratativas (cards do kanban) e eventos. Regras do CRM3 antigo. */
-import { text, upper, isYes, nowIso, hoje, addDays, ymd, hhmm, novoId, falhar, todos, um, insert, update, lote, bumpRev, evento,
+import { text, upper, upperNoAccents, isYes, nowIso, hoje, addDays, ymd, hhmm, novoId, falhar, todos, um, insert, update, lote, bumpRev, evento,
   tipoEntidade, funilDoTipo, etapaPadraoDoFunil, statusDaEtapa, tratativaAberta, temColeta } from './util.js';
 import { lerResponsaveis, indiceResponsaveis, pessoaId, idRealResponsavel, locaisPermitidos, localPermitido } from './config.js';
 import { carregarClientes, carregarProspects, projetarCliente, projetarProspect, obterEntidade, snapshotEntidade } from './entidades.js';
@@ -19,6 +19,8 @@ export function projetarAgenda(r, mapas) {
     resultadoNome: text(res.NOME_EXIBICAO) || text(r.RESULTADO_ID), midiaRecomendadaCodigo: text(r.MIDIA_RECOMENDADA_CODIGO),
     midiaUsadaCodigo: text(r.MIDIA_USADA_CODIGO), linkMidiaDireto: text(r.LINK_MIDIA_USADA) || text(r.LINK_MIDIA_RECOMENDADA),
     responsavelId: text(r.RESPONSAVEL_ID), responsavelNome: text(r.RESPONSAVEL), observacao: text(r.OBSERVACAO) || text(r.OBS_EXECUCAO) || text(r.OBS_PLANEJADA),
+    // CRM integrado: atividade sem vinculo (reuniao interna, treinamento...) e duracao
+    titulo: text(r.TITULO), avulsa: upper(r.ENTIDADE_TIPO) === 'AVULSA', duracaoMin: Number(r.DURACAO_MIN) || 0, prioridade: text(r.PRIORIDADE),
   };
 }
 export async function lerMapasTipos(db) {
@@ -52,12 +54,14 @@ export async function getJornada(env, p, user) {
   const idsPro = filtradas.filter((t) => upper(t.TIPO_ENTIDADE) === 'PROSPECT').map((t) => t.ENTIDADE_ID);
   const [clis, pros, proximas] = await Promise.all([carregarClientes(db, { ids: idsCli }), carregarProspects(db, { ids: idsPro }), proximasAtividades(db)]);
   const perm = locaisPermitidos(user);
+  const locPedido = upperNoAccents(p.local).trim();
   const mapaC = new Map(clis.map((c) => [c.CLIENTE_ID, projetarCliente(c)])), mapaP = new Map(pros.map((x) => [x.PROSPECT_ID, projetarProspect(x)]));
   const items = [];
   for (const t of filtradas) {
     const ehP = upper(t.TIPO_ENTIDADE) === 'PROSPECT';
     const ent = (ehP ? mapaP : mapaC).get(t.ENTIDADE_ID);
     if (perm && (!ent || !localPermitido(perm, ent.local))) continue;          // responsavel ve so os LOCAIS dele
+    if (locPedido && upperNoAccents((ent || {}).local).trim() !== locPedido) continue;   // CRM integrado: LOCAL como filtro pai (opcional)
     items.push(projetarTratativa(t, ent || {}, porId[t.ETAPA_ID] || {}, proximas.get(t.TRATATIVA_ID) || null));
   }
   const colunas = ativas.filter((e) => isYes(e.EXIBE_KANBAN) && (!funilId || e.FUNIL_ID === funilId)).sort((a, b) => (Number(a.ORDEM) || 999) - (Number(b.ORDEM) || 999))
@@ -74,6 +78,9 @@ function projetarTratativa(t, e, st, prox) {
     recomendacao: text(e.acaoEngine || t.ACAO_ENGINE_SNAPSHOT), subAcao: text(e.subAcao || t.SUB_ACAO_SNAPSHOT),
     prioridade: text(e.prioridadeFila || e.prioridade || t.PRIORIDADE_SNAPSHOT), diasSemPostar: Number(e.diasSemPostar) || 0,
     ultimaPostagemLabel: text(e.ultimaPostagemLabel), responsavelId: text(t.RESPONSAVEL_ID), proximoFollowupEm: ymd(t.PROXIMO_FOLLOWUP_EM), proximaAtividade: prox,
+    // CRM integrado (campos novos, so acrescentados)
+    whatsapp: text(e.whatsapp), valor30d: Number(e.valor30d) || 0, motivo: text(e.motivoRegra), temContrato: text(e.temContrato),
+    abertaEm: text(t.ABERTA_EM), etapaAtualizadaEm: text(t.ETAPA_ATUALIZADA_EM), encerradaEm: text(t.ENCERRADA_EM),
   };
 }
 

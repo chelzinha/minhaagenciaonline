@@ -222,3 +222,14 @@ Cuidados obrigatorios no mapa de payloads:
 - Nao colar resposta integral de Web App.
 - Nao registrar URL completa, ID real, token, senha, credencial, PDF, NF-e ou dado pessoal.
 - Ao revisar logs ou diagnostico, copiar apenas conclusoes anonimas.
+
+## CRM integrado - escopo por LOCAL no servidor (2026-09-29)
+
+ATENÇÃO - dados ou segurança.
+
+- LOCAL é o filtro pai do CRM (Clientes e Agenda). As opções vêm da sessão: admin vê AGF, BALCÃO e METRÔ; os demais só os LOCAIS de `crm.locais`.
+- O Worker recusa carteira, Curva ABC, assumir cliente e agendamento de LOCAL não liberado.
+- Concluir, cancelar e excluir atividade conferem LOCAL e responsável no servidor (antes não conferiam).
+- A Curva ABC entrega faturamento por cliente só do LOCAL pedido. Exportação CSV é gerada no navegador a partir do que o usuário já pode ver.
+- WhatsApp: o botão abre o WhatsApp Web (ou wa.me no celular) com o número do cadastro manual. O número não é gravado em log nem enviado a terceiros pelo CRM.
+- CORS: só a prévia `feat-crm-integrado` foi liberada, e deve sair da lista após o merge.
