@@ -22,7 +22,7 @@ async function carregarEntrada(db) {
     db.prepare(`SELECT origem, grafia, COUNT(*) postagens, ROUND(SUM(valor), 2) valor,
         SUM(local_codigo = 'AGF') l_agf, SUM(local_codigo = 'BALCAO') l_balcao, SUM(local_codigo = 'METRO') l_metro,
         SUM(CASE WHEN local_codigo = 'AGF' THEN valor ELSE 0 END) v_agf, SUM(CASE WHEN local_codigo = 'BALCAO' THEN valor ELSE 0 END) v_balcao,
-        SUM(CASE WHEN local_codigo = 'METRO' THEN valor ELSE 0 END) v_metro
+        SUM(CASE WHEN local_codigo = 'METRO' THEN valor ELSE 0 END) v_metro, MAX(substr(data_postagem,1,10)) ultima
       FROM cid_postagens WHERE origem <> 'SEM_PORTAL' GROUP BY origem, grafia`),
     db.prepare(`SELECT id, tipo, chave_a, chave_b, valor, autor, criado_em FROM cid_decisoes WHERE ativo = 1 ORDER BY id`),
     db.prepare(`SELECT grafia, nome_manual FROM cid_planilha_legado`),
@@ -31,7 +31,7 @@ async function carregarEntrada(db) {
     db.prepare(`SELECT chave, local, em FROM cid_local_decisoes`),
   ]);
   return {
-    nomes: (nomes.results || []).map((r) => ({ origem: r.origem, nome: r.grafia, postagens: r.postagens, valor: r.valor })),
+    nomes: (nomes.results || []).map((r) => ({ origem: r.origem, nome: r.grafia, postagens: r.postagens, valor: r.valor, ultima: r.ultima || '' })),
     decisoes: decisoes.results || [],
     planilha: (planilha.results || []).map((r) => [r.grafia, r.nome_manual]),
     nosAtuais: new Map((nosAtuais.results || []).map((r) => [r.chave, r])),
@@ -55,13 +55,14 @@ export async function executarMotorD1(env, autor = 'SISTEMA') {
   const db = env.DB;
   const t0 = Date.now();
   const entrada = await carregarEntrada(db);
-  const unir = [], separar = [], nomeManual = new Map();
+  const unir = [], unirPortal = [], separar = [], nomeManual = new Map();
   for (const d of entrada.decisoes) {
-    if (d.tipo === 'UNIR') unir.push([d.chave_a, d.chave_b]);
+    if (d.tipo === 'UNIR' && d.valor === 'PORTAL_RENOMEADO') unirPortal.push([d.chave_a, d.chave_b]);
+    else if (d.tipo === 'UNIR') unir.push([d.chave_a, d.chave_b]);
     else if (d.tipo === 'SEPARAR') separar.push([d.chave_a, d.chave_b]);
     else if (d.tipo === 'NOME') nomeManual.set(d.chave_a, { valor: d.valor, id: d.id });
   }
-  const r = executarMotor(entrada.nomes, { unir, separar, planilha: entrada.planilha });
+  const r = executarMotor(entrada.nomes, { unir, unirPortal, separar, planilha: entrada.planilha });
   const planilhaPorNo = new Map();
   for (const [grafia, manual] of entrada.planilha) {
     const k = 'S:' + analisarNome(grafia).core;

@@ -2,6 +2,17 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-30 - Cadastro de Clientes: nome antigo e novo no Portal
+
+### Adicionado
+- Ficha do cliente do Portal mostra "Nome antigo ou novo no Portal?" quando outro cliente do Portal usa o mesmo contrato + cartão e um nome parou quando o outro começou (ou um nome é o começo do outro). Casos encontrados em 30/09: FUNDAÇÃO PARA O DESENVOLVIMENTO... / FIOTEC FUND DESENV CIENT E TECN SAUDE e M J L SANTOS BIJUTERIAS E ACESS / M J L SANTOS BIJUTERIAS E ACESSORIOS LTDA.
+- "É o mesmo: juntar": junta os dois, fica com o nome mais recente do Portal e soma o histórico. O CRM leva tratativas e agenda para o ID que ficou. Dá para desfazer pelo botão de separar na grafia.
+
+### Alterado
+- Regra "dois clientes do Portal nunca viram um só" ganha uma exceção manual (decisão `UNIR` com `PORTAL_RENOMEADO`). O motor e o revisor automático continuam sem juntar dois Portais sozinhos.
+- Motor do Cadastro `2026-09-30.1`: recebe a data da última postagem de cada grafia para escolher o nome atual do Portal. Sem mudança para os demais clientes.
+- Erros da API do Cadastro podem trazer `codigo` (ex.: `DOIS_PORTAIS`, `SEM_CARTAO_COMUM`).
+
 ## 2026-09-30 - CRM: LOCAL com vários marcados
 
 ### Alterado

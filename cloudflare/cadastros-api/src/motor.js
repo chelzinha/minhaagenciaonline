@@ -5,12 +5,14 @@
  *  - CLIENTE PORTAL = BALCAO, GAS SHOPPING METRO ou GAS SHOPPING CENTRO FASHION  -> identidade vem do NOME REMETENTE (limpo)
  *  - Qualquer outro CLIENTE PORTAL                                               -> identidade e o proprio CLIENTE PORTAL
  *  - Dois CLIENTE PORTAL diferentes nunca viram um cliente so (o Portal e a verdade).
+ *    Unica excecao: decisao manual PORTAL_RENOMEADO (o Portal trocou o nome do mesmo cliente).
+ *    O grupo passa a usar o nome mais recente do Portal.
  *  - Decisao humana vence o motor. "Nao e o mesmo cliente" vira restricao permanente.
  *
  * O motor e deterministico e puro (sem I/O). Roda igual no Worker e no Node (testes).
  */
 
-export const MOTOR_VERSAO = '2026-09-24.1';
+export const MOTOR_VERSAO = '2026-09-30.1';   // .1: juncao manual de nome antigo e novo do Portal
 
 export const ORIGENS_COMPARTILHADAS = {
   'BALCAO': 'BALCAO',
@@ -38,6 +40,7 @@ const EMPRESA = new Set(['COMERCIO', 'COM', 'SERVICOS', 'SERVICO', 'INDUSTRIA', 
 /** Regras que o motor aplica sozinho (agrupamento automatico). */
 export const REGRAS = {
   DECISAO_MANUAL: 'Decisao manual registrada',
+  PORTAL_RENOMEADO: 'Mesmo cliente com nome antigo e novo no Portal (decisao manual)',
   DECISAO_PLANILHA: 'Decisao manual da planilha CADASTRO_MESTRE_CLIENTES',
   IGUAL_PORTAL: 'Mesmo nome de um cliente do Portal (ou mesma grafia normalizada)',
   SEM_ESPACO: 'Mesmo nome digitado sem espacos ou com outra pontuacao',
@@ -204,8 +207,8 @@ class Grupos {
       this.proibidos.get(x).add(y);
     }
   }
-  podeUnir(ra, rb, membros) {
-    if (this.portal.get(ra) && this.portal.get(rb)) return 'DOIS_PORTAIS';
+  podeUnir(ra, rb, membros, regra) {
+    if (this.portal.get(ra) && this.portal.get(rb) && regra !== 'PORTAL_RENOMEADO') return 'DOIS_PORTAIS';
     const ma = membros(ra), mb = new Set(membros(rb));
     for (const x of ma) {
       const proib = this.proibidos.get(x);
@@ -239,9 +242,10 @@ export function executarMotor(nomes, decisoes = {}) {
     grafiaNo.set(gk, chave);
     let no = nos.get(chave);
     if (!no) {
-      no = { chave, tipo, p, postagens: 0, valor: 0, grafias: new Map(), origens: new Map(), stoks: p.toks };
+      no = { chave, tipo, p, postagens: 0, valor: 0, ultima: '', grafias: new Map(), origens: new Map(), stoks: p.toks };
       nos.set(chave, no);
     }
+    if (it.ultima && String(it.ultima) > no.ultima) no.ultima = String(it.ultima);
     no.postagens += it.postagens || 0;
     no.valor += it.valor || 0;
     no.grafias.set(it.nome, (no.grafias.get(it.nome) || 0) + (it.postagens || 0));
@@ -260,12 +264,13 @@ export function executarMotor(nomes, decisoes = {}) {
     if (!nos.has(a) || !nos.has(b)) return false;
     const ra = g.raiz(a), rb = g.raiz(b);
     if (ra === rb) return false;
-    const bloqueio = g.podeUnir(ra, rb, membros);
+    const bloqueio = g.podeUnir(ra, rb, membros, regra);
     if (bloqueio) { log.push({ a, b, regra, bloqueado: bloqueio }); return false; }
     // mantem como raiz o lado que tem Portal
     const [keep, drop] = g.portal.get(rb) && !g.portal.get(ra) ? [rb, ra] : [ra, rb];
     g.p.set(drop, keep);
-    if (g.portal.get(drop)) g.portal.set(keep, g.portal.get(drop));
+    const pk = g.portal.get(keep), pd = g.portal.get(drop);
+    if (pd && (!pk || maisRecente(nos, pd, pk) === pd)) g.portal.set(keep, pd);   // dois Portais (renomeado): vale o nome mais recente
     membrosPorRaiz.set(keep, membros(keep).concat(membros(drop)));
     membrosPorRaiz.delete(drop);
     log.push({ a, b, regra });
@@ -275,6 +280,7 @@ export function executarMotor(nomes, decisoes = {}) {
   // restricoes humanas primeiro
   for (const [a, b] of decisoes.separar || []) g.proibir(a, b);
   for (const [a, b] of decisoes.unir || []) unir(a, b, 'DECISAO_MANUAL');
+  for (const [a, b] of decisoes.unirPortal || []) unir(a, b, 'PORTAL_RENOMEADO');
 
   // indices
   const porCore = new Map(), porCompact = new Map(), porDoc = new Map(), porPrimeiro = new Map();
@@ -366,7 +372,7 @@ export function executarMotor(nomes, decisoes = {}) {
   const grupos = [];
   for (const [raiz, chaves] of gruposMap) {
     const temRemetente = chaves.some((k) => nos.get(k).tipo === 'S');
-    const portal = chaves.find((k) => nos.get(k).tipo === 'P') || null;
+    const portal = portalAtual(nos, chaves);
     grupos.push({ raiz, chaves, portal, temRemetente, ...escolherNome(nos, chaves) });
   }
 
@@ -384,9 +390,23 @@ export function executarMotor(nomes, decisoes = {}) {
   return { nos, grupos, sugestoes, log, descartados, grafiaNo, raiz: (k) => g.raiz(k) };
 }
 
+/** Entre dois nos, o que postou por ultimo (empate: mais postagens; depois a chave, para ser deterministico). */
+export function maisRecente(nos, a, b) {
+  const x = nos.get(a), y = nos.get(b);
+  if ((x.ultima || '') !== (y.ultima || '')) return (x.ultima || '') > (y.ultima || '') ? a : b;
+  if (x.postagens !== y.postagens) return x.postagens > y.postagens ? a : b;
+  return a < b ? a : b;
+}
+/** No do Portal que da nome e ID ao grupo: com um Portal, ele; com dois (renomeado), o nome mais recente. */
+export function portalAtual(nos, chaves) {
+  let atual = null;
+  for (const k of chaves) if (nos.get(k).tipo === 'P') atual = atual ? maisRecente(nos, atual, k) : k;
+  return atual;
+}
+
 /** Portal manda. Sem Portal: o nome mais completo (sem caracteres quebrados, com espacos), depois o mais usado. */
 export function escolherNome(nos, chaves) {
-  const portal = chaves.find((k) => nos.get(k).tipo === 'P');
+  const portal = portalAtual(nos, chaves);
   if (portal) {
     const [nome] = [...nos.get(portal).grafias.entries()].sort((x, y) => y[1] - x[1])[0];
     return { nome: nomeExibicao(nome), fonteNome: 'PORTAL' };
