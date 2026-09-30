@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="/shared/ui/agf-ui.css">
 <link rel="stylesheet" href="/shared/ui/agf-header.css?v=2">
   <link rel="stylesheet" href="/crm/styles.css?v=126">
+  <link rel="stylesheet" href="/crm/crm-integrado.css?v=1">
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
   <script>window.AGF_ACCESS={roles:['admin','manager','user'],app:'crm'};</script>
@@ -72,6 +73,9 @@
       <div class="subview" id="clientes-funil"><div class="kanban-top-scroll"><div></div></div><div class="kanban-wrap"><div class="kanban" id="clientBoard"></div></div></div>
       <div class="subview" id="clientes-cadastro"><article class="surface-card"><div class="cad-toolbar"><label class="search-field"><span class="material-symbols-rounded">search</span><input id="clientSearch" placeholder="Pesquisar por nome…"></label><span class="chip board-count" id="clientCadCount"><span class="material-symbols-rounded">filter_alt</span>0</span><div class="cad-controls" id="clientCadControls"></div></div><div class="table-wrap"><table><tbody id="clientTableBody"></tbody></table></div></article></div>
       <div class="subview iframe-subview" id="clientes-acoes"><iframe id="actionsFrame" title="Ações da carteira" data-src="/crm/acoes/" loading="lazy"></iframe></div>
+      <div class="subview" id="clientes-curva"></div>
+      <!-- CRM integrado: desenhado por /crm/crm-integrado.js. Os blocos acima continuam no HTML porque o app.js usa os ids. -->
+      <div class="cix cix-root" id="cixClientes"></div>
     </section>
 
     <section class="view hidden" data-view="agenda" id="view-agenda">
@@ -79,6 +83,7 @@
       <div class="agenda-controlbar"><div class="agenda-cb-top"><div class="agenda-mode-switch" aria-label="Modo de visualização"><button data-agenda-mode="day"><span class="material-symbols-rounded">today</span>Diária</button><button class="active" data-agenda-mode="week"><span class="material-symbols-rounded">date_range</span>Semanal</button><button data-agenda-mode="month"><span class="material-symbols-rounded">calendar_month</span>Mensal</button></div><div class="agenda-period"><button class="period-nav" id="prevPeriodBtn" type="button" aria-label="Período anterior"><span class="material-symbols-rounded">chevron_left</span></button><strong id="agendaPeriodLabel" role="button" tabindex="0" title="Clique para escolher a data">—</strong><input type="date" id="agendaDatePick" class="agenda-date-pick" aria-label="Escolher data"><button class="period-nav" id="nextPeriodBtn" type="button" aria-label="Próximo período"><span class="material-symbols-rounded">chevron_right</span></button></div><button class="secondary-btn agenda-today-btn" id="todayBtn" type="button"><span class="material-symbols-rounded">my_location</span>Hoje</button><button class="primary-btn agenda-new-btn" type="button" data-open-agenda><span class="material-symbols-rounded">add</span>Nova atividade</button></div><div class="agenda-cb-filters"><div class="context-filter-bar" data-context-filters="agenda"></div><div class="filter-row" id="agendaFilters"></div></div></div><button class="fab-add agenda-fab" type="button" data-open-agenda aria-label="Nova atividade"><span class="material-symbols-rounded">add</span></button>
       <div class="agenda-calendar" id="agendaCalendar"></div>
       <article class="surface-card overdue-card"><div class="card-heading"><div><h2><span class="material-symbols-rounded">notification_important</span>Pendências vencidas</h2><p>Atividades planejadas com data anterior a hoje.</p></div></div><div class="list-stack" id="overdueList"></div></article>
+      <div class="cix cix-root" id="cixAgenda"></div>
     </section>
   </main>
 
@@ -109,7 +114,8 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="/crm/config.js?v=83"></script>
-<script src="/crm/app.js?v=135"></script>
+<script src="/crm/app.js?v=136"></script>
+<script src="/crm/crm-integrado.js?v=1"></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/crm/sw.js').catch(()=>{}));}</script>
 <script>
 /* Conta do usuário na topbar: avatar com foto, troca de senha e Sair (usa AgfAuth). */

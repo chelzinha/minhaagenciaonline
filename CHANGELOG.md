@@ -2,6 +2,29 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-09-29 - CRM integrado: Clientes, Agenda e Curva ABC
+
+### Adicionado
+- Clientes com 5 abas integradas (Dashboard, Funil, Cadastro, Ações e Curva ABC nova) e Agenda (diária, semanal, mensal) no visual aprovado no protótipo: `frontend/crm/crm-integrado.js` e `crm-integrado.css`.
+- LOCAL como filtro pai no topo, vindo da autenticação (admin vê os 3).
+- Sinalizado automático no Funil: clientes com prioridade crítica ou alta do motor aparecem sem gravar nada; a tratativa nasce ao Agendar ou Assumir.
+- Sinais do Visão 360 no Dashboard: voltou a postar, contrato detectado e queda relevante.
+- Curva ABC 12M por LOCAL (A até 80%, B até 95% ou a partir de R$ 5.000, C o resto), com mapa de calor mensal, Pareto e exportação CSV.
+- Tabelas no padrão do /atende: ordenar, filtrar por coluna, arrastar e redimensionar colunas (largura salva no navegador).
+- Gráficos interativos com Apache ECharts 5.5.0 hospedado em `frontend/shared/vendor/echarts/` (carregado só nas abas com gráfico).
+- Botão de WhatsApp Web em toda atividade e cliente com número.
+- Atividade sem vínculo (reunião interna, treinamento), tipo novo "Reunião interna" e duração padrão pelo tipo.
+- Worker: `get_carteira_v1`, `get_curva_abc_v1`, `assumir_cliente_v1`; agenda com WhatsApp e contexto do motor; filtro opcional `local` na jornada e na agenda.
+- Migração 0105 (aditiva): `crm_agenda.TITULO`, `crm_tipos_atividade.APLICA_AVULSA`, tipo `ATV_REUNIAO_INTERNA` e índices.
+
+### Alterado
+- Cliente agendado ou assumido entra no funil em "Em tratativa" (antes nascia em "Sinalizado").
+- Concluir, cancelar e excluir atividade conferem LOCAL e responsável no servidor. ATENÇÃO - dados ou segurança.
+- `app.js`: ponte `window.CRM_CORE`, abertura de atividade fora da semana atual e aba Ações antiga (iframe) só no modo clássico.
+
+### Como voltar ao visual antigo
+- Para um usuário: `/crm/?classico=1`. Para todos: `crmIntegrado: false` em `frontend/crm/config.js`.
+
 ## 2026-09-29 - Cadastro v2: revisor automático das sugestões
 
 ### Adicionado

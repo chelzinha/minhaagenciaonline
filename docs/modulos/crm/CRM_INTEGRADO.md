@@ -1,0 +1,73 @@
+# CRM integrado - Clientes, Agenda e Curva ABC
+
+Publicado a partir do protótipo aprovado pela Rachel em 29/09/2026.
+
+## 1. O que muda para quem usa
+
+1. Clientes tem 5 abas: Dashboard, Funil, Cadastro, Ações e Curva ABC.
+2. LOCAL é o filtro pai (bloco escuro no topo). Admin vê AGF, BALCÃO e METRÔ; os demais só os LOCAIS liberados no cadastro de usuários (`crm.locais`). Quem tem um LOCAL só vê o cadeado.
+3. Responsável é o filtro filho. Quem só vê a própria agenda fica travado em si mesmo.
+4. Funil: a coluna Sinalizado mostra sozinha os clientes com prioridade crítica ou alta do motor. Nada é gravado. A tratativa nasce quando alguém clica em Agendar ou Assumir e o card vai para "Em tratativa".
+5. Dashboard: carteira do LOCAL, fila do motor, sinais do Visão 360 (voltou a postar, contrato detectado, queda relevante), funil, agenda de hoje e resumo da Curva ABC.
+6. Curva ABC 12M: por LOCAL da postagem. A até 80% do acumulado, B até 95% ou a partir de R$ 5.000 na janela, C o resto. NOVO = primeira postagem no LOCAL a partir de 01/07/2026 (provisório, até a base do Visão 360 completar 12 meses). Não substitui a "Curva 30D" do motor.
+7. Agenda: diária (com a próxima atividade, vencidas e fila sem agenda), semanal e mensal no estilo Google. WhatsApp Web em toda atividade com número. Atividade sem vínculo (reunião interna, treinamento). Só dias úteis.
+8. Tabelas no padrão do /atende: ordenar, filtrar por coluna, arrastar colunas e ajustar a largura (clique duplo volta ao padrão). A preferência fica salva no navegador de cada pessoa.
+
+## 2. Como foi montado (sem regressão)
+
+- `frontend/crm/app.js` continua dono dos dados, do boot e dos modais antigos (tratativa com checklist, atividade com conclusão, cadastro). Ele expõe `window.CRM_CORE`.
+- `frontend/crm/crm-integrado.js` desenha Clientes e Agenda em cima do `CRM_CORE`. Os blocos antigos continuam no HTML (o app.js usa os ids), só ficam ocultos.
+- Home e Prospects não mudaram.
+- Gráficos: Apache ECharts 5.5.0 em `frontend/shared/vendor/echarts/` (licença Apache 2.0, arquivos LICENSE e NOTICE juntos). Carrega só quando uma aba com gráfico abre.
+
+## 3. Voltar ao visual antigo
+
+1. Só para você, na hora: abrir `/crm/?classico=1`.
+2. Para todos: `crmIntegrado: false` em `frontend/crm/config.js` e publicar. O Worker novo continua compatível com o front antigo.
+3. Worker: `npx wrangler rollback` na pasta `cloudflare/cadastros-api` volta a versão anterior. A migração 0105 é só aditiva e pode ficar.
+
+## 4. API nova (`/api/crm`)
+
+| Ação | Tipo | O que faz |
+| --- | --- | --- |
+| `get_carteira_v1` | GET `local` | Resumo da carteira do LOCAL, fila crítica e alta (com tratativa aberta, se houver) e sinais do Visão 360 |
+| `get_curva_abc_v1` | GET `local` | Curva ABC 12M do LOCAL: meses, resumo por classe, totais por mês e linhas por cliente. Cache de 10 min por LOCAL |
+| `assumir_cliente_v1` | POST `clienteId` | Cria ou reaproveita a tratativa e coloca em "Em tratativa" com o responsável da sessão |
+| `save_atividade` | POST | Aceita `avulsa: true` com `titulo` e `local` (sem cliente, prospect ou tratativa) |
+| `get_crm_agenda_v3` e `get_crm_jornada_data` | GET | Aceitam `local` opcional. A agenda devolve `whatsapp`, `acao`, `prioridadeFila`, `diasSemPostar`, `titulo`, `avulsa` e `duracaoMin` |
+
+Regras de escopo no servidor: LOCAL não liberado é recusado em todas as rotas acima. Concluir, cancelar e excluir atividade conferem LOCAL e responsável (admin, gestor e quem vê a equipe passam).
+
+## 5. Implantação (ordem segura)
+
+1. Branch `feat/crm-integrado` a partir da `main` atualizada.
+2. Testes: `npm test` e `npm run test:crm` em `cloudflare/cadastros-api`.
+3. Commit e push da branch: o Cloudflare Pages gera a prévia `https://feat-crm-integrado.minhaagenciaonline.pages.dev`.
+4. Migração no D1: `npx wrangler d1 migrations apply agf-cadastros --remote` (aditiva; o código atual continua funcionando).
+5. Worker: `npx wrangler deploy` (compatível com o front antigo e com o novo; já libera a prévia no CORS).
+6. Homologar na prévia com o checklist abaixo.
+7. Merge na `main`: publica em produção.
+8. Depois do merge: tirar a prévia de `ALLOWED_ORIGINS` no `wrangler.jsonc` e publicar o Worker de novo.
+
+## 6. Checklist de teste
+
+1. Admin: LOCAL mostra AGF, BALCÃO e METRÔ. Usuário de um LOCAL: só o dele, com cadeado.
+2. Dashboard AGF: carteira 258, ativos 200, esfriando 31, inativos 27 (números de 29/09; mudam com o Visão 360).
+3. Funil: Sinalizado mostra os críticos e altos. Assumir leva para "Em tratativa". Agendar também.
+4. Card real abre a tratativa antiga (checklist e histórico). Arrastar card muda a etapa.
+5. Cadastro: ABC 12M, Curva 30D, etapa e próxima atividade por cliente. Ordenar, filtrar, arrastar e redimensionar coluna. Recarregar mantém a largura.
+6. Ações: clicar numa barra de "Carteira por ação" filtra a tabela.
+7. Curva ABC AGF: A 19 clientes, B 53, C 192, total R$ 4,46 mi (conferido no D1 em 29/09). Clique no gráfico mensal ordena a tabela pelo mês. Exportar CSV abre no Excel com acentos.
+8. Agenda diária: próxima atividade, vencidas, sugestões da fila. Botão WhatsApp abre o WhatsApp Web no número do cadastro. Sem número: botão apagado leva à ficha.
+9. Nova atividade sem vínculo: só aparecem Reunião interna, Reunião on-line e Treinamento. Sábado e domingo são recusados.
+10. Concluir atividade pelo modal antigo: some de "A fazer" e vai para "Feitas".
+11. Usuário comum não conclui atividade de outro responsável.
+12. `/crm/?classico=1` mostra o CRM antigo funcionando.
+13. Home e Prospects iguais a antes.
+
+## 7. Pendências conhecidas
+
+- `crm_midias` está vazia: a mídia sugerida aparece só com o código, sem link. Precisa do conteúdo dos materiais.
+- WhatsApp vem do cadastro manual (`crm_cadastro`), que ainda está vazio: no começo quase todos mostram "Sem número" até o cadastro ser completado.
+- NOVO na Curva ABC é provisório (a base do Visão 360 começa em 04/05/2026).
+- 2.226 postagens (2,3%) sem cliente_id ficam fora do CRM e da Curva.

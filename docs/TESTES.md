@@ -106,3 +106,9 @@ Como registrar problema encontrado:
 - Navegador/dispositivo:
 - Horario aproximado:
 - Usuario de teste usado, sem dados sensiveis:
+
+## CRM integrado (2026-09-29)
+
+- `npm test` (pasta `cloudflare/cadastros-api`) agora inclui `test/crm_integrado.test.mjs`: regra da Curva ABC (A até 80%, B até 95% ou R$ 5.000), janela de 12 meses, LOCAL como filtro pai e escopo das atividades.
+- `npm run test:crm` roda também `test/crm_integrado_d1.test.mjs`: fluxo completo contra SQLite em memória com as migrações reais (carteira, Curva ABC, assumir, agendar, atividade sem vínculo, escopo). Precisa de Node 22.13 ou mais novo.
+- Roteiro manual de homologação: `docs/modulos/crm/CRM_INTEGRADO.md`, seção "Checklist de teste".

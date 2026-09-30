@@ -11,6 +11,7 @@ import * as ent from './entidades.js';
 import * as jor from './jornada.js';
 import * as ag from './agenda.js';
 import { dashboardAcoes } from './acoes.js';
+import { getCarteira, getCurvaAbc, assumirCliente } from './carteira.js';
 
 const agendaDoBoot = (env, p, user, a, b, status) => ag.getAgenda(env, { start: a, end: b, responsavelId: p.responsavelId, status }, user);
 
@@ -82,6 +83,9 @@ const GET = {
   warm_crm_cache_v5: async () => ({ ok: true, warmed: true, meta: { timings: [] } }),
   get_entity_checklists_v7: (env, p) => ag.getChecklists(env, p),
   get_entity_notes_v8: (env, p) => ag.getNotas(env, p),
+  // CRM integrado (29/09/2026)
+  get_carteira_v1: (env, p, u) => getCarteira(env, p, u),
+  get_curva_abc_v1: (env, p, u) => getCurvaAbc(env, p, u),
 };
 const POST = {
   update_cliente: async (env, p, u) => { await exigirNoEscopo(env, u, 'CLIENTE', text(p.clienteId)); return ent.updateCliente(env, p, u); },
@@ -98,6 +102,7 @@ const POST = {
   delete_agenda_item: (env, p, u) => ag.excluirAtividade(env, p, u),
   save_checklist: (env, p, u) => ag.salvarChecklist(env, p, u),
   save_entity_note_v8: (env, p, u) => ag.salvarNota(env, p, u),
+  assumir_cliente_v1: (env, p, u) => assumirCliente(env, p, u),
 };
 POST.delete_agenda = POST.remove_agenda_item = POST.excluir_agenda_item = POST.delete_agenda_item;
 

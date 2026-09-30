@@ -17,6 +17,9 @@
     weekStartsOn: 1,
     requestTimeoutMs: 60000,
     bootstrapTimeoutMs: 90000,
-    legacyTimeoutMs: 150000
+    legacyTimeoutMs: 150000,
+    // CRM integrado (Clientes + Agenda + Curva ABC). false volta todo mundo para o visual antigo sem novo deploy do Worker.
+    // Para um usuario so testar o antigo: /crm/?classico=1
+    crmIntegrado: true
   });
 })();
