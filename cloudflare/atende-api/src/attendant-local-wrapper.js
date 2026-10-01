@@ -44,9 +44,25 @@ function rewriteSql(sql) {
     );
   }
 
+  // Regra de LOCAL igual a aba Tabela: postagem com cadeado destravado
+  // (atende_postagem_trava_excecoes) ignora a trava do CLIENTE PORTAL.
+  const localRule=/COALESCE\(pcl\.local_codigo,\s*po\.local_codigo,\s*a\.local_padrao,\s*c\.local_padrao,\s*''\)/g;
+  if(!localRule.test(text))return text;
+  localRule.lastIndex=0;
+
+  if(!/\bJOIN\s+atende_postagem_trava_excecoes\s+pte\b/i.test(text)){
+    text=text.replace(
+      'LEFT JOIN atende_postagem_overrides po ON po.raw_id = r.id',
+      'LEFT JOIN atende_postagem_overrides po ON po.raw_id = r.id\n  LEFT JOIN atende_postagem_trava_excecoes pte ON pte.raw_id = r.id'
+    );
+  }
+  const hasPte=/\bJOIN\s+atende_postagem_trava_excecoes\s+pte\b/i.test(text);
+
   return text.replace(
-    /COALESCE\(pcl\.local_codigo,\s*po\.local_codigo,\s*a\.local_padrao,\s*c\.local_padrao,\s*''\)/g,
-    "COALESCE(pcl.local_codigo, po.local_codigo, atl.local_codigo, a.local_padrao, c.local_padrao, '')"
+    localRule,
+    hasPte
+      ? "COALESCE(CASE WHEN pte.raw_id IS NULL THEN pcl.local_codigo ELSE NULL END, po.local_codigo, atl.local_codigo, a.local_padrao, c.local_padrao, '')"
+      : "COALESCE(pcl.local_codigo, po.local_codigo, atl.local_codigo, a.local_padrao, c.local_padrao, '')"
   );
 }
 

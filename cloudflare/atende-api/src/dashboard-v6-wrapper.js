@@ -21,7 +21,9 @@ const CONTRATO_TIPO_SQL = `COALESCE(NULLIF(TRIM(co.tipo), ''), CASE WHEN COALESC
 const CONTRATO_CANAL_SQL = `COALESCE(NULLIF(TRIM(co.nome), ''), CASE WHEN COALESCE(cc.ocorrencias, 0) BETWEEN 1 AND 3 THEN 'CONTRATO ECT' ELSE '' END)`;
 const ATENDENTE_EXIBIDO_SQL = `COALESCE(NULLIF(TRIM(a.nome), ''), r.atendente_norm)`;
 const CLIENTE_PORTAL_SQL = `COALESCE(cp.cliente_portal, '')`;
-const LOCAL_EXIBIDO_SQL = `COALESCE(pcl.local_codigo, po.local_codigo, atl.local_codigo, a.local_padrao, c.local_padrao, '')`;
+// Regra de LOCAL igual a aba Tabela: se o cadeado do CLIENTE PORTAL foi
+// destravado na postagem (atende_postagem_trava_excecoes), vale o LOCAL manual.
+const LOCAL_EXIBIDO_SQL = `COALESCE(CASE WHEN pte.raw_id IS NULL THEN pcl.local_codigo ELSE NULL END, po.local_codigo, atl.local_codigo, a.local_padrao, c.local_padrao, '')`;
 const TABELA_NORM_SQL = `REPLACE(REPLACE(UPPER(TRIM(COALESCE(sc.tabela,''))),' ',''),'-','')`;
 const IS_MENSAGERIA_SQL = `(${TABELA_NORM_SQL}='R2G1')`;
 const IS_ENCOMENDA_SQL = `(${TABELA_NORM_SQL}='R2G2')`;
@@ -47,6 +49,7 @@ const BASE_FROM_V6 = `
     ON cc.numero = r.numero_contrato_norm
   LEFT JOIN atende_servico_classificacao sc ON sc.codigo_servico = r.codigo_servico_norm
   LEFT JOIN atende_postagem_overrides po ON po.raw_id = r.id
+  LEFT JOIN atende_postagem_trava_excecoes pte ON pte.raw_id = r.id
   LEFT JOIN atende_cliente_portal cp ON cp.raw_id = r.id
   LEFT JOIN atende_cliente_portal_local pcl
     ON pcl.cliente_portal_norm = cp.cliente_portal_norm
