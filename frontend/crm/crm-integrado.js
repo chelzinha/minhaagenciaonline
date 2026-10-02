@@ -590,7 +590,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const cab = clientHead() + erroHtml(erroDe('abc'));
     if (!abc) return cab + carregandoHtml('Calculando a Curva ABC dos últimos 12 meses…');
     if (!abc.rows.length) return cab + `<div class="card"><div class="empty">Sem postagens em ${esc(loc)} na janela de 12 meses.</div></div>`;
-    const R = abc.resumo, MB = abc.meses.map((m, i) => [m, i]).filter(([m]) => m >= abc.baseIni), temSemBase = MB.length < abc.meses.length;
+    const R = abc.resumo, MB = abc.meses.map((m, i) => [m, i]).filter(([m]) => m >= abc.baseIni), temSemBase = false; // coluna "sem base" retirada da tabela: os meses sem base no Visão 360 simplesmente não aparecem
     const iP = abc.meses.indexOf(abc.mesParcial), vP = abc.porMes[iP] ? abc.porMes[iP].v : 0, vA = iP > 0 && abc.meses[iP - 1] >= abc.baseIni ? abc.porMes[iP - 1].v : 0;
     const varP = vA ? (vP - vA) / vA : null;
     const nMesesBase = MB.length;
