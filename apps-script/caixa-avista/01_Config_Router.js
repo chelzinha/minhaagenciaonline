@@ -153,6 +153,7 @@ function doPost(e) {
       case 'setOpeningBalance': response = (v2SetOpeningBalance_(request.date, request.amountCents, user)); break;
       case 'createWithdrawal': response = (v2CreateWithdrawal_(request.payload, user)); break;
       case 'closeCash': response = (v3CloseCashSafe_(request.payload, user)); break;
+      case 'periodReport': response = (caixaPeriodReport_(request, user)); break;
       case 'repairSupplementPdf': response = (v3RepairSupplementPdf_(request.supplementId, user)); break;
       case 'processContaAzulQueue': response = (processContaAzulQueueV2(request.limit)); break;
       case 'syncContaAzulLibrary': response = (syncContaAzulLibraryV2()); break;
