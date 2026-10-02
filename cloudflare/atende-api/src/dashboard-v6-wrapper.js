@@ -665,10 +665,16 @@ async function buildClientAnalytics(competencia, state, env, config) {
   const histMonths=[histStart,monthAdd(histStart,1),histEnd];
   const histMap=new Map();
   const names=new Map();
+  const histLocMap=new Map();
   histRows.forEach(r=>{
     const key=clean(r.cliente_chave)+'|'+clean(r.grupo);
     if(!histMap.has(key))histMap.set(key,new Map());
-    histMap.get(key).set(clean(r.competencia),num(r.valor));
+    // A consulta agrupa tambem por local: somar, nao sobrescrever.
+    const comp=clean(r.competencia),hm=histMap.get(key);
+    hm.set(comp,num(hm.get(comp))+num(r.valor));
+    const loc=norm(r.local_codigo)||'SEM_LOCAL';
+    if(!histLocMap.has(key))histLocMap.set(key,{});
+    const hl=histLocMap.get(key);hl[loc]=(hl[loc]||0)+num(r.valor);
     names.set(clean(r.cliente_chave),clean(r.cliente));
   });
   const currMap=new Map();
@@ -718,6 +724,7 @@ async function buildClientAnalytics(competencia, state, env, config) {
       grupo:group,valorAtual:round2(currentValue),quantidade:num(currentRow?.quantidade),locais:currentRow?.locais||{},
       historico:histValues.map((v,i)=>({competencia:histMonths[i],valor:round2(v)})),
       media3Meses:round2(avg3),media3MesesCalculada:round2(avg3Calculated),baseRecorrenteManual:manualBase!==null,
+      mediaLocais:buildAverageLocals(histLocMap.get(key),currentRow?.locais,histMonths.length,avg3Calculated,avg3),
       esperadoParcial:round2(expectedPartial),participacaoGrupo:round2(shareGroup),
       tipoReceita:type,tipoReceitaEfetivo:effectiveType,dataFimPrevista:dataFim,observacao:clean(cls.observacao),
       motivos:reasons,precisaRevisao:!effectiveType&&reasons.length>0
@@ -792,6 +799,40 @@ function buildManualBaseShares(keys,histMap,currMap,histMonths,classMap){
   return out;
 }
 
+// Media mensal por local (soma dos 3 meses / 3). Com base manual, reescala
+// para somar a base. Sem historico por local, usa a distribuicao do mes atual.
+function buildAverageLocals(histLocals,currentLocals,months,avgCalculated,avgUsed){
+  const out={};
+  if(!avgUsed)return out;
+  const src=histLocals&&avgCalculated>0?histLocals:null;
+  if(src){
+    const scale=avgUsed/avgCalculated;
+    Object.entries(src).forEach(([k,v])=>{out[k]=num(v)/months*scale;});
+    return out;
+  }
+  const curr=currentLocals||{},tot=Object.values(curr).reduce((s,v)=>s+num(v),0);
+  if(tot>0)Object.entries(curr).forEach(([k,v])=>{out[k]=avgUsed*num(v)/tot;});
+  else out.SEM_LOCAL=avgUsed;
+  return out;
+}
+
+// Projecao recorrente com ritmo misto:
+//   realizado + (p * ritmo_do_mes + (1 - p) * ritmo_historico) * dias_restantes
+//   p = dias_decorridos / dias_mes; ritmo_historico = media mensal / dias_mes.
+// No inicio do mes pesa o historico (Media 3m ou Base recorrente manual);
+// no fim do mes converge para o realizado. Cliente sem historico: so ritmo do mes.
+function projectRecurring(realized,monthlyAverage,done,days){
+  realized=num(realized);monthlyAverage=num(monthlyAverage);
+  if(!(days>0))return realized;
+  const d=Math.min(Math.max(0,done),days),remaining=days-d;
+  if(!remaining)return realized;
+  const p=d/days;
+  const currentRate=d>0?realized/d:0;
+  const histRate=monthlyAverage>0?monthlyAverage/days:currentRate;
+  const rate=d>0?(p*currentRate+(1-p)*histRate):histRate;
+  return realized+rate*remaining;
+}
+
 function buildProjection(a, config) {
   const done=num(config.diasUteisRealizados),days=num(config.diasUteisMes);
   const groups={
@@ -809,30 +850,45 @@ function buildProjection(a, config) {
     const pending=!!x.precisaRevisao;
     if(pending)g.pendenteRealizado+=x.valorAtual;
     else if(eventual)g.eventualRealizado+=x.valorAtual;
-    else g.recorrenteRealizado+=x.valorAtual;
+    else{
+      g.recorrenteRealizado+=x.valorAtual;
+      g.recorrenteProjetado+=projectRecurring(x.valorAtual,x.media3Meses,done,days);
+      g.mediaRecorrenteHistorica+=num(x.media3Meses);
+    }
     if(pending){g.confiavel=false;signals.push({cliente:x.cliente,clienteChave:x.clienteChave,grupo:x.grupo,valorAtual:x.valorAtual,media3Meses:x.media3Meses,participacao:x.participacaoGrupo,motivos:x.motivos});}
+    const newLoc=()=>({realizado:0,recorrenteRealizado:0,recorrenteProjetado:0,eventualRealizado:0,pendenteRealizado:0,projetado:0});
     Object.entries(x.locais||{}).forEach(([loc,val])=>{
-      const k=norm(loc)||'SEM_LOCAL';if(!locs[k])locs[k]={realizado:0,recorrenteRealizado:0,eventualRealizado:0,pendenteRealizado:0,projetado:0};
+      const k=norm(loc)||'SEM_LOCAL';if(!locs[k])locs[k]=newLoc();
       locs[k].realizado+=val;
       if(pending)locs[k].pendenteRealizado+=val;
       else if(eventual)locs[k].eventualRealizado+=val;
       else locs[k].recorrenteRealizado+=val;
     });
+    if(!pending&&!eventual){
+      // Linear por local: realizado do local + historico do local.
+      const keysLoc=new Set([...Object.keys(x.locais||{}),...Object.keys(x.mediaLocais||{})].map(k=>norm(k)||'SEM_LOCAL'));
+      keysLoc.forEach(k=>{
+        if(!locs[k])locs[k]=newLoc();
+        const realizedLoc=num((x.locais||{})[k]),avgLoc=num((x.mediaLocais||{})[k]);
+        locs[k].recorrenteProjetado+=projectRecurring(realizedLoc,avgLoc,done,days);
+      });
+    }
   });
-  Object.values(groups).forEach(g=>{g.projetado=done&&days?round2(g.recorrenteRealizado/done*days+g.eventualRealizado+g.pendenteRealizado):0;g.realizado=round2(g.realizado);g.recorrenteRealizado=round2(g.recorrenteRealizado);g.eventualRealizado=round2(g.eventualRealizado);g.pendenteRealizado=round2(g.pendenteRealizado);});
-  Object.values(locs).forEach(l=>{l.projetado=done&&days?round2(l.recorrenteRealizado/done*days+l.eventualRealizado+l.pendenteRealizado):0;l.realizado=round2(l.realizado);l.recorrenteRealizado=round2(l.recorrenteRealizado);l.eventualRealizado=round2(l.eventualRealizado);l.pendenteRealizado=round2(l.pendenteRealizado);});
+  Object.values(groups).forEach(g=>{g.projetado=done&&days?round2(g.recorrenteProjetado+g.eventualRealizado+g.pendenteRealizado):0;g.realizado=round2(g.realizado);g.recorrenteRealizado=round2(g.recorrenteRealizado);g.recorrenteProjetado=round2(g.recorrenteProjetado);g.mediaRecorrenteHistorica=round2(g.mediaRecorrenteHistorica);g.eventualRealizado=round2(g.eventualRealizado);g.pendenteRealizado=round2(g.pendenteRealizado);});
+  Object.values(locs).forEach(l=>{l.projetado=done&&days?round2(l.recorrenteProjetado+l.eventualRealizado+l.pendenteRealizado):0;l.realizado=round2(l.realizado);l.recorrenteRealizado=round2(l.recorrenteRealizado);l.recorrenteProjetado=round2(l.recorrenteProjetado);l.eventualRealizado=round2(l.eventualRealizado);l.pendenteRealizado=round2(l.pendenteRealizado);});
   const total={realizado:0,recorrente:0,eventual:0,pendente:0,projetado:0};
   Object.values(groups).forEach(g=>{total.realizado+=g.realizado;total.recorrente+=g.recorrenteRealizado;total.eventual+=g.eventualRealizado;total.pendente+=g.pendenteRealizado;total.projetado+=g.projetado;});
   return {
     disponivel:done>0&&days>0,
-    metodo:'(recorrente / dias_decorridos * dias_mes) + eventual_ja_realizado + pendente_ja_realizado',
+    metodo:'recorrente_realizado + (p*ritmo_mes + (1-p)*ritmo_historico)*dias_restantes + eventual_ja_realizado + pendente_ja_realizado; p=dias_decorridos/dias_mes',
+    pesoMesAtual:days?round2(Math.min(done,days)*100/days):0,
     diasUteisRealizados:done,diasUteisMes:days,
     recorrenteRealizado:round2(total.recorrente),eventualRealizado:round2(total.eventual),pendenteRealizado:round2(total.pendente),realizado:round2(total.realizado),projetado:round2(total.projetado),
     revisaoNecessaria:signals.length>0,sinaisEventual:signals.slice(0,20),
     grupos:groups,locais:{agf:locs.AGF||{},balcao:locs.BALCAO||{},metro:locs.METRO||{},todos:locs}
   };
 }
-function newProjectionGroup(grupo){return{grupo,realizado:0,recorrenteRealizado:0,eventualRealizado:0,pendenteRealizado:0,projetado:0,confiavel:true};}
+function newProjectionGroup(grupo){return{grupo,realizado:0,recorrenteRealizado:0,recorrenteProjetado:0,mediaRecorrenteHistorica:0,eventualRealizado:0,pendenteRealizado:0,projetado:0,confiavel:true};}
 
 function buildTierAlert(cm,pm,ce,pe,p){
   const items=[];
@@ -855,7 +911,7 @@ function buildRecurringBase(a, config) {
     g.current+=num(x.valorAtual);
   });
   function pack(g){
-    const hist=g.hist.map(round2),avg=hist.reduce((s,v)=>s+v,0)/hist.length,currentProj=done&&days?g.current/done*days:g.current;
+    const hist=g.hist.map(round2),avg=hist.reduce((s,v)=>s+v,0)/hist.length,currentProj=done&&days?projectRecurring(g.current,avg,done,days):g.current;
     const last=hist[hist.length-1]||0;
     return{historico:a.histMonths.map((m,i)=>({competencia:m,valor:hist[i]})),media3Meses:round2(avg),ultimoFechado:round2(last),recorrenteRealizado:round2(g.current),projecaoRecorrente:round2(currentProj),variacaoVsMedia:avg?round2((currentProj-avg)*100/avg):0,variacaoVsUltimo:last?round2((currentProj-last)*100/last):0};
   }
@@ -871,7 +927,7 @@ function buildClientDrop(a, config, projectedM, projectedE) {
     if(x.grupo!=='R2G1'&&x.grupo!=='R2G2')return;
     if(x.tipoReceita==='CAMPANHA'||x.tipoReceita==='PONTUAL'||x.precisaRevisao)return;
     if(x.media3Meses<5000)return;
-    const projected=round2(x.valorAtual/done*days);
+    const projected=round2(projectRecurring(x.valorAtual,x.media3Meses,done,days));
     const variation=x.media3Meses?((projected-x.media3Meses)*100/x.media3Meses):0;
     if(variation>-30)return;
     const loss=Math.max(0,x.media3Meses-projected);

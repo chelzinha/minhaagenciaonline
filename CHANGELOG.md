@@ -2,6 +2,19 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-10-02 - Visão 360: projeção do mês com ritmo ponderado pelo histórico
+
+### Alterado
+- Projeção recorrente deixa de ser `realizado ÷ dias decorridos × dias do mês`. Nova regra, por cliente: `realizado + (p × ritmo do mês + (1 - p) × ritmo histórico) × dias restantes`, com `p = dias decorridos ÷ dias do mês` e ritmo histórico = Média 3m (ou Base recorrente manual) ÷ dias do mês. Cliente sem histórico segue só o ritmo do mês. Campanha, Pontual e pendente continuam somando só o realizado.
+- Vale para total, grupos (Mensageria/Encomendas), locais (Balcão/Metrô/AGF), alerta de degrau, base recorrente e queda de clientes.
+- Texto do cartão de capacidade do degrau atualizado.
+
+### Corrigido
+- Histórico de 3 meses por cliente guardava só o valor do último LOCAL lido em cada mês (a consulta agrupa por local). Agora soma todos os locais. Afeta a Média 3m de clientes que postam em mais de um local.
+
+### Motivo
+- 01/10/2026: um único dia (R$ 69.412,16, sendo R$ 44.355,85 da ENEL em 6 objetos) × 21 dias úteis gerou projeção de R$ 1.457.655,36. Com 1 dia decorrido, qualquer dia atípico de cliente grande e irregular era multiplicado por 21.
+
 ## 2026-10-02 - Visão 360: base recorrente manual por cliente (projeção V6)
 
 ### Adicionado
