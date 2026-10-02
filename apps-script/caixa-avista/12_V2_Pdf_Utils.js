@@ -294,7 +294,11 @@ function retryPendingPdfsV2(){
 }
 
 function v2Money_(cents){return 'R$ '+(Number(cents||0)/100).toFixed(2).replace('.',',');}
-function v2Today_(){return Utilities.formatDate(new Date(),CAIXA_V2_CFG.TIMEZONE,'yyyy-MM-dd');}
+function v2Today_(){
+  /* Caixa por dia: dentro de uma requisição com workDate passado, devolve o dia de trabalho (ver 26_CAIXA_Dia_Trabalho.js). */
+  if(typeof CAIXA_WORK_DATE_OVERRIDE==='string'&&CAIXA_WORK_DATE_OVERRIDE)return CAIXA_WORK_DATE_OVERRIDE;
+  return Utilities.formatDate(new Date(),CAIXA_V2_CFG.TIMEZONE,'yyyy-MM-dd');
+}
 function v2Date_(value){var s=String(value||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(s))throw appError_('Data inválida.','INVALID_DATE');return s;}
 function v2BrDate_(iso){var p=String(iso).split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso;}
 function v2Time_(value){try{return Utilities.formatDate(new Date(value),CAIXA_V2_CFG.TIMEZONE,'HH:mm');}catch(e){return '';}}

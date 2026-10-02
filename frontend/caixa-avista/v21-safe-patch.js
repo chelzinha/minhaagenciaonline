@@ -495,6 +495,8 @@
             action,
             st: authToken(),
             unitId: selectedUnitId(),
+            /* Caixa por dia: complemento e resumo seguem o dia escolhido. */
+            workDate: String(window.CaixaWorkDate?.get?.() || ''),
             ...data
           }),
           signal: controller
@@ -1029,10 +1031,18 @@
         }
       }
 
-      window.setTimeout(
-        () => window.location.reload(),
-        900
-      );
+      /*
+       * Recarrega os dados sem recarregar a página, para não perder o dia
+       * escolhido no seletor de data (caixa por dia).
+       */
+      window.setTimeout(() => {
+        supplementRuntime.busy = false;
+        if (window.CaixaApp?.refresh) {
+          window.CaixaApp.refresh();
+        } else {
+          window.location.reload();
+        }
+      }, 900);
     } catch (error) {
       supplementRuntime.busy = false;
       renderSupplementUi();
