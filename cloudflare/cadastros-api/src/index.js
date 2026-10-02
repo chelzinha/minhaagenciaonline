@@ -94,6 +94,11 @@ async function exigirCrm(request, env) {
 }
 
 // ---------------------------------------------------------------- leitura
+/** Maior id de postagem do Visão 360 (para mostrar o andamento da leitura). Falha silenciosa: só informativo. */
+async function ultimoIdAtende(env) {
+  try { const r = await env.ATENDE_DB.prepare(`SELECT MAX(raw_id) m FROM atende_postagens_canonicas_ids`).first(); return Number(r?.m || 0); }
+  catch (e) { console.warn('[CADASTROS_V2][sync] ultimo id do Atende indisponivel:', e?.message || e); return 0; }
+}
 async function resumo(env) {
   const db = env.DB;
   const [abas, total, sug, semPortal, descartadas, estado, ultimoMotor, carteira, grupos] = await db.batch([
@@ -116,7 +121,8 @@ async function resumo(env) {
   return {
     abas: porAba, totais: total.results?.[0] || {}, sugestoes: sug.results?.[0]?.pares || 0,
     semClientePortal: semPortal.results?.[0]?.postagens || 0, descartadas: descartadas.results?.[0] || {},
-    sincronizacao: { cursor: Number(est.sync_cursor?.valor || 0), passagens: Number(est.sync_passagem?.valor || 0), atualizadoEm: est.sync_cursor?.atualizado_em, motorPendente: est.motor_pendente?.valor === '1' },
+    sincronizacao: { cursor: Number(est.sync_cursor?.valor || 0), passagens: Number(est.sync_passagem?.valor || 0), atualizadoEm: est.sync_cursor?.atualizado_em, motorPendente: est.motor_pendente?.valor === '1',
+      ultimoIdAtende: await ultimoIdAtende(env) },
     motor: um ? { ...JSON.parse(um.resumo_json), autor: um.autor, em: um.criado_em } : null,
     versaoMotor: MOTOR_VERSAO, regras: REGRAS, motivos: MOTIVOS_SUGESTAO,
     carteira: Object.fromEntries((carteira.results || []).map((x) => [x.local, x.clientes])),
@@ -599,8 +605,12 @@ export default {
   async scheduled(event, env, ctx) {
     ctx.waitUntil((async () => {
       try {
-        // cron roda a cada minuto; fora da janela de 10 min so trabalha para recuperar a primeira passagem do CRM
-        if (new Date(event.scheduledTime || Date.now()).getUTCMinutes() % 10 !== 0 && (await crmPronto(env.DB)).pronto) return;
+        // cron roda a cada minuto. Fora da janela de 10 min so trabalha enquanto ha leitura do Atende em andamento
+        // (cursor > 0) ou para recuperar a primeira passagem do CRM. Assim uma passagem completa leva ~30 min, nao ~4 h.
+        if (new Date(event.scheduledTime || Date.now()).getUTCMinutes() % 10 !== 0) {
+          const cur = await env.DB.prepare(`SELECT valor FROM cid_estado WHERE chave='sync_cursor'`).first();
+          if (!(Number(cur?.valor || 0) > 0) && (await crmPronto(env.DB)).pronto) return;
+        }
         const s = await sincronizar(env, { paginas: 25, orcamentoMs: 20000 });
         const pend = await env.DB.prepare(`SELECT valor FROM cid_estado WHERE chave='motor_pendente'`).first();
         const vazio = await env.DB.prepare(`SELECT COUNT(*) n FROM cid_clientes`).first();

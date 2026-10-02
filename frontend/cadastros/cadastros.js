@@ -17,6 +17,17 @@
   };
   const ORIGEM_TXT = { PORTAL: 'Cliente Portal', BALCAO: 'Remetente Balcão', METRO: 'Remetente Metrô', CF: 'Remetente Centro Fashion' };
 
+  /** "Atende sincronizado 20:41" (com a data quando não é hoje) + andamento da leitura das postagens. */
+  function textoSync(x) {
+    if (!x || !x.atualizadoEm) return '';
+    const d = new Date(String(x.atualizadoEm).replace(' ', 'T') + 'Z');
+    const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const hoje = d.toDateString() === new Date().toDateString();
+    const quando = hoje ? hora : `${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} ${hora}`;
+    const cur = Number(x.cursor || 0), tot = Number(x.ultimoIdAtende || 0);
+    const lendo = cur > 0 && tot > 0 ? ` · lendo postagens ${Math.min(99, Math.floor(cur * 100 / tot))}%` : '';
+    return `Atende sincronizado ${quando}${lendo}`;
+  }
   const st = { localPagina: 1, aba: 'PORTAL', pagina: 1, q: '', local: '', ordem: 'postagens', sel: null, modo: 'lista', sugPagina: 1, sugMin: 0, resumo: null };
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -125,7 +136,7 @@
         const el = document.querySelector(`[data-c="${a}"]`);
         if (el) el.textContent = `${num(x.clientes)} clientes · ${num(x.postagens)} postagens`;
       }
-      $('syncInfo').textContent = r.sincronizacao?.atualizadoEm ? `Atende sincronizado ${new Date(String(r.sincronizacao.atualizadoEm).replace(' ', 'T') + 'Z').toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : '';
+      $('syncInfo').textContent = textoSync(r.sincronizacao);
       const s = await api('/api/v2/sugestoes?por=5&pagina=1');
       $('kSug').textContent = num(s.total);
       $('modoSugN').textContent = s.total ? num(s.total) : '';

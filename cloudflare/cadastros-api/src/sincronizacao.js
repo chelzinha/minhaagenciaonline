@@ -70,8 +70,8 @@ export async function sincronizarPagina(env, limite = 400) {
     // fim da passagem: remove postagens que sumiram do Atende e marca motor pendente se algo mudou
     const removidas = cursor > 0 ? await db.prepare(`DELETE FROM cid_postagens WHERE passagem < ?`).bind(passagem).run() : null;
     await db.batch([
-      db.prepare(`UPDATE cid_estado SET valor='0' WHERE chave='sync_cursor'`),
-      db.prepare(`UPDATE cid_estado SET valor=? WHERE chave='sync_passagem'`).bind(String(passagem)),
+      db.prepare(`UPDATE cid_estado SET valor='0', atualizado_em=CURRENT_TIMESTAMP WHERE chave='sync_cursor'`),
+      db.prepare(`UPDATE cid_estado SET valor=?, atualizado_em=CURRENT_TIMESTAMP WHERE chave='sync_passagem'`).bind(String(passagem)),
       ...(removidas?.meta?.changes ? [db.prepare(`UPDATE cid_estado SET valor='1' WHERE chave='motor_pendente'`)] : []),
     ]);
     return { lidas: 0, gravadas: 0, fimDaPassagem: true, removidas: removidas?.meta?.changes || 0 };
@@ -112,7 +112,7 @@ export async function sincronizarPagina(env, limite = 400) {
     const lote = tocadas.slice(i, i + 90);
     stmts.push(db.prepare(`UPDATE cid_postagens SET passagem=? WHERE raw_id IN (${lote.map(() => '?').join(',')})`).bind(passagem, ...lote));
   }
-  stmts.push(db.prepare(`UPDATE cid_estado SET valor=? WHERE chave='sync_cursor'`).bind(String(ids[ids.length - 1])));
+  stmts.push(db.prepare(`UPDATE cid_estado SET valor=?, atualizado_em=CURRENT_TIMESTAMP WHERE chave='sync_cursor'`).bind(String(ids[ids.length - 1])));
   if (gravadas) stmts.push(db.prepare(`UPDATE cid_estado SET valor='1' WHERE chave IN ('motor_pendente','crm_pendente')`));
   await emLotes(db, stmts);
   return { lidas: linhas.length, gravadas, fimDaPassagem: false, grafiasNovas };
