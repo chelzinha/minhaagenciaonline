@@ -473,7 +473,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       .filter((x) => passaDsp(num(x.c.diasSemPostar)));
     const ETO = Object.fromEntries(etapas().map((e, i) => [e.etapaId, i + 1]));
     const cols = [
-      { k: 'nome', t: 'Cliente', w: 270, v: (x) => C.entityName(x.c), cls: 'cn', cell: (x) => `${esc(C.entityName(x.c))}${x.a && x.a.novo ? ' <span class="chip novo">NOVO</span>' : ''}<small>${esc(fantasiaDe(x.c.nomeFantasia, C.entityName(x.c)) || x.c.cnpjCpf || 'Nome fantasia a completar')}</small>` },
+      { k: 'nome', t: 'Cliente', w: 270, v: (x) => C.entityName(x.c), cls: 'cn', cell: (x) => `${esc(C.entityName(x.c))}${x.a && x.a.novo ? ' <span class="chip novo">NOVO</span>' : ''}<small>${esc(text(x.c.nomeFantasia) || x.c.cnpjCpf || 'Nome fantasia a completar')}</small>` },
       ...colLocal((x) => x.c.local),
       { k: 'abc', t: 'ABC 12M', w: 118, v: (x) => (x.a ? x.a.abc : 'Z'), cell: (x) => abcChip(x.a && x.a.abc) },
       { k: 'c30', t: 'Curva 30D', w: 124, v: (x) => x.c.curva || '', cell: (x) => x.c.curva ? `<span class="chip">${esc(x.c.curva)}</span>` : '' },

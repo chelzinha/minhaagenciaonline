@@ -2,6 +2,11 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-10-02 - CRM: nome fantasia sempre na lista do Cadastro
+
+### Corrigido
+- Lista do Cadastro mostrava o CNPJ na 2ª linha quando o nome fantasia era igual ao nome do cliente (30 clientes, ex.: CIA PAULISTA, VIVARA, NUAGE). Agora mostra sempre o nome fantasia; o CNPJ só aparece quando não há fantasia. Cards do Funil seguem sem repetir o nome quando o fantasia é igual. Cache v=7.
+
 ## 2026-10-02 - CRM: cadastro do Portal Postal, nome fantasia e contrato próprio
 
 ### Adicionado
