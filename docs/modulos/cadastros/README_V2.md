@@ -171,3 +171,13 @@ Vários cadastros que comercialmente são um cliente só, somados somente no CRM
 3. Nome curto que serve para dois ou mais clientes diferentes entre si (ex.: MARCO ANTONIO x 5 pessoas) é ambíguo: não vira sugestão.
 4. **Nome final editável** no cartão de sugestão (sem cliente do Portal): escolhe um dos nomes ou digita o correto. Com cliente do Portal, vale o nome do Portal.
 5. As junções automáticas (mesmas palavras em outra ordem, erro mínimo de digitação, nome cortado) não mudaram.
+
+## Agrupar em lote os cartões da página (03/10/2026)
+
+1. Função a mais na tela de Sugestões. O Agrupar e o Não são o mesmo de cada cartão continuam exatamente iguais.
+2. Botão **Agrupar cartões desta página** no topo e no fim da lista. O texto mostra quantos cartões entram.
+3. Entra cada cartão ainda não feito, com 2 ou mais nomes marcados e nome final preenchido. Vale o que está na tela: nomes marcados e nome final de cada cartão. Cartão com só 1 nome marcado fica de fora.
+4. Confirmação antes de gravar, com a lista dos nomes finais.
+5. Grava as mesmas decisões do Agrupar individual (UNIR e NOME, manuais, lembradas em toda limpeza) e reaplica a limpeza uma vez só no fim.
+6. Ficam de fora, com aviso no próprio cartão: 2 clientes do Portal (precisa da confirmação de nome antigo e novo no Agrupar do cartão), cadastro repetido em outro cartão do mesmo lote, cadastro que não existe mais.
+7. Rota: `POST /api/v2/agrupar-lote` `{ itens: [{ clientes: [ids], nome, destino }] }` (até 60 cartões). Resposta: `agrupados`, `pulados: [{ indice, motivo }]`, `itens: [{ indice, clienteId }]`. Teste: `test/agrupar_lote_d1.test.mjs` (em `npm run test:crm`).

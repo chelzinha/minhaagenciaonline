@@ -351,9 +351,11 @@
         el.innerHTML = r.grupos.map((g, i) => cartaoSugestao(g, i)).join('');
         el.querySelectorAll('.cad-sug-card').forEach((card, i) => ligarCartao(card, r.grupos[i]));
       }
+      atualizarLote();
       paginador($('sugPager'), r.pagina, r.paginas, r.total, `${num(r.total)} grupos de sugestão em ${ABA_NOME[st.aba]}`, (p) => { st.sugPagina = p; carregarSugestoes(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
     } catch (e) {
       el.innerHTML = `<div class="cad-list"><div class="cad-msg err">${esc(e.message)}</div></div>`;
+      atualizarLote();
     }
   }
   function cartaoSugestao(g, i) {
@@ -378,22 +380,30 @@
     const nomeIn = card.querySelector('.s-nome-in');                       // sem Portal: nome final editavel
     card.querySelectorAll('input[type=checkbox]').forEach((cb) => cb.addEventListener('change', () => {
       card.querySelector('[data-acao=unir]').disabled = marcados().length < 2;
+      atualizarLote();
     }));
-    card.querySelector('[data-acao=unir]').addEventListener('click', async () => {
+    if (nomeIn) nomeIn.addEventListener('input', atualizarLote);
+    /** O que o Agrupar do cartão grava (o lote usa exatamente o mesmo). { ids, nome, destino } ou { erro }. */
+    card._agrupamento = () => {
       const ids = marcados();
-      if (ids.length < 2) return toast('Marque pelo menos 2 nomes.', 'err');
+      if (ids.length < 2) return { erro: 'Marque pelo menos 2 nomes.' };
       let destino, nome = '';
       if (nomeIn) {
         nome = nomeIn.value.trim().replace(/\s+/g, ' ').toUpperCase();
-        if (!nome) { nomeIn.focus(); return toast('Informe o nome final.', 'err'); }
+        if (!nome) return { erro: 'Informe o nome final.', foco: nomeIn };
         // o cadastro que fica: o de mesmo nome (se o nome escolhido for um deles) ou o que mais postou
         const marcadosCli = g.clientes.filter((c) => ids.includes(c.id));
         const igual = marcadosCli.find((c) => String(c.nome).toUpperCase() === nome);
         destino = (igual || [...marcadosCli].sort((a, b) => Number(b.postagens) - Number(a.postagens))[0]).id;
       } else destino = g.clientes.find((c) => Number(c.eh_portal)).id;
       if (!ids.includes(destino)) destino = ids[0];
-      const r = await agrupar(ids, nome, destino);
-      if (r) { card.classList.add('feito'); card.querySelectorAll('button,input,select').forEach((x) => { x.disabled = true; }); }
+      return { ids, nome, destino };
+    };
+    card.querySelector('[data-acao=unir]').addEventListener('click', async () => {
+      const a = card._agrupamento();
+      if (a.erro) { if (a.foco) a.foco.focus(); return toast(a.erro, 'err'); }
+      const r = await agrupar(a.ids, a.nome, a.destino);
+      if (r) { marcarFeito(card); atualizarLote(); }
     });
     card.querySelector('[data-acao=sep]').addEventListener('click', async () => {
       const ids = g.clientes.map((c) => c.id);
@@ -401,9 +411,42 @@
         for (const p of g.pares) await api('/api/v2/nao-e-o-mesmo', { method: 'POST', body: { clienteA: p.cliente_a, clienteB: p.cliente_b } });
         return true;
       }, 'Sugestão descartada. Ela não volta mais.');
-      if (r) { card.classList.add('feito'); card.querySelectorAll('button,input,select').forEach((x) => { x.disabled = true; }); carregarResumo(); }
+      if (r) { marcarFeito(card); carregarResumo(); atualizarLote(); }
       return ids;
     });
+  }
+  function marcarFeito(card) { card.classList.add('feito'); card.querySelectorAll('button,input,select').forEach((x) => { x.disabled = true; }); }
+
+  // ------------------------------------------------------------ agrupar em lote (cartões da página)
+  /** Cartões da página que o lote vai gravar: não feitos, com 2+ nomes marcados e nome final preenchido. */
+  function cartoesDoLote() {
+    return [...document.querySelectorAll('#sugLista .cad-sug-card:not(.feito)')].map((card) => ({ card, a: card._agrupamento ? card._agrupamento() : { erro: 'x' } }));
+  }
+  function atualizarLote() {
+    const todos = cartoesDoLote(), ok = todos.filter((x) => !x.a.erro).length, fora = todos.length - ok;
+    const txt = ok ? `Agrupar ${num(ok)} ${ok > 1 ? 'cartões' : 'cartão'} desta página` : 'Nada para agrupar nesta página';
+    const det = !todos.length ? '' : fora ? `${num(fora)} ${fora > 1 ? 'ficam' : 'fica'} de fora (menos de 2 nomes marcados ou sem nome final).` : 'Confira os cartões antes: vale o que está marcado e o nome final de cada um.';
+    for (const id of ['sugLoteTopo', 'sugLoteFim']) { const b = $(id); if (!b) continue; b.disabled = !ok; b.querySelector('.tx').textContent = txt; }
+    const d = $('sugLoteDet'); if (d) d.textContent = det;
+    const barra = $('sugLoteBarra'); if (barra) barra.hidden = !todos.length;
+  }
+  async function agruparPagina() {
+    const lista = cartoesDoLote().filter((x) => !x.a.erro);
+    if (!lista.length) return toast('Nenhum cartão pronto para agrupar nesta página.', 'err');
+    const nomes = lista.slice(0, 6).map((x) => '- ' + (x.a.nome || x.card.querySelector('.s-final input').value)).join('\n');
+    const mais = lista.length > 6 ? `\n... e mais ${lista.length - 6}` : '';
+    if (!confirm(`Agrupar ${lista.length} ${lista.length > 1 ? 'cartões' : 'cartão'} desta página?\n\n${nomes}${mais}\n\nVale exatamente o que está marcado em cada cartão. Cartões desmarcados ficam de fora.`)) return;
+    const r = await acao(`Agrupando ${lista.length} cartões e reaplicando a limpeza...`,
+      () => api('/api/v2/agrupar-lote', { method: 'POST', body: { itens: lista.map((x) => ({ clientes: x.a.ids, nome: x.a.nome, destino: x.a.destino })) }, timeout: 120000 }));
+    if (!r) return;
+    const pulados = new Map((r.pulados || []).map((p) => [p.indice, p.motivo]));
+    lista.forEach((x, i) => {
+      x.card.querySelector('.s-aviso')?.remove();
+      if (pulados.has(i)) x.card.querySelector('.s-foot').insertAdjacentHTML('beforebegin', `<div class="s-aviso">${esc(pulados.get(i))}</div>`);
+      else marcarFeito(x.card);
+    });
+    toast(`${num(r.agrupados)} ${r.agrupados === 1 ? 'cartão agrupado' : 'cartões agrupados'}${pulados.size ? ` · ${pulados.size} ficou de fora (veja o aviso no cartão)` : ''}.`, pulados.size ? 'err' : 'ok');
+    carregarResumo(); atualizarLote();
   }
 
   // ------------------------------------------------------------ fila de LOCAL
@@ -464,6 +507,7 @@
   $('busca').addEventListener('input', () => { clearTimeout(bt); bt = setTimeout(() => { st.q = $('busca').value.trim(); st.pagina = 1; carregarLista(); }, 300); });
   $('local').addEventListener('change', () => { st.local = $('local').value; st.pagina = 1; carregarLista(); });
   $('ordem').addEventListener('change', () => { st.ordem = $('ordem').value; st.pagina = 1; carregarLista(); });
+  ['sugLoteTopo', 'sugLoteFim'].forEach((id) => $(id) && $(id).addEventListener('click', agruparPagina));
   $('sugMin').addEventListener('change', () => { st.sugMin = Number($('sugMin').value); st.sugPagina = 1; carregarSugestoes(); });
   const recarregarModo = () => (st.modo === 'lista' ? carregarLista() : st.modo === 'sug' ? carregarSugestoes() : st.modo === 'grupos' ? window.AGF_CAD_GRUPOS && window.AGF_CAD_GRUPOS.abrir() : carregarFilaLocal());
   $('btnRecarregar').addEventListener('click', () => { carregarResumo(); recarregarModo(); });

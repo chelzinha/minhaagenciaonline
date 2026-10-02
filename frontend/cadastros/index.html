@@ -14,7 +14,7 @@
   <script>window.AGF_ACCESS = { roles: ['admin'] };</script>
   <script src="/shared/auth/agf-route-guard.js"></script>
   <script src="./config.js?v=20260925b"></script>
-  <link rel="stylesheet" href="./cadastros.css?v=20261002h">
+  <link rel="stylesheet" href="./cadastros.css?v=20261003a">
 <link rel="stylesheet" href="/shared/ui/agf-header.css?v=2">
 </head>
 <body>
@@ -84,14 +84,22 @@
     <!-- SUGESTOES -->
     <section class="cad-sug" id="vistaSug" hidden>
       <div class="cad-sug-tools">
-        <p class="cad-help">Cada cartão reúne nomes que parecem ser do mesmo cliente. Desmarque o que não for, escolha o nome final e clique em <b>Agrupar</b>. <b>Não são o mesmo</b> faz a sugestão não voltar.</p>
-        <select id="sugMin" aria-label="Confiança mínima">
-          <option value="0">Todas as confianças</option>
-          <option value="90">Confiança 90+</option>
-          <option value="84">Confiança 84+</option>
-        </select>
+        <p class="cad-help">Cada cartão reúne nomes que parecem ser do mesmo cliente. Desmarque o que não for, escolha o nome final e clique em <b>Agrupar</b>. <b>Não são o mesmo</b> faz a sugestão não voltar. Conferiu a página toda? Use <b>Agrupar cartões desta página</b>.</p>
+        <div class="sug-tools-dir">
+          <select id="sugMin" aria-label="Confiança mínima">
+            <option value="0">Todas as confianças</option>
+            <option value="90">Confiança 90+</option>
+            <option value="84">Confiança 84+</option>
+          </select>
+          <button type="button" class="cad-btn ok" id="sugLoteTopo" disabled><span class="material-symbols-rounded">done_all</span><span class="tx">Agrupar cartões desta página</span></button>
+        </div>
       </div>
       <div id="sugLista" class="cad-sug-grid" aria-live="polite"></div>
+      <div class="cad-sug-lote" id="sugLoteBarra" hidden>
+        <span class="material-symbols-rounded">fact_check</span>
+        <div><b>Conferiu todos os cartões desta página?</b><small id="sugLoteDet"></small></div>
+        <button type="button" class="cad-btn ok" id="sugLoteFim" disabled><span class="material-symbols-rounded">done_all</span><span class="tx">Agrupar cartões desta página</span></button>
+      </div>
       <div class="cad-pager" id="sugPager"></div>
     </section>
 
@@ -176,7 +184,7 @@
 <div class="cad-toast" id="toast" role="status"></div>
 <div class="cad-busy" id="busy" hidden><div><span class="cad-spin"></span><p id="busyMsg">Processando...</p></div></div>
 
-<script src="./cadastros.js?v=20261002i"></script>
+<script src="./cadastros.js?v=20261003a"></script>
 <script src="./cadastros-grupos.js?v=20261002j"></script>
 <script src="/shared/ui/agf-header.js?v=2"></script>
 <script>
