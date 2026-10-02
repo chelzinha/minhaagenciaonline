@@ -96,19 +96,19 @@ for (const [n, refDate] of [[60, '2026-09-23'], [400, '2026-09-05'], [1500, '202
   ok(r.metricas.find((m) => m.CLIENTE_ID === 'GRANDE_METRO').CURVA === 'TOP', 'maior do METRO e TOP no METRO');
 }
 
-// Postagens separadas pelo LOCAL da carteira (ex.: SERVAL, 247 no BALCAO e 7 no METRO -> conta so as 247)
+// Regra 02/10/2026: o cliente soma as postagens de TODOS os LOCAIS; o LOCAL da carteira so define quem trata
+// (ex.: SERVAL, 247 no BALCAO e 7 no METRO -> carteira BALCAO com as 254)
 {
   const ref = '2026-09-23';
   const dia = (d, local) => ({ data: new Date(Date.parse(ref) - d * 864e5).toISOString().slice(0, 10), qtd: 1, valor: 20, estorno: 0, local, intermediador: '', contratoTipo: '', subgrupo: 'SEDEX', contrato: '', cartao: '' });
   const linhas = [...Array.from({ length: 247 }, (_, i) => dia(i % 100, 'BALCAO')), ...Array.from({ length: 7 }, (_, i) => dia(i, 'METRO'))];
   const r = executarCrm(new Map([['SERVAL', { nome: 'SERVAL', local: 'BALCAO' }]]), new Map([['SERVAL', linhas]]), ref);
   const m = r.metricas[0];
-  ok(m.QTD_TOTAL === 247 && m.POSTAGENS_OUTROS_LOCAIS === 7 && m.POSTAGENS_DO_LOCAL === 'SIM', `so postagens do LOCAL: ${m.QTD_TOTAL} / fora ${m.POSTAGENS_OUTROS_LOCAIS}`);
+  ok(m.LOCAL === 'BALCAO' && m.QTD_TOTAL === 254 && m.POSTAGENS_OUTROS_LOCAIS === 7 && m.POSTAGENS_DO_LOCAL === 'TODOS', `soma todos os LOCAIS: ${m.QTD_TOTAL} / de outro LOCAL ${m.POSTAGENS_OUTROS_LOCAIS}`);
   const r2 = executarCrm(new Map([['X', { nome: 'X', local: 'AGF' }]]), new Map([['X', linhas]]), ref);
-  ok(r2.metricas.length === 1 && r2.metricas[0].POSTAGENS_DO_LOCAL === 'NAO' && r2.metricas[0].QTD_TOTAL === 254, 'LOCAL escolhido sem postagens: nao some do CRM');
-  const r3 = executarCrm(new Map([['G', { nome: 'GRUPO', local: 'BALCAO', todosLocais: true }]]), new Map([['G', linhas]]), ref);
-  const g = r3.metricas[0];
-  ok(g.LOCAL === 'BALCAO' && g.QTD_TOTAL === 254 && g.POSTAGENS_DO_LOCAL === 'TODOS' && g.POSTAGENS_OUTROS_LOCAIS === 7, `grupo comercial soma todos os LOCAIS: ${g.QTD_TOTAL}`);
+  ok(r2.metricas.length === 1 && r2.metricas[0].LOCAL === 'AGF' && r2.metricas[0].QTD_TOTAL === 254, 'LOCAL escolhido onde nao posta: fica na carteira com tudo');
+  const ultimaMetro = executarCrm(new Map([['Y', { nome: 'Y', local: 'BALCAO' }]]), new Map([['Y', [dia(30, 'BALCAO'), dia(2, 'METRO')]]]), ref).metricas[0];
+  ok(ultimaMetro.DIAS_SEM_POSTAR === 2, 'ultima postagem considera todos os LOCAIS');
 }
 
 // Tipo de negocio pelas colunas do Atende

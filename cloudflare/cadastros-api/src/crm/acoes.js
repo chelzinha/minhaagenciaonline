@@ -2,6 +2,8 @@
  * "Acoes da carteira" (pagina /crm/acoes, route=dashboard) sobre as postagens do Visao 360.
  * Mesmo formato de resposta do DASHBOARD_GERENCIAL antigo (Raio-X e Carteira inteligente).
  * Diferencas: juncao por cliente_id (antes por nome); TIPO = subgrupo do servico; SEGMENTO sem fonte (lista vazia).
+ * LOCAL = LOCAL da carteira do cliente (crm_metricas), nao o LOCAL da postagem: o cliente entra com as postagens
+ * de todos os LOCAIS no LOCAL que trata ele comercialmente (regra da Rachel, 02/10/2026).
  */
 import { text, upper, upperNoAccents, diffDays, todos } from './util.js';
 import { locaisPermitidos, CRM_LOCAIS } from './config.js';
@@ -23,7 +25,6 @@ const BASE_FROM = `FROM cid_postagens p JOIN cid_grafias g ON g.origem = p.orige
 function filtrosSql(f) {
   const w = [], b = [];
   const lista = (col, vals, mapa) => { if (!vals) return; if (!vals.length) { w.push('0'); return; } w.push(`${mapa(col)} IN (${vals.map(() => '?').join(',')})`); b.push(...vals); };
-  lista('p.local_codigo', f.units, (c) => c);
   lista('p.subgrupo', f.types, (c) => `COALESCE(NULLIF(${c}, ''), '${SEM_TIPO}')`);
   lista('p.intermediador', f.inters, (c) => `COALESCE(NULLIF(${c}, ''), '${SEM_CONTRATO}')`);
   return { sql: w.length ? ' AND ' + w.join(' AND ') : '', binds: b };
@@ -66,8 +67,14 @@ export async function dashboardAcoes(env, p, user) {
   const idCrm = (id) => principalDe.get(id) || id;
   const master = await carregarClientes(db, { user });
   const nomeDe = new Map(master.map((m) => [m.CLIENTE_ID, text(m.CLIENTE) || text(m.NOME_REMETENTE_BASE)]));
-  for (const x of await todos(db, `SELECT id, nome FROM cid_clientes`)) if (!nomeDe.get(x.id)) nomeDe.set(x.id, text(x.nome));
-  const passaQ = (id) => !q || semAc(nomeDe.get(id) || '').includes(q);
+  // LOCAL da carteira: do motor do CRM; cliente sem metrica usa o LOCAL da carteira do Cadastro
+  const localDe = new Map(master.map((m) => [m.CLIENTE_ID, text(m.LOCAL_PREDOMINANTE)]));
+  for (const x of await todos(db, `SELECT id, nome, local_carteira FROM cid_clientes`)) {
+    if (!nomeDe.get(x.id)) nomeDe.set(x.id, text(x.nome));
+    if (!localDe.has(x.id)) localDe.set(x.id, text(x.local_carteira));
+  }
+  const unidades = f.units ? new Set(f.units) : null;
+  const passaQ = (id) => (!unidades || unidades.has(localDe.get(id) || '')) && (!q || semAc(nomeDe.get(id) || '').includes(q));
   const vazioSeg = segs && segs.length === 0;                                  // __NONE__ ou "Limpar" no SEGMENTO
   const winPor = new Map();
   for (const x of win.results || []) {

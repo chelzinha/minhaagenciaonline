@@ -57,6 +57,9 @@ cliente('CA', 'C&A SHOPPING FORTALEZA', { portal: false, origem: 'METRO', posts:
 for (const [i, n] of ['ANA', 'BRUNO', 'CARLA'].entries()) cliente('B' + (i + 1), n + ' SILVA', { portal: false, origem: 'BALCAO', local: 'BALCAO', posts: [{ data: '2026-09-0' + (i + 1), valor: 30, contrato: '9912252075' }] });
 cliente('MV', 'M. V. LIMA BARRETO LTDA', { posts: datas('2026-06-01', '2026-09-20', 5).map((data) => ({ data, valor: 40, contrato: '9912620944' })) });
 cliente('MV2', 'M. V BARRETO LTDA', { portal: false, origem: 'METRO', posts: [{ data: '2026-07-02', valor: 40, contrato: '9912620944' }] });
+// cliente sem grupo que posta em 2 LOCAIS (caso MESTRE FIGHTER): carteira AGF, parte das postagens no BALCÃO
+cliente('MF', 'MESTRE FIGHTER TESTE LTDA', { posts: [...datas('2026-07-01', '2026-09-20', 10).map((data) => ({ data, valor: 70 })),
+  { data: '2026-09-28', valor: 25, local: 'BALCAO' }, { data: '2026-09-29', valor: 25, local: 'BALCAO' }] });
 cliente('X', 'OUTRO CLIENTE LTDA', { posts: datas('2026-07-01', '2026-09-30', 10).map((data) => ({ data, valor: 60 })) });
 // resumo materializado (como o motor do Cadastro grava)
 run(`INSERT INTO cid_resumo(cliente_id, aba, postagens, valor, grafias, local_agf, local_balcao, local_metro, primeira, ultima)
@@ -104,7 +107,7 @@ ok(um(`SELECT nome FROM crm_grupos WHERE id=?`, GID).nome === 'ASSOCIAÇÃO SHAL
 ok(um(`SELECT ENTIDADE_ID FROM crm_tratativas WHERE TRATATIVA_ID='TRT_1'`).ENTIDADE_ID === 'S1', 'tratativa do setor passa para o principal');
 ok(um(`SELECT WHATSAPP FROM crm_cadastro WHERE CLIENTE_ID='S2'`).WHATSAPP === '85999990000' && !um(`SELECT 1 x FROM crm_cadastro WHERE CLIENTE_ID='S1'`), 'cadastro manual de cada membro fica intacto');
 ok(um(`SELECT valor FROM cid_estado WHERE chave='crm_pendente'`).valor === '1', 'CRM marcado para recalcular');
-ok(um(`SELECT COUNT(*) n FROM cid_clientes`).n === 14 && um(`SELECT nome FROM cid_clientes WHERE id='S2'`).nome === 'ASSOCIACAO SHALOM (SETOR JURIDICO)', 'nada muda no cadastro');
+ok(um(`SELECT COUNT(*) n FROM cid_clientes`).n === 15 && um(`SELECT nome FROM cid_clientes WHERE id='S2'`).nome === 'ASSOCIACAO SHALOM (SETOR JURIDICO)', 'nada muda no cadastro');
 
 r = await calcularCrmD1(env, 'TESTE');
 const s1 = met('S1');
@@ -208,6 +211,22 @@ ok(met('S2') && met('S3') && met('S4') && !met('S1').d.GRUPO_ID && met('S1').nom
 ok(um(`SELECT ENTIDADE_ID FROM crm_tratativas WHERE TRATATIVA_ID='TRT_1'`).ENTIDADE_ID === 'S1', 'o que foi registrado como grupo fica no principal');
 ok(um(`SELECT COUNT(*) n FROM crm_eventos WHERE ENTIDADE_TIPO='GRUPO'`).n >= 6, 'histórico em crm_eventos');
 await espera(() => desfazerGrupo(env, { id: GID }, 'rachel'), '', 'desfazer de novo dá erro claro');
+
+// 13) regra 02/10/2026: cliente SEM grupo também soma todos os LOCAIS no CRM (LOCAL da carteira só define quem trata)
+{
+  const mf = met('MF');
+  const soma = um(`SELECT ROUND(SUM(valor),2) v, COUNT(*) q, MAX(data_postagem) u FROM cid_postagens WHERE grafia='MESTRE FIGHTER TESTE LTDA'`);
+  ok(mf.local === 'AGF' && Math.abs(mf.d.VALOR_TOTAL - soma.v) < 0.01 && mf.d.QTD_TOTAL === soma.q && mf.d.POSTAGENS_OUTROS_LOCAIS === 2, 'CRM: cliente do AGF com postagens do BALCÃO somadas', { vt: mf.d.VALOR_TOTAL, soma });
+  ok(mf.ultima === soma.u, 'CRM: última postagem é a do BALCÃO (a mais recente)', { ultima: mf.ultima, u: soma.u });
+  const a1 = await crm('get_curva_abc_v1', { local: 'AGF' }), a2 = await crm('get_curva_abc_v1', { local: 'BALCAO' });
+  const l1 = a1.rows.find((y) => y.id === 'MF');
+  ok(l1 && Math.abs(l1.tV - soma.v) < 0.01 && l1.ultima === soma.u && !a2.rows.some((y) => y.id === 'MF'), 'Curva ABC: só no AGF, com o total dos 2 LOCAIS', l1 && { tV: l1.tV, ult: l1.ultima });
+  const rx = await crm('get_crm_dashboard', { route: 'dashboard', unit: 'AGF' });
+  const r1 = rx.mx.rows.find((y) => /MESTRE FIGHTER/.test(y.nome || ''));
+  ok(r1 && r1.tQ === soma.q && Math.abs(r1.tV - soma.v) < 0.01, 'Ações da carteira (Raio-X) com LOCAL AGF: total dos 2 LOCAIS', r1 && { tQ: r1.tQ, tV: r1.tV });
+  const rxB = await crm('get_crm_dashboard', { route: 'dashboard', unit: 'BALCAO' });
+  ok(!rxB.mx.rows.some((y) => /MESTRE FIGHTER/.test(y.nome || '')) && rxB.cli.ct.every((y) => y.local === 'BALCAO'), 'Raio-X do BALCÃO não mostra cliente da carteira AGF');
+}
 
 console.log(`\n${total - falhas}/${total} testes dos grupos comerciais passaram`);
 if (falhas) process.exit(1);

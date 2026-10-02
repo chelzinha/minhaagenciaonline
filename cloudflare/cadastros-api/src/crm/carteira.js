@@ -6,9 +6,10 @@
  * - LOCAL é o filtro pai. Admin vê os 3; os demais só os LOCAIS liberados na autenticação (user.crm.locais).
  * - Sinalizado automático = prioridade CRITICA ou ALTA do motor, sem tratativa aberta. Não grava nada:
  *   a tratativa só nasce quando alguém agenda ou assume.
- * - Curva ABC 12M: por LOCAL da postagem. A até 80% do acumulado (o cliente que cruza os 80% é A),
+ * - Curva ABC 12M: por LOCAL da carteira (02/10/2026): o cliente entra só na curva do LOCAL que trata ele, com as
+ *   postagens de todos os LOCAIS. A até 80% do acumulado (o cliente que cruza os 80% é A),
  *   B até 95% do acumulado OU total na janela >= R$ 5.000, C o resto. Independente da "Curva 30D" do motor.
- * - NOVO (provisório): primeira postagem no LOCAL a partir de NOVO_DESDE, até a base completar 12 meses.
+ * - NOVO (provisório): primeira postagem (qualquer LOCAL) a partir de NOVO_DESDE, até a base completar 12 meses.
  */
 import { text, upper, upperNoAccents, hoje, nowIso, diffDays, falhar, todos, um, isYes } from './util.js';
 import { locaisPermitidos, localPermitido, CRM_LOCAIS, lerResponsaveis, idRealResponsavel } from './config.js';
@@ -165,56 +166,47 @@ export async function getCurvaAbc(env, p, user) {
   if (c && c.chave === chave && Date.now() - c.em < 10 * 60e3) return c.dados;
 
   const meses = mesesJanela(ultima.slice(0, 7), 12), ini = meses[0];
-  // grupos comerciais: cadastros do grupo entram na curva do LOCAL do grupo com as postagens de TODOS os LOCAIS
-  // (e saem da curva dos outros LOCAIS). Membros vem do crm_metricas (mesma fonte do motor).
-  const MEMBROS_AQUI = `SELECT json_extract(j.value,'$.id') FROM crm_metricas m, json_each(m.dados,'$.GRUPO_MEMBROS') j
-    WHERE m.local = ? AND json_extract(m.dados,'$.GRUPO_ID') IS NOT NULL`;
-  const [agg, pri, aggG, priG] = await db.batch([
+  // LOCAL da carteira (regra 02/10/2026): o cliente entra na curva do LOCAL que trata ele, com as postagens de TODOS os LOCAIS.
+  // Grupos comerciais: postagens dos cadastros somam no principal (linha única). Visão 360 não muda.
+  const [agg, pri, mets, nomes] = await db.batch([
     // TIPO do Atende (SUPERFRETE, PLATINUM, CLUBE CORREIOS...); sem TIPO usa o INTERMEDIADOR; sem os dois = SEM CONTRATO
     db.prepare(`SELECT n.cliente_id id, substr(p.data_postagem,1,7) ym, COALESCE(NULLIF(p.contrato_tipo,''), NULLIF(p.intermediador,''), 'SEM CONTRATO') tipo,
       SUM(p.estorno = 0) q, ROUND(SUM(p.valor),2) v
       FROM cid_postagens p JOIN cid_grafias g ON g.origem = p.origem AND g.grafia = p.grafia JOIN cid_nos n ON n.chave = g.no_chave
-      WHERE n.cliente_id IS NOT NULL AND p.data_postagem <> '' AND p.local_codigo = ? AND substr(p.data_postagem,1,7) >= ? GROUP BY 1, 2, 3`).bind(local, ini),
+      WHERE n.cliente_id IS NOT NULL AND p.data_postagem <> '' AND substr(p.data_postagem,1,7) >= ? GROUP BY 1, 2, 3`).bind(ini),
     db.prepare(`SELECT n.cliente_id id, MIN(substr(p.data_postagem,1,10)) primeira, MAX(substr(p.data_postagem,1,10)) ultima
       FROM cid_postagens p JOIN cid_grafias g ON g.origem = p.origem AND g.grafia = p.grafia JOIN cid_nos n ON n.chave = g.no_chave
-      WHERE n.cliente_id IS NOT NULL AND p.data_postagem <> '' AND p.local_codigo = ? AND p.estorno = 0 GROUP BY 1`).bind(local),
-    db.prepare(`SELECT n.cliente_id id, substr(p.data_postagem,1,7) ym, COALESCE(NULLIF(p.contrato_tipo,''), NULLIF(p.intermediador,''), 'SEM CONTRATO') tipo,
-      SUM(p.estorno = 0) q, ROUND(SUM(p.valor),2) v
-      FROM cid_postagens p JOIN cid_grafias g ON g.origem = p.origem AND g.grafia = p.grafia JOIN cid_nos n ON n.chave = g.no_chave
-      WHERE n.cliente_id IN (${MEMBROS_AQUI}) AND p.data_postagem <> '' AND p.local_codigo <> ? AND substr(p.data_postagem,1,7) >= ? GROUP BY 1, 2, 3`).bind(local, local, ini),
-    db.prepare(`SELECT n.cliente_id id, MIN(substr(p.data_postagem,1,10)) primeira, MAX(substr(p.data_postagem,1,10)) ultima
-      FROM cid_postagens p JOIN cid_grafias g ON g.origem = p.origem AND g.grafia = p.grafia JOIN cid_nos n ON n.chave = g.no_chave
-      WHERE n.cliente_id IN (${MEMBROS_AQUI}) AND p.data_postagem <> '' AND p.local_codigo <> ? AND p.estorno = 0 GROUP BY 1`).bind(local, local),
+      WHERE n.cliente_id IS NOT NULL AND p.data_postagem <> '' AND p.estorno = 0 GROUP BY 1`),
+    db.prepare(`SELECT cliente_id, nome, local, acao, curva, json_extract(dados,'$.INTERMEDIADOR_PREDOMINANTE') inter, json_extract(dados,'$.TEM_CONTRATO') ctr FROM crm_metricas`),
+    db.prepare(`SELECT id, nome, local_carteira FROM cid_clientes`),
   ]);
   const idxMes = Object.fromEntries(meses.map((m, i) => [m, i]));
-  // grupos comerciais: as postagens de cada cadastro do grupo somam no cadastro principal (linha única na curva)
-  const { principalDe, grupoDe, localDoPrincipal } = await mapaGruposCrm(db);
+  const { principalDe, grupoDe } = await mapaGruposCrm(db);
   const idCrm = (id) => principalDe.get(id) || id;
-  const deOutroLocal = (id) => principalDe.has(id) && localDoPrincipal.get(principalDe.get(id)) !== local;   // grupo de outro LOCAL
+  const localDe = new Map();
+  for (const n of nomes.results || []) localDe.set(n.id, text(n.local_carteira));
+  for (const m of mets.results || []) localDe.set(m.cliente_id, text(m.local));         // motor do CRM vence (grupo usa o LOCAL do grupo)
+  const daCarteira = (id) => (localDe.get(id) || '') === local;
   const porId = new Map();
-  for (const r of [...(agg.results || []), ...(aggG.results || [])]) {
+  for (const r of agg.results || []) {
     const i = idxMes[r.ym];
-    if (i === undefined || deOutroLocal(r.id)) continue;
     r.id = idCrm(r.id);
+    if (i === undefined || !daCarteira(r.id)) continue;
     let x = porId.get(r.id);
     if (!x) { x = { id: r.id, q: Array(12).fill(0), v: Array(12).fill(0), tQ: 0, tV: 0, tipos: {} }; porId.set(r.id, x); }
     x.q[i] += num(r.q); x.v[i] += num(r.v); x.tQ += num(r.q); x.tV += num(r.v);
     x.tipos[r.tipo] = (x.tipos[r.tipo] || 0) + Math.abs(num(r.v)) + num(r.q) / 1e6;
   }
   const primeira = new Map(), ultimaDe = new Map();
-  for (const r of [...(pri.results || []), ...(priG.results || [])]) {
-    if (deOutroLocal(r.id)) continue;
+  for (const r of pri.results || []) {
     const id = idCrm(r.id), p1 = text(r.primeira), u1 = text(r.ultima);
+    if (!daCarteira(id)) continue;
     if (p1 && (!primeira.get(id) || p1 < primeira.get(id))) primeira.set(id, p1);
     if (u1 && (!ultimaDe.get(id) || u1 > ultimaDe.get(id))) ultimaDe.set(id, u1);
   }
   const tipoPred = (x) => Object.entries(x.tipos).sort((a, b) => b[1] - a[1])[0]?.[0] || 'SEM CONTRATO';
-  // nomes e dados do motor em 2 consultas (evita dezenas de idas ao banco no BALCÃO)
+  // nomes e dados do motor (ja lidos no batch acima)
   const info = new Map();
-  const [mets, nomes] = await db.batch([
-    db.prepare(`SELECT cliente_id, nome, local, acao, curva, json_extract(dados,'$.INTERMEDIADOR_PREDOMINANTE') inter, json_extract(dados,'$.TEM_CONTRATO') ctr FROM crm_metricas`),
-    db.prepare(`SELECT id, nome FROM cid_clientes`),
-  ]);
   const nomeCid = new Map((nomes.results || []).filter((n) => porId.has(n.id)).map((n) => [n.id, text(n.nome)]));
   for (const m of mets.results || []) {
     if (!porId.has(m.cliente_id)) continue;

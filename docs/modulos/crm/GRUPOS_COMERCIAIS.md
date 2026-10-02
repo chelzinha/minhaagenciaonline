@@ -1,6 +1,6 @@
 # Grupos comerciais (Cadastro de Clientes e CRM)
 
-Versão de 02/10/2026. Motor do CRM `crm-1.3.0`, migração `0107_grupos_comerciais.sql`.
+Versão de 02/10/2026. Motor do CRM `crm-1.4.0`, migração `0107_grupos_comerciais.sql`.
 
 ## 1. Objetivo
 
@@ -13,7 +13,7 @@ O grupo comercial soma esses cadastros num cliente só, **somente no CRM**.
 1. Nada muda no cadastro. Nome, ID e postagens de cada cadastro (`cid_*`) continuam iguais. O Visão 360 (`/atende`) não é tocado.
 2. Um cadastro só pode estar em um grupo. Garantido pelo banco: `crm_grupo_membros.cliente_id` é chave primária.
 3. LOCAL do grupo é independente do LOCAL de cada cadastro: LOCAL com maior percentual de postagens do grupo (todos os cadastros somados). Empate fica com o LOCAL do cadastro principal. Pode ser fixado manualmente no editor do grupo. O LOCAL define só a carteira: quem trata o cliente e em qual curva ele entra.
-4. Métricas do grupo somam as postagens de **todos os LOCAIS** (faturamento 30D e 31-60D, valor e objetos totais, última postagem, curva e ação). Exceção à regra geral do CRM, em que o cliente sem grupo usa só as postagens do LOCAL da carteira. Na Curva ABC 12M o grupo aparece só na curva do LOCAL dele, com o total de todos os LOCAIS (não se repete na curva dos outros). Ações da carteira (Raio-X) continua filtrando pelo LOCAL da postagem.
+4. Métricas do grupo somam as postagens de **todos os LOCAIS** (faturamento 30D e 31-60D, valor e objetos totais, última postagem, curva e ação). Mesma regra de qualquer cliente do CRM desde 02/10/2026 (motor `crm-1.4.0`). Na Curva ABC 12M e nas Ações da carteira (Raio-X) o grupo aparece só no LOCAL dele, com o total de todos os LOCAIS (não se repete nos outros).
 5. No CRM o grupo usa o ID do cadastro principal. Tratativas, agenda, checklists, notas e interações dos outros cadastros passam para o principal. O cadastro manual do CRM (WhatsApp, CNPJ etc.) de cada membro fica intacto; o contato do grupo é o do principal.
 6. O nome exibido no CRM é sempre o nome do grupo (vence o nome manual do CRM).
 7. Desfazer o grupo devolve cada cadastro ao CRM separado. O que foi registrado no CRM enquanto era grupo fica no cadastro principal.

@@ -593,7 +593,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const novosTxt = Object.entries(R.novosPorMes || {}).sort().map(([m, n]) => `${n} ${ymLabel(m).slice(0, 3)}`).join(' · ');
     const cols = [
       { k: 'nome', t: 'Cliente', fixed: 1, v: (c) => c.nome },
-      ...(multi ? [{ k: 'loc', t: 'LOCAL', tLong: 'LOCAL da postagem', v: (c) => nomeLocal(c.local) }] : []),
+      ...(multi ? [{ k: 'loc', t: 'LOCAL', tLong: 'LOCAL da carteira', v: (c) => nomeLocal(c.local) }] : []),
       { k: 'abc', t: 'ABC', tLong: multi ? 'ABC (curva do próprio LOCAL)' : 'ABC', v: (c) => c.abc },
       { k: 'rk', t: '#', tLong: multi ? 'Posição na curva do LOCAL' : '#', r: 1, v: (c) => c.rank },
       { k: 'inter', t: 'Intermediador', tLong: 'Intermediador (TIPO do Atende)', v: (c) => c.intermediador },
