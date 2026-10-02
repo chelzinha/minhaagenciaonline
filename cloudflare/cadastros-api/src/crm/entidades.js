@@ -35,6 +35,7 @@ function linhaMaster(m, cad, links) {
   r.ACAO_ENGINE = text(m.ACAO);
   for (const k of MANUAIS) r[k] = nn(c[k]) ? c[k] : (k === 'CLIENTE' ? text(m.CLIENTE) : (['NUMERO_CONTRATO', 'CARTAO_POSTAGEM', 'MIDIA'].includes(k) ? text(m[k]) : ''));
   for (const k of PORTAL) r[k] = text(c[k]);
+  if (m.GRUPO_ID) r.CLIENTE = text(m.GRUPO_NOME) || text(m.CLIENTE);       // grupo comercial: o nome é sempre o do grupo (definido no /cadastros)
   r.ACAO_ATUAL = text(c.ACAO_ATUAL);
   r.ACAO = r.ACAO_ATUAL || text(m.ACAO) || 'MANTER';
   if (!nn(c.LINK_MIDIA_DIRETO)) r.LINK_MIDIA_DIRETO = links[r.MIDIA] || '';
@@ -130,6 +131,9 @@ export function projetarCliente(r) {
     contratoPortal: text(r.CONTRATO_PORTAL), cartaoPortal: text(r.CARTAO_PORTAL), tipoContratoPortal: text(r.TIPO_CONTRATO_PORTAL),
     vigenciaContratoPortal: text(r.VIGENCIA_CONTRATO_PORTAL), contratoPortalVencido: vigenciaVencida(r.VIGENCIA_CONTRATO_PORTAL) ? 'SIM' : 'NAO',
     situacaoContratoProprio: situacaoContratoProprio(r),
+    // grupo comercial (vários cadastros somados; clienteId = cadastro principal)
+    grupoId: text(r.GRUPO_ID), grupoNome: text(r.GRUPO_NOME), grupoMembros: Array.isArray(r.GRUPO_MEMBROS) ? r.GRUPO_MEMBROS : [],
+    grupoLocalModo: text(r.GRUPO_LOCAL_MODO), grupoLocalPct: numero(r.GRUPO_LOCAL_PCT), valor31a60d: numero(r.FAT_31_60D),
     rowNumber: 0,
   };
 }

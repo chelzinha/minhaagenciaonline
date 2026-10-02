@@ -33,7 +33,7 @@ export const CRM_CFG = Object.freeze({
     },
   },
 });
-export const CRM_MOTOR_VERSAO = 'crm-1.1.0';   // 1.1.0: contrato próprio (regra AGF, 30/09/2026)
+export const CRM_MOTOR_VERSAO = 'crm-1.2.0';   // 1.1.0: contrato próprio (regra AGF, 30/09/2026) · 1.2.0: grupos comerciais (02/10/2026)
 export const CRM_LOCAIS = ['AGF', 'BALCAO', 'METRO'];
 const R = CRM_CFG.RULES, C = CRM_CFG.CURVA;
 

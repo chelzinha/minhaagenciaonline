@@ -577,3 +577,23 @@ body.resizing *{cursor:col-resize!important}
 .cix .cad-dl dt{color:var(--muted);font-weight:600}
 .cix .cad-dl dd{margin:0;min-width:0;overflow-wrap:anywhere}
 @media (max-width:760px){.cix .cad-dl{grid-template-columns:1fr;gap:2px}.cix .cad-dl dd{margin-bottom:6px}}
+/* ---------------- Grupos comerciais (02/10/2026): vários cadastros somados num cliente só ---------------- */
+.cix .gchip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:800;letter-spacing:.03em;background:#6D28D9;color:#fff;white-space:nowrap;flex:none;vertical-align:middle}
+.cix .gchip .ic{width:12px;height:12px;--ac:#fff}
+.cix .gnm{display:flex;align-items:center;gap:6px;min-width:0}
+.cix .gnm .ell{min-width:0}
+.cix .tgg{border:0;background:#F1EAFD;color:#6D28D9;width:22px;height:22px;border-radius:6px;display:grid;place-items:center;flex:none;padding:0}
+.cix .tgg:hover{background:#E4D6FB}
+.cix .tgg .ic{width:14px;height:14px;transition:transform .15s}
+.cix .tgg.open .ic{transform:rotate(90deg)}
+.cix .tw tbody tr.mrow td{background:#F7F4FD;font-size:12.5px;color:#41566A;border-bottom-color:#ECE4FA}
+.cix .tw tbody tr.mrow td.cn{padding-left:38px;font-weight:600;box-shadow:inset 3px 0 0 #DCCBFA}
+.cix .tw tbody tr.mrow.fora td{color:#9A6A1E}
+.cix .gtab{width:100%}
+.cix .gtab th{position:static;padding:8px 10px}
+.cix .gtab td{font-size:12.5px}
+.cix .gtab tr.fora td{color:#9A6A1E}
+.cix .gshare{display:inline-flex;align-items:center;gap:6px;justify-content:flex-end}
+.cix .gshare i{display:block;height:6px;border-radius:99px;background:#6D28D9}
+@media (max-width:760px){.cix .tw tbody tr.mrow td.cn{padding-left:18px}}
+.cix .cn small.gsub{display:flex;align-items:center;gap:6px;margin-top:4px;padding-left:28px}

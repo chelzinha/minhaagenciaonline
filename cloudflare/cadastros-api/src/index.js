@@ -10,6 +10,7 @@ import { CRM_LOCAIS, CRM_MOTOR_VERSAO } from './crm_motor.js';
 import { atenderCrm } from './crm/api.js';
 import { revisarD1 } from './revisor_d1.js';
 import { REVISOR_VERSAO, REVISOR_AUTOR } from './revisor.js';
+import { listarGrupos, grupoDoCliente, salvarGrupo, desfazerGrupo, sugestoesGrupos, rejeitarSugestao, restaurarSugestao } from './grupos.js';
 
 const ABAS = ['PORTAL', 'BALCAO', 'METRO', 'CF'];
 
@@ -95,7 +96,7 @@ async function exigirCrm(request, env) {
 // ---------------------------------------------------------------- leitura
 async function resumo(env) {
   const db = env.DB;
-  const [abas, total, sug, semPortal, descartadas, estado, ultimoMotor, carteira] = await db.batch([
+  const [abas, total, sug, semPortal, descartadas, estado, ultimoMotor, carteira, grupos] = await db.batch([
     db.prepare(`SELECT aba, COUNT(*) clientes, SUM(postagens) postagens, ROUND(SUM(valor),2) valor, SUM(grafias) grafias FROM cid_resumo GROUP BY aba`),
     db.prepare(`SELECT (SELECT COUNT(*) FROM cid_clientes) clientes, (SELECT COUNT(*) FROM cid_postagens) postagens,
       (SELECT COUNT(*) FROM cid_clientes WHERE portal_chave IS NOT NULL) clientes_portal`),
@@ -106,6 +107,7 @@ async function resumo(env) {
     db.prepare(`SELECT chave, valor, atualizado_em FROM cid_estado`),
     db.prepare(`SELECT resumo_json, autor, criado_em FROM cid_execucoes WHERE tipo='MOTOR' ORDER BY id DESC LIMIT 1`),
     db.prepare(`SELECT COALESCE(local_carteira, 'FILA') local, COUNT(*) clientes FROM cid_clientes GROUP BY 1`),
+    db.prepare(`SELECT (SELECT COUNT(*) FROM crm_grupos) grupos, (SELECT COUNT(*) FROM crm_grupo_membros) cadastros`),
   ]);
   const porAba = Object.fromEntries(ABAS.map((a) => [a, { clientes: 0, postagens: 0, valor: 0, grafias: 0 }]));
   for (const r of abas.results || []) porAba[r.aba] = { clientes: r.clientes, postagens: r.postagens, valor: r.valor, grafias: r.grafias };
@@ -119,6 +121,7 @@ async function resumo(env) {
     versaoMotor: MOTOR_VERSAO, regras: REGRAS, motivos: MOTIVOS_SUGESTAO,
     carteira: Object.fromEntries((carteira.results || []).map((x) => [x.local, x.clientes])),
     filaLocal: await contarFilaLocal(env),
+    grupos: { grupos: Number(grupos.results?.[0]?.grupos || 0), cadastros: Number(grupos.results?.[0]?.cadastros || 0) },
   };
 }
 
@@ -200,7 +203,8 @@ async function listarClientes(url, env) {
     env.DB.prepare(`SELECT c.id, c.nome, c.fonte_nome, c.portal_chave IS NOT NULL eh_portal, c.local_carteira, c.local_fonte, r.postagens, r.valor, r.grafias,
         r.local_agf, r.local_balcao, r.local_metro, r.local_vazio, r.ultima,
         (SELECT COUNT(*) FROM cid_sugestoes s WHERE s.cliente_a=c.id OR s.cliente_b=c.id) sugestoes,
-        (SELECT GROUP_CONCAT(aba) FROM cid_resumo r2 WHERE r2.cliente_id=c.id) abas
+        (SELECT GROUP_CONCAT(aba) FROM cid_resumo r2 WHERE r2.cliente_id=c.id) abas,
+        (SELECT g.nome FROM crm_grupo_membros gm JOIN crm_grupos g ON g.id=gm.grupo_id WHERE gm.cliente_id=c.id) grupo_nome
       FROM cid_resumo r JOIN cid_clientes c ON c.id=r.cliente_id
       WHERE r.aba=? ${filtro} ${filtroLocal} ORDER BY ${ordem} LIMIT ? OFFSET ?`).bind(aba, ...binds, por, (pagina - 1) * por),
     env.DB.prepare(`SELECT COUNT(*) n, COALESCE(SUM(r.postagens),0) postagens FROM cid_resumo r JOIN cid_clientes c ON c.id=r.cliente_id WHERE r.aba=? ${filtro} ${filtroLocal}`).bind(aba, ...binds),
@@ -236,7 +240,8 @@ async function ficha(id, env) {
   const listaContratos = contratos.results || [];
   await anexarTipoContrato(env, listaContratos);
   const portalRenomeado = cliente.portal_chave ? await candidatosPortalRenomeado(env, id) : [];
-  return { cliente, grafias: grafias.results || [], locais: locais.results || [], contratos: listaContratos, sugestoes: sugestoes.results || [], abas: abas.results || [], portalRenomeado };
+  const grupo = await grupoDoCliente(env, id);
+  return { cliente, grafias: grafias.results || [], locais: locais.results || [], contratos: listaContratos, sugestoes: sugestoes.results || [], abas: abas.results || [], portalRenomeado, grupo };
 }
 
 /** Cartao do contrato usado pelos dois nomes do Portal (evidencia de que e o mesmo cliente renomeado). */
@@ -372,7 +377,11 @@ async function gruposDeSugestao(url, env) {
 async function buscarClientes(url, env) {
   const q = nomeExibicao(limpar(url.searchParams.get('q')).slice(0, 80));
   if (q.length < 2) return { clientes: [] };
-  const r = await env.DB.prepare(`SELECT c.id, c.nome, c.portal_chave IS NOT NULL eh_portal, COALESCE(SUM(r.postagens),0) postagens
+  const r = await env.DB.prepare(`SELECT c.id, c.nome, c.portal_chave IS NOT NULL eh_portal, COALESCE(SUM(r.postagens),0) postagens,
+      ROUND(COALESCE(SUM(r.valor),0),2) valor, MAX(r.ultima) ultima, c.local_carteira, GROUP_CONCAT(r.aba) abas,
+      COALESCE(SUM(r.local_agf),0) local_agf, COALESCE(SUM(r.local_balcao),0) local_balcao, COALESCE(SUM(r.local_metro),0) local_metro,
+      (SELECT gm.grupo_id FROM crm_grupo_membros gm WHERE gm.cliente_id=c.id) grupo_id,
+      (SELECT g.nome FROM crm_grupo_membros gm JOIN crm_grupos g ON g.id=gm.grupo_id WHERE gm.cliente_id=c.id) grupo_nome
     FROM cid_clientes c LEFT JOIN cid_resumo r ON r.cliente_id=c.id WHERE c.nome LIKE ? GROUP BY c.id ORDER BY eh_portal DESC, postagens DESC LIMIT 20`).bind(`%${q}%`).all();
   return { clientes: r.results || [] };
 }
@@ -508,6 +517,12 @@ async function feedCrm(url, env) {
   return { postagens, proximo: postagens.length ? postagens[postagens.length - 1].raw_id : null };
 }
 
+/** Grupo mudou: o CRM recalcula na hora (cerca de 4 s). Se falhar, o grupo fica gravado e o cron de 10 min recalcula (marca crm_pendente). */
+async function recalcularCrmAgora(env, autor) {
+  try { await calcularCrmD1(env, autor); return true; }
+  catch (e) { console.error('[CADASTROS_V2] recalculo do CRM apos grupo', e?.message || e); return false; }
+}
+
 // ---------------------------------------------------------------- roteador
 async function rotear(request, env, ctxAtual) {
   const url = new URL(request.url), p = url.pathname, m = request.method;
@@ -552,6 +567,16 @@ async function rotear(request, env, ctxAtual) {
     return json({ ok: true, revisor, motor: revisor.unidos ? await executarMotorD1(env, REVISOR_AUTOR) : null });
   }
   if (p === '/api/v2/crm/recalcular' && m === 'POST') return json({ ok: true, crm: await calcularCrmD1(env, autor) });
+  // grupos comerciais (somente CRM)
+  if (p === '/api/v2/grupos' && m === 'GET') return json({ ok: true, ...(await listarGrupos(env, { q: url.searchParams.get('q'), local: url.searchParams.get('local') })) });
+  if (p === '/api/v2/grupos/sugestoes' && m === 'GET') return json({ ok: true, ...(await sugestoesGrupos(env)) });
+  if (p === '/api/v2/grupos/sugestoes/rejeitar' && m === 'POST') return json({ ok: true, ...(await rejeitarSugestao(env, await corpo(request), autor)) });
+  if (p === '/api/v2/grupos/sugestoes/restaurar' && m === 'POST') return json({ ok: true, ...(await restaurarSugestao(env, await corpo(request))) });
+  if ((p === '/api/v2/grupos/salvar' || p === '/api/v2/grupos/desfazer') && m === 'POST') {
+    const b = await corpo(request);
+    const r = p.endsWith('/salvar') ? await salvarGrupo(env, b, autor) : await desfazerGrupo(env, b, autor);
+    return json({ ok: true, ...r, crmAtualizado: await recalcularCrmAgora(env, autor) });
+  }
   if (p === '/api/v2/sincronizar' && m === 'POST') {
     const s = await sincronizar(env, { paginas: 10, orcamentoMs: 15000 });
     return json({ ok: true, sincronizacao: s });

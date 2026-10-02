@@ -6,6 +6,7 @@
 import { text, upper, upperNoAccents, diffDays, todos } from './util.js';
 import { locaisPermitidos, CRM_LOCAIS } from './config.js';
 import { carregarClientes } from './entidades.js';
+import { mapaGruposCrm } from '../grupos.js';
 
 const SEM_CONTRATO = 'SEM CONTRATO', SEM_TIPO = 'SEM TIPO';
 const csv = (v) => [...new Set(String(v || '').split(',').map((s) => s.trim()).filter(Boolean))].sort();
@@ -60,12 +61,22 @@ export async function dashboardAcoes(env, p, user) {
     types: [...new Set(o.map((x) => x.tipo))].sort(), inters: [...new Set(o.map((x) => x.inter))].sort(), segs: [] };
   for (let m = ym(minStart); m && m <= ym(lat); m = ym(new Date(Date.UTC(+m.slice(0, 4), +m.slice(5, 7), 1)).toISOString())) fl.months.push(m);
 
+  // grupos comerciais: postagens dos cadastros do grupo somam no cadastro principal
+  const { principalDe } = await mapaGruposCrm(db);
+  const idCrm = (id) => principalDe.get(id) || id;
   const master = await carregarClientes(db, { user });
   const nomeDe = new Map(master.map((m) => [m.CLIENTE_ID, text(m.CLIENTE) || text(m.NOME_REMETENTE_BASE)]));
   for (const x of await todos(db, `SELECT id, nome FROM cid_clientes`)) if (!nomeDe.get(x.id)) nomeDe.set(x.id, text(x.nome));
   const passaQ = (id) => !q || semAc(nomeDe.get(id) || '').includes(q);
   const vazioSeg = segs && segs.length === 0;                                  // __NONE__ ou "Limpar" no SEGMENTO
-  const winPor = new Map((win.results || []).filter((x) => passaQ(x.id)).map((x) => [x.id, { fW: Number(x.v) || 0, qW: Number(x.q) || 0 }]));
+  const winPor = new Map();
+  for (const x of win.results || []) {
+    const id = idCrm(x.id);
+    if (!passaQ(id)) continue;
+    const w = winPor.get(id) || { fW: 0, qW: 0 };
+    w.fW += Number(x.v) || 0; w.qW += Number(x.q) || 0;
+    winPor.set(id, w);
+  }
 
   // ---- Carteira inteligente
   const profundo = !!(f.types || f.inters || segs);
@@ -95,9 +106,11 @@ export async function dashboardAcoes(env, p, user) {
   const porMaster = new Map(master.map((m) => [m.CLIENTE_ID, m]));
   const cli = new Map();
   if (!vazioSeg) for (const r of base.results || []) {
+    r.id = idCrm(r.id);
     if (!passaQ(r.id)) continue;
     const c = cli.get(r.id) || { ms: {}, tQ: 0, tV: 0, first: '', last: '', etq: false };
-    c.ms[r.ym] = { q: Number(r.q) || 0, v: Number(r.v) || 0 };
+    const ja = c.ms[r.ym] || { q: 0, v: 0 };
+    c.ms[r.ym] = { q: ja.q + (Number(r.q) || 0), v: ja.v + (Number(r.v) || 0) };
     c.tQ += Number(r.q) || 0; c.tV += Number(r.v) || 0;
     if (!c.first || r.primeira < c.first) c.first = r.primeira;
     if (r.ultima && r.ultima > c.last) c.last = r.ultima;
