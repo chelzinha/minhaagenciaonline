@@ -32,8 +32,65 @@
     pendingWithdrawalId: '',
     pendingWithdrawalFingerprint: '',
     pixEntry: null,
-    pixPayload: ''
+    pixPayload: '',
+    /* Caixa por dia: '' = hoje; yyyy-MM-dd = dia anterior escolhido. */
+    workDate: '',
+    today: ''
   };
+
+  /*
+   * CAIXA POR DIA (2026-10-01)
+   * Dia anterior: consulta e altera tudo, exceto dinheiro físico
+   * (dinheiro, sangria, sangria no fechamento, saldo inicial) e Pix com QR.
+   */
+  function isRetro() {
+    return Boolean(
+      state.workDate &&
+      state.today &&
+      state.workDate < state.today
+    );
+  }
+
+  function isoAddDays(iso, days) {
+    const base = new Date(String(iso) + 'T12:00:00Z');
+    base.setUTCDate(base.getUTCDate() + days);
+    return base.toISOString().slice(0, 10);
+  }
+
+  function setWorkDate(iso) {
+    const today = state.today || todayIso();
+    let next = String(iso || '').trim();
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(next) || next >= today) {
+      next = '';
+    }
+
+    if (next === state.workDate) {
+      return;
+    }
+
+    state.workDate = next;
+    state.amountCents = 0;
+    state.batchAmountCents = 0;
+    state.batchItems = [];
+    state.pendingEntryId = '';
+    state.pendingEntryFingerprint = '';
+    state.pendingWithdrawalId = '';
+    state.pendingWithdrawalFingerprint = '';
+    state.closure = null;
+    ['countedCash', 'closingWithdrawal'].forEach(id => { const el = $(id); if (el) el.value = ''; });
+    const declaration = $('closeDeclaration');
+    if (declaration) declaration.checked = false;
+    clearStatus('launchStatus');
+    clearStatus('movementStatus');
+    clearStatus('closeStatus');
+    refresh();
+  }
+
+  window.CaixaWorkDate = Object.freeze({
+    get: () => state.workDate || '',
+    isRetro: () => isRetro()
+  });
 
   const money = cents => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(cents)||0)/100);
   const todayIso = () => { const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); };
@@ -633,6 +690,7 @@
           body:JSON.stringify({
             action,
             st:token(),
+            workDate:state.workDate || '',
             ...data
           }),
           signal:controller
@@ -896,7 +954,9 @@
   async function refresh(){
     setBusy(true,'Atualizando caixa...');
     try{
-      const result=await callApi('init',{date:todayIso()});
+      const result=await callApi('init',{date:state.workDate||todayIso()});
+      state.today=String(result.todayDate||result.serverDate||todayIso());
+      if(state.workDate&&state.workDate>=state.today)state.workDate='';
       state.user=result.user;
       state.library=result.library;
       state.clients=result.clients||[];
@@ -940,6 +1000,9 @@
       if (!allowed) return false;
 
       if (state.mode === 'LOTE' && !payment.allowBatch) return false;
+
+      /* Dia anterior: sem dinheiro físico e sem Pix com QR local. */
+      if (isRetro() && (paymentFamily(payment) === 'CASH' || isLocalPixPayment(payment))) return false;
 
       if (isLocalPixPayment(payment)) {
         return (
@@ -1018,6 +1081,7 @@
     $('unitLabel').textContent=state.library?.unit?.name||'Unidade';
     $('operatorLabel').textContent=state.user?.name||'Usuário';
     $('dateLabel').textContent=brDate(currentDate());
+    renderWorkDate();
 
     const switchButton = $('btnSwitchUnit');
     if (switchButton) {
@@ -1027,6 +1091,26 @@
       );
     }
     renderType();renderModes();renderOptions();renderEntryForm();renderSummary();renderMovements();renderClose();
+  }
+
+  function renderWorkDate() {
+    const retro = isRetro();
+    document.body.dataset.retro = retro ? '1' : '';
+    const banner = $('retroBanner');
+    if (banner) {
+      banner.classList.toggle('hidden', !retro);
+      const label = $('retroDateLabel');
+      if (label) label.textContent = brDate(currentDate());
+    }
+    const next = $('btnNextDay');
+    if (next) next.disabled = !retro;
+    const picker = $('btnPickDate');
+    if (picker) {
+      picker.classList.toggle('is-retro', retro);
+      picker.setAttribute('aria-label', 'Dia do caixa: ' + brDate(currentDate()) + '. Toque para escolher outro dia.');
+    }
+    const withdraw = $('btnOpenWithdrawal');
+    if (withdraw) withdraw.classList.toggle('is-blocked', retro);
   }
 
   function renderType() {
@@ -1249,7 +1333,9 @@
 
     return list.length
       ? `<div class="pay-board">${cashHtml}${familiesHtml}</div>`
-      : '<div class="pay-empty"><span class="material-symbols-rounded">block</span>Nenhuma forma de pagamento disponível neste modo.</div>';
+      : (isRetro()
+          ? '<div class="pay-empty"><span class="material-symbols-rounded">history</span>Em dia anterior só entram Pix Infinity e cartão. Dinheiro e despesa em dinheiro ficam bloqueados.</div>'
+          : '<div class="pay-empty"><span class="material-symbols-rounded">block</span>Nenhuma forma de pagamento disponível neste modo.</div>');
   }
 
   function renderOptions(){
@@ -1547,12 +1633,18 @@
     try {
       const date = new Date(item.createdAt);
       if (Number.isNaN(date.getTime())) return '';
-      return new Intl.DateTimeFormat('pt-BR', {
-        timeZone: state.timezone || 'America/Fortaleza',
+      const tz = state.timezone || 'America/Fortaleza';
+      const time = new Intl.DateTimeFormat('pt-BR', {
+        timeZone: tz,
         hour: '2-digit',
         minute: '2-digit',
         hourCycle: 'h23'
       }).format(date);
+      const createdDay = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(date);
+      /* Lançado em outro dia (retroativo): mostra a data real do registro. */
+      return createdDay !== currentDate()
+        ? brDate(createdDay).slice(0, 5) + ' ' + time
+        : time;
     } catch (_) {
       return '';
     }
@@ -1560,8 +1652,12 @@
 
   function canDeleteEntry(entry) {
     const contaAzulStatus = String(entry?.contaAzulStatus || '').toUpperCase();
+    const isCash = entry?.paymentId === 'DINHEIRO' || entry?.paymentContaAzulMethod === 'DINHEIRO';
+    const entryDate = String(entry?.date || '');
+    const pastCash = isCash && entryDate && state.today && entryDate < state.today;
     return Boolean(
       entry &&
+      !pastCash &&
       !entry.closureId &&
       ['', 'NAO_ENVIADO', 'CANCELADO'].includes(contaAzulStatus)
     );
@@ -1714,6 +1810,15 @@
       const field = $(id);
       if (field) field.disabled = closed;
     });
+
+    const closingWithdrawalField = $('closingWithdrawal');
+    if (closingWithdrawalField && isRetro()) {
+      closingWithdrawalField.value = '';
+      closingWithdrawalField.disabled = true;
+      closingWithdrawalField.placeholder = 'Só no dia atual';
+    } else if (closingWithdrawalField && !closed) {
+      closingWithdrawalField.placeholder = '0,00';
+    }
 
     updateCloseMath();
     if(state.closure){const links=[];if(state.closure.pdfUrl)links.push(`<a href="${escapeHtml(state.closure.pdfUrl)}" target="_blank"><span class="material-symbols-rounded">picture_as_pdf</span> PDF do fechamento</a>`);$('closeLinks').classList.toggle('hidden',!links.length);$('closeLinks').innerHTML=links.join('');}
@@ -2566,6 +2671,7 @@
   function canAdjustOpening() {
     const role = String(state.user?.role || '').toLowerCase();
     return Boolean(
+      !isRetro() &&
       !state.closure &&
       state.library?.permissions?.close &&
       ['admin', 'manager'].includes(role)
@@ -3243,6 +3349,10 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
 
     $('clientInput').addEventListener('input',renderClientSuggestions);$('clientInput').addEventListener('focus',renderClientSuggestions);$('clientSuggestions').addEventListener('click',e=>{const b=e.target.closest('[data-client-id]');if(b)selectClient(state.clients.find(c=>c.id===b.dataset.clientId));});$('btnAddClient').addEventListener('click',addClient);
     $('btnOpenWithdrawal').addEventListener('click',()=>{
+      if (isRetro()) {
+        status('launchStatus','Sangria só pode ser registrada no dia atual.','warning');
+        return;
+      }
       state.pendingWithdrawalId='';
       state.pendingWithdrawalFingerprint='';
       $('withdrawalAvailable').textContent=money(state.summary?.expectedCashCents||0);
@@ -3289,6 +3399,23 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
         leavePixPending
       );
     $('btnRefresh').addEventListener('click',refresh);
+
+    /* Caixa por dia: seletor de data no topo. */
+    $('btnPickDate')?.addEventListener('click',()=>{
+      const input=$('workDateInput');
+      if(!input)return;
+      input.max=state.today||todayIso();
+      input.value=currentDate();
+      try{ if(typeof input.showPicker==='function'){ input.showPicker(); return; } }catch(_){}
+      input.focus(); input.click();
+    });
+    $('workDateInput')?.addEventListener('change',event=>{
+      if(state.busy)return;
+      setWorkDate(event.target.value);
+    });
+    $('btnPrevDay')?.addEventListener('click',()=>{ if(!state.busy)setWorkDate(isoAddDays(currentDate(),-1)); });
+    $('btnNextDay')?.addEventListener('click',()=>{ if(!state.busy)setWorkDate(isoAddDays(currentDate(),1)); });
+    $('btnBackToday')?.addEventListener('click',()=>{ if(!state.busy)setWorkDate(''); });
     $('btnOpeningInfo')?.addEventListener('click',openOpeningModal);
     $('btnSaveOpening')?.addEventListener('click',saveOpeningBalance);
     $('caixaToast')?.addEventListener('click',hideFeedback);
@@ -3315,6 +3442,8 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
   try {
     localStorage.removeItem(STORAGE.API);
   } catch (_) {}
+
+  window.CaixaApp = Object.freeze({ refresh: () => refresh() });
 
   bind();
   refresh();

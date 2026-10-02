@@ -555,3 +555,43 @@ body[data-entry-type="DESPESA"] #btnSaveSingle,body[data-entry-type="DESPESA"] #
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .opening-modal .primary-action{background:linear-gradient(135deg,var(--blue),var(--blue2))!important;box-shadow:0 12px 24px rgba(15,110,232,.25)}
+
+
+/* ==========================================================================
+   CAIXA-POR-DIA-20261001
+   Seletor de data no topo e modo "dia anterior".
+   ========================================================================== */
+:root{--retro:#b45309;--retro-soft:#fff4e0;--retro-line:#f3c27a}
+.identity-strip{align-items:center}
+.date-nav{display:flex;align-items:center;gap:4px;position:relative}
+.date-step{width:40px;height:40px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--blue);display:grid;place-items:center;touch-action:manipulation}
+.date-step:disabled{opacity:.35;cursor:not-allowed}
+.date-step .material-symbols-rounded{font-size:24px!important}
+.date-pick{min-height:40px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--text);font-weight:900;touch-action:manipulation}
+.date-pick strong{font-size:.92rem;font-variant-numeric:tabular-nums}
+.date-pick .material-symbols-rounded{font-size:20px!important;color:var(--blue)}
+.date-pick .date-caret{font-size:18px!important;color:var(--muted)}
+.date-pick.is-retro{background:var(--retro-soft);border-color:var(--retro-line);color:var(--retro)}
+.date-pick.is-retro .material-symbols-rounded{color:var(--retro)}
+.date-input-hidden{position:absolute;right:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
+
+.retro-banner{margin-top:9px;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:linear-gradient(135deg,#fff4e0,#ffe9c2);border:1px solid var(--retro-line);color:var(--retro)}
+.retro-icon{font-size:28px!important}
+.retro-copy{flex:1;min-width:0;display:flex;flex-direction:column}
+.retro-copy strong{font-size:.98rem;color:#7c3a06}
+.retro-copy small{font-size:.74rem;font-weight:800;color:var(--retro)}
+.retro-today{min-height:44px;display:inline-flex;align-items:center;gap:5px;padding:0 14px;border:0;border-radius:12px;background:var(--retro);color:#fff;font-weight:900;touch-action:manipulation}
+.retro-today .material-symbols-rounded{font-size:20px!important}
+
+/* No dia anterior, a faixa superior do visor ganha o tom de histórico */
+body[data-retro="1"] .amount-card,body[data-retro="1"] .batch-amount{box-shadow:inset 0 0 0 2px rgba(243,194,122,.55),0 10px 22px rgba(11,45,88,.22)}
+body[data-retro="1"] .topbar-shell{border-bottom-color:var(--retro-line)}
+.cash-stat-action.is-blocked{opacity:.55}
+.cash-stat-action.is-blocked::after{content:"lock";font-family:"Material Symbols Rounded";position:absolute;top:6px;right:8px;font-size:14px;color:var(--retro)}
+
+@media(max-width:390px){
+  .date-step{width:34px;height:36px}
+  .date-pick{padding:0 6px;min-height:36px}
+  .date-pick .date-caret{display:none}
+  .identity-strip>div:first-child strong{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}

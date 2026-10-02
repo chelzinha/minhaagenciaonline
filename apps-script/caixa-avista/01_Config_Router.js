@@ -122,6 +122,10 @@ function doPost(e) {
     var user = normalizeUser_(gate.user);
     user.requestedUnitId = cleanText_(request.unitId);
 
+    /* Caixa por dia: aplica o dia de trabalho e os bloqueios de dia passado. */
+    caixaApplyWorkDate_(request.workDate);
+    caixaAssertRetroAllowed_(action, request);
+
     var adminOnly = {
       processContaAzulQueue: true,
       syncContaAzulLibrary: true,
@@ -135,25 +139,38 @@ function doPost(e) {
       ));
     }
 
+    var response;
+
     switch (action) {
-      case 'unitAccess': return jsonOutput_(v3FastUnitAccessResponse_(user, request.unitId));
-      case 'init': return jsonOutput_(v3FastInit_(request.date, user));
-      case 'saveClient': return jsonOutput_(v3SaveClientFast_(request.name, user));
-      case 'saveEntry': return jsonOutput_(v3SaveEntryDefaultClient_(request.payload, user));
-      case 'saveBatch': return jsonOutput_(v3SaveBatch_(request.payloads, user));
-      case 'deleteEntry': return jsonOutput_(v3DeleteEntry_(request.payload || {}, user));
-      case 'syncPixPayment': return jsonOutput_(v3SyncPix_(request.payload || {}, user));
-      case 'summary': return jsonOutput_(v3FastInit_(request.date, user));
-      case 'setOpeningBalance': return jsonOutput_(v2SetOpeningBalance_(request.date, request.amountCents, user));
-      case 'createWithdrawal': return jsonOutput_(v2CreateWithdrawal_(request.payload, user));
-      case 'closeCash': return jsonOutput_(v3CloseCashSafe_(request.payload, user));
-      case 'repairSupplementPdf': return jsonOutput_(v3RepairSupplementPdf_(request.supplementId, user));
-      case 'processContaAzulQueue': return jsonOutput_(processContaAzulQueueV2(request.limit));
-      case 'syncContaAzulLibrary': return jsonOutput_(syncContaAzulLibraryV2());
-      case 'retryPdfs': return jsonOutput_(retryPendingPdfsV2());
-      case 'ping': return jsonOutput_({ ok:true, service:'caixa-avista-v3', date:v2Today_(), authMode:gate.mode });
+      case 'unitAccess': response = (v3FastUnitAccessResponse_(user, request.unitId)); break;
+      case 'init': response = (v3FastInit_(request.date, user)); break;
+      case 'saveClient': response = (v3SaveClientFast_(request.name, user)); break;
+      case 'saveEntry': response = (v3SaveEntryDefaultClient_(request.payload, user)); break;
+      case 'saveBatch': response = (v3SaveBatch_(request.payloads, user)); break;
+      case 'deleteEntry': response = (v3DeleteEntry_(request.payload || {}, user)); break;
+      case 'syncPixPayment': response = (v3SyncPix_(request.payload || {}, user)); break;
+      case 'summary': response = (v3FastInit_(request.date, user)); break;
+      case 'setOpeningBalance': response = (v2SetOpeningBalance_(request.date, request.amountCents, user)); break;
+      case 'createWithdrawal': response = (v2CreateWithdrawal_(request.payload, user)); break;
+      case 'closeCash': response = (v3CloseCashSafe_(request.payload, user)); break;
+      case 'repairSupplementPdf': response = (v3RepairSupplementPdf_(request.supplementId, user)); break;
+      case 'processContaAzulQueue': response = (processContaAzulQueueV2(request.limit)); break;
+      case 'syncContaAzulLibrary': response = (syncContaAzulLibraryV2()); break;
+      case 'retryPdfs': response = (retryPendingPdfsV2()); break;
+      case 'ping': response = ({ ok:true, service:'caixa-avista-v3', date:v2Today_(), authMode:gate.mode }); break;
       default: return jsonOutput_(fail_('Ação inválida ou ausente.', 'INVALID_ACTION'));
     }
+
+    if (response && (action === 'init' || action === 'summary')) {
+      var dateInfo = caixaDateInfo_();
+      response.todayDate = dateInfo.todayDate;
+      response.workDate = dateInfo.workDate;
+      response.isRetro = dateInfo.isRetro;
+    }
+
+    caixaLogRetro_(action, request, user, response);
+
+    return jsonOutput_(response);
   } catch (error) {
     console.error('[CAIXA_AVISTA_V3][doPost] ' + (error && error.stack ? error.stack : error));
     return jsonOutput_(fail_(error.message || String(error), error.code || 'INTERNAL_ERROR'));

@@ -423,6 +423,11 @@ function v2ValidateDraft_(payload, context, library) {
     throw appError_('Pagamento não permitido para despesa.', 'PAYMENT_NOT_ALLOWED');
   }
 
+  /* Caixa por dia: dia passado não aceita dinheiro nem Pix com QR local. */
+  if (typeof caixaAssertRetroPayment_ === 'function') {
+    caixaAssertRetroPayment_(payment);
+  }
+
   var categoryId = String(payload.categoryId || '');
 
   var category = type === 'RECEITA'
@@ -931,6 +936,11 @@ function v2DeleteEntry_(payload, user, options) {
     var type = String(
       item.type || ''
     ).toUpperCase();
+
+    /* Caixa por dia: dinheiro de dia passado não pode ser excluído. */
+    if (typeof caixaAssertDeleteAllowed_ === 'function') {
+      caixaAssertDeleteAllowed_(item);
+    }
 
     if (
       type === 'RECEITA' &&
