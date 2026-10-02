@@ -605,3 +605,6 @@ body.resizing *{cursor:col-resize!important}
 .cix .tw.heat tbody tr td.st-pre,.cix .tw.heat tbody tr:hover td.st-pre{background:#FAFAFB;color:transparent}
 .cix .tw.heat tbody tr td.st-nob,.cix .tw.heat tbody tr:hover td.st-nob{background:repeating-linear-gradient(45deg,#F6F7FA 0 4px,#FFFFFF 4px 8px);color:transparent}
 .cix .tw.heat tbody tr:hover td.hc{box-shadow:inset 0 1px 0 rgba(11,58,99,.18),inset 0 -1px 0 rgba(11,58,99,.18)}
+/* Curva ABC: colunas de mes travadas na largura minima (12 meses na tela) */
+.cix .heat td.hc{padding:5px 5px;overflow:hidden;text-overflow:clip}
+.cix .tw.heat th.sub{padding:5px 5px}

@@ -560,6 +560,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
   };
 
   /* ---------------- Curva ABC 12M ---------------- */
+  const MES_W = { q: 46, v: 84 };   // largura minima travada das colunas de mes da Curva ABC (QTD / Valor)
   function estadoMes(r, i, abc) {
     const m = abc.meses[i];
     if (m < abc.baseIni) return 'nob';
@@ -594,13 +595,15 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const varP = vA ? (vP - vA) / vA : null;
     const nMesesBase = MB.length;
     const novosTxt = Object.entries(R.novosPorMes || {}).sort().map(([m, n]) => `${n} ${ymLabel(m).slice(0, 3)}`).join(' · ');
+    // dias desde a ultima postagem do cliente ate a ultima postagem da base (mesma regra do filtro de tempo sem postar)
+    const diasSemPostar = (c) => (c.ultima ? Math.max(0, Math.round((Date.parse(abc.ultimaPostagem) - Date.parse(c.ultima)) / 864e5)) : null);
     const cols = [
       { k: 'nome', t: 'Cliente', fixed: 1, v: (c) => c.nome },
       ...(multi ? [{ k: 'loc', t: 'LOCAL', tLong: 'LOCAL da carteira', v: (c) => nomeLocal(c.local) }] : []),
       { k: 'abc', t: 'ABC', tLong: multi ? 'ABC (curva do próprio LOCAL)' : 'ABC', v: (c) => c.abc },
       { k: 'rk', t: '#', tLong: multi ? 'Posição na curva do LOCAL' : '#', r: 1, v: (c) => c.rank },
       { k: 'inter', t: 'Intermediador', tLong: 'Intermediador (TIPO do Atende)', v: (c) => c.intermediador },
-      { k: 'ult', t: 'Última postagem', v: (c) => c.ultima || '' },
+      { k: 'ult', t: 'Última', tLong: 'Última postagem (dias)', r: 1, v: (c) => diasSemPostar(c) ?? 99999 },
       { k: 'meses', t: 'Meses', tLong: 'Meses (quantidade e valor)', noSort: 1, noFilter: 1 },
       { k: 'tQ', t: 'Total QTD', r: 1, v: (c) => c.tQ },
       { k: 'tV', t: 'Total faturado', r: 1, v: (c) => c.tV },
@@ -627,23 +630,24 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       return `<td class="hc q ${cl} num">${n0(q)}</td><td class="hc ${cl} num">${brl(v)}${arr}</td>`;
     };
     const s = S.srt[id];
-    const DW = { nome: 240, loc: 96, ult: 150, abc: 90, rk: 64, inter: 136, sb: 70, tQ: 92, tV: 122, tk: 92, part: 74, acum: 74, ac: 108 };
+    const DW = { nome: 240, loc: 96, ult: 70, abc: 90, rk: 64, inter: 136, sb: 58, tQ: 92, tV: 122, tk: 92, part: 74, acum: 74, ac: 108 };
     const chaves = ['nome'].concat(...o.map((k) => (k === 'meses' ? (temSemBase ? ['sb'] : []).concat(...MB.map(([m]) => ['q_' + m, 'v_' + m])) : [k])));
-    const dw = (k) => DW[k] || (k.startsWith('q_') ? 56 : 96);
-    const largC = chaves.map((k) => W(id, k, dw(k))), totalC = largC.reduce((a, b) => a + b, 0);
+    const dw = (k) => DW[k] || (k.startsWith('q_') ? MES_W.q : MES_W.v);
+    const travada = (k) => k === 'sb' || k.startsWith('q_') || k.startsWith('v_');   // colunas dos meses: largura minima fixa
+    const largC = chaves.map((k) => (travada(k) ? dw(k) : W(id, k, dw(k)))), totalC = largC.reduce((a, b) => a + b, 0);
     const colg = `<colgroup>${chaves.map((k, i) => `<col data-k="${k}" style="width:${largC[i]}px">`).join('')}</colgroup>`;
     const semBaseTxt = temSemBase ? `${ymLabel(abc.meses[0]).slice(0, 3)} a ${ymLabel(MB.length ? abc.meses[MB[0][1] - 1] : abc.meses[11]).slice(0, 3)}` : '';
     const thMes = ([m]) => { const k = 'm_' + m, on = s && s.k === k; return `<th colspan="2" class="mh ${on ? 'sorted' : ''}" draggable="true" data-tb="${id}" data-col="meses"><div class="thc"><span class="thl">${ymLabel(m)}${m === abc.mesParcial ? ' *' : ''}${on ? (s.d < 0 ? ' ▼' : ' ▲') : ''}</span><button type="button" class="srt" data-sortk="${k}" data-tb="${id}" aria-label="Ordenar pelo valor de ${ymLabel(m)}">${ic('sort')}</button></div></th>`; };
     const head1 = o.map((k) => k === 'meses'
-      ? `${temSemBase ? `<th rowspan="2" class="mh" style="font-size:10px;line-height:1.3;color:#9FB6CE;text-transform:none;letter-spacing:0" title="${semBaseTxt}: sem dados no Visão 360"><div class="thc" style="justify-content:center;cursor:default">${semBaseTxt}<br>sem base</div>${rz(id, 'sb')}</th>` : ''}${MB.map(thMes).join('')}`
+      ? `${temSemBase ? `<th rowspan="2" class="mh" style="font-size:10px;line-height:1.3;color:#9FB6CE;text-transform:none;letter-spacing:0" title="${semBaseTxt}: sem dados no Visão 360"><div class="thc" style="justify-content:center;cursor:default">${semBaseTxt}<br>sem base</div></th>` : ''}${MB.map(thMes).join('')}`
       : thCell(id, cm[k], '', 'rowspan="2"')).join('');
-    const head2 = MB.map(([m]) => `<th class="sub q">QTD${rz(id, 'q_' + m)}</th><th class="sub">Valor${rz(id, 'v_' + m)}</th>`).join('');
+    const head2 = MB.map(() => '<th class="sub q">QTD</th><th class="sub">Valor</th>').join('');
     const bodyCell = (c, k) => ({
       loc: () => `<td><span class="chip loc">${esc(nomeLocal(c.local))}</span></td>`,
       abc: () => `<td>${abcChip(c.abc)}</td>`,
       rk: () => `<td class="r num faint">${c.rank}</td>`,
       inter: () => `<td style="white-space:nowrap" title="${esc(c.intermediador)}">${esc(c.intermediador)}</td>`,
-      ult: () => { const d = c.ultima ? Math.round((Date.parse(abc.ultimaPostagem) - Date.parse(c.ultima)) / 864e5) : null; return `<td class="num" style="white-space:nowrap">${c.ultima ? c.ultima.slice(8, 10) + '/' + c.ultima.slice(5, 7) + '/' + c.ultima.slice(2, 4) : '-'}${d != null && d > 0 ? ` <span class="faint" style="${d >= 30 ? 'color:#C81E1E;font-weight:700' : ''}">${d}d</span>` : ''}</td>`; },
+      ult: () => { const d = diasSemPostar(c); return d == null ? '<td class="r num faint">-</td>' : `<td class="r num" style="white-space:nowrap${d >= 30 ? ';color:#C81E1E;font-weight:700' : ''}" title="Última postagem em ${c.ultima.split('-').reverse().join('/')}">${d}d</td>`; },
       meses: () => `${temSemBase ? '<td class="hc q st-nob"></td>' : ''}${MB.map(([, i]) => cell(c, i)).join('')}`,
       tQ: () => `<td class="r num">${n0(c.tQ)}</td>`,
       tV: () => `<td class="r num" style="font-weight:800;color:#0B3A63">${brl(c.tV)}</td>`,
