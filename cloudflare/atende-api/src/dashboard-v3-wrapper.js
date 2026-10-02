@@ -2,7 +2,7 @@ import baseApp from './dashboard-management-wrapper.js';
 
 // ============================================================
 // ATENDE - DASHBOARD GERENCIAL V3
-// - evolucao dos ultimos 6 meses
+// - evolucao mensal (ate 12 meses, sem meses vazios no inicio)
 // - linha correta de remuneracao (R2 G1 x R2 G2)
 // - composicao por Local ignorando apenas o filtro Local
 // - Canal como alias visual do antigo campo intermediadores
@@ -161,7 +161,7 @@ async function buildV3(url, env, baseBody) {
   const withoutLocal = buildWhere(withoutLocalState);
 
   const anchorMonth = await resolveAnchorMonth(state, env);
-  const sixRange = sixMonthRange(anchorMonth);
+  const sixRange = historyMonthRange(anchorMonth, HISTORY_MONTHS);
   const sixState = cloneState(state);
   sixState.dataInicio = sixRange.start;
   sixState.dataFim = sixRange.end;
@@ -202,7 +202,8 @@ async function buildV3(url, env, baseBody) {
 
   const linhaRemuneracao = mapBreakdown(lineResult?.results || []);
   const localGlobal = mergeActiveLocals(mapBreakdown(localResult?.results || []), activeLocals?.results || []);
-  const evolucao6Meses = fillMonths(mapBreakdown(sixResult?.results || []), sixRange.months);
+  // Nome do campo mantido por compatibilidade com o front; agora traz ate HISTORY_MONTHS meses (sem meses vazios no inicio).
+  const evolucao6Meses = trimLeadingEmptyMonths(fillMonths(mapBreakdown(sixResult?.results || []), sixRange.months));
   const canais = mapBreakdown(canalResult?.results || []);
   const opp = opportunityResult?.results?.[0] || {};
   const encomendasCount = Number(opp.encomendas || 0);
@@ -395,10 +396,15 @@ async function resolveAnchorMonth(state,env){
   return /^\d{4}-\d{2}$/.test(mes)?mes:new Date().toISOString().slice(0,7);
 }
 
-function sixMonthRange(anchor){
+const HISTORY_MONTHS = 12;
+function historyMonthRange(anchor,total){
   const [y,m]=anchor.split('-').map(Number),months=[];
-  for(let i=5;i>=0;i--){const d=new Date(Date.UTC(y,m-1-i,1));months.push(d.toISOString().slice(0,7));}
+  for(let i=total-1;i>=0;i--){const d=new Date(Date.UTC(y,m-1-i,1));months.push(d.toISOString().slice(0,7));}
   return {months,start:months[0]+'-01',end:monthRange(months[months.length-1]).end};
+}
+function trimLeadingEmptyMonths(rows){
+  const list=rows||[];const first=list.findIndex(r=>Number(r?.quantidade||0)>0||Number(r?.valor||0)!==0);
+  return first<0?list.slice(-1):list.slice(first);
 }
 function monthRange(comp){const [y,m]=comp.split('-').map(Number);const last=new Date(Date.UTC(y,m,0)).getUTCDate();return{start:comp+'-01',end:comp+'-'+String(last).padStart(2,'0')}}
 function fillMonths(rows,months){const map=new Map((rows||[]).map(r=>[r.label,r]));return months.map(m=>map.get(m)||{label:m,quantidade:0,valor:0});}
