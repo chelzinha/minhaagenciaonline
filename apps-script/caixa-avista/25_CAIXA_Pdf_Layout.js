@@ -203,11 +203,11 @@ function caixaPdfTable_(columns, rows, totalRow) {
   return '<table class="grid">' + head + body + total + '</table>';
 }
 
-function caixaPdfSignatures_(left, right) {
+function caixaPdfSignatures_(left, right, leftLabel, rightLabel) {
   return (
     '<table class="sign"><tr>' +
-      '<td><div class="line">' + caixaPdfEsc_(left) + '</div>Responsável pelo caixa</td>' +
-      '<td><div class="line">' + caixaPdfEsc_(right || ' ') + '</div>Conferência</td>' +
+      '<td><div class="line">' + caixaPdfEsc_(left) + '</div>' + caixaPdfEsc_(leftLabel || 'Responsável pelo caixa') + '</td>' +
+      '<td><div class="line">' + caixaPdfEsc_(right || ' ') + '</div>' + caixaPdfEsc_(rightLabel || 'Conferência') + '</td>' +
     '</tr></table>'
   );
 }

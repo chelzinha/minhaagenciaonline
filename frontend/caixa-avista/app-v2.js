@@ -665,7 +665,7 @@
     withdrawals.filter(w=>w.date===date).forEach(w=>s.withdrawalsCents+=w.amountCents);s.netCents=s.revenueCents-s.expenseCents;s.expectedCashCents=s.openingCashCents+s.cashRevenueCents-s.cashExpenseCents-s.withdrawalsCents;return s;
   }
 
-  async function callApi(action,data={}){
+  async function callApi(action,data={},options={}){
     const controller =
       typeof AbortController === 'function'
         ? new AbortController()
@@ -674,7 +674,7 @@
     const timer = controller
       ? window.setTimeout(
           () => controller.abort(),
-          20000
+          Number(options.timeoutMs || 20000)
         )
       : null;
 
@@ -1082,6 +1082,11 @@
     $('operatorLabel').textContent=state.user?.name||'Usuário';
     $('dateLabel').textContent=brDate(currentDate());
     renderWorkDate();
+
+    const reportButton = $('btnPeriodReport');
+    if (reportButton) {
+      reportButton.classList.toggle('hidden', !isAdminUser());
+    }
 
     const switchButton = $('btnSwitchUnit');
     if (switchButton) {
@@ -2722,6 +2727,114 @@
     }
   }
 
+  /*
+   * RELATÓRIO POR PERÍODO (somente admin; o backend valida de novo)
+   */
+  function isAdminUser() {
+    return String(state.user?.role || '').toLowerCase() === 'admin';
+  }
+
+  function reportPreset(kind) {
+    const today = state.today || todayIso();
+    const [y, m] = today.split('-').map(Number);
+    const pad = value => String(value).padStart(2, '0');
+    const lastDay = (year, month) => new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+    if (kind === 'last7') return [isoAddDays(today, -6), today];
+    if (kind === 'last30') return [isoAddDays(today, -29), today];
+    if (kind === 'month') return [`${y}-${pad(m)}-01`, today];
+    if (kind === 'prevMonth') {
+      const py = m === 1 ? y - 1 : y;
+      const pm = m === 1 ? 12 : m - 1;
+      return [`${py}-${pad(pm)}-01`, `${py}-${pad(pm)}-${pad(lastDay(py, pm))}`];
+    }
+    return [today, today];
+  }
+
+  function syncReportHint() {
+    const start = $('reportStart').value;
+    const end = $('reportEnd').value;
+    const button = $('btnGenerateReport');
+    let hint = 'Unidade atual · até 92 dias · PDF salvo no Drive da unidade.';
+    let valid = Boolean(start && end);
+
+    if (valid && start > end) {
+      hint = 'A data inicial precisa ser antes da data final.';
+      valid = false;
+    } else if (valid) {
+      const days = Math.round((new Date(end + 'T12:00:00Z') - new Date(start + 'T12:00:00Z')) / 86400000) + 1;
+      if (days > 92) {
+        hint = `Período de ${days} dias. Escolha até 92 dias.`;
+        valid = false;
+      } else {
+        hint = `${state.library?.unit?.name || 'Unidade'} · ${days} dia${days === 1 ? '' : 's'} · ${brDate(start)} a ${brDate(end)}`;
+      }
+    }
+
+    $('reportHint').textContent = hint;
+    button.disabled = !valid;
+    $('reportPresets').querySelectorAll('[data-preset]').forEach(chip => {
+      const [a, b] = reportPreset(chip.dataset.preset);
+      chip.classList.toggle('active', a === start && b === end);
+    });
+  }
+
+  function openReportModal() {
+    if (!isAdminUser()) return;
+    const today = state.today || todayIso();
+    const [start, end] = reportPreset('month');
+    ['reportStart', 'reportEnd'].forEach(id => { $(id).max = today; });
+    $('reportStart').value = start;
+    $('reportEnd').value = end;
+    $('reportResult').classList.add('hidden');
+    $('reportResult').innerHTML = '';
+    clearStatus('reportStatus');
+    syncReportHint();
+    openModal('reportModal');
+  }
+
+  async function generatePeriodReport() {
+    const startDate = $('reportStart').value;
+    const endDate = $('reportEnd').value;
+    if (!startDate || !endDate || startDate > endDate) {
+      syncReportHint();
+      return;
+    }
+
+    setBusy(true, 'Gerando relatório do período...');
+    clearStatus('reportStatus');
+
+    try {
+      const result = await callApi(
+        'periodReport',
+        { startDate, endDate },
+        { timeoutMs: 120000 }
+      );
+      const s = result.summary || {};
+      $('reportResult').innerHTML = `
+        <div class="report-kpis">
+          <div><small>Receitas</small><strong>${money(s.revenueCents)}</strong></div>
+          <div><small>Despesas</small><strong>${money(s.expenseCents)}</strong></div>
+          <div><small>Resultado</small><strong>${money(s.netCents)}</strong></div>
+          <div><small>Dias com movimento</small><strong>${escapeHtml(s.activeDays ?? 0)}</strong></div>
+        </div>
+        ${Number(s.unclosedDays || 0) > 0
+          ? `<p class="report-warn"><span class="material-symbols-rounded">warning</span>${escapeHtml(s.unclosedDays)} dia(s) sem fechamento no período.</p>`
+          : ''}
+        <a class="primary-action report-open" href="${escapeHtml(result.url)}" target="_blank" rel="noopener">
+          <span class="material-symbols-rounded">open_in_new</span><span>Abrir PDF</span>
+        </a>`;
+      $('reportResult').classList.remove('hidden');
+      lastSavedDetail = `<b>${escapeHtml(brDate(result.period?.start || startDate))} a ${escapeHtml(brDate(result.period?.end || endDate))}</b>`;
+      feedback('success', 'Relatório gerado.');
+    } catch (error) {
+      status('reportStatus', error.message || 'Não foi possível gerar o relatório.', 'error');
+      feedback('error', error.message || 'Não foi possível gerar o relatório.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function addBatchItem(){
     clearStatus('launchStatus');
 
@@ -3399,6 +3512,19 @@ $('categoryOptions').addEventListener('click',e=>{const b=e.target.closest('[dat
         leavePixPending
       );
     $('btnRefresh').addEventListener('click',refresh);
+
+    $('btnPeriodReport')?.addEventListener('click',openReportModal);
+    $('reportStart')?.addEventListener('change',syncReportHint);
+    $('reportEnd')?.addEventListener('change',syncReportHint);
+    $('btnGenerateReport')?.addEventListener('click',generatePeriodReport);
+    $('reportPresets')?.addEventListener('click',event=>{
+      const chip=event.target.closest('[data-preset]');
+      if(!chip)return;
+      const [start,end]=reportPreset(chip.dataset.preset);
+      $('reportStart').value=start;
+      $('reportEnd').value=end;
+      syncReportHint();
+    });
 
     /* Caixa por dia: seletor de data no topo. */
     $('btnPickDate')?.addEventListener('click',()=>{

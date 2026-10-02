@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,600,1,0" rel="stylesheet">
-  <link rel="stylesheet" href="/caixa-avista/styles-v2.css?v=20261001120000">
+  <link rel="stylesheet" href="/caixa-avista/styles-v2.css?v=20261002120000">
   <link rel="manifest" href="/caixa/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/assets/pwa/caixa/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/caixa/favicon-32.png">
@@ -33,6 +33,7 @@
         </div>
         <div class="top-actions">
           <button class="icon-btn" id="btnRefresh" type="button" title="Atualizar" aria-label="Atualizar"><span class="material-symbols-rounded">refresh</span></button>
+          <button class="icon-btn hidden" id="btnPeriodReport" type="button" title="Relatório por período" aria-label="Relatório por período"><span class="material-symbols-rounded">summarize</span></button>
           <button class="icon-btn hidden" id="btnSwitchUnit" type="button" title="Trocar unidade" aria-label="Trocar unidade"><span class="material-symbols-rounded">swap_horiz</span></button>
         </div>
       </div>
@@ -348,11 +349,33 @@
     </section>
   </div>
 
+  <div id="reportModal" class="modal-backdrop hidden">
+    <section class="modal report-modal" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+      <header><h3 id="reportTitle"><span class="material-symbols-rounded">summarize</span>Relatório por período</h3><button type="button" data-close="reportModal" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button></header>
+      <div class="modal-body">
+        <div class="report-presets" id="reportPresets">
+          <button type="button" class="reason-chip" data-preset="last7">Últimos 7 dias</button>
+          <button type="button" class="reason-chip" data-preset="month">Mês atual</button>
+          <button type="button" class="reason-chip" data-preset="prevMonth">Mês anterior</button>
+          <button type="button" class="reason-chip" data-preset="last30">Últimos 30 dias</button>
+        </div>
+        <div class="report-dates">
+          <label class="modal-field"><span>Data inicial</span><input id="reportStart" type="date"></label>
+          <label class="modal-field"><span>Data final</span><input id="reportEnd" type="date"></label>
+        </div>
+        <p class="modal-hint"><span class="material-symbols-rounded">info</span><span id="reportHint">Unidade atual · até 92 dias · PDF salvo no Drive da unidade.</span></p>
+        <button id="btnGenerateReport" class="primary-action" type="button"><span class="material-symbols-rounded">picture_as_pdf</span><span>Gerar relatório</span></button>
+        <div id="reportResult" class="report-result hidden"></div>
+        <div id="reportStatus" class="status-box"></div>
+      </div>
+    </section>
+  </div>
+
   <div id="caixaToast" class="caixa-toast" aria-live="polite"></div>
 
   <div id="loadingOverlay" class="loading-overlay hidden"><div><span class="spinner"></span><strong id="loadingText">Carregando...</strong></div></div>
   <script src="/caixa-avista/vendor/qrcode.min.js?v=20260902102544"></script>
-  <script src="/caixa-avista/unit-selector.js?v=20261001120000"></script>
+  <script src="/caixa-avista/unit-selector.js?v=20261002120000"></script>
   <script src="/shared/ui/agf-ui.js"></script>
   <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/caixa/sw.js?v=20260918154500',{scope:'/caixa/'}).catch(error=>console.warn('[CAIXA_PWA_SW]',error)));</script>
 </body>

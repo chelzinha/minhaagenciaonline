@@ -595,3 +595,20 @@ body[data-retro="1"] .topbar-shell{border-bottom-color:var(--retro-line)}
   .date-pick .date-caret{display:none}
   .identity-strip>div:first-child strong{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
+
+
+/* CAIXA-RELATORIO-PERIODO-20261002 */
+.report-presets{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.report-presets .reason-chip.active{border-color:var(--blue);background:var(--blueSoft);color:var(--blue)}
+.report-dates{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.report-dates input[type="date"]{min-height:52px;font-weight:800}
+.report-result{margin-top:12px;padding:12px;border-radius:18px;background:#f5f8fc;border:1px solid var(--line)}
+.report-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.report-kpis>div{padding:9px 10px;border-radius:13px;background:#fff;border:1px solid var(--line)}
+.report-kpis small{display:block;color:var(--muted);font-size:.68rem;font-weight:900;text-transform:uppercase}
+.report-kpis strong{font-size:1.05rem;font-variant-numeric:tabular-nums}
+.report-warn{display:flex;align-items:center;gap:6px;margin:10px 0 0;color:#9d6b00;font-weight:800;font-size:.84rem}
+.report-open{text-decoration:none}
+#btnGenerateReport:disabled{opacity:.45}
+.report-modal .primary-action{background:linear-gradient(135deg,var(--blue),var(--blue2))!important}
+@media(max-width:390px){.report-dates{grid-template-columns:1fr}}
