@@ -85,6 +85,7 @@ body{background:var(--branco);font-family:var(--f-txt);color:var(--grafite);-web
 .rank .cab{display:flex;align-items:center;gap:10px;margin-bottom:6px}
 .rank .cab svg{display:block}
 .rank .cab .rot{color:var(--tinta)}
+.rank .cab .tot b{color:var(--vermelho);font-weight:700}
 .rank .cab .tot{margin-left:auto;font-size:17px;color:var(--apoio)}
 .linha-rk{display:grid;grid-template-columns:44px 150px 1fr 186px 100px;align-items:center;gap:16px;flex:1}
 .linha-rk + .linha-rk{border-top:1px solid var(--fio)}
@@ -215,6 +216,7 @@ const MEDALHA = __MEDALHAS__;
   const brl = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
   const pct = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '%';
   const plural = (n, s, p) => `${n} ${n === 1 ? s : p}`;
+  const n0 = v => { v = Number(v || 0); return Number.isFinite(v) ? v : 0; };
 
   const metaBase = d.metas[0].valor;
   const proxima  = d.metas.find(m => d.realizado < m.valor) || null;
@@ -278,12 +280,22 @@ const MEDALHA = __MEDALHAS__;
   }
 
   const total = d.ranking.reduce((s, r) => s + r.valor, 0);
-  const top = [...d.ranking].sort((a, b) => b.valor - a.valor).slice(0, 3);
-  const maior = top.length ? top[0].valor : 0;
-  $('rkTot').textContent = top.length ? `Participação no realizado` : '';
-  $('rk').innerHTML = top.length
-    ? top.map((r, i) => `<div class="linha-rk"><span class="pos ${i === 0 ? 'p1' : ''}">${i + 1}</span><span class="nome">${r.nome}</span><span class="barra-rk"><i style="width:${maior ? r.valor / maior * 100 : 0}%"></i></span><span class="val">${brl(r.valor)}</span><span class="pct">${pct(total ? r.valor / total * 100 : 0)}</span></div>`).join('')
-    : `<div class="vazio">Sem lançamentos por colaborador no período</div>`;
+  /* Regra do ranking do Balcão (Worker ranking-balcao-wrapper):
+     ELEN = vendas com atendente ELEN; demais vendas do Balcão = responsável da escala semanal (ALESSON ou LEVY).
+     Percentual = valor do colaborador ÷ realizado total do Balcão (inclui o que ficou sem escala).
+     Os 3 colaboradores aparecem sempre, mesmo com R$ 0,00. */
+  const base = n0(d.totalBalcao) || d.realizado;
+  const linhas = [...d.ranking].sort((a, b) => b.valor - a.valor || a.nome.localeCompare(b.nome)).slice(0, 3);
+  const pctDe = r => (r.pct != null ? r.pct : (base ? r.valor / base * 100 : 0));
+  const semEscala = n0(d.naoAtribuido);
+  $('rkTot').innerHTML = semEscala > 0.004
+    ? `Sem escala: <b>${brl(semEscala)}</b> (${pct(base ? semEscala / base * 100 : 0)})`
+    : (linhas.length ? 'Participação no realizado do Balcão' : '');
+  $('rk').innerHTML = d.rankingAviso
+    ? `<div class="vazio">${d.rankingAviso}</div>`
+    : linhas.length
+      ? linhas.map((r, i) => `<div class="linha-rk"><span class="pos ${i === 0 && r.valor > 0 ? 'p1' : ''}">${i + 1}</span><span class="nome">${r.nome}</span><span class="barra-rk"><i style="width:${Math.min(Math.max(pctDe(r), 0), 100)}%"></i></span><span class="val">${brl(r.valor)}</span><span class="pct">${pct(pctDe(r))}</span></div>`).join('')
+      : `<div class="vazio">Sem lançamentos por colaborador no período</div>`;
 })(D);
 </script>
 </body></html>

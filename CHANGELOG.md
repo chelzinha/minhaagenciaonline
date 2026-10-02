@@ -2,6 +2,15 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-10-02 - Visão 360: percentuais do Balcão na arte PNG seguem a regra do ranking
+
+### Corrigido
+- Arte do Balcão (aba Comercial) escondia colaborador com R$ 0,00. Agora ELEN, ALESSON e LEVY aparecem sempre.
+- Percentual passa a usar o `percentualDoBalcao` do servidor: valor do colaborador ÷ realizado total do Balcão (antes dividia só pela soma dos colaboradores listados).
+- Barra de cada colaborador passa a ser proporcional ao percentual (antes era relativa ao maior valor, e o 1º sempre aparecia com barra cheia).
+- Venda sem escala semanal cadastrada aparece no cabeçalho do bloco ("Sem escala: R$ X").
+- Com filtro de atendente ativo, os percentuais ficam suspensos com aviso, igual ao ranking do painel.
+
 ## 2026-10-02 - Visão 360: novas artes PNG na aba Comercial
 
 ### Adicionado

@@ -99,10 +99,25 @@ function montarDados(scope){
   base.ranking = [];
 
   if (scope === 'balcao') {
+    /* Mesma regra do Worker (ranking-balcao-wrapper): ELEN pelo atendente, demais pela escala semanal.
+       Os 3 colaboradores entram sempre, inclusive com zero; percentual vem pronto do servidor. */
     var rk = data.rankingBalcao || {};
     base.ranking = (Array.isArray(rk.linhas) ? rk.linhas : [])
-      .map(function(row){ return { nome: titleName(row.nome), valor: n(row.realizado) }; })
-      .filter(function(row){ return row.nome && row.valor > 0; });
+      .map(function(row){
+        return {
+          nome: titleName(row.nome),
+          valor: n(row.realizado),
+          pct: row.percentualDoBalcao == null ? null : n(row.percentualDoBalcao)
+        };
+      })
+      .filter(function(row){ return row.nome; });
+    base.totalBalcao = n(rk.totalBalcao);
+    base.naoAtribuido = n(rk.naoAtribuido);
+    if (rk.suspensoPorFiltroAtendente) {
+      base.rankingAviso = 'Percentuais suspensos: há filtro de atendente ativo no painel.';
+    } else if (rk.erro) {
+      base.rankingAviso = 'Percentuais indisponíveis no momento.';
+    }
   }
   return base;
 }

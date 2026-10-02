@@ -29,7 +29,7 @@ Data: 02/10/2026
 | Realizado | `metas.realizado.balcao`, `.encomendas`, `.metro` |
 | Metas Bronze, Prata, Ouro | `metas.config.<centro>Bronze`, `Prata`, `Ouro` |
 | Dias úteis do mês e realizados | `metas.config.diasUteisMes`, `diasUteisRealizados` |
-| Percentuais do Balcão | `rankingBalcao.linhas` (nome, realizado) |
+| Percentuais do Balcão | `rankingBalcao.linhas` (nome, realizado, percentualDoBalcao), `totalBalcao`, `naoAtribuido` |
 | Mês e data | `metas.competencia` e o campo `dataFim` do painel |
 
 ## Regras de cálculo
@@ -39,6 +39,14 @@ Data: 02/10/2026
 - Projeção (Balcão e Metrô) = realizado / dias úteis realizados x dias úteis do mês.
 - Média necessária = (próxima meta - realizado) / dias úteis restantes.
 - Meta com valor zero não aparece. Sem meta Bronze o PNG não é gerado e aparece aviso.
+
+## Percentuais do Balcão
+- Mesma regra do Worker `ranking-balcao-wrapper.js`: venda do Balcão com atendente ELEN conta para ELEN; as demais contam para o responsável da escala semanal (ALESSON ou LEVY).
+- Percentual = valor do colaborador ÷ realizado total do Balcão no período (inclui o que ficou sem escala). Vem pronto do servidor (`percentualDoBalcao`).
+- Os 3 colaboradores aparecem sempre, inclusive com R$ 0,00.
+- Barra proporcional ao percentual (100% = todo o Balcão).
+- Venda sem escala cadastrada aparece no cabeçalho do bloco como "Sem escala: R$ X (Y%)".
+- Filtro de atendente ativo no painel suspende os percentuais (o login do balcão é compartilhado) e a arte mostra o aviso.
 
 ## Rollback
 1. `git revert <commit>` no `main`.
