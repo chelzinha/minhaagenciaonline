@@ -13,6 +13,9 @@
  *      ficam fora (contadas em POSTAGENS_OUTROS_LOCAIS, so para informacao).
  *      Excecao: cliente sem nenhuma postagem no LOCAL da carteira (so acontece quando o admin escolhe um LOCAL
  *      onde ele nao posta) usa todas as postagens e sai marcado POSTAGENS_DO_LOCAL = 'NAO', para nao sumir do CRM.
+ *  4c. Grupo comercial (clientes.get(id).todosLocais = true) soma as postagens de TODOS os LOCAIS. O LOCAL do grupo
+ *      so define a carteira (quem trata e em qual curva entra). Sai marcado POSTAGENS_DO_LOCAL = 'TODOS' e
+ *      POSTAGENS_OUTROS_LOCAIS = objetos de outros LOCAIS somados no calculo (decisao da Rachel, 02/10/2026).
  *  5. REVERSO = servico classificado no Atende com subgrupo "Reverso".
  * Todo o resto (pesos, cortes, pisos, limiares, textos das acoes) e identico.
  */
@@ -33,7 +36,7 @@ export const CRM_CFG = Object.freeze({
     },
   },
 });
-export const CRM_MOTOR_VERSAO = 'crm-1.2.0';   // 1.1.0: contrato próprio (regra AGF, 30/09/2026) · 1.2.0: grupos comerciais (02/10/2026)
+export const CRM_MOTOR_VERSAO = 'crm-1.3.0';   // 1.1.0: contrato próprio (regra AGF, 30/09/2026) · 1.2.0: grupos comerciais · 1.3.0: grupo soma todos os LOCAIS (02/10/2026)
 export const CRM_LOCAIS = ['AGF', 'BALCAO', 'METRO'];
 const R = CRM_CFG.RULES, C = CRM_CFG.CURVA;
 
@@ -330,12 +333,13 @@ export function executarCrm(clientes, linhasPorCliente, refDateForcada, opcoes =
   for (const [id, linhas] of linhasPorCliente) {
     const c = clientes.get(id);
     if (!c) continue;
-    const doLocal = c.local ? linhas.filter((l) => l.local === c.local) : linhas;
-    const usarTodas = !!c.local && !doLocal.length;
+    const todosLocais = !!c.todosLocais;                                   // grupo comercial: soma todos os LOCAIS
+    const doLocal = c.local && !todosLocais ? linhas.filter((l) => l.local === c.local) : linhas;
+    const usarTodas = !todosLocais && !!c.local && !doLocal.length;
     const m = metricasDoCliente(id, usarTodas ? linhas : doLocal, refDate);
     if (!m) continue;
     m.CLIENTE = c.nome; m.LOCAL = c.local || 'SEM_LOCAL';
-    m.POSTAGENS_DO_LOCAL = usarTodas ? 'NAO' : 'SIM';
+    m.POSTAGENS_DO_LOCAL = todosLocais ? 'TODOS' : usarTodas ? 'NAO' : 'SIM';
     m.POSTAGENS_OUTROS_LOCAIS = usarTodas ? 0 : linhas.filter((l) => c.local && l.local !== c.local && !l.estorno).reduce((t, l) => t + num(l.qtd), 0);
     if (!grupos.has(m.LOCAL)) grupos.set(m.LOCAL, []);
     grupos.get(m.LOCAL).push(m);

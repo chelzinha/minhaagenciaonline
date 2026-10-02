@@ -165,7 +165,11 @@ export async function getCurvaAbc(env, p, user) {
   if (c && c.chave === chave && Date.now() - c.em < 10 * 60e3) return c.dados;
 
   const meses = mesesJanela(ultima.slice(0, 7), 12), ini = meses[0];
-  const [agg, pri] = await db.batch([
+  // grupos comerciais: cadastros do grupo entram na curva do LOCAL do grupo com as postagens de TODOS os LOCAIS
+  // (e saem da curva dos outros LOCAIS). Membros vem do crm_metricas (mesma fonte do motor).
+  const MEMBROS_AQUI = `SELECT json_extract(j.value,'$.id') FROM crm_metricas m, json_each(m.dados,'$.GRUPO_MEMBROS') j
+    WHERE m.local = ? AND json_extract(m.dados,'$.GRUPO_ID') IS NOT NULL`;
+  const [agg, pri, aggG, priG] = await db.batch([
     // TIPO do Atende (SUPERFRETE, PLATINUM, CLUBE CORREIOS...); sem TIPO usa o INTERMEDIADOR; sem os dois = SEM CONTRATO
     db.prepare(`SELECT n.cliente_id id, substr(p.data_postagem,1,7) ym, COALESCE(NULLIF(p.contrato_tipo,''), NULLIF(p.intermediador,''), 'SEM CONTRATO') tipo,
       SUM(p.estorno = 0) q, ROUND(SUM(p.valor),2) v
@@ -174,15 +178,23 @@ export async function getCurvaAbc(env, p, user) {
     db.prepare(`SELECT n.cliente_id id, MIN(substr(p.data_postagem,1,10)) primeira, MAX(substr(p.data_postagem,1,10)) ultima
       FROM cid_postagens p JOIN cid_grafias g ON g.origem = p.origem AND g.grafia = p.grafia JOIN cid_nos n ON n.chave = g.no_chave
       WHERE n.cliente_id IS NOT NULL AND p.data_postagem <> '' AND p.local_codigo = ? AND p.estorno = 0 GROUP BY 1`).bind(local),
+    db.prepare(`SELECT n.cliente_id id, substr(p.data_postagem,1,7) ym, COALESCE(NULLIF(p.contrato_tipo,''), NULLIF(p.intermediador,''), 'SEM CONTRATO') tipo,
+      SUM(p.estorno = 0) q, ROUND(SUM(p.valor),2) v
+      FROM cid_postagens p JOIN cid_grafias g ON g.origem = p.origem AND g.grafia = p.grafia JOIN cid_nos n ON n.chave = g.no_chave
+      WHERE n.cliente_id IN (${MEMBROS_AQUI}) AND p.data_postagem <> '' AND p.local_codigo <> ? AND substr(p.data_postagem,1,7) >= ? GROUP BY 1, 2, 3`).bind(local, local, ini),
+    db.prepare(`SELECT n.cliente_id id, MIN(substr(p.data_postagem,1,10)) primeira, MAX(substr(p.data_postagem,1,10)) ultima
+      FROM cid_postagens p JOIN cid_grafias g ON g.origem = p.origem AND g.grafia = p.grafia JOIN cid_nos n ON n.chave = g.no_chave
+      WHERE n.cliente_id IN (${MEMBROS_AQUI}) AND p.data_postagem <> '' AND p.local_codigo <> ? AND p.estorno = 0 GROUP BY 1`).bind(local, local),
   ]);
   const idxMes = Object.fromEntries(meses.map((m, i) => [m, i]));
   // grupos comerciais: as postagens de cada cadastro do grupo somam no cadastro principal (linha única na curva)
-  const { principalDe, grupoDe } = await mapaGruposCrm(db);
+  const { principalDe, grupoDe, localDoPrincipal } = await mapaGruposCrm(db);
   const idCrm = (id) => principalDe.get(id) || id;
+  const deOutroLocal = (id) => principalDe.has(id) && localDoPrincipal.get(principalDe.get(id)) !== local;   // grupo de outro LOCAL
   const porId = new Map();
-  for (const r of agg.results || []) {
+  for (const r of [...(agg.results || []), ...(aggG.results || [])]) {
     const i = idxMes[r.ym];
-    if (i === undefined) continue;
+    if (i === undefined || deOutroLocal(r.id)) continue;
     r.id = idCrm(r.id);
     let x = porId.get(r.id);
     if (!x) { x = { id: r.id, q: Array(12).fill(0), v: Array(12).fill(0), tQ: 0, tV: 0, tipos: {} }; porId.set(r.id, x); }
@@ -190,7 +202,8 @@ export async function getCurvaAbc(env, p, user) {
     x.tipos[r.tipo] = (x.tipos[r.tipo] || 0) + Math.abs(num(r.v)) + num(r.q) / 1e6;
   }
   const primeira = new Map(), ultimaDe = new Map();
-  for (const r of pri.results || []) {
+  for (const r of [...(pri.results || []), ...(priG.results || [])]) {
+    if (deOutroLocal(r.id)) continue;
     const id = idCrm(r.id), p1 = text(r.primeira), u1 = text(r.ultima);
     if (p1 && (!primeira.get(id) || p1 < primeira.get(id))) primeira.set(id, p1);
     if (u1 && (!ultimaDe.get(id) || u1 > ultimaDe.get(id))) ultimaDe.set(id, u1);
