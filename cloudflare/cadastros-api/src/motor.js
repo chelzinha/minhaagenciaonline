@@ -12,7 +12,7 @@
  * O motor e deterministico e puro (sem I/O). Roda igual no Worker e no Node (testes).
  */
 
-export const MOTOR_VERSAO = '2026-09-30.1';   // .1: juncao manual de nome antigo e novo do Portal
+export const MOTOR_VERSAO = '2026-10-02.1';   // 09-30.1: nome antigo e novo do Portal · 10-02.1: sugestoes comparam o nome completo dos clientes e so dentro da mesma fonte
 
 export const ORIGENS_COMPARTILHADAS = {
   'BALCAO': 'BALCAO',
@@ -377,17 +377,68 @@ export function executarMotor(nomes, decisoes = {}) {
   }
 
   // sugestoes restantes (entre grupos diferentes), sem repetir par de grupos
+  // Regras de 02/10/2026 (Rachel):
+  //  1. A comparacao e entre os NOMES COMPLETOS dos dois clientes, nao so entre as grafias que bateram.
+  //     Ex.: grafia curta "JOSE JUNIOR" dentro de JOSE ALFREDO SANTOS JUNIOR nao pode puxar JOSE PESSOA JUNIOR:
+  //     ALFREDO/SANTOS x PESSOA sao nomes diferentes dos dois lados = pessoas diferentes.
+  //  2. Clientes de fontes diferentes (CLIENTE PORTAL, BALCAO, GAS SHOPPING METRO) nao viram sugestao.
+  //     Nome 100% igual entre fontes ja e unido sozinho pelo motor (IGUAL_PORTAL / SEM_ESPACO).
+  //  3. Nome curto que serve para 2+ clientes diferentes entre si e ambiguo: nao sugere nenhum.
+  const fontesDe = (r) => { const f = new Set(); for (const k of membros(r)) for (const o of nos.get(k).origens.keys()) f.add(o === 'CF' ? 'METRO' : o); return f; };
+  const nomeCompleto = new Map();
+  const completo = (r) => { if (!nomeCompleto.has(r)) nomeCompleto.set(r, nomeMaisCompleto(nos, membros(r))); return nomeCompleto.get(r); };
   const vistos = new Map();
   for (const [a, b, score, motivo] of candidatos) {
     if (auto.has(motivo)) continue;
     const ra = g.raiz(a), rb = g.raiz(b);
     if (ra === rb) continue;
     if (g.podeUnir(ra, rb, membros)) continue;
+    const fa = fontesDe(ra), fb = fontesDe(rb);
+    if (![...fa].some((x) => fb.has(x))) continue;                                     // regra 2
+    if (nomesConflitam(completo(ra), completo(rb))) continue;                          // regra 1
     const par = ra < rb ? `${ra}|${rb}` : `${rb}|${ra}`;
     if (!vistos.has(par) || vistos.get(par).score < score) vistos.set(par, { raizA: ra < rb ? ra : rb, raizB: ra < rb ? rb : ra, a, b, score, motivo });
   }
-  const sugestoes = [...vistos.values()].sort((x, y) => y.score - x.score);
+  // regra 3: o lado mais curto com parceiros incompativeis entre si nao recebe sugestao
+  const parceiros = new Map();
+  for (const v of vistos.values()) {
+    const [curto, longo] = completo(v.raizA).sig.length <= completo(v.raizB).sig.length ? [v.raizA, v.raizB] : [v.raizB, v.raizA];
+    if (!parceiros.has(curto)) parceiros.set(curto, []);
+    parceiros.get(curto).push(longo);
+  }
+  const ambiguos = new Set();
+  for (const [curto, ls] of parceiros) {
+    if (ls.length < 2) continue;
+    if (ls.some((x, i) => ls.slice(i + 1).some((y) => nomesConflitam(completo(x), completo(y))))) ambiguos.add(curto);
+  }
+  const sugestoes = [...vistos.values()].filter((v) => !ambiguos.has(v.raizA) && !ambiguos.has(v.raizB)).sort((x, y) => y.score - x.score);
   return { nos, grupos, sugestoes, log, descartados, grafiaNo, raiz: (k) => g.raiz(k) };
+}
+
+/**
+ * Nome mais completo de um cliente (no com mais palavras com sentido; empate: mais postagens).
+ * sig = palavras que identificam a pessoa ou empresa (sem DE/DA, sem FILHO/JUNIOR, sem LTDA, sem iniciais soltas);
+ * ini = iniciais soltas (B de "JOSE AMERICO B JUNIOR").
+ */
+export function nomeMaisCompleto(nos, chaves) {
+  let melhor = null;
+  for (const k of chaves) {
+    const no = nos.get(k), toks = no.stoks || no.p.toks;
+    const sig = toks.filter((t) => t.length >= 2 && !CONECTIVOS.has(t) && !GERACAO.has(t) && !LEGAL.has(t));
+    const ini = toks.filter((t) => t.length === 1 && !LEGAL.has(t));
+    if (!melhor || sig.length > melhor.sig.length || (sig.length === melhor.sig.length && no.postagens > melhor.postagens)) melhor = { sig, ini, postagens: no.postagens };
+  }
+  return melhor || { sig: [], ini: [], postagens: 0 };
+}
+/** Palavra x existe do outro lado: igual, erro de digitacao (mesma inicial e 80%+ igual) ou abreviada por inicial solta. */
+function palavraCasa(x, outro) {
+  if (outro.sig.includes(x)) return true;
+  if (outro.ini.includes(x[0])) return true;
+  return outro.sig.some((y) => y[0] === x[0] && Math.min(x.length, y.length) >= 4 && (y.startsWith(x) || x.startsWith(y) || similaridade(x, y) >= 0.8));
+}
+/** Dois nomes completos sao de pessoas/empresas diferentes quando CADA lado tem uma palavra que o outro nao tem. */
+export function nomesConflitam(a, b) {
+  return a.sig.some((x) => !palavraCasa(x, b)) && b.sig.some((y) => !palavraCasa(y, a));
 }
 
 /** Entre dois nos, o que postou por ultimo (empate: mais postagens; depois a chave, para ser deterministico). */

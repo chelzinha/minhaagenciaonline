@@ -124,4 +124,38 @@ t('grupo com um Portal so: nome e ID do Portal como antes', () => {
   assert.equal(g.portal, 'P:' + analisarNome('DILOHAN COMERCIO ATACADISTA DE ROUPAS LTDA').core);
   assert.equal(g.nome, 'DILOHAN COMERCIO ATACADISTA DE ROUPAS LTDA');
 });
+// ---- regras de sugestao de 02/10/2026 (casos reais da tela)
+const temPar = (r, a, b) => r.sugestoes.some((s) => (r.raiz(a) === s.raizA && r.raiz(b) === s.raizB) || (r.raiz(a) === s.raizB && r.raiz(b) === s.raizA));
+t('grafia curta dentro de um cliente nao puxa pessoas com outros nomes (JOSE JUNIOR)', () => {
+  const nomes = [['BALCAO', 'JOSÉ ALFREDO SANTOS JUNIOR', 3], ['BALCAO', 'JOSE JUNIOR', 1], ['BALCAO', 'JOSE AMERICO B JUNIOR'], ['BALCAO', 'JOSE PESSOA JUNIOR'],
+    ['BALCAO', 'JOSE TABOSA JUNIOR'], ['BALCAO', 'JOSE VALTER MENDES JUNIOR', 2], ['BALCAO', 'JOSECALDASJUNIOR']];
+  const r = run(nomes, { unir: [['S:JOSE ALFREDO SANTOS JUNIOR', 'S:JOSE JUNIOR']] });
+  for (const o of ['S:JOSE AMERICO B JUNIOR', 'S:JOSE PESSOA JUNIOR', 'S:JOSE TABOSA JUNIOR', 'S:JOSE VALTER MENDES JUNIOR', 'S:JOSECALDASJUNIOR'])
+    assert.ok(!temPar(r, 'S:JOSE ALFREDO SANTOS JUNIOR', o), o);
+});
+t('nomes completos diferentes dos dois lados nao viram sugestao (PAULO CESAR, FRANCISCO FREITAS)', () => {
+  let r = run([['BALCAO', 'PAULO CESAR ALVES CARNEIRO', 4], ['BALCAO', 'PAULO CESAR'], ['BALCAO', 'PAULO CESAR DA CRUZ VIEIRA']], { unir: [['S:PAULO CESAR ALVES CARNEIRO', 'S:PAULO CESAR']] });
+  assert.ok(!temPar(r, 'S:PAULO CESAR ALVES CARNEIRO', 'S:PAULO CESAR DA CRUZ VIEIRA'));
+  r = run([['BALCAO', 'FRANCISCO ANDERSON DE FREITAS', 2], ['BALCAO', 'FRANCISCO FREITAS'], ['BALCAO', 'FRANCISCO ERADY LIMA DE FREITAS']], { unir: [['S:FRANCISCO ANDERSON DE FREITAS', 'S:FRANCISCO FREITAS']] });
+  assert.ok(!temPar(r, 'S:FRANCISCO ANDERSON DE FREITAS', 'S:FRANCISCO ERADY LIMA DE FREITAS'));
+});
+t('fontes diferentes (BALCAO x GAS SHOPPING METRO) nao viram sugestao; nome igual une sozinho', () => {
+  let r = run([['METRO', 'CARLOS HENRIQUE', 8], ['BALCAO', 'CARLOS HENRIQUE NEPOMUCENO']]);
+  assert.ok(!temPar(r, 'S:CARLOS HENRIQUE', 'S:CARLOS HENRIQUE NEPOMUCENO'));
+  r = run([['METRO', 'MARIA LUIZA SOARES'], ['BALCAO', 'Maria Luiza Soares']]);
+  assert.ok(mesmoGrupo(r, 'S:MARIA LUIZA SOARES', 'S:MARIA LUIZA SOARES'));
+  assert.equal(r.grupos.length, 1);
+});
+t('nome curto que serve para dois clientes diferentes e ambiguo: nenhuma sugestao', () => {
+  const r = run([['BALCAO', 'CARLOS HENRIQUE'], ['BALCAO', 'CARLOS HENRIQUE NEPOMUCENO'], ['BALCAO', 'CARLOS HENRIQUE VIANA CHAVES']]);
+  assert.ok(!temPar(r, 'S:CARLOS HENRIQUE', 'S:CARLOS HENRIQUE NEPOMUCENO') && !temPar(r, 'S:CARLOS HENRIQUE', 'S:CARLOS HENRIQUE VIANA CHAVES'));
+});
+t('continua sugerindo o que e compativel (nome contido, inicial solta, grafia parecida)', () => {
+  let r = run([['BALCAO', 'ANTONIA KELLY SOUSA LIMA'], ['BALCAO', 'ANTONIA KELLY LIMA']]);
+  assert.ok(temPar(r, 'S:ANTONIA KELLY SOUSA LIMA', 'S:ANTONIA KELLY LIMA') || mesmoGrupo(r, 'S:ANTONIA KELLY SOUSA LIMA', 'S:ANTONIA KELLY LIMA'));
+  r = run([['METRO', 'JOSE AMERICO B JUNIOR'], ['METRO', 'JOSE AMERICO BEZERRA JUNIOR']]);
+  assert.ok(temPar(r, 'S:JOSE AMERICO B JUNIOR', 'S:JOSE AMERICO BEZERRA JUNIOR') || mesmoGrupo(r, 'S:JOSE AMERICO B JUNIOR', 'S:JOSE AMERICO BEZERRA JUNIOR'));
+  r = run([['BALCAO', 'RAIMUNDA NONATA SOUZA'], ['BALCAO', 'RAIMUNDA NONATA SOUSA']]);
+  assert.ok(temPar(r, 'S:RAIMUNDA NONATA SOUZA', 'S:RAIMUNDA NONATA SOUSA') || mesmoGrupo(r, 'S:RAIMUNDA NONATA SOUZA', 'S:RAIMUNDA NONATA SOUSA'));
+});
 console.log(`\n${ok} testes passaram`);
