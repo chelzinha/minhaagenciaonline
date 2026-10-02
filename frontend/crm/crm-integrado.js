@@ -1126,7 +1126,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       const corDe = (i) => (multi ? COR_ABC[rows[i].abc] || V.orange : i < nA ? V.blue : i < nAB ? V.teal : V.orange);
       const acumDe = (r) => (multi ? r._acumJ : r.acum);
       const pos = rows.map((r) => r.tV);
-      const fim = Math.min(100, Math.max(8, Math.round(60 / Math.max(1, rows.length) * 100)));
+      const fim = 100; // trava do Pareto abre no período completo (todos os clientes)
       grafico('cx-ch-pareto', {
         grid: { left: 4, right: 8, top: 30, bottom: 44, containLabel: true },
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (ps) => { const i = ps[0].dataIndex, r = rows[i]; return `<b>${esc(r.nome)}</b><br>Curva <b style="color:${corDe(i)}">${r.abc}</b> · ${multi ? `${r.rank}º do LOCAL ${esc(nomeLocal(r.local))}` : `${i + 1}º do LOCAL`}<br>12M: <b>${brl(r.tV)}</b><br>Acumulado${multi ? ' dos LOCAIS juntos' : ''}: <b>${(acumDe(r) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</b><br><span style="color:#9AA1B2">clique para abrir a ficha</span>`; } },
