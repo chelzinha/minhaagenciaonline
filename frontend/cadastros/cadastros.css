@@ -155,6 +155,8 @@ button { cursor: pointer; }
 .s-final { padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; }
 .s-final label { font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--c-muted); }
 .s-final select, .s-final input { height: 36px; border: 1px solid var(--c-line); border-radius: 8px; padding: 0 10px; width: 100%; background: #fff; }
+.s-final input.s-nome-in { text-transform: uppercase; font-weight: 700; }
+.s-final input.s-nome-in:focus { border-color: var(--c-accent); outline: 0; box-shadow: 0 0 0 3px rgba(14,159,189,.18); }
 .s-foot { display: flex; gap: 6px; justify-content: flex-end; padding: 0 14px 12px; margin-top: auto; }
 
 /* dialogos */

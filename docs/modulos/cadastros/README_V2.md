@@ -163,3 +163,11 @@ O CRM (`/crm`) deixa de usar o Apps Script `base-metro` e as planilhas. Clientes
 ## Grupos comerciais (02/10/2026)
 
 Vários cadastros que comercialmente são um cliente só, somados somente no CRM. Nada muda no cadastro. Regras, telas e API: `docs/modulos/crm/GRUPOS_COMERCIAIS.md`.
+
+## Regras das sugestões de agrupamento (02/10/2026, motor 2026-10-02.1)
+
+1. A sugestão compara os **nomes completos** dos dois clientes, não só a grafia que bateu. Se cada lado tem um nome que o outro não tem (ex.: JOSE ALFREDO SANTOS JUNIOR x JOSE PESSOA JUNIOR), são pessoas diferentes e não há sugestão. Erro de digitação (SOUZA x SOUSA) e inicial solta (B x BEZERRA) continuam valendo como o mesmo nome.
+2. Clientes de **fontes diferentes** (CLIENTE PORTAL, BALCÃO, GAS SHOPPING METRO) não viram sugestão. Nome 100% igual entre fontes é unido sozinho pelo motor (regra IGUAL_PORTAL).
+3. Nome curto que serve para dois ou mais clientes diferentes entre si (ex.: MARCO ANTONIO x 5 pessoas) é ambíguo: não vira sugestão.
+4. **Nome final editável** no cartão de sugestão (sem cliente do Portal): escolhe um dos nomes ou digita o correto. Com cliente do Portal, vale o nome do Portal.
+5. As junções automáticas (mesmas palavras em outra ordem, erro mínimo de digitação, nome cortado) não mudaram.

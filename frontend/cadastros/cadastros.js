@@ -355,23 +355,32 @@
         <div class="s-n">${num(c.postagens)}<div class="f-sub">post.</div></div></label>`).join('')}
       <div class="s-final"><label for="sf${i}">Nome final</label>
         ${portal ? `<input id="sf${i}" value="${esc(portal.nome)}" disabled title="Com cliente do Portal, vale o nome do Portal">`
-          : `<select id="sf${i}">${g.clientes.map((c) => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`).join('')}</select>`}
+          : `<input id="sf${i}" class="s-nome-in" list="sfl${i}" value="${esc(g.clientes[0].nome)}" maxlength="160" autocomplete="off" title="Escolha um dos nomes ou digite o nome correto">
+             <datalist id="sfl${i}">${g.clientes.map((c) => `<option value="${esc(c.nome)}"></option>`).join('')}</datalist>
+             <small class="f-sub">Escolha um dos nomes ou digite o nome correto.</small>`}
       </div>
       <div class="s-foot"><button type="button" class="cad-btn ghost" data-acao="sep">Não são o mesmo</button><button type="button" class="cad-btn ok" data-acao="unir"><span class="material-symbols-rounded">check</span>Agrupar</button></div>
     </article>`;
   }
   function ligarCartao(card, g) {
     const marcados = () => [...card.querySelectorAll('input[type=checkbox]:checked')].map((x) => x.dataset.id);
-    const sel = card.querySelector('select');
+    const nomeIn = card.querySelector('.s-nome-in');                       // sem Portal: nome final editavel
     card.querySelectorAll('input[type=checkbox]').forEach((cb) => cb.addEventListener('change', () => {
       card.querySelector('[data-acao=unir]').disabled = marcados().length < 2;
     }));
     card.querySelector('[data-acao=unir]').addEventListener('click', async () => {
       const ids = marcados();
       if (ids.length < 2) return toast('Marque pelo menos 2 nomes.', 'err');
-      let destino = sel ? sel.value : g.clientes.find((c) => Number(c.eh_portal)).id;
+      let destino, nome = '';
+      if (nomeIn) {
+        nome = nomeIn.value.trim().replace(/\s+/g, ' ').toUpperCase();
+        if (!nome) { nomeIn.focus(); return toast('Informe o nome final.', 'err'); }
+        // o cadastro que fica: o de mesmo nome (se o nome escolhido for um deles) ou o que mais postou
+        const marcadosCli = g.clientes.filter((c) => ids.includes(c.id));
+        const igual = marcadosCli.find((c) => String(c.nome).toUpperCase() === nome);
+        destino = (igual || [...marcadosCli].sort((a, b) => Number(b.postagens) - Number(a.postagens))[0]).id;
+      } else destino = g.clientes.find((c) => Number(c.eh_portal)).id;
       if (!ids.includes(destino)) destino = ids[0];
-      const nome = sel ? g.clientes.find((c) => c.id === destino).nome : '';
       const r = await agrupar(ids, nome, destino);
       if (r) { card.classList.add('feito'); card.querySelectorAll('button,input,select').forEach((x) => { x.disabled = true; }); }
     });
