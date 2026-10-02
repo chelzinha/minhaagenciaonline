@@ -17,6 +17,9 @@ const MANUAIS = ['CLIENTE', 'NOME_FANTASIA', 'RAZAO_SOCIAL', 'CNPJ_CPF', 'PESSOA
   'ULTIMO_RESULTADO_VISITA', 'CHECKLIST_ULTIMA_VISITA_ID', 'DATA_PROXIMO_FOLLOWUP', 'PROXIMA_ACAO_MANUAL', 'MIDIA', 'LINK_MIDIA_DIRETO',
   'RESPONSAVEL_CARTEIRA', 'RESPONSAVEL_ID', 'STATUS_CADASTRO'];
 
+// cadastro do Portal Postal (carga de 02/10/2026): contrato proprio do cliente, separado do contrato usado nas postagens
+const PORTAL = ['CODIGO_PORTAL', 'CONTRATO_PORTAL', 'CARTAO_PORTAL', 'COD_ADM_PORTAL', 'TIPO_CONTRATO_PORTAL', 'VIGENCIA_CONTRATO_PORTAL'];
+
 const nn = (v) => v !== null && v !== undefined;
 // exibe o TIPO do Atende (SUPERFRETE, PLATINUM, CLUBE CORREIOS...) quando existir; senão o INTERMEDIADOR (decisão da Rachel, 30/09/2026)
 const intermediadorExibido = (m) => text(m.TIPO_CONTRATO_PREDOMINANTE) || text(m.INTERMEDIADOR_PREDOMINANTE);
@@ -31,6 +34,7 @@ function linhaMaster(m, cad, links) {
   r.INTERMEDIADOR_PREDOMINANTE = intermediadorExibido(m);
   r.ACAO_ENGINE = text(m.ACAO);
   for (const k of MANUAIS) r[k] = nn(c[k]) ? c[k] : (k === 'CLIENTE' ? text(m.CLIENTE) : (['NUMERO_CONTRATO', 'CARTAO_POSTAGEM', 'MIDIA'].includes(k) ? text(m[k]) : ''));
+  for (const k of PORTAL) r[k] = text(c[k]);
   r.ACAO_ATUAL = text(c.ACAO_ATUAL);
   r.ACAO = r.ACAO_ATUAL || text(m.ACAO) || 'MANTER';
   if (!nn(c.LINK_MIDIA_DIRETO)) r.LINK_MIDIA_DIRETO = links[r.MIDIA] || '';
@@ -82,6 +86,22 @@ export async function carregarClientes(db, { ids = null, user = null } = {}) {
 }
 
 const numero = (v) => Number(v) || 0;
+const semZeros = (v) => text(v).replace(/\D/g, '').replace(/^0+/, '');
+/** Vigencia do Portal (dd/mm/aaaa) ja passou? */
+function vigenciaVencida(v) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text(v));
+  return m ? `${m[3]}-${m[2]}-${m[1]}` < hoje() : false;
+}
+/**
+ * Contrato proprio (cadastro do Portal) x contrato mais usado nas postagens do Visao 360 (decisao da Rachel, 02/10/2026):
+ * o CRM continua mostrando o contrato das postagens; a situacao abaixo aponta quem tem contrato proprio e posta com outro.
+ */
+function situacaoContratoProprio(r) {
+  const proprio = semZeros(r.CONTRATO_PORTAL), usado = semZeros(r.NUMERO_CONTRATO);
+  if (!proprio) return 'SEM_CONTRATO_PROPRIO';
+  if (!usado) return 'PROPRIO_SEM_USO';
+  return proprio === usado ? 'USA_O_PROPRIO' : 'USA_OUTRO_CONTRATO';
+}
 function rotuloUltimaPostagem(v) {
   const d = ymd(v);
   return d ? `${Math.max(0, diffDays(hoje(), d))}d` : 'Sem postagem';
@@ -105,6 +125,11 @@ export function projetarCliente(r) {
     bucket: text(r.BUCKET_NEGOCIO), movimentoCurva: text(r.MOVIMENTO_CURVA), recorrenciaNivel: text(r.RECORRENCIA_NIVEL),
     qtd30d: numero(r.QTD_30D), valor30d: numero(r.FAT_30D), qtdTotal: numero(r.QTD_TOTAL), valorTotal: numero(r.VALOR_TOTAL),
     responsavelCarteira: text(r.RESPONSAVEL_CARTEIRA), responsavelId: text(r.RESPONSAVEL_ID),
+    // cadastro do Portal Postal (campos novos, so acrescentados)
+    telefone: text(r.TELEFONE), cidade: text(r.CIDADE), uf: text(r.UF), codigoPortal: text(r.CODIGO_PORTAL),
+    contratoPortal: text(r.CONTRATO_PORTAL), cartaoPortal: text(r.CARTAO_PORTAL), tipoContratoPortal: text(r.TIPO_CONTRATO_PORTAL),
+    vigenciaContratoPortal: text(r.VIGENCIA_CONTRATO_PORTAL), contratoPortalVencido: vigenciaVencida(r.VIGENCIA_CONTRATO_PORTAL) ? 'SIM' : 'NAO',
+    situacaoContratoProprio: situacaoContratoProprio(r),
     rowNumber: 0,
   };
 }

@@ -11,7 +11,7 @@
   ],
   "vars": {
     "AGF_AUTH_API_URL": "https://script.google.com/macros/s/AKfycbxv_3OLKyy13PqtEdqnVSA2zg3xljaU5gAKgn-TIVaaSRaTNPGgWIaRvDV_JuT9PTc5/exec",
-    "ALLOWED_ORIGINS": "https://minhaagenciaonline.com.br,https://www.minhaagenciaonline.com.br,https://feature-cadastros-v2.minhaagenciaonline.pages.dev,https://feat-crm-integrado.minhaagenciaonline.pages.dev",
+    "ALLOWED_ORIGINS": "https://minhaagenciaonline.com.br,https://www.minhaagenciaonline.com.br,https://feature-cadastros-v2.minhaagenciaonline.pages.dev,https://feat-crm-integrado.minhaagenciaonline.pages.dev,https://feat-crm-portal-fantasia.minhaagenciaonline.pages.dev",
     "PREVIEW_ORIGIN_SUFFIX": ""
   },
   // sincroniza o Atende a cada 10 min; a limpeza roda sozinha ao fim de cada passagem com mudanca
