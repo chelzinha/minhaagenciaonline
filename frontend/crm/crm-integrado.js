@@ -471,7 +471,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     return c.grupoMembros.map((m) => {
       const fora = m.noLocal === false;
       const cel = {
-        nome: `<span class="ell" title="${esc(m.nome)}">${m.principal ? '★ ' : ''}${esc(m.nome)}</span><small>${m.principal ? 'principal · ' : ''}${fora ? `sem postagem no LOCAL do grupo${m.postagensFora ? ' · ' + n0(m.postagensFora) + ' em outro LOCAL' : ''}` : 'LOCAL do cadastro: ' + esc(nomeLocal(m.localCarteira) || '-')}</small>`,
+        nome: `<span class="ell" title="${esc(m.nome)}">${m.principal ? '★ ' : ''}${esc(m.nome)}</span><small>${m.principal ? 'principal · ' : ''}${fora ? `sem postagem no LOCAL do grupo${m.postagensFora ? ' · ' + n0(m.postagensFora) + ' em outro LOCAL' : ''}` : 'LOCAL do cadastro: ' + esc(nomeLocal(m.localCarteira) || '-') + (m.postagensFora ? ' · ' + n0(m.postagensFora) + ' post. em outro LOCAL (somadas)' : '')}</small>`,
         loc: `<span class="chip loc">${esc(nomeLocal(m.localCarteira) || '-')}</span>`,
         fat: fora ? '<span class="faint">-</span>' : brl(m.fat30),
         dsp: fora || m.diasSemPostar == null ? '<span class="faint">-</span>' : `${n0(m.diasSemPostar)}d`,
@@ -987,21 +987,21 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     return `<div class="dr-s"><h3 style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${ib('id', V.blue, V.orange, 'sm')}Cadastro${text(e.contratoPortal) ? ' ' + pill(esc(t), cor) : ''}</h3>
         <dl class="cad-dl">${linhas.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>`;
   }
-  /** Ficha: cadastros somados no grupo comercial, com a quebra de cada um no LOCAL do grupo. */
+  /** Ficha: cadastros somados no grupo comercial (todos os LOCAIS), com a quebra de cada um. */
   function fichaGrupo(e) {
     const ms = Array.isArray(e.grupoMembros) ? e.grupoMembros : [];
     if (!ms.length) return '';
     const tot = ms.reduce((t, m) => t + (m.noLocal === false ? 0 : num(m.valorTotal)), 0) || 1;
     const fora = ms.filter((m) => m.noLocal === false || m.postagensFora);
     return `<div class="dr-s"><h3 style="margin-bottom:4px;display:flex;gap:8px;align-items:center">${ib('grupo', V.purple, V.orange, 'sm')}Grupo comercial <span class="gchip">${n0(ms.length)} cadastros</span></h3>
-      <p class="muted" style="font-size:12px;margin-bottom:8px">Os números do CRM somam estes cadastros no LOCAL ${esc(nomeLocal(e.local) || e.local)}${e.grupoLocalModo && e.grupoLocalModo !== 'AUTO' ? ' (fixado no Cadastro)' : ''}. Grupo editado em Cadastro de Clientes.</p>
+      <p class="muted" style="font-size:12px;margin-bottom:8px">Os números do CRM somam estes cadastros em todos os LOCAIS. Carteira: ${esc(nomeLocal(e.local) || e.local)}${e.grupoLocalModo && e.grupoLocalModo !== 'AUTO' ? ' (fixado no Cadastro)' : ''}. Grupo editado em Cadastro de Clientes.</p>
       <div class="tw" style="max-height:none"><table class="gtab"><thead><tr><th>Cadastro</th><th class="r">Fat. 30D</th><th>Última</th><th class="r">% do grupo</th></tr></thead><tbody>
       ${ms.map((m) => { const out = m.noLocal === false, sh = out ? 0 : num(m.valorTotal) / tot;
         return `<tr class="${out ? 'fora' : ''}"><td><b style="font-size:12.5px">${m.principal ? '★ ' : ''}${esc(m.nome)}</b><small class="muted" style="display:block;font-size:11.5px">${m.principal ? 'principal (contato) · ' : ''}LOCAL do cadastro: ${esc(nomeLocal(m.localCarteira) || '-')}${m.contrato ? ' · contrato ' + esc(m.contrato) : ''}</small></td>
           <td class="r num">${out ? '<span class="faint">-</span>' : brl(m.fat30)}</td><td class="num">${m.ultima ? fmtD(m.ultima) + '/' + m.ultima.slice(2, 4) : '-'}</td>
           <td class="r num">${out ? '<span class="chip">fora do LOCAL</span>' : `<span class="gshare"><i style="width:${Math.max(2, Math.round(sh * 60))}px"></i>${pct(sh)}</span>`}</td></tr>`; }).join('')}
       </tbody></table></div>
-      ${fora.length ? `<p class="muted" style="font-size:12px;margin-top:8px">${n0(fora.reduce((t, m) => t + num(m.postagensFora), 0))} postagens em outro LOCAL ficam fora do cálculo.</p>` : ''}</div>`;
+      ${fora.length ? `<p class="muted" style="font-size:12px;margin-top:8px">${n0(fora.reduce((t, m) => t + num(m.postagensFora), 0))} postagens em outro LOCAL ${ms.some((m) => m.noLocal === false) ? 'ficam fora do cálculo' : 'estão somadas no grupo'}.</p>` : ''}</div>`;
   }
   function desenharFicha() {
     if (!F) return;

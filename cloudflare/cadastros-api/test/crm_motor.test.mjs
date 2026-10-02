@@ -106,6 +106,9 @@ for (const [n, refDate] of [[60, '2026-09-23'], [400, '2026-09-05'], [1500, '202
   ok(m.QTD_TOTAL === 247 && m.POSTAGENS_OUTROS_LOCAIS === 7 && m.POSTAGENS_DO_LOCAL === 'SIM', `so postagens do LOCAL: ${m.QTD_TOTAL} / fora ${m.POSTAGENS_OUTROS_LOCAIS}`);
   const r2 = executarCrm(new Map([['X', { nome: 'X', local: 'AGF' }]]), new Map([['X', linhas]]), ref);
   ok(r2.metricas.length === 1 && r2.metricas[0].POSTAGENS_DO_LOCAL === 'NAO' && r2.metricas[0].QTD_TOTAL === 254, 'LOCAL escolhido sem postagens: nao some do CRM');
+  const r3 = executarCrm(new Map([['G', { nome: 'GRUPO', local: 'BALCAO', todosLocais: true }]]), new Map([['G', linhas]]), ref);
+  const g = r3.metricas[0];
+  ok(g.LOCAL === 'BALCAO' && g.QTD_TOTAL === 254 && g.POSTAGENS_DO_LOCAL === 'TODOS' && g.POSTAGENS_OUTROS_LOCAIS === 7, `grupo comercial soma todos os LOCAIS: ${g.QTD_TOTAL}`);
 }
 
 // Tipo de negocio pelas colunas do Atende

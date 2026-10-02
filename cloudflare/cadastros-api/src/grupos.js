@@ -52,16 +52,17 @@ export async function lerGrupos(db) {
  * Devolve { principalDe: Map(membro -> principal), grupoDe: Map(principal -> { id, nome, n }) }.
  */
 export async function mapaGruposCrm(db) {
-  const rows = (await db.prepare(`SELECT cliente_id, json_extract(dados,'$.GRUPO_ID') gid, json_extract(dados,'$.GRUPO_NOME') nome,
+  const rows = (await db.prepare(`SELECT cliente_id, local, json_extract(dados,'$.GRUPO_ID') gid, json_extract(dados,'$.GRUPO_NOME') nome,
       json_extract(dados,'$.GRUPO_MEMBROS') membros FROM crm_metricas WHERE json_extract(dados,'$.GRUPO_ID') IS NOT NULL`).all()).results || [];
-  const principalDe = new Map(), grupoDe = new Map();
+  const principalDe = new Map(), grupoDe = new Map(), localDoPrincipal = new Map();
   for (const r of rows) {
     const membros = js(r.membros) || [];
     grupoDe.set(r.cliente_id, { id: r.gid, nome: r.nome, n: membros.length });
+    localDoPrincipal.set(r.cliente_id, r.local || '');
     for (const mb of membros) if (mb && mb.id) principalDe.set(mb.id, r.cliente_id);
     principalDe.set(r.cliente_id, r.cliente_id);
   }
-  return { principalDe, grupoDe };
+  return { principalDe, grupoDe, localDoPrincipal };
 }
 
 // ------------------------------------------------------------ motor do CRM
@@ -86,28 +87,27 @@ export function aplicarGruposNoMotor(grupos, clientes, linhas) {
     info.set(principal, { grupo: g, principal, membros: validos, local, contagem, porMembro });
     const juntas = validos.flatMap((id) => linhas.get(id) || []);
     for (const id of validos) if (id !== principal) { clientes.delete(id); linhas.delete(id); }
-    clientes.set(principal, { nome: g.nome, local });
+    clientes.set(principal, { nome: g.nome, local, todosLocais: true });     // grupo soma as postagens de todos os LOCAIS
     linhas.set(principal, juntas);
   }
   return info;
 }
 
-/** Detalhe por cadastro dentro das metricas do principal (so as postagens no LOCAL do grupo). */
+/** Detalhe por cadastro dentro das metricas do principal (todas as postagens, de todos os LOCAIS). */
 export function decorarMetricasDoGrupo(m, inf, refDate) {
   const tot = GRUPO_LOCAIS.reduce((t, l) => t + num(inf.contagem[l]), 0);
-  const todas = m.POSTAGENS_DO_LOCAL === 'NAO';                              // LOCAL fixado onde o grupo nao posta
   m.GRUPO_ID = inf.grupo.id;
   m.GRUPO_NOME = inf.grupo.nome;
   m.GRUPO_LOCAL_MODO = inf.grupo.local_modo;
+  m.GRUPO_SOMA_LOCAIS = 'SIM';
   m.GRUPO_LOCAL_PCT = tot && inf.local ? r2(num(inf.contagem[inf.local]) / tot * 10000) / 10000 : 0;
   m.GRUPO_POSTAGENS_POR_LOCAL = { ...inf.contagem };
   m.GRUPO_MEMBROS = inf.membros.map((id) => {
     const x = inf.porMembro.get(id);
-    const doLocal = todas ? x.linhas : x.linhas.filter((l) => l.local === inf.local);
-    const mm = doLocal.length ? metricasDoCliente(id, doLocal, refDate) : null;
-    const fora = todas ? 0 : x.linhas.filter((l) => l.local !== inf.local && !l.estorno).reduce((t, l) => t + num(l.qtd), 0);
+    const mm = x.linhas.length ? metricasDoCliente(id, x.linhas, refDate) : null;
+    const fora = x.linhas.filter((l) => l.local !== inf.local && !l.estorno).reduce((t, l) => t + num(l.qtd), 0);   // somadas no grupo (informativo)
     return {
-      id, nome: x.nome, principal: id === inf.principal, localCarteira: x.local || '', noLocal: !!mm,
+      id, nome: x.nome, principal: id === inf.principal, localCarteira: x.local || '', noLocal: true, comPostagem: !!mm,
       fat30: mm ? r2(mm.FAT_30D) : 0, fat60: mm ? r2(mm.FAT_31_60D) : 0, qtdTotal: mm ? num(mm.QTD_TOTAL) : 0, valorTotal: mm ? r2(mm.VALOR_TOTAL) : 0,
       ultima: mm ? mm.DATA_ULTIMA_POSTAGEM : '', diasSemPostar: mm ? num(mm.DIAS_SEM_POSTAR) : null,
       contrato: mm ? (mm.NUMERO_CONTRATO_PROPRIO || mm.NUMERO_CONTRATO || '') : '', postagensFora: fora,

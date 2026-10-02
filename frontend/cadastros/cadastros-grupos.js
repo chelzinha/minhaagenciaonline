@@ -77,7 +77,7 @@
         : c && !c.emDia ? `<div class="g-aviso">${ms('sync')}O CRM ainda está com a versão anterior deste grupo. Atualiza no próximo cálculo (até 10 min).</div>` : ''}
       <div class="g-nums">
         <div><small>Fat. 30D</small><b>${c ? brl(c.fat30) : '-'}</b><em>${c ? brl(c.fat60) + ' em 31-60D' : 'CRM calculando'}</em></div>
-        <div><small>No LOCAL ${esc(LN(g.local))}</small><b>${c ? brl(c.valorTotal) : '-'}</b><em>${c ? num(c.qtdTotal) + ' objetos' : '&nbsp;'}</em></div>
+        <div><small>Total (todos os LOCAIS)</small><b>${c ? brl(c.valorTotal) : '-'}</b><em>${c ? num(c.qtdTotal) + ' objetos' : '&nbsp;'}</em></div>
         <div><small>Última postagem</small><b>${c ? dataBr(c.ultima) : '-'}</b><em>${c ? num(c.diasSemPostar) + ' dias sem postar' : '&nbsp;'}</em></div>
         <div><small>No CRM</small><b>${c ? `<span class="chip">Curva ${esc(c.curva)}</span>${acChip(c.acao)}` : '-'}</b><em>${c ? (c.temContrato ? 'com contrato' : 'sem contrato') : '&nbsp;'}</em></div>
       </div>
@@ -209,8 +209,8 @@
         <select id="gedLocSel" aria-label="LOCAL do grupo"><option value="AUTO" ${E.localModo === 'AUTO' ? 'selected' : ''}>Automático: ${auto ? esc(LN(auto)) + ' (' + pct(locais[auto] || 0, tot) + ' das postagens)' : 'sem postagens'}</option>
           ${LOCAIS.map((l) => `<option value="${l}" ${E.localModo === l ? 'selected' : ''}>Fixar em ${esc(LN(l))}</option>`).join('')}</select></div>
       ${barraLocais(locais)}
-      ${E.localModo !== 'AUTO' && final !== auto && tot ? `<div class="ged-warn">${ms('warning')}<span>LOCAL fixado em ${esc(LN(final))}, mas ${pct(locais[auto], tot)} das postagens são em ${esc(LN(auto))}. No CRM, só as postagens em ${esc(LN(final))} entram no cálculo.</span></div>` : ''}
-      ${E.localModo === 'AUTO' && multi ? `<div class="ged-warn info">${ms('info')}<span>Cadastros em mais de um LOCAL. O grupo fica em ${esc(LN(auto))} e as postagens dos outros LOCAIS ficam fora do cálculo do CRM.</span></div>` : ''}`
+      ${E.localModo !== 'AUTO' && final !== auto && tot ? `<div class="ged-warn info">${ms('info')}<span>LOCAL fixado em ${esc(LN(final))} (${pct(locais[auto], tot)} das postagens são em ${esc(LN(auto))}). O grupo fica na carteira de ${esc(LN(final))} e o CRM soma o faturamento e a última postagem de todos os LOCAIS.</span></div>` : ''}
+      ${E.localModo === 'AUTO' && multi ? `<div class="ged-warn info">${ms('info')}<span>Cadastros em mais de um LOCAL. O grupo fica na carteira de ${esc(LN(auto))} e o CRM soma o faturamento e a última postagem de todos os LOCAIS.</span></div>` : ''}`
       : '<div class="ged-vazio" style="padding:4px">O LOCAL aparece quando houver cadastros no grupo.</div>';
     const ult = E.membros.map((m) => m.ultima).filter(Boolean).sort().pop();
     $('gedPrev').innerHTML = `<div class="t">${ms('visibility', 'style="font-size:16px"')}Como fica no CRM</div>` + (E.membros.length

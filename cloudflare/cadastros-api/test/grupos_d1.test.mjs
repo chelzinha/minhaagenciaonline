@@ -126,13 +126,16 @@ g = await salvarGrupo(env, { id: GID, nome: 'ASSOCIAÇÃO SHALOM', membros: ['S1
 await calcularCrmD1(env, 'TESTE');
 let x = met('S1');
 const m4 = x.d.GRUPO_MEMBROS.find((y) => y.id === 'S4');
-ok(x.local === 'AGF' && m4 && m4.noLocal === false && m4.postagensFora === 2 && x.d.GRUPO_LOCAL_PCT > 0.9, 'grupo fica no AGF; BALCÃO fora do cálculo', { local: x.local, m4, pct: x.d.GRUPO_LOCAL_PCT });
+const somaTodos = um(`SELECT ROUND(SUM(valor),2) v FROM cid_postagens WHERE grafia LIKE '%SHALOM%'`).v;
+ok(x.local === 'AGF' && m4 && m4.noLocal === true && m4.postagensFora === 2 && Math.abs(m4.valorTotal - 40) < 0.01 && x.d.GRUPO_LOCAL_PCT > 0.9, 'grupo fica no AGF; cadastro do BALCÃO somado', { local: x.local, m4, pct: x.d.GRUPO_LOCAL_PCT });
+ok(Math.abs(x.d.VALOR_TOTAL - somaTodos) < 0.01 && x.d.POSTAGENS_DO_LOCAL === 'TODOS' && x.d.GRUPO_SOMA_LOCAIS === 'SIM' && x.d.POSTAGENS_OUTROS_LOCAIS === 2, 'grupo soma o faturamento de todos os LOCAIS', { vt: x.d.VALOR_TOTAL, somaTodos, pl: x.d.POSTAGENS_DO_LOCAL });
+ok(x.d.DATA_ULTIMA_POSTAGEM === um(`SELECT MAX(substr(data_postagem,1,10)) d FROM cid_postagens WHERE grafia LIKE '%SHALOM%' AND estorno=0`).d, 'última postagem considera todos os LOCAIS', x.d.DATA_ULTIMA_POSTAGEM);
 ok(!met('S4'), 'cadastro do BALCÃO não aparece solto');
 // LOCAL fixado manualmente
 await salvarGrupo(env, { id: GID, nome: 'ASSOCIAÇÃO SHALOM', membros: ['S1', 'S2', 'S3', 'S4'], principalId: 'S1', localModo: 'BALCAO' }, 'rachel');
 await calcularCrmD1(env, 'TESTE');
 x = met('S1');
-ok(x.local === 'BALCAO' && Math.abs(x.d.VALOR_TOTAL - 40) < 0.01 && x.d.GRUPO_LOCAL_MODO === 'BALCAO', 'LOCAL manual: só postagens do BALCÃO', { local: x.local, vt: x.d.VALOR_TOTAL });
+ok(x.local === 'BALCAO' && Math.abs(x.d.VALOR_TOTAL - somaTodos) < 0.01 && x.d.GRUPO_LOCAL_MODO === 'BALCAO', 'LOCAL manual: muda só a carteira, soma continua de todos os LOCAIS', { local: x.local, vt: x.d.VALOR_TOTAL });
 await salvarGrupo(env, { id: GID, nome: 'ASSOCIAÇÃO SHALOM', membros: ['S1', 'S2', 'S3', 'S4'], principalId: 'S1', localModo: 'AUTO' }, 'rachel');
 await calcularCrmD1(env, 'TESTE');
 
@@ -145,10 +148,9 @@ const cad2 = await crm('get_cadastro_v5', { tipo: 'CLIENTE' });
 ok(cad2.items.find((y) => y.clienteId === 'S1').cliente === 'ASSOCIAÇÃO SHALOM', 'nome do grupo vence nome manual do CRM');
 const abc = await crm('get_curva_abc_v1', { local: 'AGF' });
 const linha = abc.rows.find((y) => y.id === 'S1');
-const somaAgf = um(`SELECT ROUND(SUM(valor),2) v FROM cid_postagens WHERE local_codigo='AGF' AND grafia LIKE '%SHALOM%'`).v;
-ok(linha && Math.abs(linha.tV - somaAgf) < 0.01 && linha.grupoN === 4 && !abc.rows.some((y) => ['S2', 'S3'].includes(y.id)) && linha.nome === 'ASSOCIAÇÃO SHALOM', 'Curva ABC: uma linha, soma do grupo', linha);
+ok(linha && Math.abs(linha.tV - somaTodos) < 0.01 && linha.grupoN === 4 && !abc.rows.some((y) => ['S2', 'S3'].includes(y.id)) && linha.nome === 'ASSOCIAÇÃO SHALOM', 'Curva ABC: uma linha, soma do grupo', linha);
 const abcB = await crm('get_curva_abc_v1', { local: 'BALCAO' });
-ok(abcB.rows.some((y) => y.id === 'S1' && y.localCarteira === 'AGF') && !abcB.rows.some((y) => y.id === 'S4'), 'Curva do BALCÃO mostra as postagens do grupo lá com o nome do grupo');
+ok(!abcB.rows.some((y) => ['S1', 'S4'].includes(y.id)), 'Curva do BALCÃO não repete o grupo (ele está somado na curva do AGF)');
 const cart = await crm('get_carteira_v1', { local: 'AGF' });
 ok(cart.ok && !cart.fila.some((y) => ['S2', 'S3'].includes(y.clienteId)), 'fila do motor sem os cadastros do grupo', cart.fila.map((y) => y.clienteId));
 
