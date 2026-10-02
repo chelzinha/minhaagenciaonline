@@ -158,6 +158,13 @@ button { cursor: pointer; }
 .s-final input.s-nome-in { text-transform: uppercase; font-weight: 700; }
 .s-final input.s-nome-in:focus { border-color: var(--c-accent); outline: 0; box-shadow: 0 0 0 3px rgba(14,159,189,.18); }
 .s-foot { display: flex; gap: 6px; justify-content: flex-end; padding: 0 14px 12px; margin-top: auto; }
+.s-aviso { margin: 0 14px 10px; padding: 7px 10px; border-radius: 8px; background: var(--c-warn-soft); color: var(--c-warn); font-size: 12px; font-weight: 700; }
+.sug-tools-dir { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.cad-sug-lote { display: flex; align-items: center; gap: 12px; background: var(--c-ok-soft); border: 1px solid #b8e0c7; border-radius: var(--r); padding: 12px 14px; }
+.cad-sug-lote > .material-symbols-rounded { color: var(--c-ok); font-size: 26px; }
+.cad-sug-lote > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.cad-sug-lote small { color: var(--c-muted); font-size: 12px; }
+.cad-sug-lote .cad-btn { height: 38px; padding: 0 14px; }
 
 /* dialogos */
 .cad-dlg { border: 0; padding: 0; border-radius: 16px; width: min(520px, 94vw); box-shadow: 0 22px 55px rgba(15,23,42,.25); }
@@ -214,6 +221,9 @@ button { cursor: pointer; }
   .cad-row .lcol { grid-column: 1 / -1; order: 3; }
   .cad-sug-grid { grid-template-columns: minmax(0, 1fr); }
   .cad-sug-tools { flex-direction: column; align-items: stretch; }
+  .sug-tools-dir { flex-wrap: wrap; }
+  .sug-tools-dir .cad-btn, .cad-sug-lote .cad-btn { flex: 1; justify-content: center; }
+  .cad-sug-lote { flex-wrap: wrap; }
   .cad-row, .cad-btn, .cad-pager button { min-height: 40px; }
 }
 .f-voltar { display: none; }

@@ -422,6 +422,16 @@ async function agrupar(request, env, autor) {
     const comum = await cartoesEmComum(env, ids[0], ids[1]);
     if (!comum.length && b.forcar !== true) erro('Os dois nomes do Portal não usam o mesmo contrato e cartão. Confira antes de juntar.', 409, 'SEM_CARTAO_COMUM');
   }
+  const { destino, stmts } = decisoesDeAgrupar(env, nos, b, autor, renomeado);
+  await env.DB.batch(stmts);
+  const motor = await executarMotorD1(env, autor);
+  const novo = await env.DB.prepare(`SELECT cliente_id FROM cid_nos WHERE chave=?`).bind(destino.chave).first();
+  return { clienteId: novo?.cliente_id, motor };
+}
+
+/** Decisoes de um agrupamento (UNIR + NOME + reativacao). Usado pelo agrupar individual e pelo agrupar em lote. */
+function decisoesDeAgrupar(env, nos, b, autor, renomeado = false) {
+  const portais = nos.filter((n) => n.ehPortal);
   const destino = portais[0] || nos.find((n) => n.id === limpar(b.destino)) || nos[0];
   const stmts = nos.filter((n) => n !== destino).map((n) => env.DB.prepare(`INSERT INTO cid_decisoes(tipo, chave_a, chave_b, valor, autor) VALUES('UNIR',?,?,?,?)`)
     .bind(destino.chave, n.chave, renomeado && n.ehPortal ? 'PORTAL_RENOMEADO' : '', autor));
@@ -429,10 +439,62 @@ async function agrupar(request, env, autor) {
   if (nome && !destino.ehPortal) stmts.push(env.DB.prepare(`INSERT INTO cid_decisoes(tipo, chave_a, valor, autor) VALUES('NOME',?,?,?)`).bind(destino.chave, nome, autor));
   // desativa "separar" antigos entre esses nos
   for (const n of nos) for (const m of nos) if (n !== m) stmts.push(env.DB.prepare(`UPDATE cid_decisoes SET ativo=0 WHERE tipo='SEPARAR' AND ativo=1 AND chave_a=? AND chave_b=?`).bind(n.chave, m.chave));
-  await env.DB.batch(stmts);
+  return { destino, stmts };
+}
+
+/** No principal de varios clientes de uma vez (mesma ordem do nosDoCliente: Portal primeiro, depois o que mais postou). */
+async function noPrincipalDosClientes(env, ids) {
+  const out = new Map();
+  for (let i = 0; i < ids.length; i += 90) {
+    const parte = ids.slice(i, i + 90);
+    const r = await env.DB.prepare(`SELECT n.cliente_id id, n.chave, n.tipo,
+        (SELECT COUNT(*) FROM cid_grafias g JOIN cid_postagens p ON p.origem = g.origem AND p.grafia = g.grafia WHERE g.no_chave = n.chave) postagens
+      FROM cid_nos n WHERE n.cliente_id IN (${parte.map(() => '?').join(',')})`).bind(...parte).all();
+    const porId = new Map();
+    for (const x of r.results || []) { if (!porId.has(x.id)) porId.set(x.id, []); porId.get(x.id).push(x); }
+    for (const [id, ls] of porId) {
+      ls.sort((a, b) => (Number(b.tipo === 'P') - Number(a.tipo === 'P')) || (Number(b.postagens) - Number(a.postagens)) || String(a.chave).localeCompare(String(b.chave)));
+      out.set(id, ls[0].chave);
+    }
+  }
+  return out;
+}
+
+/**
+ * Agrupar em lote (os cartoes de sugestao conferidos na pagina). Mesmas decisoes do agrupar individual,
+ * com a limpeza reaplicada UMA vez no fim. Cartao com 2 clientes do Portal fica de fora: precisa da
+ * confirmacao individual (Portal mudou o nome). Cadastro repetido em 2 cartoes: vale o primeiro.
+ * Corpo: { itens: [{ clientes: [ids], nome, destino }] } (ate 60 cartoes).
+ */
+async function agruparLote(request, env, autor) {
+  const b = await corpo(request);
+  const itens = Array.isArray(b.itens) ? b.itens : [];
+  if (!itens.length) erro('Nenhum cartão para agrupar.');
+  if (itens.length > 60) erro('Agrupe no máximo 60 cartões por vez.');
+  const todosIds = [...new Set(itens.flatMap((it) => (it.clientes || []).map(limpar).filter(Boolean)))];
+  const principal = await noPrincipalDosClientes(env, todosIds);
+  const usados = new Set(), stmts = [], feitos = [], pulados = [];
+  itens.forEach((it, indice) => {
+    const ids = [...new Set((it.clientes || []).map(limpar).filter(Boolean))];
+    if (ids.length < 2 || ids.length > 30) return pulados.push({ indice, motivo: 'Marque de 2 a 30 cadastros.' });
+    if (ids.some((id) => usados.has(id))) return pulados.push({ indice, motivo: 'Cadastro já está em outro cartão deste lote.' });
+    if (ids.some((id) => !principal.has(id))) return pulados.push({ indice, motivo: 'Cadastro não existe mais. Recarregue a tela.' });
+    const nos = ids.map((id) => { const chave = principal.get(id); return { id, chave, ehPortal: chave.startsWith('P:') }; });
+    if (nos.filter((n) => n.ehPortal).length > 1) return pulados.push({ indice, motivo: 'Dois clientes do Portal: use o Agrupar do cartão (pede confirmação).' });
+    const d = decisoesDeAgrupar(env, nos, it, autor);
+    ids.forEach((id) => usados.add(id));
+    stmts.push(...d.stmts);
+    feitos.push({ indice, destinoChave: d.destino.chave });
+  });
+  if (!feitos.length) return { agrupados: 0, pulados, itens: [] };
+  for (let i = 0; i < stmts.length; i += 400) await env.DB.batch(stmts.slice(i, i + 400));
   const motor = await executarMotorD1(env, autor);
-  const novo = await env.DB.prepare(`SELECT cliente_id FROM cid_nos WHERE chave=?`).bind(destino.chave).first();
-  return { clienteId: novo?.cliente_id, motor };
+  const novos = [];
+  for (const f of feitos) {
+    const r = await env.DB.prepare(`SELECT cliente_id FROM cid_nos WHERE chave=?`).bind(f.destinoChave).first();
+    novos.push({ indice: f.indice, clienteId: r?.cliente_id || '' });
+  }
+  return { agrupados: feitos.length, pulados, itens: novos, motor };
 }
 
 async function naoEhOMesmo(request, env, autor) {
@@ -564,6 +626,7 @@ async function rotear(request, env, ctxAtual) {
   if (f && m === 'GET') return json({ ok: true, ...(await ficha(f[1], env)) });
   if (p === '/api/v2/sugestoes' && m === 'GET') return json({ ok: true, ...(await gruposDeSugestao(url, env)) });
   if (p === '/api/v2/agrupar' && m === 'POST') return json({ ok: true, ...(await agrupar(request, env, autor)) });
+  if (p === '/api/v2/agrupar-lote' && m === 'POST') return json({ ok: true, ...(await agruparLote(request, env, autor)) });
   if (p === '/api/v2/nao-e-o-mesmo' && m === 'POST') return json({ ok: true, ...(await naoEhOMesmo(request, env, autor)) });
   if (p === '/api/v2/tirar-grafia' && m === 'POST') return json({ ok: true, ...(await tirarGrafia(request, env, autor)) });
   if (p === '/api/v2/renomear' && m === 'POST') return json({ ok: true, ...(await renomear(request, env, autor)) });
