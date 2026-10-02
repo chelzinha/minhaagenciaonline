@@ -2,6 +2,12 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-10-02 - Cadastro: LOCAL da carteira aparece no CRM na hora
+
+### Corrigido
+- Trocar o LOCAL da carteira no /cadastros (ficha, lista ou "aplicar sugestões fortes") gravava a decisão, mas o CRM só recalculava no cron de 10 min, que fica travado enquanto a sincronização do Atende não termina a passagem (motor pendente). Ex.: DEPARTAMENTO MUNICIPAL DE PROTECAO E DEFESA DOS DIRE (PROCON) ficou em AGF no CRM depois de ir para METRÔ.
+- `/api/v2/definir-local` agora recalcula o CRM na mesma chamada (cerca de 5 s), como já acontecia com os grupos comerciais. Resposta ganha `crmAtualizado`. Se o recálculo falhar, a decisão fica gravada e o cron recalcula depois.
+
 ## 2026-10-02 - Visão 360: projeção do mês com ritmo ponderado pelo histórico
 
 ### Alterado
