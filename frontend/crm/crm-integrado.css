@@ -597,3 +597,11 @@ body.resizing *{cursor:col-resize!important}
 .cix .gshare i{display:block;height:6px;border-radius:99px;background:#6D28D9}
 @media (max-width:760px){.cix .tw tbody tr.mrow td.cn{padding-left:18px}}
 .cix .cn small.gsub{display:flex;align-items:center;gap:6px;margin-top:4px;padding-left:28px}
+/* Curva ABC: cores dos meses vencem o zebrado e o hover da tabela (antes as linhas pares e o hover deixavam as células brancas) */
+.cix .tw.heat tbody tr td.st-up,.cix .tw.heat tbody tr:hover td.st-up{background:#D8F3E3;color:#0F6B36}
+.cix .tw.heat tbody tr td.st-down,.cix .tw.heat tbody tr:hover td.st-down{background:#FBDDDA;color:#A3241A}
+.cix .tw.heat tbody tr td.st-eq,.cix .tw.heat tbody tr:hover td.st-eq,.cix .tw.heat tbody tr td.st-part,.cix .tw.heat tbody tr:hover td.st-part{background:#E3ECFA;color:#244C8F}
+.cix .tw.heat tbody tr td.st-zero,.cix .tw.heat tbody tr:hover td.st-zero{background:#B42318;color:#fff;text-align:center}
+.cix .tw.heat tbody tr td.st-pre,.cix .tw.heat tbody tr:hover td.st-pre{background:#FAFAFB;color:transparent}
+.cix .tw.heat tbody tr td.st-nob,.cix .tw.heat tbody tr:hover td.st-nob{background:repeating-linear-gradient(45deg,#F6F7FA 0 4px,#FFFFFF 4px 8px);color:transparent}
+.cix .tw.heat tbody tr:hover td.hc{box-shadow:inset 0 1px 0 rgba(11,58,99,.18),inset 0 -1px 0 rgba(11,58,99,.18)}

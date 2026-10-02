@@ -574,15 +574,18 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     const dl = (v - ant) / Math.max(1, Math.abs(ant));
     return dl >= 0.1 ? 'up' : dl <= -0.1 ? 'down' : 'eq';
   }
+  /** Nome fantasia da linha da curva (cadastro do cliente). Vazio quando não existe ou repete o nome. */
+  const fantasiaCurva = (r) => { const e = (C.state.clientsById || {})[r.id]; return fantasiaDe(e && e.nomeFantasia, r.nome); };
   function linhasCurva(abc) {
     const q = norm(S.curvaBusca);
     return abc.rows.filter((r) => (!S.curvaFiltro || r.abc === S.curvaFiltro) && (!S.curvaNovo || r.novo)
       && (!S.curvaInter || r.intermediador === S.curvaInter) && (!S.curvaCtr || (S.curvaCtr === 'SIM') === !!r.contrato)
-      && (!q || norm(r.nome + ' ' + r.intermediador).includes(q))
+      && (!q || norm(r.nome + ' ' + r.intermediador + ' ' + fantasiaCurva(r)).includes(q))
       && passaDsp(r.ultima ? Math.round((Date.parse(abc.ultimaPostagem) - Date.parse(r.ultima)) / 864e5) : 9999));
   }
   T['clientes-curva'] = () => {
     const id = 'curva', abc = curva(), loc = nomeLocais(), multi = !!abc && !!abc.multi;
+    if (!C.state.clientsReady) C.loadCadastroClientes(true); // nome fantasia vem do cadastro; ao carregar, a tela redesenha
     const cab = clientHead() + erroHtml(erroDe('abc'));
     if (!abc) return cab + carregandoHtml('Calculando a Curva ABC dos últimos 12 meses…');
     if (!abc.rows.length) return cab + `<div class="card"><div class="empty">Sem postagens em ${esc(loc)} na janela de 12 meses.</div></div>`;
@@ -683,7 +686,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
         ${head1}
       </tr><tr>${head2}</tr></thead>
       <tbody>${rows.map((c) => `<tr>
-        <td class="stick cn"><a class="ell" title="${esc(c.nome)}" href="#" data-cx-ficha="${esc(c.id)}" style="color:inherit;text-decoration:none">${esc(c.nome)}</a><small>${c.grupoN ? grpChip(c.grupoN) + ' ' : ''}1ª postagem ${c.primeira ? c.primeira.split('-').reverse().join('/') : '-'}${c.novo ? ' <span class="chip novo">NOVO</span>' : ''}</small></td>
+        <td class="stick cn"><a class="ell" title="${esc(c.nome)}" href="#" data-cx-ficha="${esc(c.id)}" style="color:inherit;text-decoration:none">${esc(c.nome)}</a><small class="ell" title="${esc((fantasiaCurva(c) ? 'Nome fantasia: ' + fantasiaCurva(c) + ' · ' : '') + '1ª postagem ' + (c.primeira ? c.primeira.split('-').reverse().join('/') : '-'))}">${c.grupoN ? grpChip(c.grupoN) + ' ' : ''}${fantasiaCurva(c) ? esc(fantasiaCurva(c)) : '<span class="faint">-</span>'}${c.novo ? ' <span class="chip novo">NOVO</span>' : ''}</small></td>
         ${o.map((k) => bodyCell(c, k)).join('')}
       </tr>`).join('') || `<tr><td colspan="${chaves.length}"><div class="empty">Nenhum cliente com estes filtros.</div></td></tr>`}</tbody>
     </table></div>
