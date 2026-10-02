@@ -1,0 +1,14 @@
+{
+  "titulo": "Metrô",
+  "mesRef": "Setembro 2026",
+  "dataRef": "22/09/2026",
+  "realizado": 71480.35,
+  "diasUteis": 21,
+  "diasRealizados": 15,
+  "ranking": [],
+  "metas": [
+    {"nivel": "Bronze", "valor": 102000},
+    {"nivel": "Prata", "valor": 110000},
+    {"nivel": "Ouro", "valor": 120000}
+  ]
+}

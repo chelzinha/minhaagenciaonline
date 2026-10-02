@@ -67,9 +67,10 @@ function addStyle(){
   document.head.appendChild(style);
 }
 function commercialTitle(){
+  /* 2026-10-02: o gerador V1 passou para a aba Gestão. A aba Comercial usa o DashboardCommercialPngV2. */
   var title=document.querySelector('#dashboardView .v4-title');
   if(!title) return null;
-  return clean(title.textContent).toLowerCase().indexOf('comercial')===0 ? title : null;
+  return clean(title.textContent).toLowerCase().indexOf('gestão')===0 ? title : null;
 }
 function removeTools(){ var old=document.getElementById(TOOLS_ID); if(old) old.remove(); }
 function mount(){

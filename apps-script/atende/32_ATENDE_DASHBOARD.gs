@@ -11,6 +11,7 @@ function ATENDE_dashboardAddonJs() {
     'DashboardIntelligenceV6',
     'DashboardVisualV6',
     'DashboardCommercialPngV1',
+    'DashboardCommercialPngV2',
     'DashboardMetaAdminV6',
     'DashboardBalcaoWeeklyAdminV1'
   ];

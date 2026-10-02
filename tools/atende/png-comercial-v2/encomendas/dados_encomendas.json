@@ -1,0 +1,25 @@
+{
+  "titulo": "Encomendas",
+  "mesRef": "Setembro 2026",
+  "dataRef": "22/09/2026",
+  "meta": 830000,
+  "realizado": 706826.64,
+  "diaAtual": 22,
+  "diasMes": 30,
+  "diasUteisRestantes": 6,
+  "metas": [
+    {
+      "nivel": "Bronze",
+      "valor": 830000
+    },
+    {
+      "nivel": "Prata",
+      "valor": 900000
+    },
+    {
+      "nivel": "Ouro",
+      "valor": 1000000
+    }
+  ],
+  "diasUteisRealizados": 15
+}

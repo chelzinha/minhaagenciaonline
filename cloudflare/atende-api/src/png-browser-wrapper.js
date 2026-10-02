@@ -118,6 +118,11 @@ export default {
         );
       }
 
+      // Tamanho: 600 (padrao, gerador V1) ou 1080 (gerador V2). Qualquer outro valor cai em 600.
+      const TAMANHOS = [600, 1080];
+      const width = TAMANHOS.includes(Number(body?.width)) ? Number(body.width) : 600;
+      const height = TAMANHOS.includes(Number(body?.height)) ? Number(body.height) : 600;
+
       try {
         const screenshot =
           await env.BROWSER.quickAction(
@@ -125,8 +130,8 @@ export default {
             {
               html,
               viewport: {
-                width: 600,
-                height: 600,
+                width,
+                height,
                 deviceScaleFactor: 1
               },
               screenshotOptions: {

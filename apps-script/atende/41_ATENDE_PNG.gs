@@ -9,7 +9,7 @@
  *   -> Apps Script
  *   -> Worker oficial do Atende
  *   -> Cloudflare Browser Run
- *   -> PNG 600x600
+ *   -> PNG 600x600 (V1, aba Gestao) ou 1080x1080 (V2, aba Comercial)
  *
  * O navegador nunca recebe o token da API.
  * ============================================================
@@ -26,6 +26,14 @@ function ATENDE_renderCommercialPngV1(payload) {
       payload.filename ||
       'resultado-comercial.png'
     );
+
+  /*
+   * Tamanho do PNG. Sem parametro = 600x600 (gerador V1, aba Gestao).
+   * O gerador V2 (aba Comercial) envia 1080x1080.
+   */
+  const tamanhosPermitidos = [600, 1080];
+  const width = tamanhosPermitidos.indexOf(Number(payload.width)) >= 0 ? Number(payload.width) : 600;
+  const height = tamanhosPermitidos.indexOf(Number(payload.height)) >= 0 ? Number(payload.height) : 600;
 
   if (!html.trim()) {
     throw new Error(
@@ -83,7 +91,9 @@ function ATENDE_renderCommercialPngV1(payload) {
 
         payload:
           JSON.stringify({
-            html: html
+            html: html,
+            width: width,
+            height: height
           }),
 
         muteHttpExceptions: true,

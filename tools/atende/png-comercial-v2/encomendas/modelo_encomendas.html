@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>AGF - resultado do mês, Encomendas</title>
+<style>
+__CSS_BASE__
+
+.kpis.dois{grid-template-columns:1fr 1fr}
+.kpis.dois .kpi{padding:20px 26px 22px}
+.kpis.dois .rot{font-size:16px}
+.kpis.dois .num{font-size:46px}
+.enc{}
+.enc .mpd p{font-size:22px}
+.enc .mpd .num{font-size:66px}
+.enc .mpd .num small{font-size:19px}
+.enc .cartao{padding:22px 26px}
+.andamento{background:var(--neutro);display:flex;flex-direction:column}
+.and2{flex:1;display:grid;grid-template-columns:1.2fr 1fr;align-items:center}
+.and2 > div{display:flex;flex-direction:column;gap:10px;padding-right:20px}
+.and2 > div + div{border-left:1px solid var(--fio);padding:0 0 0 22px}
+.and2 .rot{font-size:15.5px;letter-spacing:.08em}
+.and2 .num{font-size:84px}
+.and2 .num small{font-size:26px;font-weight:700;color:var(--apoio);letter-spacing:0;margin-left:6px}
+.and2 > div + div .num small{display:block;margin:8px 0 0}
+.mini{height:28px;border-radius:999px;background:var(--fio);position:relative;overflow:hidden;margin-top:4px}
+.mini .fill{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--tinta);display:flex;align-items:center;justify-content:flex-end;padding-right:10px;min-width:80px}
+.mini .fill span{font-family:var(--f-tit);font-weight:700;font-size:17px;color:#fff}
+.hero h1 .marca-total{display:inline-block;background:var(--amarelo);color:var(--tinta);padding:0 16px 6px;border-radius:6px}
+/* Encomendas: mesmos tokens e componentes do Balcão; blocos próprios abaixo */
+.necessaria{background:var(--roxo-f);border-radius:20px;padding:24px 30px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:24px;flex:1 1 auto}
+.necessaria .cab{display:flex;align-items:center;gap:10px;margin-bottom:12px;white-space:nowrap}
+.necessaria .cab svg{display:block;flex:none}
+.necessaria .cab .rot{color:var(--roxo)}
+.necessaria p{font-size:22px;line-height:1.4;color:var(--tinta)}
+.necessaria p b{font-weight:700}
+.necessaria .num{font-size:72px;color:var(--roxo);text-align:right}
+.necessaria .num small{display:block;margin-top:10px;font-family:var(--f-txt);font-size:19px;font-weight:500;color:var(--apoio);letter-spacing:0}
+.fecho{background:var(--neutro);border-radius:20px;padding:20px 26px;display:flex;align-items:center;gap:20px}
+.fecho svg{display:block;flex:none}
+.fecho .frase b{display:block;font-family:var(--f-tit);font-weight:800;font-size:26px;color:var(--tinta);letter-spacing:-.02em;line-height:1.15}
+.fecho .frase span{display:block;margin-top:4px;font-size:17.5px;color:var(--grafite);white-space:nowrap}
+.fecho .pilares{margin-left:auto;display:flex;align-items:center;gap:14px;font-family:var(--f-tit);font-weight:700;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--tinta);white-space:nowrap;gap:10px}
+.fecho .pilares i{display:block;width:3px;height:18px;border-radius:2px;background:var(--amarelo)}
+
+/* linha de metas Bronze, Prata e Ouro */
+.metas{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:14px}
+.nivel{border-radius:20px;padding:20px 22px 18px;min-width:0;background:var(--neutro);position:relative;overflow:hidden}
+.nivel::before{content:"";position:absolute;inset:0 0 auto 0;height:6px;background:var(--m)}
+.nivel .topo-n{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.medalha{display:inline-flex;align-items:center;gap:9px;font-family:var(--f-tit);font-weight:800;font-size:17px;letter-spacing:.12em;text-transform:uppercase;color:var(--m2)}
+.medalha i{width:26px;height:26px;border-radius:50%;background:var(--m);box-shadow:inset 0 0 0 3px rgba(255,255,255,.55),0 0 0 2px var(--m2)}
+.selo-ok{font-family:var(--f-tit);font-weight:700;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#15803D;background:#EAFBF0;border-radius:999px;padding:4px 11px}
+.nivel .num{font-size:34px;margin-top:14px}
+.nivel .barra-n{height:12px;border-radius:999px;background:var(--fio);margin-top:14px;overflow:hidden}
+.nivel .barra-n i{display:block;height:100%;border-radius:999px;background:var(--m2)}
+.nivel .info{display:flex;flex-direction:column;gap:3px;margin-top:10px;font-size:17px;color:var(--apoio);white-space:nowrap}
+.nivel .info b{font-family:var(--f-tit);font-weight:700;color:var(--tinta)}
+.nivel.alvo{background:var(--amarelo-f);box-shadow:inset 0 0 0 2px var(--ouro)}
+.bronze{--m:#D89A6A;--m2:#9A5B2E} .prata{--m:#C9D1DB;--m2:#5F6B7A} .ouro{--m:#FFD100;--m2:#B07C00}
+/* alturas naturais: sem card esticado */
+.peca{justify-content:space-between}
+.enc{flex:none !important}
+.enc .cartao{padding:22px 26px;display:flex;flex-direction:column;justify-content:center}
+.enc .cartao .cab{margin-bottom:16px}
+.and2{flex:none;align-items:start}
+.enc .mpd .num{margin-top:12px !important}
+
+/* média diária: realizada x necessária */
+.md-linha{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:10px 0;border-bottom:1px solid #DCD3EE}
+.md-linha span{font-size:19px;color:var(--tinta);line-height:1.3}
+.md-linha span small{display:block;font-size:16px;color:var(--apoio)}
+.md-linha b{font-family:var(--f-tit);font-weight:800;font-size:38px;letter-spacing:-.02em;color:var(--tinta);white-space:nowrap}
+.md-linha.nec{border-bottom:0}
+.md-linha.nec b{color:var(--roxo)}
+.md-selo{margin-top:8px;align-self:flex-start;font-family:var(--f-tit);font-weight:700;font-size:16px;padding:6px 14px;border-radius:999px}
+.md-selo.ok{background:#EAFBF0;color:#15803D}
+.md-selo.atencao{background:var(--vermelho-f);color:var(--vermelho)}
+.medalha svg{display:block;flex:none}
+
+/* ajuste de altura com a média diária */
+.md-linha{padding:6px 0}
+.md-linha b{font-size:34px}
+.md-linha span{font-size:18px}
+.md-linha span small{font-size:15px}
+.md-selo{font-size:15px;padding:5px 13px;margin-top:6px}
+.enc .cartao{padding:18px 24px}
+.enc .cartao .cab{margin-bottom:8px}
+.and2 .num{font-size:72px}
+.nivel{padding:16px 20px 14px}
+.nivel .num{margin-top:10px}
+.nivel .barra-n{margin-top:10px}
+.fecho{padding:16px 26px}
+.hero{padding:26px 38px 24px}
+.ritmo{margin-top:16px}
+.md-linha span{white-space:nowrap}
+.duas.enc{grid-template-columns:.92fr 1.08fr}
+</style></head><body>
+<div class="peca">
+
+  <section class="hero">
+    <div class="h-topo">
+      <h1 id="titulo"></h1>
+      <div class="ident"><span class="chip" id="mes"></span><span class="ate">Até <b id="atu"></b></span></div>
+    </div>
+    <div class="h-corpo">
+      <div>
+        <div class="rot" id="lReal"></div>
+        <div class="valor" id="vReal"></div>
+        <div class="de">de <b id="vMetaHero"></b> da meta Bronze</div>
+      </div>
+      <div class="anel">
+        <svg viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="12"/>
+          <circle id="arco" cx="60" cy="60" r="50" fill="none" stroke="#FFD100" stroke-width="12" stroke-linecap="round" stroke-dasharray="0 999"/>
+        </svg>
+        <div class="meio"><b id="pMeta"></b><span>da Bronze</span></div>
+      </div>
+    </div>
+    <div class="ritmo">
+      <div class="trilho"><div class="fill" id="fMeta"></div><div class="tempo" id="mTempo"></div></div>
+      <div class="leg">
+        <span><i style="background:#FFD100"></i>Percentual atingido <b id="legReal"></b></span>
+        <span><i style="background:#fff"></i>Mês decorrido <b id="legTempo"></b></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="metas" id="metas"></section>
+
+  <section class="duas enc">
+    <div class="cartao andamento">
+      <div class="cab">__I_RELOGIO__<span class="rot">Andamento do mês</span></div>
+      <div class="and2">
+        <div><span class="rot">Dias úteis</span><div class="num"><span id="kDias"></span><small id="kDe"></small></div>
+          <div class="mini"><div class="fill" id="fDias"><span id="pDias"></span></div></div></div>
+        <div><span class="rot">Dias restantes</span><div class="num"><span id="kRest"></span><small id="kRestS"></small></div></div>
+      </div>
+    </div>
+    <div class="cartao mpd">
+      <div class="cab">__I_PASSO__<span class="rot">Média diária</span></div>
+      <div class="md-linha"><span id="mdRealL"></span><b id="mdReal"></b></div>
+      <div class="md-linha nec"><span id="mdNecL"></span><b id="mdNec"></b></div>
+      <div class="md-selo" id="mdSelo"></div>
+    </div>
+  </section>
+
+  <section class="fecho">
+    __I_COLETA__
+    <div class="frase"><b>Seguimos em movimento!</b><span>Encomendas que aproximam pessoas e oportunidades</span></div>
+    <div class="pilares">Foco<i></i>Planejamento<i></i>Resultado</div>
+  </section>
+
+</div>
+<script>
+/* Dados: mesma fonte da aba Comercial do Visão 360 */
+const D = __DADOS__;
+const MEDALHA = __MEDALHAS__;
+(function(d){
+  const $ = id => document.getElementById(id);
+  const brl = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  const pct = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '%';
+  const plural = (n, s, p) => `${n} ${n === 1 ? s : p}`;
+
+  const metaBase = d.metas[0].valor;
+  const proxima = d.metas.find(m => d.realizado < m.valor) || null;
+  const pMeta  = metaBase ? d.realizado / metaBase * 100 : 0;
+  const pTempo = d.diasMes ? d.diaAtual / d.diasMes * 100 : 0;
+  const falta  = proxima ? proxima.valor - d.realizado : 0;
+  const rest   = Math.max(d.diasUteisRestantes, 0);
+  const porDia = rest ? falta / rest : falta;
+  const curta  = d.dataRef.slice(0, 5);
+
+  $('titulo').innerHTML = `<span class="marca-total">${d.titulo}</span>`;
+  $('mes').textContent = `Resultado de ${d.mesRef}`;
+  $('atu').textContent = d.dataRef;
+  $('lReal').textContent = `Realizado até ${curta}`;
+  $('vReal').textContent = brl(d.realizado);
+  $('vMetaHero').textContent = `${brl(metaBase)}`;
+  $('pMeta').textContent = pct(pMeta);
+  const C = 2 * Math.PI * 50;
+  $('arco').setAttribute('stroke-dasharray', `${C * Math.min(pMeta, 100) / 100} ${C}`);
+  $('fMeta').style.width = Math.min(pMeta, 100) + '%';
+  $('mTempo').style.left = Math.min(pTempo, 100) + '%';
+  $('legReal').textContent = pct(pMeta);
+  $('legTempo').textContent = pct(pTempo);
+
+  const classe = {Bronze:'bronze', Prata:'prata', Ouro:'ouro'};
+  const alvo = d.metas.find(m => d.realizado < m.valor);
+  $('metas').innerHTML = d.metas.map(m => {
+    const p = m.valor ? d.realizado / m.valor * 100 : 0;
+    const ok = d.realizado >= m.valor;
+    return `<div class="nivel ${classe[m.nivel] || ''} ${m === alvo ? 'alvo' : ''}">
+      <div class="topo-n"><span class="medalha">${MEDALHA[m.nivel] || ""}Meta ${m.nivel}</span>${ok ? '<span class="selo-ok">Batida</span>' : ''}</div>
+      <div class="num">${brl(m.valor)}</div>
+      <div class="barra-n"><i style="width:${Math.min(p,100)}%"></i></div>
+      <div class="info"><span><b>${pct(p)}</b> atingido</span><span>${ok ? 'Acima <b>' + brl(d.realizado - m.valor) + '</b>' : 'Faltam <b>' + brl(m.valor - d.realizado) + '</b>'}</span></div>
+    </div>`;
+  }).join('');
+  $('kDias').textContent = d.diaAtual;
+  $('kDe').textContent = `de ${d.diasMes}`;
+  $('kRest').textContent = rest;
+  $('fDias').style.width = Math.min(pTempo, 100) + '%';
+  $('pDias').textContent = pct(pTempo);
+  $('kRestS').textContent = rest === 1 ? 'dia útil' : 'dias úteis';
+
+  const ur = d.diasUteisRealizados || 0;
+  const mediaReal = ur ? d.realizado / ur : 0;
+  $('mdRealL').innerHTML = `Realizada<small>nos ${plural(ur, 'dia útil passado', 'dias úteis passados')}</small>`;
+  $('mdReal').textContent = brl(mediaReal);
+  if (falta) {
+    $('mdNecL').innerHTML = `Necessária${proxima ? ' · ' + proxima.nivel : ''}<small>nos próximos ${plural(rest, 'dia útil', 'dias úteis')}</small>`;
+    $('mdNec').textContent = brl(porDia);
+    const r = porDia ? mediaReal / porDia : 0;
+    const sel = $('mdSelo');
+    if (!mediaReal) { sel.style.display = 'none'; }
+    sel.classList.add(r >= 1 ? 'ok' : 'atencao');
+    sel.textContent = r >= 1
+      ? `Ritmo atual cobre ${r.toLocaleString('pt-BR',{maximumFractionDigits:1})}x o necessário`
+      : `Precisa subir ${pct((1/r - 1) * 100)} no ritmo diário`;
+  } else {
+    $('mdNecL').innerHTML = 'Todas as metas<small>batidas no mês</small>';
+    $('mdNec').textContent = '';
+  }
+})(D);
+</script>
+</body></html>

@@ -2,6 +2,22 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-10-02 - Visão 360: novas artes PNG na aba Comercial
+
+### Adicionado
+- `DashboardCommercialPngV2.html`: botão "Salvar PNG" da aba Comercial gera as artes 1080x1080 de Balcão AGF, Encomendas e Metrô no padrão do Método de Artes AGF (Poppins/Inter, paleta em vigor, ícones da biblioteca AGF, medalhas Bronze/Prata/Ouro).
+- Cada arte mostra realizado, % da Bronze contra o mês decorrido, cartões das metas configuradas (Bronze, Prata, Ouro), média diária realizada x necessária para a próxima meta e, no Balcão, os percentuais por colaborador.
+- Fontes subconjunto embutidas no HTML (cerca de 100 KB) para o Browser Run não depender de rede.
+
+### Alterado
+- Gerador antigo (`DashboardCommercialPngV1`, cartões 600x600) migrou para a aba Gestão. Única mudança: a aba onde o botão aparece.
+- `ATENDE_renderCommercialPngV1` e o Worker `/render-commercial-png` aceitam `width`/`height` (600 ou 1080). Sem parâmetro continua 600x600.
+
+### Regras
+- Fonte única dos números: os mesmos dados da aba Comercial (`metas.config`, `metas.realizado`, `rankingBalcao`, dias úteis do mês).
+- Encomendas passa a usar dias úteis, como Balcão e Metrô.
+- Meta não configurada (valor zero) não aparece. Sem meta Bronze, o PNG não é gerado e aparece aviso.
+
 ## 2026-10-02 - Cadastro: LOCAL da carteira aparece no CRM na hora
 
 ### Corrigido

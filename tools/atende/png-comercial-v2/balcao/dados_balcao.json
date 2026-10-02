@@ -1,0 +1,36 @@
+{
+  "titulo": "Balcão AGF",
+  "mesRef": "Setembro 2026",
+  "dataRef": "22/09/2026",
+  "realizado": 62693.16,
+  "diasUteis": 21,
+  "diasRealizados": 15,
+  "ranking": [
+    {
+      "nome": "Elen",
+      "valor": 41859.4
+    },
+    {
+      "nome": "Alesson",
+      "valor": 13206.24
+    },
+    {
+      "nome": "Levy",
+      "valor": 7627.52
+    }
+  ],
+  "metas": [
+    {
+      "nivel": "Bronze",
+      "valor": 102000
+    },
+    {
+      "nivel": "Prata",
+      "valor": 110000
+    },
+    {
+      "nivel": "Ouro",
+      "valor": 120000
+    }
+  ]
+}
