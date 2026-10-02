@@ -1,0 +1,37 @@
+/* Chamada da Vitrine do Lojista na home pública (index.html). Arquivo separado
+   para não depender do cache do /styles.css no service worker. */
+.dc-home { padding: 6px 0 4px; }
+.dc-home-card {
+  position: relative; overflow: hidden; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 18px;
+  padding: 18px 20px; border-radius: var(--radius-2xl, 30px); color: #fff;
+  background: linear-gradient(135deg, var(--blue-800, #00416B), var(--blue-950, #002E4F));
+  border: 1px solid rgba(0, 46, 79, .2); box-shadow: var(--shadow-md, 0 18px 45px rgba(0, 46, 79, .12)); transition: .22s ease;
+}
+.dc-home-card::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, .09) 1px, transparent 1px); background-size: 16px 16px;
+  mask-image: linear-gradient(90deg, transparent 30%, #000 100%);
+}
+.dc-home-card::after {
+  content: ""; position: absolute; right: -80px; top: -90px; width: 260px; height: 260px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 212, 0, .28), rgba(255, 212, 0, 0) 65%); pointer-events: none;
+}
+.dc-home-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg, 0 28px 80px rgba(0, 46, 79, .16)); }
+.dc-home-card > * { position: relative; z-index: 1; }
+.dc-home-ic { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 18px; background: var(--yellow-500, #FFD400); color: #3D3200; }
+.dc-home-ic .material-symbols-rounded { font-size: 30px; }
+.dc-home-tag { display: inline-flex; align-items: center; min-height: 22px; padding: 0 9px; border-radius: 999px; background: rgba(255, 212, 0, .18); color: var(--yellow-450, #FFE15B); font-size: 10.5px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.dc-home-card h2 { margin: 6px 0 4px; font-size: clamp(20px, 2.2vw, 26px); line-height: 1.05; letter-spacing: -.035em; font-weight: 900; }
+.dc-home-card p { margin: 0; font-size: 13.5px; line-height: 1.5; opacity: .86; max-width: 620px; }
+.dc-home-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.dc-home-chips span { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 0 10px; border-radius: 999px; background: rgba(255, 255, 255, .10); border: 1px solid rgba(255, 255, 255, .14); font-size: 12px; font-weight: 750; }
+.dc-home-chips .material-symbols-rounded { font-size: 16px; color: var(--yellow-450, #FFE15B); }
+.dc-home-go { display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 18px; border-radius: 999px; background: #fff; color: var(--blue-950, #002E4F); font-size: 14px; font-weight: 900; white-space: nowrap; }
+.dc-home-card:hover .dc-home-go .material-symbols-rounded { transform: translateX(3px); }
+.dc-home-go .material-symbols-rounded { transition: .2s ease; }
+@media (max-width: 760px) {
+  .dc-home-card { grid-template-columns: auto minmax(0, 1fr); padding: 16px; gap: 12px; border-radius: 24px; }
+  .dc-home-ic { width: 46px; height: 46px; border-radius: 15px; align-self: start; }
+  .dc-home-chips span:nth-child(n+4) { display: none; }
+  .dc-home-go { grid-column: 1 / -1; justify-content: center; }
+}

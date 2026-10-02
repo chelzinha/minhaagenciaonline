@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Admin da Vitrine | AGF José Bonifácio</title>
+  <meta name="theme-color" content="#00416B" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/pwa/root/favicon-32.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0..1,0&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/dicas/admin/admin.css?v=2" />
+</head>
+<body class="ad-page">
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/dicas/" aria-label="Abrir a Vitrine do Lojista">
+        <img class="brand-mark" src="/assets/correios-logo-2.png" alt="Correios" />
+        <span class="brand-copy"><strong>Admin da Vitrine</strong><small>AGF José Bonifácio</small></span>
+      </a>
+      <div class="ad-head-actions">
+        <a class="header-internal" href="/dicas/" target="_blank" rel="noopener"><span class="material-symbols-rounded" aria-hidden="true">storefront</span><span>Ver vitrine</span></a>
+        <button class="header-internal" type="button" id="ad-sair" hidden><span class="material-symbols-rounded" aria-hidden="true">logout</span><span>Sair</span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- LOGIN -->
+  <main class="container ad-login" id="ad-login" hidden>
+    <form class="ad-card ad-login-card" id="ad-login-form" autocomplete="off">
+      <span class="ad-login-ic material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
+      <h1>Entrar no admin</h1>
+      <p>Use a chave de administração gerada na instalação (arquivo <b>dicas-admin-chave.txt</b>).</p>
+      <label class="ad-field"><span>Chave de administração</span>
+        <input type="password" id="ad-token" required minlength="16" autocomplete="current-password" />
+      </label>
+      <label class="ad-check"><input type="checkbox" id="ad-lembrar" /> Lembrar neste computador</label>
+      <button class="ad-btn ad-btn--primary" type="submit" id="ad-login-btn"><span class="material-symbols-rounded" aria-hidden="true">login</span>Entrar</button>
+      <p class="ad-msg" id="ad-login-msg" role="alert"></p>
+    </form>
+  </main>
+
+  <!-- APP -->
+  <main class="container ad-app" id="ad-app" hidden>
+    <section class="ad-stats" aria-label="Resumo">
+      <div class="ad-stat"><span class="material-symbols-rounded" aria-hidden="true">inventory_2</span><div><strong id="st-ativos">-</strong><small>produtos ativos</small></div></div>
+      <div class="ad-stat"><span class="material-symbols-rounded" aria-hidden="true">ads_click</span><div><strong id="st-cliques">-</strong><small>cliques no total</small></div></div>
+      <div class="ad-stat"><span class="material-symbols-rounded" aria-hidden="true">trending_up</span><div><strong id="st-c7">-</strong><small>cliques nos últimos 7 dias</small></div></div>
+      <div class="ad-stat ad-stat--warn"><span class="material-symbols-rounded" aria-hidden="true">hide_image</span><div><strong id="st-semfoto">-</strong><small>ativos sem foto</small></div></div>
+    </section>
+
+    <nav class="ad-tabs" role="tablist" aria-label="Seções do admin">
+      <button role="tab" aria-selected="true" data-tab="produtos" id="tab-produtos"><span class="material-symbols-rounded" aria-hidden="true">list_alt</span>Produtos</button>
+      <button role="tab" aria-selected="false" data-tab="categorias" id="tab-categorias"><span class="material-symbols-rounded" aria-hidden="true">category</span>Categorias</button>
+    </nav>
+
+    <!-- PRODUTOS -->
+    <section class="ad-panel" role="tabpanel" id="pn-produtos" aria-labelledby="tab-produtos">
+      <div class="ad-toolbar">
+        <label class="ad-search"><span class="material-symbols-rounded" aria-hidden="true">search</span>
+          <input type="search" id="pf-q" placeholder="Filtrar por título ou dica" aria-label="Filtrar produtos" /></label>
+        <select id="pf-cat" aria-label="Filtrar por categoria"></select>
+        <select id="pf-sit" aria-label="Filtrar por situação">
+          <option value="">Todas as situações</option>
+          <option value="semfoto">Sem foto</option>
+          <option value="kit">No kit inicial</option>
+          <option value="inativo">Inativos</option>
+        </select>
+        <button class="ad-btn ad-btn--primary" type="button" id="ad-novo"><span class="material-symbols-rounded" aria-hidden="true">add</span>Novo produto</button>
+      </div>
+      <div class="ad-tip">
+        <span class="material-symbols-rounded" aria-hidden="true">tips_and_updates</span>
+        <div><b>Onde comprar:</b> o campo “Link” aceita qualquer endereço https (loja virtual, marketplace, site do fabricante ou link de parceria). <b>Foto:</b> na página do produto, clique com o botão direito na imagem, escolha “Copiar endereço da imagem” e cole no campo “Link da imagem”.</div>
+      </div>
+      <p class="ad-count" id="pf-count" aria-live="polite"></p>
+      <div class="ad-list" id="ad-lista"></div>
+    </section>
+
+    <!-- CATEGORIAS -->
+    <section class="ad-panel" role="tabpanel" id="pn-categorias" aria-labelledby="tab-categorias" hidden>
+      <p class="ad-help">Ícones usam os nomes do Google Material Symbols (ex.: <code>print</code>, <code>label</code>, <code>scale</code>, <code>package_2</code>). Categorias inativas somem da vitrine.</p>
+      <div class="ad-cats" id="ad-cats"></div>
+      <form class="ad-card ad-newcat" id="ad-newcat">
+        <h3>Nova categoria</h3>
+        <div class="ad-grid4">
+          <label class="ad-field"><span>Nome</span><input name="nome" required maxlength="60" placeholder="Sacolas" /></label>
+          <label class="ad-field"><span>Identificador</span><input name="id" required maxlength="40" placeholder="sacolas" /></label>
+          <label class="ad-field"><span>Ícone</span><input name="icone" maxlength="40" placeholder="shopping_bag" /></label>
+          <label class="ad-field"><span>Cor</span><input name="cor" type="color" value="#00416B" /></label>
+        </div>
+        <label class="ad-field"><span>Descrição</span><input name="descricao" maxlength="200" placeholder="Para que serve esta categoria" /></label>
+        <button class="ad-btn ad-btn--primary" type="submit"><span class="material-symbols-rounded" aria-hidden="true">add</span>Criar categoria</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- MODAL PRODUTO -->
+  <dialog class="ad-dialog" id="ad-dlg" aria-labelledby="dlg-title">
+    <form method="dialog" id="ad-form" novalidate>
+      <header class="ad-dlg-head">
+        <h2 id="dlg-title">Produto</h2>
+        <button type="button" class="ad-icon-btn" data-close aria-label="Fechar"><span class="material-symbols-rounded" aria-hidden="true">close</span></button>
+      </header>
+      <div class="ad-dlg-body">
+        <div class="ad-preview" id="f-preview" aria-hidden="true"></div>
+        <div class="ad-dlg-fields">
+          <label class="ad-field"><span>Título *</span><input name="titulo" required minlength="3" maxlength="160" /></label>
+          <div class="ad-grid2">
+            <label class="ad-field"><span>Categoria *</span><select name="categoriaId" required></select></label>
+            <label class="ad-field"><span>Ícone sem foto</span><input name="icone" maxlength="40" placeholder="Ex.: print" /></label>
+          </div>
+          <label class="ad-field"><span>Link de onde comprar * <small id="f-af"></small></span>
+            <input name="link" type="url" required placeholder="https://loja.com.br/produto" /></label>
+          <label class="ad-field"><span>Link da imagem</span><input name="imagemUrl" type="url" placeholder="https://..." /></label>
+          <label class="ad-field"><span>Dica da agência</span><textarea name="dica" rows="3" maxlength="400" placeholder="Por que este item ajuda na expedição"></textarea></label>
+          <div class="ad-grid4">
+            <label class="ad-field"><span>Preço mín. (R$)</span><input name="precoMin" inputmode="decimal" placeholder="39,90" /></label>
+            <label class="ad-field"><span>Preço máx. (R$)</span><input name="precoMax" inputmode="decimal" /></label>
+            <label class="ad-field"><span>Avaliação</span><input name="avaliacao" inputmode="decimal" placeholder="4,8" /></label>
+            <label class="ad-field"><span>Vendidos</span><input name="vendas" inputmode="numeric" /></label>
+          </div>
+          <div class="ad-grid2">
+            <label class="ad-field"><span>Loja</span><input name="loja" maxlength="120" /></label>
+            <label class="ad-field"><span>Ordem na categoria</span><input name="ordem" inputmode="numeric" placeholder="10, 20, 30..." /></label>
+          </div>
+          <div class="ad-switches">
+            <label class="ad-check"><input type="checkbox" name="destaque" /> No kit inicial</label>
+            <label class="ad-check"><input type="checkbox" name="ativo" checked /> Ativo na vitrine</label>
+          </div>
+          <p class="ad-msg" id="f-msg" role="alert"></p>
+        </div>
+      </div>
+      <footer class="ad-dlg-foot">
+        <button type="button" class="ad-btn ad-btn--danger" id="f-excluir" hidden><span class="material-symbols-rounded" aria-hidden="true">delete</span>Excluir</button>
+        <span class="ad-spacer"></span>
+        <button type="button" class="ad-btn" data-close>Cancelar</button>
+        <button type="submit" class="ad-btn ad-btn--primary" id="f-salvar"><span class="material-symbols-rounded" aria-hidden="true">save</span>Salvar</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div class="ad-toast" id="ad-toast" role="status" aria-live="polite"></div>
+
+  <script src="/dicas/dicas-config.js?v=2"></script>
+  <script src="/dicas/admin/admin.js?v=2"></script>
+</body>
+</html>

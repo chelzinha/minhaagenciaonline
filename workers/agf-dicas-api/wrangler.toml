@@ -1,0 +1,21 @@
+# agf-dicas-api - backend da Vitrine do Lojista (/dicas)
+name = "agf-dicas-api"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "agf-dicas"
+database_id = "cc7325a6-6970-4c71-a7c8-6d7ab1988b92"
+
+# Sem tarefas agendadas (lista vazia remove o agendamento de versões anteriores)
+[triggers]
+crons = []
+
+[vars]
+# Origens extras liberadas para o admin, separadas por vírgula (as do domínio já vêm no código)
+ALLOWED_ORIGINS = ""
+
+[observability]
+enabled = true
