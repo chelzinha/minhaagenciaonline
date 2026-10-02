@@ -2,6 +2,22 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-10-02 - CRM: cadastro do Portal Postal, nome fantasia e contrato próprio
+
+### Adicionado
+- Carga do cadastro do Portal Postal (CSV de clientes + planilha "Fantasia Clientes Portal") no `crm_cadastro` do D1, direto no banco: 302 clientes do Portal que já estão no CRM. Campos: nome fantasia, razão social, CNPJ/CPF, WhatsApp (celular), telefone (fixo), e-mail, endereço, e o contrato próprio do Portal (código, contrato, cartão, cód. administrativo, tipo e vigência). Valor já preenchido à mão no CRM não foi sobrescrito. Backup: tabela `crm_cadastro_bkp_20261002`.
+- Migração `0106_crm_cadastro_portal.sql`: 6 colunas novas (`CODIGO_PORTAL`, `CONTRATO_PORTAL`, `CARTAO_PORTAL`, `COD_ADM_PORTAL`, `TIPO_CONTRATO_PORTAL`, `VIGENCIA_CONTRATO_PORTAL`). Já aplicada em produção e registrada em `d1_migrations`.
+- API do CRM: cliente ganha `telefone`, `cidade`, `uf`, `codigoPortal`, `contratoPortal`, `cartaoPortal`, `tipoContratoPortal`, `vigenciaContratoPortal`, `contratoPortalVencido` e `situacaoContratoProprio` (`USA_OUTRO_CONTRATO`, `USA_O_PROPRIO`, `PROPRIO_SEM_USO`, `SEM_CONTRATO_PROPRIO`). Card do funil ganha `nomeFantasia`. Só campos acrescentados.
+- Cadastro: coluna "Contrato próprio" (filtrável) para achar quem tem contrato próprio e posta com outro. Busca também por telefone, contrato e cartão do Portal.
+- Ficha do cliente: seção "Cadastro" com fantasia, razão social, CNPJ, WhatsApp, telefone, e-mail, endereço, contrato próprio e contrato nas postagens.
+
+### Alterado
+- Cards do Funil mostram o nome fantasia como 2ª linha (quando diferente do nome).
+- Lista do Cadastro: a 2ª linha mostra o nome fantasia no lugar de "CNPJ a completar" (sem fantasia: CNPJ; sem os dois: "Nome fantasia a completar").
+- O contrato exibido no CRM continua sendo o das postagens (regra da Rachel): o contrato do Portal fica em campos separados.
+- Fusão de IDs do Cadastro leva também as colunas do Portal.
+- Frontend `crm-integrado.js` e `.css` com cache v=6. Prévia na branch `feat/crm-portal-fantasia` (origem liberada no `wrangler.jsonc`).
+
 ## 2026-09-30 - Cadastro de Clientes: nome antigo e novo no Portal
 
 ### Adicionado

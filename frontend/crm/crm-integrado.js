@@ -96,6 +96,18 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     return `<a class="wa ${compacto ? 'icon' : ''}" href="${esc(href)}" target="_blank" rel="noopener" title="Abrir WhatsApp: ${esc(fmtFone(numero))}" aria-label="WhatsApp ${esc(nome || '')}">${ic('wa')}${compacto ? '' : 'WhatsApp'}</a>`;
   }
 
+  /** Nome fantasia como 2ª linha do cliente: só quando existe e é diferente do nome exibido. */
+  const fantasiaDe = (fan, nome) => { const f = text(fan); return f && norm(f) !== norm(nome) ? f : ''; };
+  /** Contrato próprio (cadastro do Portal Postal) x contrato mais usado nas postagens do Visão 360. */
+  const CTP = { USA_OUTRO_CONTRATO: ['Usa outro contrato', 'red', 4], PROPRIO_SEM_USO: ['Próprio sem uso', 'orange', 3], USA_O_PROPRIO: ['Usa o próprio', 'green', 2], SEM_CONTRATO_PROPRIO: ['Sem contrato próprio', '', 1] };
+  const ctpInfo = (c) => CTP[c && c.situacaoContratoProprio] || CTP.SEM_CONTRATO_PROPRIO;
+  function ctpHtml(c) {
+    const [t, cor] = ctpInfo(c);
+    if (!text(c.contratoPortal)) return `<span class="faint">${t}</span>`;
+    const venc = c.contratoPortalVencido === 'SIM';
+    return `${pill(esc(t), cor)}<small class="ctp">${esc(c.contratoPortal)}${c.tipoContratoPortal ? ' · ' + esc(c.tipoContratoPortal) : ''}${venc ? ` · <b style="color:${V.red}">vigência vencida</b>` : ''}</small>`;
+  }
+
   /* ---------------- estado da tela ---------------- */
   const LS = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem armazenamento: vale só nesta sessão */ } } };
   const tab = LS.get('crm_cix_tabelas_v1', {}) || {};
@@ -414,11 +426,13 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       : x.proximaAtividade ? (() => { const p = x.proximaAtividade, venc = p.dataProgramada < hojeYmd(); return `<div class="next ${venc ? 'warn' : ''}">${tipoIc(p.tipoAtividadeId)}<span>${venc ? 'Vencida ' : ''}${p.dataProgramada === hojeYmd() ? 'Hoje' : fmtD(p.dataProgramada)}${p.horaProgramada ? ' ' + esc(p.horaProgramada) : ''} · ${esc(p.tipoAtividadeNome || tipoInfo(p.tipoAtividadeId).nome)}</span></div>`; })()
       : (x.etapaId === 'C_CONCLUIDO' ? '' : `<div class="next warn">${ci('alert', V.red, V.orange, 'sm')}Sem próxima atividade</div>`);
     const nome = virtual ? x.cliente : (x.cliente || x.entidadeId);
+    const ent = entidadeDe(!virtual && x.tipoEntidade === 'PROSPECT' ? 'PROSPECT' : 'CLIENTE', virtual ? x.clienteId : x.entidadeId) || {};
+    const fan = fantasiaDe(ent.nomeFantasia || x.nomeFantasia, nome);
     const ac = virtual ? x.acao : x.recomendacao, pr = x.prioridade, dsp = num(x.diasSemPostar);
     const drag = !virtual && C.can('canMoveFunnel');
     return `<article class="deal ${virtual ? 'ghost' : ''}" tabindex="0" ${virtual ? `data-cx-ficha="${esc(x.clienteId)}"` : `data-cx-trt="${esc(x.tratativaId)}"`} ${drag ? `draggable="true" data-cx-drag="${esc(x.tratativaId)}"` : ''}>
       <div class="row">${ac ? acChip(ac) : ''}${prChip(pr)}${virtual ? `<span class="chip auto">${ic('sparkle', 'sm')}motor</span>` : ''}</div>
-      <div class="nm">${esc(nome)}</div>
+      <div class="nm">${esc(nome)}</div>${fan ? `<div class="fan" title="Nome fantasia">${esc(fan)}</div>` : ''}
       <div class="meta">${x.curva ? `<span>Curva 30D <b>${esc(x.curva)}</b></span>` : ''}<span>${ci('clock', V.orange, V.blue, 'sm')} ${dsp >= 9999 ? 'sem postagem' : dsp + 'd sem postar'}</span></div>
       ${x.motivo ? `<div class="meta" style="margin-top:3px">${esc(x.motivo)}</div>` : ''}
       ${acts}</article>`;
@@ -454,12 +468,12 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     if (!lista) return cab + carregandoHtml('Carregando os cadastros…');
     const q = norm(S.cadBusca);
     let rows = lista.map((c) => { const t = trt.get(c.clienteId), a = abcMap && abcMap.get(c.clienteId); return { c, t, a, prox: t && t.proximaAtividade }; })
-      .filter((x) => !q || norm([x.c.cliente, x.c.nomeFantasia, x.c.razaoSocial, x.c.cnpjCpf, x.c.numeroContrato, x.c.cartao, x.c.whatsapp].join(' ')).includes(q))
+      .filter((x) => !q || norm([x.c.cliente, x.c.nomeFantasia, x.c.razaoSocial, x.c.cnpjCpf, x.c.numeroContrato, x.c.cartao, x.c.whatsapp, x.c.telefone, x.c.contratoPortal, x.c.cartaoPortal].join(' ')).includes(q))
       .filter((x) => !S.cadSemProx || !x.prox)
       .filter((x) => passaDsp(num(x.c.diasSemPostar)));
     const ETO = Object.fromEntries(etapas().map((e, i) => [e.etapaId, i + 1]));
     const cols = [
-      { k: 'nome', t: 'Cliente', w: 270, v: (x) => C.entityName(x.c), cls: 'cn', cell: (x) => `${esc(C.entityName(x.c))}${x.a && x.a.novo ? ' <span class="chip novo">NOVO</span>' : ''}<small>${esc(x.c.cnpjCpf || 'CNPJ a completar')}</small>` },
+      { k: 'nome', t: 'Cliente', w: 270, v: (x) => C.entityName(x.c), cls: 'cn', cell: (x) => `${esc(C.entityName(x.c))}${x.a && x.a.novo ? ' <span class="chip novo">NOVO</span>' : ''}<small>${esc(fantasiaDe(x.c.nomeFantasia, C.entityName(x.c)) || x.c.cnpjCpf || 'Nome fantasia a completar')}</small>` },
       ...colLocal((x) => x.c.local),
       { k: 'abc', t: 'ABC 12M', w: 118, v: (x) => (x.a ? x.a.abc : 'Z'), cell: (x) => abcChip(x.a && x.a.abc) },
       { k: 'c30', t: 'Curva 30D', w: 124, v: (x) => x.c.curva || '', cell: (x) => x.c.curva ? `<span class="chip">${esc(x.c.curva)}</span>` : '' },
@@ -469,6 +483,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       { k: 'fat', t: 'Fat. 30D', r: 1, w: 128, v: (x) => num(x.c.valor30d), cell: (x) => brl(x.c.valor30d) },
       { k: 'dsp', t: 'Sem postar', r: 1, w: 124, v: (x) => num(x.c.diasSemPostar), cell: (x) => { const d = num(x.c.diasSemPostar); return d >= 9999 ? '<span class="faint">-</span>' : `<span style="color:${d >= 30 ? V.red : 'inherit'};font-weight:${d >= 30 ? 800 : 500}">${d}d</span>`; } },
       { k: 'ctr', t: 'Contrato', v: (x) => (norm(x.c.temContrato) === 'sim' ? 'Contrato ativo' : x.c.intermediador || 'Sem contrato'), cell: (x) => `<span style="font-size:12px">${esc(norm(x.c.temContrato) === 'sim' ? 'Contrato ativo' : x.c.intermediador || 'Sem contrato')}</span>` },
+      { k: 'ctp', t: 'Contrato próprio', w: 190, v: (x) => ctpInfo(x.c)[2], f: (x) => ctpInfo(x.c)[0], cell: (x) => ctpHtml(x.c) },
       { k: 'x', t: 'Ações', noSort: 1, noFilter: 1, fixed: 1, cell: (x) => `<div class="rowacts">${waBtn(x.c.whatsapp, C.entityName(x.c), x.c.clienteId, true)}<button type="button" class="btn sm ghost" data-cx-ficha="${esc(x.c.clienteId)}" aria-label="Abrir ficha" title="Abrir ficha">${ci('open', V.blue, V.orange, 'sm')}</button></div>` },
     ];
     if (!S.srt.cad) S.srt.cad = { k: 'fat', d: -1 };
@@ -935,6 +950,21 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
     ]).then(([n, ck]) => { if (!F || F.id !== id) return; F.hist = { notas: n.items || [], checks: ck.items || [] }; desenharFicha(); });
     if (!C.state.clientsReady) C.loadCadastroClientes(true).then(() => { if (F && F.id === id) desenharFicha(); });
   }
+  /** Ficha: dados do cadastro (Portal Postal + CRM) e contrato próprio x contrato das postagens. */
+  function fichaCadastroHtml(e) {
+    const junta = (l, sep) => l.map(text).filter(Boolean).join(sep);
+    const linhas = [
+      ['Nome fantasia', e.nomeFantasia], ['Razão social', e.razaoSocial], ['CNPJ/CPF', e.cnpjCpf],
+      ['WhatsApp', e.whatsapp ? fmtFone(e.whatsapp) : ''], ['Telefone', e.telefone ? fmtFone(e.telefone) : ''], ['E-mail', e.email],
+      ['Endereço', junta([junta([e.endereco, e.numero], ', '), e.complemento, e.bairro, junta([e.cidade, e.uf], '/'), e.cep], ' · ')],
+      ['Contrato próprio', e.contratoPortal ? junta([e.contratoPortal, e.cartaoPortal && 'cartão ' + e.cartaoPortal, e.tipoContratoPortal, e.vigenciaContratoPortal && 'vigência ' + e.vigenciaContratoPortal + (e.contratoPortalVencido === 'SIM' ? ' (vencida)' : '')], ' · ') : ''],
+      ['Contrato nas postagens', e.numeroContrato ? junta([e.numeroContrato, e.cartao && 'cartão ' + e.cartao, e.intermediador], ' · ') : ''],
+    ].filter((l) => text(l[1]));
+    if (!linhas.length) return '';
+    const [t, cor] = ctpInfo(e);
+    return `<div class="dr-s"><h3 style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${ib('id', V.blue, V.orange, 'sm')}Cadastro${text(e.contratoPortal) ? ' ' + pill(esc(t), cor) : ''}</h3>
+        <dl class="cad-dl">${linhas.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>`;
+  }
   function desenharFicha() {
     if (!F) return;
     const id = F.id, e = entidadeDe('CLIENTE', id) || { cliente: id }, a = abcPorId(), r = a && a.get(id), t = tratativaPorCliente().get(id);
@@ -953,6 +983,7 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
       <div class="dr-h"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div style="display:flex;gap:10px;min-width:0">${ib('store', V.blue, V.orange)}<div style="min-width:0"><h2 id="cx-dt" style="font-size:18px">${esc(C.entityName(e) || e.cliente || id)}</h2><p class="muted" style="font-size:12.5px;margin-top:3px">LOCAL ${esc(NOME_LOCAL[norm(e.local).toUpperCase()] || e.local || localAtual())} · ${esc((r && r.intermediador) || e.intermediador || 'sem intermediador')} · ${ctr ? 'contrato ativo' : 'sem contrato'}</p></div></div><button type="button" class="btn ghost sm" data-f-fechar aria-label="Fechar">${ic('x')}</button></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${e.acaoEngine || e.acao ? acChip(e.acaoEngine || e.acao) : ''}${prChip(e.prioridadeFila)}${r ? abcChip(r.abc) : ''}${e.curva ? `<span class="chip">Curva 30D ${esc(e.curva)}</span>` : ''}${r && r.novo ? '<span class="chip novo">NOVO</span>' : ''}</div>
         <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button type="button" class="btn sm pri" data-cx-nova-cli="${esc(id)}">${ic('cal', 'sm')}Agendar</button>${waBtn(e.whatsapp, C.entityName(e), '', false)}${C.can('canEditClients') ? `<button type="button" class="btn sm" data-f-editar="${esc(id)}">${ci('edit', V.purple, V.orange, 'sm')}${text(e.whatsapp) ? 'Editar cadastro' : 'Completar cadastro'}</button>` : ''}</div></div>
+      ${fichaCadastroHtml(e)}
       <div class="dr-s"><h3 style="margin-bottom:10px;display:flex;gap:8px;align-items:center">${ib('trend-up', V.blue, V.orange, 'sm')}Postagens (Visão 360)</h3>
         ${r ? `<div class="kv"><div><small>Fat. 12M</small><b class="num" style="color:${V.blue}">${brlK(r.tV)}</b></div><div><small>Objetos 12M</small><b class="num" style="color:${V.orange}">${n0(r.tQ)}</b></div><div><small>Ticket</small><b class="num" style="color:${V.teal}">${brl(r.tk, 2)}</b></div></div>
           <div id="cx-ch-ficha" class="chx" style="height:130px;margin-top:6px" role="img" aria-label="Faturamento mensal do cliente"></div>`

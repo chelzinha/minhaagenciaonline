@@ -74,7 +74,7 @@ function projetarTratativa(t, e, st, prox) {
   return {
     tratativaId: text(t.TRATATIVA_ID), tipoEntidade: text(t.TIPO_ENTIDADE), entidadeId: text(t.ENTIDADE_ID), funilId: text(t.FUNIL_ID), etapaId: text(t.ETAPA_ID),
     etapaNome: text(st.NOME_EXIBICAO), etapaCor: text(st.COR), statusTratativa: text(t.STATUS_TRATATIVA),
-    cliente: text(e.cliente || e.nomeFantasia || e.razaoSocial || t.ENTIDADE_ID), local: text(e.local), curva: text(e.curva),
+    cliente: text(e.cliente || e.nomeFantasia || e.razaoSocial || t.ENTIDADE_ID), nomeFantasia: text(e.nomeFantasia), local: text(e.local), curva: text(e.curva),
     recomendacao: text(e.acaoEngine || t.ACAO_ENGINE_SNAPSHOT), subAcao: text(e.subAcao || t.SUB_ACAO_SNAPSHOT),
     prioridade: text(e.prioridadeFila || e.prioridade || t.PRIORIDADE_SNAPSHOT), diasSemPostar: Number(e.diasSemPostar) || 0,
     ultimaPostagemLabel: text(e.ultimaPostagemLabel), responsavelId: text(t.RESPONSAVEL_ID), proximoFollowupEm: ymd(t.PROXIMO_FOLLOWUP_EM), proximaAtividade: prox,

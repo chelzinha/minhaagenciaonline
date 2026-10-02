@@ -569,3 +569,11 @@ body.resizing *{cursor:col-resize!important}
 .cix .chip.loc{background:#0B3A631A;color:#0B3A63;font-weight:800;font-size:11px}
 .cix .multi-nota{display:flex;gap:8px;align-items:flex-start;margin:0 0 10px;padding:9px 12px;border-radius:10px;background:#EEF4FB;color:#17354B;font-size:12.5px;line-height:1.45}
 .cix .multi-nota .ic{flex:0 0 auto;margin-top:1px;color:#0B3A63}
+
+/* 02/10/2026 - nome fantasia no Funil e no Cadastro; contrato próprio (Portal Postal) */
+.cix .deal .fan{font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.25;margin:-2px 0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cix .ctp{display:block;font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cix .cad-dl{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;font-size:12.5px;margin:0}
+.cix .cad-dl dt{color:var(--muted);font-weight:600}
+.cix .cad-dl dd{margin:0;min-width:0;overflow-wrap:anywhere}
+@media (max-width:760px){.cix .cad-dl{grid-template-columns:1fr;gap:2px}.cix .cad-dl dd{margin-bottom:6px}}
