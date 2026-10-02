@@ -159,3 +159,7 @@ O CRM (`/crm`) deixa de usar o Apps Script `base-metro` e as planilhas. Clientes
 - Agenda é filtrada pelo LOCAL gravado no item.
 - A lista de clientes vem inteira na abertura (cerca de 5 mil linhas).
 - Ações da carteira: blocos de visão geral, dinâmica e operação ficam vazios (dependiam de dados da planilha).
+
+## Grupos comerciais (02/10/2026)
+
+Vários cadastros que comercialmente são um cliente só, somados somente no CRM. Nada muda no cadastro. Regras, telas e API: `docs/modulos/crm/GRUPOS_COMERCIAIS.md`.

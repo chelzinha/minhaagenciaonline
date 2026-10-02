@@ -13,6 +13,7 @@
 import { text, upper, upperNoAccents, hoje, nowIso, diffDays, falhar, todos, um, isYes } from './util.js';
 import { locaisPermitidos, localPermitido, CRM_LOCAIS, lerResponsaveis, idRealResponsavel } from './config.js';
 import { criarTratativa, tratativaAbertaDe, moverTratativa } from './jornada.js';
+import { mapaGruposCrm } from '../grupos.js';
 
 export const NOVO_DESDE = '2026-07-01';
 export const ABC_LIMITE_A = 0.8, ABC_LIMITE_B = 0.95, ABC_PISO_B = 5000;
@@ -92,7 +93,7 @@ export async function getCarteira(env, p, user) {
       curva: text(r.curva), fat30: num(r.fat_30d), diasSemPostar: num(d.DIAS_SEM_POSTAR), ultima: text(r.ultima), motivo: text(d.MOTIVO_REGRA),
       canal: text(d.CANAL_SUGERIDO), midia: text(d.MIDIA), temContrato: text(d.TEM_CONTRATO) === 'SIM', intermediador: text(d.TIPO_CONTRATO_PREDOMINANTE) || text(d.INTERMEDIADOR_PREDOMINANTE),
       whatsapp: wa.get(r.cliente_id) || '', tratativaId: t ? text(t.TRATATIVA_ID) : '', etapaId: t ? text(t.ETAPA_ID) : '',
-      temAtividade: futuras.has(r.cliente_id) };
+      temAtividade: futuras.has(r.cliente_id), grupoN: Array.isArray(d.GRUPO_MEMBROS) ? d.GRUPO_MEMBROS.length : 0 };
   });
 
   // Sinais do Visão 360 (tudo calculado, nada gravado)
@@ -175,17 +176,25 @@ export async function getCurvaAbc(env, p, user) {
       WHERE n.cliente_id IS NOT NULL AND p.data_postagem <> '' AND p.local_codigo = ? AND p.estorno = 0 GROUP BY 1`).bind(local),
   ]);
   const idxMes = Object.fromEntries(meses.map((m, i) => [m, i]));
+  // grupos comerciais: as postagens de cada cadastro do grupo somam no cadastro principal (linha única na curva)
+  const { principalDe, grupoDe } = await mapaGruposCrm(db);
+  const idCrm = (id) => principalDe.get(id) || id;
   const porId = new Map();
   for (const r of agg.results || []) {
     const i = idxMes[r.ym];
     if (i === undefined) continue;
+    r.id = idCrm(r.id);
     let x = porId.get(r.id);
     if (!x) { x = { id: r.id, q: Array(12).fill(0), v: Array(12).fill(0), tQ: 0, tV: 0, tipos: {} }; porId.set(r.id, x); }
     x.q[i] += num(r.q); x.v[i] += num(r.v); x.tQ += num(r.q); x.tV += num(r.v);
     x.tipos[r.tipo] = (x.tipos[r.tipo] || 0) + Math.abs(num(r.v)) + num(r.q) / 1e6;
   }
-  const primeira = new Map((pri.results || []).map((r) => [r.id, text(r.primeira)]));
-  const ultimaDe = new Map((pri.results || []).map((r) => [r.id, text(r.ultima)]));
+  const primeira = new Map(), ultimaDe = new Map();
+  for (const r of pri.results || []) {
+    const id = idCrm(r.id), p1 = text(r.primeira), u1 = text(r.ultima);
+    if (p1 && (!primeira.get(id) || p1 < primeira.get(id))) primeira.set(id, p1);
+    if (u1 && (!ultimaDe.get(id) || u1 > ultimaDe.get(id))) ultimaDe.set(id, u1);
+  }
   const tipoPred = (x) => Object.entries(x.tipos).sort((a, b) => b[1] - a[1])[0]?.[0] || 'SEM CONTRATO';
   // nomes e dados do motor em 2 consultas (evita dezenas de idas ao banco no BALCÃO)
   const info = new Map();
@@ -205,7 +214,8 @@ export async function getCurvaAbc(env, p, user) {
     const prim = primeira.get(x.id) || '';
     return { id: x.id, nome: i.nome || x.id, q: x.q, v: x.v.map((v) => Math.round(v * 100) / 100), tQ: x.tQ, tV: Math.round(x.tV * 100) / 100,
       tk: x.tQ ? Math.round(x.tV / x.tQ * 100) / 100 : 0, primeira: prim, novo: prim >= NOVO_DESDE, acao: i.acao || '', curva30: i.curva30 || '',
-      intermediador: tipoPred(x), canal: i.intermediador || '', contrato: !!i.contrato, localCarteira: i.localCarteira || '', ultima: ultimaDe.get(x.id) || '' };
+      intermediador: tipoPred(x), canal: i.intermediador || '', contrato: !!i.contrato, localCarteira: i.localCarteira || '', ultima: ultimaDe.get(x.id) || '',
+      grupoN: grupoDe.get(x.id)?.n || 0 };
   });
   const { rows, total } = classificarAbc(brutas);
   const cls = { A: [0, 0, 0], B: [0, 0, 0], C: [0, 0, 0] };

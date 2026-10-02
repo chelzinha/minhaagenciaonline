@@ -14,7 +14,7 @@
   <script>window.AGF_ACCESS = { roles: ['admin'] };</script>
   <script src="/shared/auth/agf-route-guard.js"></script>
   <script src="./config.js?v=20260925b"></script>
-  <link rel="stylesheet" href="./cadastros.css?v=20260930a">
+  <link rel="stylesheet" href="./cadastros.css?v=20261002g">
 <link rel="stylesheet" href="/shared/ui/agf-header.css?v=2">
 </head>
 <body>
@@ -32,6 +32,7 @@
       <div class="cad-kpi"><span>Postagens</span><strong id="kPostagens">-</strong><small id="kPostagensSub">&nbsp;</small></div>
       <button class="cad-kpi cad-kpi-act" id="kSugBtn" type="button"><span>Sugestões para agrupar</span><strong id="kSug">-</strong><small>grupos de nomes do mesmo cliente</small></button>
       <div class="cad-kpi"><span>Fora do cadastro</span><strong id="kFora">-</strong><small id="kForaSub">&nbsp;</small></div>
+      <button class="cad-kpi cad-kpi-grp" id="kGrpBtn" type="button"><span>Grupos comerciais</span><strong id="kGrp">-</strong><small id="kGrpSub">só para o CRM</small></button>
     </section>
 
     <div class="cad-nav">
@@ -40,10 +41,15 @@
         <button role="tab" data-aba="BALCAO"><span class="cad-tab-ic"><span class="material-symbols-rounded">storefront</span></span><span class="cad-tab-tx"><b>BALCÃO</b><small data-c="BALCAO">-</small></span></button>
         <button role="tab" data-aba="METRO"><span class="cad-tab-ic"><span class="material-symbols-rounded">local_mall</span></span><span class="cad-tab-tx"><b>GAS SHOPPING METRO</b><small data-c="METRO">-</small></span></button>
       </nav>
+      <div class="cad-grpbanner" id="grpBanner" hidden>
+        <span class="cad-tab-ic"><span class="material-symbols-rounded">join_inner</span></span>
+        <span><b>GRUPOS COMERCIAIS</b><small>Juntam cadastros de qualquer fonte. Nome, ID e postagens de cada cadastro não mudam: só o CRM soma.</small></span>
+      </div>
       <div class="cad-modes" role="tablist" aria-label="Visão">
         <button id="modoLista" class="on" type="button"><span class="material-symbols-rounded">list</span>Clientes</button>
         <button id="modoSug" type="button"><span class="material-symbols-rounded">merge</span>Sugestões <em id="modoSugN"></em></button>
         <button id="modoLocal" type="button" title="Clientes com postagens em mais de um LOCAL"><span class="material-symbols-rounded">location_on</span>Mais de um LOCAL <em id="modoLocalN"></em></button>
+        <button id="modoGrupos" type="button" class="grp" title="Vários cadastros que são um cliente só no CRM"><span class="material-symbols-rounded">join_inner</span>Grupos comerciais <em id="modoGruposN"></em></button>
       </div>
     </div>
 
@@ -98,8 +104,57 @@
       <div id="localLista" class="cad-local-lista" aria-live="polite"></div>
       <div class="cad-pager" id="localPager"></div>
     </section>
+    <!-- GRUPOS COMERCIAIS (somente CRM) -->
+    <section id="vistaGrupos" hidden style="display:flex;flex-direction:column;gap:12px">
+      <div class="g-tools">
+        <div class="g-seg" role="tablist" aria-label="Grupos ou sugestões">
+          <button type="button" data-gv="lista" class="on"><span class="material-symbols-rounded" style="font-size:17px">join_inner</span>Grupos <em id="gvN"></em></button>
+          <button type="button" data-gv="sug"><span class="material-symbols-rounded" style="font-size:17px">lightbulb</span>Sugestões de grupo <em class="w" id="gsN"></em></button>
+        </div>
+        <label class="cad-search"><span class="material-symbols-rounded">search</span><input id="gBusca" type="search" placeholder="Buscar grupo ou cadastro" autocomplete="off"></label>
+        <select id="gLocal" aria-label="LOCAL do grupo">
+          <option value="">LOCAL: todos</option><option value="AGF">LOCAL: AGF</option><option value="BALCAO">LOCAL: BALCÃO</option><option value="METRO">LOCAL: METRÔ</option>
+        </select>
+        <span class="sp"></span>
+        <button type="button" class="cad-btn grp" id="gNovo"><span class="material-symbols-rounded">add</span>Novo grupo</button>
+      </div>
+      <div id="gLista" class="g-grid" aria-live="polite"></div>
+      <div id="gSug" class="g-grid" aria-live="polite" hidden></div>
+    </section>
   </main>
 </div>
+
+<dialog class="cad-dlg lg" id="dlgGrupo" aria-labelledby="gedTitulo">
+  <form method="dialog" class="ged" id="gedForm" novalidate>
+    <div class="ged-h"><span class="g-ic" style="width:32px;height:32px"><span class="material-symbols-rounded" style="font-size:19px">join_inner</span></span><strong id="gedTitulo">Novo grupo comercial</strong><button type="button" class="x" data-ged-fechar aria-label="Fechar"><span class="material-symbols-rounded">close</span></button></div>
+    <div class="ged-b">
+      <label class="ged-nome"><span>Nome do grupo (aparece no CRM)</span><input type="text" id="gedNome" maxlength="160" placeholder="Ex.: ASSOCIACAO SHALOM" autocomplete="off"></label>
+      <div class="ged-cols">
+        <div class="ged-box">
+          <h4><span class="material-symbols-rounded" style="font-size:16px">checklist</span>Cadastros no grupo<em id="gedN">0</em></h4>
+          <div class="ged-list" id="gedMembros"></div>
+          <div class="ged-hint"><span class="material-symbols-rounded" style="font-size:14px;color:#F5A300">radio_button_checked</span>Principal: dá o contato (WhatsApp) do grupo no CRM.</div>
+        </div>
+        <div class="ged-box">
+          <h4><span class="material-symbols-rounded" style="font-size:16px">person_add</span>Adicionar cadastro</h4>
+          <div class="ged-srch"><label class="cad-search"><span class="material-symbols-rounded">search</span><input id="gedBusca" type="search" placeholder="Digite 2 letras ou mais" autocomplete="off"></label></div>
+          <div class="ged-list" id="gedRes"></div>
+        </div>
+      </div>
+      <div class="ged-loc" id="gedLoc"></div>
+      <div class="ged-prev" id="gedPrev"></div>
+    </div>
+    <div class="ged-f"><span class="err" id="gedErr" role="alert"></span><button type="button" class="cad-btn" data-ged-fechar>Cancelar</button><button type="submit" class="cad-btn grp" id="gedSalvar"><span class="material-symbols-rounded">check</span>Salvar grupo</button></div>
+  </form>
+</dialog>
+
+<dialog class="cad-dlg" id="dlgGrupoPick" aria-labelledby="gpickTitulo">
+  <div class="cad-dlg-card">
+    <header><strong id="gpickTitulo">Incluir em grupo comercial</strong><button type="button" data-gpick-fechar aria-label="Fechar"><span class="material-symbols-rounded">close</span></button></header>
+    <p class="cad-help" id="gpickTx"></p>
+    <div class="gpick" id="gpickLista"></div>
+  </div>
+</dialog>
 
 <dialog class="cad-dlg" id="dlgBusca">
   <form method="dialog" class="cad-dlg-card">
@@ -121,7 +176,8 @@
 <div class="cad-toast" id="toast" role="status"></div>
 <div class="cad-busy" id="busy" hidden><div><span class="cad-spin"></span><p id="busyMsg">Processando...</p></div></div>
 
-<script src="./cadastros.js?v=20260930a"></script>
+<script src="./cadastros.js?v=20261002g"></script>
+<script src="./cadastros-grupos.js?v=20261002g"></script>
 <script src="/shared/ui/agf-header.js?v=2"></script>
 <script>
 /* Topo padrao do Cadastro de Clientes. O rotulo da acao e lido do botao

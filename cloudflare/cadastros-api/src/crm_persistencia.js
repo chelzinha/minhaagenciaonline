@@ -4,6 +4,7 @@
  */
 import { executarCrm, priorityRank, CRM_MOTOR_VERSAO } from './crm_motor.js';
 import { emLotes } from './persistencia.js';
+import { lerGrupos, aplicarGruposNoMotor, decorarMetricasDoGrupo } from './grupos.js';
 
 const CLIENTES_POR_LOTE = 400;
 
@@ -36,7 +37,10 @@ export async function calcularCrmD1(env, autor = 'SISTEMA') {
         intermediador: x.intermediador, contratoTipo: x.contrato_tipo, subgrupo: x.subgrupo, contrato: x.contrato, cartao: x.cartao });
     }
   }
+  // grupos comerciais: os cadastros de cada grupo viram um cliente so (ID do principal) antes do calculo
+  const infoGrupos = aplicarGruposNoMotor(await lerGrupos(db), clientes, linhas);
   const resultado = executarCrm(clientes, linhas);
+  for (const m of resultado.metricas) { const inf = infoGrupos.get(m.CLIENTE_ID); if (inf) decorarMetricasDoGrupo(m, inf, resultado.refDate); }
 
   const atuais = await db.prepare(`SELECT cliente_id, assinatura FROM crm_metricas`).all();
   const assinaturaAtual = new Map((atuais.results || []).map((x) => [x.cliente_id, x.assinatura]));
@@ -62,7 +66,7 @@ export async function calcularCrmD1(env, autor = 'SISTEMA') {
     const lote = removidos.slice(i, i + 90);
     stmts.push(db.prepare(`DELETE FROM crm_metricas WHERE cliente_id IN (${lote.map(() => '?').join(',')})`).bind(...lote));
   }
-  const resumo = { versao: CRM_MOTOR_VERSAO, refDate: resultado.refDate, clientes: resultado.metricas.length, porLocal: resultado.porLocal,
+  const resumo = { versao: CRM_MOTOR_VERSAO, refDate: resultado.refDate, clientes: resultado.metricas.length, porLocal: resultado.porLocal, grupos: infoGrupos.size,
     gravadas, removidos: removidos.length, ms: Date.now() - t0, autor, em: new Date().toISOString() };
   stmts.push(db.prepare(`INSERT INTO cid_estado(chave, valor) VALUES('crm_ultimo', ?) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor, atualizado_em=CURRENT_TIMESTAMP`).bind(JSON.stringify(resumo)));
   stmts.push(db.prepare(`UPDATE cid_estado SET valor='0', atualizado_em=CURRENT_TIMESTAMP WHERE chave='crm_pendente'`));

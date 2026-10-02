@@ -91,6 +91,7 @@
     if (Number(c.grafias) > 1) out.push(`<span class="chip">${num(c.grafias)} grafias</span>`);
     const abas = String(c.abas || '').split(',').filter((a) => a && a !== st.aba);
     if (abas.length) out.push(`<span class="chip" title="Também aparece nesta fonte do cadastro (CLIENTE PORTAL)">fonte também: ${abas.map((a) => ABA_NOME[a]).join(', ')}</span>`);
+    if (c.grupo_nome) out.push(`<span class="chip grp" title="Grupo comercial (só para o CRM)"><span class="material-symbols-rounded">join_inner</span>${esc(c.grupo_nome)}</span>`);
     if (Number(c.sugestoes)) out.push(`<span class="chip sug"><span class="material-symbols-rounded">merge</span>${num(c.sugestoes)} ${Number(c.sugestoes) > 1 ? 'sugestões' : 'sugestão'}</span>`);
     return out.join('');
   }
@@ -129,6 +130,10 @@
       $('kSug').textContent = num(s.total);
       $('modoSugN').textContent = s.total ? num(s.total) : '';
       $('modoLocalN').textContent = r.filaLocal ? num(r.filaLocal) : '';
+      const gr = r.grupos || { grupos: 0, cadastros: 0 };
+      $('kGrp').textContent = num(gr.grupos);
+      $('kGrpSub').textContent = gr.grupos ? `${num(gr.cadastros)} cadastros somados no CRM` : 'nenhum grupo ainda';
+      $('modoGruposN').textContent = gr.grupos ? num(gr.grupos) : '';
     } catch (e) {
       toast(e.message, 'err');
     }
@@ -203,6 +208,7 @@
           ${ehPortal ? '' : '<button type="button" class="cad-btn" id="fNome"><span class="material-symbols-rounded">edit</span>Corrigir nome</button>'}
         </div>
       </div>
+      ${window.AGF_CAD_GRUPOS ? window.AGF_CAD_GRUPOS.secaoFicha(r) : ''}
       ${cands.length ? `<div class="f-sec f-ren"><h3><span class="material-symbols-rounded">history</span>Nome antigo ou novo no Portal? <em>${cands.length}</em></h3>
         <p class="f-sub" style="margin:-2px 0 10px">Mesmo contrato e cartão, e um nome parou quando o outro começou. Se for o mesmo cliente, junte: o cadastro fica com o nome mais recente do Portal e soma o histórico dos dois.</p>
         ${cands.map((x) => `<div class="f-sug"><div class="f-sug-nome">${esc(x.nome)}${x.papel ? ` <span class="chip">${PAPEL_TXT[x.papel]}</span>` : x.motivo === 'NOME_CORTADO' ? ' <span class="chip">nome cortado</span>' : ''}
@@ -236,6 +242,7 @@
         <p class="f-sub" style="margin-top:8px">Contrato e cartão servem só para conferência: não identificam o cliente sozinhos.</p>
       </div>`;
     const v = $('fVoltar'); if (v) v.addEventListener('click', () => el.classList.remove('aberta'));
+    if (window.AGF_CAD_GRUPOS) window.AGF_CAD_GRUPOS.ligarFicha(el, r);
     $('fAgrupar').addEventListener('click', () => abrirBusca(c));
     $('fLocal').addEventListener('change', async (ev) => {
       const local = ev.target.value;
@@ -415,8 +422,12 @@
   function trocarModo(m) {
     st.modo = m;
     $('modoLista').classList.toggle('on', m === 'lista'); $('modoSug').classList.toggle('on', m === 'sug'); $('modoLocal').classList.toggle('on', m === 'local');
-    $('vistaLista').hidden = m !== 'lista'; $('vistaSug').hidden = m !== 'sug'; $('vistaLocal').hidden = m !== 'local';
-    if (m === 'sug') { st.sugPagina = 1; carregarSugestoes(); } else if (m === 'local') { st.localPagina = 1; carregarFilaLocal(); } else carregarLista();
+    $('modoGrupos').classList.toggle('on', m === 'grupos');
+    $('vistaLista').hidden = m !== 'lista'; $('vistaSug').hidden = m !== 'sug'; $('vistaLocal').hidden = m !== 'local'; $('vistaGrupos').hidden = m !== 'grupos';
+    // grupos valem para todas as fontes: as abas de fonte saem e entra o aviso
+    $('tabs').hidden = m === 'grupos'; $('grpBanner').hidden = m !== 'grupos';
+    if (m === 'grupos') { if (window.AGF_CAD_GRUPOS) window.AGF_CAD_GRUPOS.abrir(); }
+    else if (m === 'sug') { st.sugPagina = 1; carregarSugestoes(); } else if (m === 'local') { st.localPagina = 1; carregarFilaLocal(); } else carregarLista();
   }
   $('modoLocal').addEventListener('click', () => trocarModo('local'));
   $('tabs').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
@@ -427,17 +438,24 @@
   $('modoLista').addEventListener('click', () => trocarModo('lista'));
   $('modoSug').addEventListener('click', () => trocarModo('sug'));
   $('kSugBtn').addEventListener('click', () => trocarModo('sug'));
+  $('modoGrupos').addEventListener('click', () => trocarModo('grupos'));
+  $('kGrpBtn').addEventListener('click', () => trocarModo('grupos'));
   let bt;
   $('busca').addEventListener('input', () => { clearTimeout(bt); bt = setTimeout(() => { st.q = $('busca').value.trim(); st.pagina = 1; carregarLista(); }, 300); });
   $('local').addEventListener('change', () => { st.local = $('local').value; st.pagina = 1; carregarLista(); });
   $('ordem').addEventListener('change', () => { st.ordem = $('ordem').value; st.pagina = 1; carregarLista(); });
   $('sugMin').addEventListener('change', () => { st.sugMin = Number($('sugMin').value); st.sugPagina = 1; carregarSugestoes(); });
-  $('btnRecarregar').addEventListener('click', () => { carregarResumo(); st.modo === 'lista' ? carregarLista() : st.modo === 'sug' ? carregarSugestoes() : carregarFilaLocal(); });
+  const recarregarModo = () => (st.modo === 'lista' ? carregarLista() : st.modo === 'sug' ? carregarSugestoes() : st.modo === 'grupos' ? window.AGF_CAD_GRUPOS && window.AGF_CAD_GRUPOS.abrir() : carregarFilaLocal());
+  $('btnRecarregar').addEventListener('click', () => { carregarResumo(); recarregarModo(); });
   $('btnMotor').addEventListener('click', async () => {
     const r = await acao('Aplicando as regras de limpeza em todos os nomes...', () => api('/api/v2/motor', { method: 'POST', timeout: 120000 }),
       (x) => `Limpeza aplicada: ${num(x.motor.clientes)} clientes, ${num(x.motor.sugestoes)} sugestões.`);
-    if (r) { carregarResumo(); st.modo === 'lista' ? carregarLista() : st.modo === 'sug' ? carregarSugestoes() : carregarFilaLocal(); }
+    if (r) { carregarResumo(); recarregarModo(); }
   });
+
+  // ponte para o módulo de grupos comerciais (cadastros-grupos.js)
+  window.AGF_CAD = { api, toast, acao, ocupado, livre, esc, num, brl, dataBr, barraLocal, LOCAL_NOME, ABA_NOME, st,
+    abrirFicha, carregarResumo, carregarLista, trocarModo, fichaAberta: () => st.sel };
 
   function iniciar() { carregarResumo(); carregarLista(); }
   if (document.documentElement.classList.contains('agf-auth-ready')) iniciar();
