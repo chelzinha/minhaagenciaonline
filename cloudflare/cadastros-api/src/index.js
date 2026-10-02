@@ -184,7 +184,9 @@ async function definirLocal(request, env, autor) {
   }
   stmts.push(env.DB.prepare(`UPDATE cid_estado SET valor='1' WHERE chave='crm_pendente'`));   // curva do LOCAL muda
   await emLotes(env.DB, stmts);
-  return { definidos: itens.length, filaLocal: await contarFilaLocal(env) };
+  // LOCAL decidido pelo admin aparece no CRM na hora; antes esperava o cron, que fica travado enquanto a sincronizacao do Atende nao termina a passagem
+  const crmAtualizado = await recalcularCrmAgora(env, autor);
+  return { definidos: itens.length, filaLocal: await contarFilaLocal(env), crmAtualizado };
 }
 
 
@@ -517,10 +519,10 @@ async function feedCrm(url, env) {
   return { postagens, proximo: postagens.length ? postagens[postagens.length - 1].raw_id : null };
 }
 
-/** Grupo mudou: o CRM recalcula na hora (cerca de 4 s). Se falhar, o grupo fica gravado e o cron de 10 min recalcula (marca crm_pendente). */
+/** Grupo ou LOCAL mudou: o CRM recalcula na hora (cerca de 5 s). Se falhar, a decisao fica gravada e o cron de 10 min recalcula (marca crm_pendente). */
 async function recalcularCrmAgora(env, autor) {
   try { await calcularCrmD1(env, autor); return true; }
-  catch (e) { console.error('[CADASTROS_V2] recalculo do CRM apos grupo', e?.message || e); return false; }
+  catch (e) { console.error('[CADASTROS_V2] recalculo do CRM na hora', e?.message || e); return false; }
 }
 
 // ---------------------------------------------------------------- roteador
