@@ -2,6 +2,20 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## 2026-10-02 - Visão 360: base recorrente manual por cliente (projeção V6)
+
+### Adicionado
+- Coluna **Base recorrente** na tabela "Tipo de receita para projeção V6" (Metas). Valor mensal opcional por cliente. Quando preenchido, substitui a Média 3m do cliente na base recorrente do grupo, na queda de clientes (defesa de receita), no radar R5 e nos sinais de revisão. Vazio mantém a Média 3m calculada.
+- Na coluna Média 3m, cliente com base manual mostra o valor usado e, abaixo, a média calculada original.
+- Cliente com mais de um grupo (Mensageria/Encomendas): a base é distribuída na proporção do histórico de cada grupo.
+- Migração `0022_cliente_base_recorrente.sql` (coluna `base_recorrente_mensal`). Já aplicada em produção e registrada em `d1_migrations`.
+
+### Inalterado
+- Projeção do mês continua `(recorrente realizado / dias úteis decorridos × dias úteis do mês) + eventual + pendente`. A Média 3m nunca entrou nessa conta.
+
+### Motivo
+- TRE-CE: campanha eleitoral de 18/08 a 29/09 inflou a Média 3m para R$ 39.398,04. Base recorrente pré-campanha (mai-jul/2026): cerca de R$ 3.000/mês.
+
 ## 2026-10-02 - CRM: nome fantasia sempre na lista do Cadastro
 
 ### Corrigido

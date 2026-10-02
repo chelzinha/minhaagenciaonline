@@ -655,12 +655,12 @@ async function buildClientAnalytics(competencia, state, env, config) {
     ${BASE_FROM_V6}${whereSql}
     GROUP BY 1,2,3,4,5
   `;
-  const [currResult,histResult,classResult]=await env.DB.batch([
+  const [currResult,histResult]=await env.DB.batch([
     env.DB.prepare(sql(current.whereSql)).bind(...current.args),
-    env.DB.prepare(sql(hist.whereSql)).bind(...hist.args),
-    env.DB.prepare(`SELECT cliente_chave,cliente_nome,tipo_receita,data_fim_prevista,observacao FROM atende_cliente_receita_classificacao WHERE ativo=1`)
+    env.DB.prepare(sql(hist.whereSql)).bind(...hist.args)
   ]);
-  const curr=currResult?.results||[], histRows=histResult?.results||[], classes=classResult?.results||[];
+  const classes=await loadRevenueClassifications(env);
+  const curr=currResult?.results||[], histRows=histResult?.results||[];
   const classMap=new Map(classes.map(x=>[clean(x.cliente_chave),x]));
   const histMonths=[histStart,monthAdd(histStart,1),histEnd];
   const histMap=new Map();
@@ -685,13 +685,19 @@ async function buildClientAnalytics(competencia, state, env, config) {
   const progress=days?done/days:0;
 
   const keys=new Set([...histMap.keys(),...currMap.keys()]);
+  const manualShares=buildManualBaseShares(keys,histMap,currMap,histMonths,classMap);
   const items=[];
   keys.forEach(key=>{
     const currentRow=currMap.get(key);
     const [clientKey,group]=splitAnalyticsKey(key);
     const h=histMap.get(key)||new Map();
-    const histValues=histMonths.map(m=>num(h.get(m)));
-    const avg3=histValues.reduce((a,v)=>a+v,0)/histMonths.length;
+    const histCalculated=histMonths.map(m=>num(h.get(m)));
+    const avg3Calculated=histCalculated.reduce((a,v)=>a+v,0)/histMonths.length;
+    // Base recorrente manual: substitui a Media 3M (e o historico usado nas
+    // medias de grupo) quando a gestao informou o valor mensal do cliente.
+    const manualBase=manualShares.has(key)?manualShares.get(key):null;
+    const histValues=manualBase===null?histCalculated:histMonths.map(()=>manualBase);
+    const avg3=manualBase===null?avg3Calculated:manualBase;
     const currentValue=num(currentRow?.valor);
     const cls=classMap.get(clientKey)||{};
     const type=clean(cls.tipo_receita).toUpperCase();
@@ -711,7 +717,8 @@ async function buildClientAnalytics(competencia, state, env, config) {
       clienteChave:clientKey,cliente:clean(currentRow?.cliente)||names.get(clientKey)||clean(cls.cliente_nome)||'(sem cliente)',
       grupo:group,valorAtual:round2(currentValue),quantidade:num(currentRow?.quantidade),locais:currentRow?.locais||{},
       historico:histValues.map((v,i)=>({competencia:histMonths[i],valor:round2(v)})),
-      media3Meses:round2(avg3),esperadoParcial:round2(expectedPartial),participacaoGrupo:round2(shareGroup),
+      media3Meses:round2(avg3),media3MesesCalculada:round2(avg3Calculated),baseRecorrenteManual:manualBase!==null,
+      esperadoParcial:round2(expectedPartial),participacaoGrupo:round2(shareGroup),
       tipoReceita:type,tipoReceitaEfetivo:effectiveType,dataFimPrevista:dataFim,observacao:clean(cls.observacao),
       motivos:reasons,precisaRevisao:!effectiveType&&reasons.length>0
     });
@@ -737,6 +744,52 @@ async function buildClientAnalytics(competencia, state, env, config) {
   });
 
   return {competencia,items,groupTotals,histMonths,classMap};
+}
+
+async function loadRevenueClassifications(env){
+  try{
+    const r=await env.DB.prepare(`SELECT cliente_chave,cliente_nome,tipo_receita,data_fim_prevista,observacao,base_recorrente_mensal FROM atende_cliente_receita_classificacao WHERE ativo=1`).all();
+    return r?.results||[];
+  }catch(err){
+    // Compatibilidade: migration 0022 ainda nao aplicada.
+    console.warn('[V6][receita] base_recorrente_mensal indisponivel, usando Media 3M calculada:',err?.message||err);
+    const r=await env.DB.prepare(`SELECT cliente_chave,cliente_nome,tipo_receita,data_fim_prevista,observacao FROM atende_cliente_receita_classificacao WHERE ativo=1`).all();
+    return r?.results||[];
+  }
+}
+
+function readManualBase(cls){
+  const raw=cls?.base_recorrente_mensal;
+  if(raw===null||raw===undefined||raw==='')return null;
+  const v=Number(raw);
+  return Number.isFinite(v)&&v>=0?v:null;
+}
+
+// Distribui a base manual (valor por cliente) entre os grupos do cliente
+// (R2G1/R2G2/OUTROS), na proporcao do historico calculado. Sem historico,
+// usa a proporcao do mes atual; sem nenhum dos dois, divide igualmente.
+function buildManualBaseShares(keys,histMap,currMap,histMonths,classMap){
+  const byClient=new Map();
+  keys.forEach(key=>{
+    const [clientKey]=splitAnalyticsKey(key);
+    const base=readManualBase(classMap.get(clientKey));
+    if(base===null)return;
+    const h=histMap.get(key)||new Map();
+    const histSum=histMonths.reduce((s,m)=>s+num(h.get(m)),0);
+    const curr=num(currMap.get(key)?.valor);
+    if(!byClient.has(clientKey))byClient.set(clientKey,{base,rows:[]});
+    byClient.get(clientKey).rows.push({key,histSum,curr});
+  });
+  const out=new Map();
+  byClient.forEach(({base,rows})=>{
+    const totalHist=rows.reduce((s,x)=>s+x.histSum,0);
+    const totalCurr=rows.reduce((s,x)=>s+x.curr,0);
+    rows.forEach(x=>{
+      const share=totalHist>0?x.histSum/totalHist:(totalCurr>0?x.curr/totalCurr:1/rows.length);
+      out.set(x.key,base*share);
+    });
+  });
+  return out;
 }
 
 function buildProjection(a, config) {
@@ -1129,10 +1182,11 @@ async function getRevenueClients(url, env) {
   const total=a.items.reduce((s,x)=>s+x.valorAtual,0);
   const byClient=new Map();
   a.items.forEach(x=>{
-    const old=byClient.get(x.clienteChave)||{clienteChave:x.clienteChave,cliente:x.cliente,faturamento:0,media3Meses:0,tipoReceita:x.tipoReceita,dataFimPrevista:x.dataFimPrevista,observacao:x.observacao,sinais:[],precisaRevisao:false};
-    old.faturamento+=x.valorAtual;old.media3Meses+=x.media3Meses;if(x.precisaRevisao){old.precisaRevisao=true;old.sinais.push({grupo:x.grupo,motivos:x.motivos});}byClient.set(x.clienteChave,old);
+    const cls=a.classMap.get(x.clienteChave)||{};
+    const old=byClient.get(x.clienteChave)||{clienteChave:x.clienteChave,cliente:x.cliente,faturamento:0,media3Meses:0,media3MesesCalculada:0,baseRecorrenteMensal:readManualBase(cls),tipoReceita:x.tipoReceita,dataFimPrevista:x.dataFimPrevista,observacao:x.observacao,sinais:[],precisaRevisao:false};
+    old.faturamento+=x.valorAtual;old.media3Meses+=x.media3Meses;old.media3MesesCalculada+=x.media3MesesCalculada;if(x.precisaRevisao){old.precisaRevisao=true;old.sinais.push({grupo:x.grupo,motivos:x.motivos});}byClient.set(x.clienteChave,old);
   });
-  const clientes=Array.from(byClient.values()).map(x=>({...x,faturamento:round2(x.faturamento),media3Meses:round2(x.media3Meses),participacaoTotal:total?round2(x.faturamento*100/total):0})).sort((a,b)=>b.faturamento-a.faturamento).slice(0,200);
+  const clientes=Array.from(byClient.values()).map(x=>({...x,faturamento:round2(x.faturamento),media3Meses:round2(x.media3Meses),media3MesesCalculada:round2(x.media3MesesCalculada),participacaoTotal:total?round2(x.faturamento*100/total):0})).sort((a,b)=>b.faturamento-a.faturamento).slice(0,200);
   return json({ok:true,competencia,clientes});
 }
 
@@ -1142,13 +1196,21 @@ async function saveRevenueClient(request, env) {
   if(!key||!name)return json({ok:false,error:'cliente_required'},400);
   if(type&&!['RECORRENTE','CAMPANHA','PONTUAL'].includes(type))return json({ok:false,error:'tipo_receita_invalid'},400);
   if(end&&!/^\d{4}-\d{2}-\d{2}$/.test(end))return json({ok:false,error:'data_fim_invalid'},400);
+  const baseRaw=clean(body.baseRecorrenteMensal).replace(/\s/g,'');
+  let base=null;
+  if(baseRaw){
+    const ptBr=baseRaw.includes(',')||/^\d{1,3}(\.\d{3})+$/.test(baseRaw);
+    base=Number(ptBr?baseRaw.replace(/\./g,'').replace(',','.'):baseRaw);
+    if(!Number.isFinite(base)||base<0)return json({ok:false,error:'base_recorrente_invalid'},400);
+    base=round2(base);
+  }
   const old=await env.DB.prepare(`SELECT * FROM atende_cliente_receita_classificacao WHERE cliente_chave=?`).bind(key).first();
   if(!type){await env.DB.prepare(`DELETE FROM atende_cliente_receita_classificacao WHERE cliente_chave=?`).bind(key).run();}
   else await env.DB.prepare(`
-    INSERT INTO atende_cliente_receita_classificacao(cliente_chave,cliente_nome,tipo_receita,data_fim_prevista,observacao,ativo,atualizado_por,atualizado_em)
-    VALUES(?,?,?,?,?,1,?,datetime('now'))
-    ON CONFLICT(cliente_chave) DO UPDATE SET cliente_nome=excluded.cliente_nome,tipo_receita=excluded.tipo_receita,data_fim_prevista=excluded.data_fim_prevista,observacao=excluded.observacao,ativo=1,atualizado_por=excluded.atualizado_por,atualizado_em=datetime('now')
-  `).bind(key,name,type,end||null,obs,user).run();
+    INSERT INTO atende_cliente_receita_classificacao(cliente_chave,cliente_nome,tipo_receita,data_fim_prevista,observacao,base_recorrente_mensal,ativo,atualizado_por,atualizado_em)
+    VALUES(?,?,?,?,?,?,1,?,datetime('now'))
+    ON CONFLICT(cliente_chave) DO UPDATE SET cliente_nome=excluded.cliente_nome,tipo_receita=excluded.tipo_receita,data_fim_prevista=excluded.data_fim_prevista,observacao=excluded.observacao,base_recorrente_mensal=excluded.base_recorrente_mensal,ativo=1,atualizado_por=excluded.atualizado_por,atualizado_em=datetime('now')
+  `).bind(key,name,type,end||null,obs,base,user).run();
   await audit(env,'cliente_receita',key,'classificacao',old||{},body,user);
   return json({ok:true,clienteChave:key,tipoReceita:type});
 }
