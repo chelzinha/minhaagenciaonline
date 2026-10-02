@@ -9,7 +9,7 @@ Publicado a partir do protótipo aprovado pela Rachel em 29/09/2026.
 3. Responsável é o filtro filho. Quem só vê a própria agenda fica travado em si mesmo.
 4. Funil: a coluna Sinalizado mostra sozinha os clientes com prioridade crítica ou alta do motor. Nada é gravado. A tratativa nasce quando alguém clica em Agendar ou Assumir e o card vai para "Em tratativa".
 5. Dashboard: carteira do LOCAL, fila do motor, sinais do Visão 360 (voltou a postar, contrato detectado, queda relevante), funil, agenda de hoje e resumo da Curva ABC.
-6. Curva ABC 12M: por LOCAL da postagem. A até 80% do acumulado, B até 95% ou a partir de R$ 5.000 na janela, C o resto. NOVO = primeira postagem no LOCAL a partir de 01/07/2026 (provisório, até a base do Visão 360 completar 12 meses). Não substitui a "Curva 30D" do motor.
+6. Curva ABC 12M: por LOCAL da carteira (desde 02/10/2026). O cliente entra só na curva do LOCAL que trata ele, com as postagens de todos os LOCAIS. A até 80% do acumulado, B até 95% ou a partir de R$ 5.000 na janela, C o resto. NOVO = primeira postagem (qualquer LOCAL) a partir de 01/07/2026 (provisório, até a base do Visão 360 completar 12 meses). Não substitui a "Curva 30D" do motor.
 7. Agenda: diária (com a próxima atividade, vencidas e fila sem agenda), semanal e mensal no estilo Google. WhatsApp Web em toda atividade com número. Atividade sem vínculo (reunião interna, treinamento). Só dias úteis.
 8. Tabelas no padrão do /atende: ordenar, filtrar por coluna, arrastar colunas e ajustar a largura (clique duplo volta ao padrão). A preferência fica salva no navegador de cada pessoa.
 

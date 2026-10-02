@@ -87,7 +87,7 @@ export function aplicarGruposNoMotor(grupos, clientes, linhas) {
     info.set(principal, { grupo: g, principal, membros: validos, local, contagem, porMembro });
     const juntas = validos.flatMap((id) => linhas.get(id) || []);
     for (const id of validos) if (id !== principal) { clientes.delete(id); linhas.delete(id); }
-    clientes.set(principal, { nome: g.nome, local, todosLocais: true });     // grupo soma as postagens de todos os LOCAIS
+    clientes.set(principal, { nome: g.nome, local });                       // o motor soma as postagens de todos os LOCAIS
     linhas.set(principal, juntas);
   }
   return info;

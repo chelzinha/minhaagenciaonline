@@ -9,13 +9,11 @@
  *  3. Tipo de negocio vem das colunas INTERMEDIADOR e TIPO do Atende:
  *     VR -> VR | INTERMEDIADOR -> plataforma (marketplace) | PORTAL POSTAL / CONTRATO ECT -> CONTRATO | sem contrato -> BALCAO.
  *  4. Postagem estornada soma o valor (negativo) mas nao conta como objeto nem como dia ativo.
- *  4b. As metricas usam SO as postagens feitas no LOCAL da carteira do cliente. Postagens dele em outro LOCAL
- *      ficam fora (contadas em POSTAGENS_OUTROS_LOCAIS, so para informacao).
- *      Excecao: cliente sem nenhuma postagem no LOCAL da carteira (so acontece quando o admin escolhe um LOCAL
- *      onde ele nao posta) usa todas as postagens e sai marcado POSTAGENS_DO_LOCAL = 'NAO', para nao sumir do CRM.
- *  4c. Grupo comercial (clientes.get(id).todosLocais = true) soma as postagens de TODOS os LOCAIS. O LOCAL do grupo
- *      so define a carteira (quem trata e em qual curva entra). Sai marcado POSTAGENS_DO_LOCAL = 'TODOS' e
- *      POSTAGENS_OUTROS_LOCAIS = objetos de outros LOCAIS somados no calculo (decisao da Rachel, 02/10/2026).
+ *  4b. As metricas somam as postagens do cliente em TODOS os LOCAIS (decisao da Rachel, 02/10/2026).
+ *      O LOCAL da carteira so define quem trata o cliente e em qual curva ele entra (curva e share continuam
+ *      calculados dentro de cada LOCAL da carteira). Sai marcado POSTAGENS_DO_LOCAL = 'TODOS' e
+ *      POSTAGENS_OUTROS_LOCAIS = objetos feitos em outro LOCAL e somados no calculo (informativo).
+ *      Vale para cliente e para grupo comercial. O Visao 360 (/atende) nao e afetado.
  *  5. REVERSO = servico classificado no Atende com subgrupo "Reverso".
  * Todo o resto (pesos, cortes, pisos, limiares, textos das acoes) e identico.
  */
@@ -36,7 +34,7 @@ export const CRM_CFG = Object.freeze({
     },
   },
 });
-export const CRM_MOTOR_VERSAO = 'crm-1.3.0';   // 1.1.0: contrato próprio (regra AGF, 30/09/2026) · 1.2.0: grupos comerciais · 1.3.0: grupo soma todos os LOCAIS (02/10/2026)
+export const CRM_MOTOR_VERSAO = 'crm-1.4.0';   // 1.1.0: contrato próprio (30/09/2026) · 1.2.0: grupos comerciais · 1.3.0: grupo soma todos os LOCAIS · 1.4.0: todo cliente soma todos os LOCAIS (02/10/2026)
 export const CRM_LOCAIS = ['AGF', 'BALCAO', 'METRO'];
 const R = CRM_CFG.RULES, C = CRM_CFG.CURVA;
 
@@ -333,14 +331,11 @@ export function executarCrm(clientes, linhasPorCliente, refDateForcada, opcoes =
   for (const [id, linhas] of linhasPorCliente) {
     const c = clientes.get(id);
     if (!c) continue;
-    const todosLocais = !!c.todosLocais;                                   // grupo comercial: soma todos os LOCAIS
-    const doLocal = c.local && !todosLocais ? linhas.filter((l) => l.local === c.local) : linhas;
-    const usarTodas = !todosLocais && !!c.local && !doLocal.length;
-    const m = metricasDoCliente(id, usarTodas ? linhas : doLocal, refDate);
+    const m = metricasDoCliente(id, linhas, refDate);                     // regra 4b: postagens de todos os LOCAIS
     if (!m) continue;
     m.CLIENTE = c.nome; m.LOCAL = c.local || 'SEM_LOCAL';
-    m.POSTAGENS_DO_LOCAL = todosLocais ? 'TODOS' : usarTodas ? 'NAO' : 'SIM';
-    m.POSTAGENS_OUTROS_LOCAIS = usarTodas ? 0 : linhas.filter((l) => c.local && l.local !== c.local && !l.estorno).reduce((t, l) => t + num(l.qtd), 0);
+    m.POSTAGENS_DO_LOCAL = 'TODOS';
+    m.POSTAGENS_OUTROS_LOCAIS = linhas.filter((l) => c.local && l.local !== c.local && !l.estorno).reduce((t, l) => t + num(l.qtd), 0);
     if (!grupos.has(m.LOCAL)) grupos.set(m.LOCAL, []);
     grupos.get(m.LOCAL).push(m);
   }
