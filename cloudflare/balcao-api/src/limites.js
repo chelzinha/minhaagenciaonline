@@ -1,10 +1,10 @@
 /* =====================================================
-   LIMITE DE USO DAS ROTAS PÚBLICAS (/postar)
+   LIMITE DE USO DAS ROTAS PÚBLICAS (/postar e /simulador)
    Contagem por IP (guardado só como hash) em janelas de 1 hora no D1.
    Os limites são altos porque vários clientes saem pelo mesmo Wi-Fi da agência.
    ===================================================== */
 
-export const LIMITES_HORA = { cep: 600, cotar: 300, salvar: 120 };
+export const LIMITES_HORA = { cep: 600, cotar: 300, salvar: 120, simular: 1200 };
 const JANELA_MS = 60 * 60 * 1000;
 
 export async function hashIp(request, env) {

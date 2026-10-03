@@ -1,0 +1,23 @@
+chave;valor;descricao;fonte
+CTR_DIVISOR;6000;Divisor do peso cúbico do contrato (cm3);Instruções - SEDEX e PAC 2026
+CTR_ISENCAO_CUBAGEM_KG;5;Peso cúbico até 5 kg é ignorado no contrato;Instruções - SEDEX e PAC 2026
+CTR_VD_PCT;0.01;Ad valorem do contrato sobre o excedente da indenização automática;Instruções - SEDEX e PAC 2026
+CTR_INDENIZACAO;25.63;Indenização automática SEDEX e PAC no contrato;Instruções - SEDEX e PAC 2026
+CTR_VD_MAX_SEDEX;39680.48;Valor declarado máximo SEDEX contrato;Instruções - SEDEX e PAC 2026
+CTR_VD_MAX_PAC;4668.29;Valor declarado máximo PAC contrato;Instruções - SEDEX e PAC 2026
+LIMITE_PESO_G;30000;Peso máximo tarifado de SEDEX e PAC;Instruções - SEDEX e PAC 2026
+MANUSEIO_ESPECIAL;11.19;Manuseio especial: rolo, cilindro, esfera ou dimensão acima de 70 cm;Instruções - SEDEX e PAC 2026
+DIMENSAO_ESPECIAL_CM;70;Dimensão a partir da qual cobra manuseio especial;Instruções - SEDEX e PAC 2026
+APP_DIVISOR;7000;Divisor do peso cúbico do App. O App cobra sempre o peso cúbico;Instruções - SEDEX PAC APP 2026
+APP_VD_PCT;0.02;Ad valorem do App sobre o excedente da indenização automática;Validado em postagens App do Atende (abr-set/2026)
+APP_INDENIZACAO;25.63;Indenização automática no App;Validado em postagens App do Atende (abr-set/2026)
+MINI_PESO_TABELA_G;300;Até este peso o Mini Envios usa a tabela própria;Instruções - Mini Envios 2026
+MINI_PESO_MAX_G;1000;De 301 g a 1000 g o Mini Envios cobra o preço do PAC;Instruções - Mini Envios 2026
+MINI_VD_PCT;0.02;Ad valorem do Mini Envios;Instruções - Mini Envios 2026
+MINI_INDENIZACAO;12.82;Indenização automática do Mini Envios;Instruções - Mini Envios 2026
+MINI_VD_MAX;116.70;Valor declarado máximo do Mini Envios;Instruções - Mini Envios 2026
+MINI_COMP_MAX_CM;24;Comprimento máximo do Mini Envios;Regulamento Mini Envios - conferir a cada reajuste
+MINI_LARG_MAX_CM;16;Largura máxima do Mini Envios;Regulamento Mini Envios - conferir a cada reajuste
+MINI_ALT_MAX_CM;4;Altura máxima do Mini Envios;Regulamento Mini Envios - conferir a cada reajuste
+CTR_AR;11.75;Aviso de Recebimento a faturar (contrato);Tabela_Serv_Nacionais 2026 - Serviços Adicionais item 7
+CTR_MP;13.80;Mão Própria a faturar (contrato);Tabela_Serv_Nacionais 2026 - Serviços Adicionais item 5.1

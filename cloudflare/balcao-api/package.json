@@ -6,9 +6,13 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "migrate:remote": "wrangler d1 migrations apply agf-balcao --remote",
-    "test": "node test/preco.test.mjs && node test/separacao.test.mjs && node test/cotacao.test.mjs && node --no-warnings test/etiquetas_d1.test.mjs"
+    "test": "node test/preco.test.mjs && node test/separacao.test.mjs && node test/cotacao.test.mjs && node --no-warnings test/etiquetas_d1.test.mjs && node test/comparador.test.mjs && node test/simulador.test.mjs",
+    "gerar:comparador": "python tools/comparador/gerar_comparador_d1.py"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
+  },
+  "dependencies": {
+    "@cloudflare/puppeteer": "^1.4.0"
   }
 }
