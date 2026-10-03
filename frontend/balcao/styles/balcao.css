@@ -185,6 +185,7 @@ button:disabled { cursor: not-allowed; opacity: .62; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .field { display: grid; gap: 7px; }
+.field[hidden], .card[hidden] { display: none !important; }
 .field-label { font-size: 13px; font-weight: 750; color: #344054; margin-left: 5px; margin-top: 8px; }
 .field-input, .select-wrap, .textarea-wrap {
   display: flex;
@@ -563,11 +564,12 @@ textarea { min-height: 86px; resize: vertical; }
 }
 
 @media print {
-  @page { size: 105mm 148mm; margin: 0; }
+  /* Etiqueta sempre 10 x 15 cm */
+  @page { size: 100mm 150mm; margin: 0; }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body {
-    width: 105mm;
-    min-height: 148mm;
+    width: 100mm;
+    min-height: 150mm;
     margin: 0 !important;
     padding: 0 !important;
     background: #fff !important;
@@ -578,8 +580,8 @@ textarea { min-height: 86px; resize: vertical; }
   .print-only:empty { display: none !important; }
 
   .print-label-sheet {
-    width: 105mm;
-    height: 148mm;
+    width: 100mm;
+    height: 150mm;
     padding: 4mm 4mm 3.5mm;
     font-family: Arial, Helvetica, sans-serif;
     color: #111;
@@ -598,7 +600,7 @@ textarea { min-height: 86px; resize: vertical; }
     padding: 4mm 5mm 3mm;
   }
   .sro-inner {
-    width: 74mm;
+    width: 70mm;
     min-height: 24mm;
     border: .24mm dashed #777;
     display: flex;
@@ -822,3 +824,12 @@ textarea { min-height: 86px; resize: vertical; }
 .topbar-inner{min-height:var(--agf-topbar-height,56px)}
 .brand-logo img{width:28px!important;height:28px!important;border:0!important;border-radius:0!important;padding:0!important;background:transparent!important;box-shadow:none!important}
 .version-pill{padding:6px 8px;font-size:11px}
+
+/* Abas do balcão: Cotação | Gerar etiqueta */
+.bl-abas { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 6px; background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 10px 24px rgba(15, 23, 42, .06); }
+.bl-aba { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; border: 0; border-radius: 13px; background: transparent; color: var(--muted); font-weight: 850; font-size: 15px; }
+.bl-aba .material-symbols-rounded { font-size: 22px; }
+.bl-aba:hover { background: #f2f6fa; color: var(--azul-correios); }
+.bl-aba.is-on { background: var(--azul-correios); color: #fff; box-shadow: 0 8px 18px rgba(0, 65, 107, .2); }
+.bl-aba:focus-visible { outline: 3px solid var(--amarelo-correios); outline-offset: 2px; }
+#cardServicoManual .seg { margin-bottom: 4px; }

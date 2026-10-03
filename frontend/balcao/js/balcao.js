@@ -11,6 +11,7 @@ const BalcaoPage = (function () {
     destino: null,
     cotacao: null,
     selecionada: null,
+    aba: 'cotacao',
     origemDefault: {
       cep: BALCAO_CONFIG.CEP_ORIGEM_FALLBACK,
       cidade: BALCAO_CONFIG.CIDADE_ORIGEM_FALLBACK,
@@ -124,6 +125,14 @@ const BalcaoPage = (function () {
     });
   }
 
+  // #apiPrazoStatus pode não existir no topo novo: escreve só se o elemento estiver na página.
+  function statusConfig(texto, tipo) {
+    const el = $('apiPrazoStatus');
+    if (!el) return;
+    el.textContent = texto;
+    el.className = 'field-hint ' + tipo;
+  }
+
   async function loadConfig() {
     try {
       const cfg = await BalcaoApi.config();
@@ -134,11 +143,9 @@ const BalcaoPage = (function () {
         uf: (cfg.ufOrigemDefault || BALCAO_CONFIG.UF_ORIGEM_FALLBACK).toUpperCase()
       };
       const vig = String(cfg.vigencia || '').split('-').reverse().join('/');
-      $('apiPrazoStatus').textContent = 'Preço: tabela à vista' + (vig ? ' ' + vig : '') + ' • ' + (cfg.apiPrazoConfigurada ? 'Prazo: API Correios' : 'Prazo: confirmar no SARA');
-      $('apiPrazoStatus').className = 'field-hint ' + (cfg.apiPrazoConfigurada ? 'ok' : 'warn');
+      statusConfig('Preço: tabela à vista' + (vig ? ' ' + vig : '') + ' • ' + (cfg.apiPrazoConfigurada ? 'Prazo: API Correios' : 'Prazo: confirmar no SARA'), cfg.apiPrazoConfigurada ? 'ok' : 'warn');
     } catch (e) {
-      $('apiPrazoStatus').textContent = 'Não consegui carregar a configuração';
-      $('apiPrazoStatus').className = 'field-hint error';
+      statusConfig('Não consegui carregar a configuração', 'error');
       toastError(e);
     }
 
@@ -234,13 +241,15 @@ const BalcaoPage = (function () {
     const tipo = getTipoObjeto();
     const isRolo = tipo === 'ROLO';
     const isEnvelope = tipo === 'ENVELOPE';
+    // Pacote: altura, largura e comprimento. Envelope: largura e comprimento. Rolo: comprimento e diâmetro.
     $('fieldAltura').hidden = isRolo || isEnvelope;
-    $('fieldLargura').hidden = false;
+    $('fieldLargura').hidden = isRolo;
     $('fieldComprimento').hidden = false;
     $('fieldDiametro').hidden = !isRolo;
     if (isRolo) {
       $('dimensoesHint').textContent = 'Rolo: informe comprimento e diâmetro.';
       $('alturaCm').value = '';
+      $('larguraCm').value = '';
     } else if (isEnvelope) {
       $('dimensoesHint').textContent = 'Envelope: informe comprimento e largura.';
       $('alturaCm').value = '';
@@ -410,11 +419,13 @@ const BalcaoPage = (function () {
     $('summaryDestino').textContent = [fmtCep(entrada.cepDestino || $('cepDestino').value), destino.cidade || entrada.cidadeDestino, destino.uf || entrada.ufDestino].filter(Boolean).join(' • ') || '—';
     $('summaryObjeto').textContent = [entrada.tipoObjeto || getTipoObjeto(), (entrada.pesoG || $('pesoG').value || '0') + ' g', formatDims(entrada)].filter(Boolean).join(' • ');
     $('summaryVd').textContent = fmtMoney(entrada.valorDeclarado || parseMoney($('valorDeclarado').value || 0));
-    $('summaryServico').textContent = op ? (op.nome + ' • ' + fmtMoney(op.total)) : 'Nenhum serviço selecionado';
+    $('summaryServico').textContent = state.aba === 'etiqueta'
+      ? 'Sem cotação • ' + (opcaoManual().nome || 'Definir no SARA')
+      : (op ? (op.nome + ' • ' + fmtMoney(op.total)) : 'Nenhum serviço selecionado');
   }
 
   function coletarFicha() {
-    if (!state.selecionada) throw new Error('Selecione uma opção de serviço antes.');
+    if (state.aba === 'cotacao' && !state.selecionada) throw new Error('Selecione uma opção de serviço antes.');
     const remetenteNome = $('remNome').value.trim();
     const remetenteCep = digits($('remCep').value);
     const remetenteEndereco = $('remEndereco').value.trim();
@@ -484,8 +495,8 @@ const BalcaoPage = (function () {
 
     const payload = {
       origem: 'BALCAO_WEB',
-      entrada: state.cotacao ? state.cotacao.entrada : safeEntrada(),
-      opcao: state.selecionada,
+      entrada: state.aba === 'etiqueta' ? entradaManual() : (state.cotacao ? state.cotacao.entrada : safeEntrada()),
+      opcao: state.aba === 'etiqueta' ? opcaoManual() : state.selecionada,
       ficha: ficha,
       criadoEm: new Date().toISOString()
     };
@@ -507,8 +518,9 @@ const BalcaoPage = (function () {
     let ficha;
     try { ficha = coletarFicha(); } catch (e) { toastError(e); return; }
 
-    const entrada = state.cotacao ? state.cotacao.entrada : safeEntrada();
-    const op = state.selecionada;
+    const manual = state.aba === 'etiqueta';
+    const entrada = manual ? entradaManual() : (state.cotacao ? state.cotacao.entrada : safeEntrada());
+    const op = manual ? opcaoManual() : state.selecionada;
     const print = $('printArea');
     print.innerHTML = buildPrintHtml(entrada, op, ficha);
     setTimeout(() => window.print(), 100);
@@ -649,6 +661,11 @@ const BalcaoPage = (function () {
   }
 
   function bindEvents() {
+    document.querySelectorAll('.bl-aba').forEach(b => b.addEventListener('click', () => trocarAba(b.dataset.aba)));
+    document.querySelectorAll('input[name="servicoManual"]').forEach(r => r.addEventListener('change', () => {
+      document.querySelectorAll('#servicoManualSeg .seg-item').forEach(l => l.classList.toggle('is-selected', l.querySelector('input').checked));
+      updateSummary();
+    }));
     bindMask('cepOrigem', fmtCep);
     bindMask('cepDestino', fmtCep);
     bindMask('remCep', fmtCep);
@@ -697,6 +714,40 @@ const BalcaoPage = (function () {
     }
   }
 
+  // ---------------------------------------------------------------- abas: Cotação | Gerar etiqueta
+  const SERVICOS_MANUAIS = { '04014': 'SEDEX à vista', '04510': 'PAC à vista', '': 'A definir no SARA' };
+  function servicoManual() {
+    const r = document.querySelector('input[name="servicoManual"]:checked');
+    return r ? r.value : '';
+  }
+  /** Serviço escolhido na aba "Gerar etiqueta" (sem preço). Vazio = definir no SARA. */
+  function opcaoManual() {
+    const cod = servicoManual();
+    return { ok: true, codigoServico: cod || 'A_DEFINIR', nome: SERVICOS_MANUAIS[cod] || '', total: 0, semCotacao: true };
+  }
+  function entradaManual() {
+    const g = Number($('pesoManualG').value || 0);
+    return { pesoG: g > 0 ? g : '', cepDestino: digits($('destCep').value), tipoObjeto: '' };
+  }
+
+  function trocarAba(aba) {
+    state.aba = aba === 'etiqueta' ? 'etiqueta' : 'cotacao';
+    const manual = state.aba === 'etiqueta';
+    document.querySelectorAll('.bl-aba').forEach(b => {
+      const on = b.dataset.aba === state.aba;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    $('badgeCotacao').classList.toggle('hidden', manual);
+    $('formCotacao').classList.toggle('hidden', manual);
+    $('cardResultados').classList.toggle('hidden', manual);
+    $('cardServicoManual').hidden = !manual;
+    $('badgeEtiquetaNum').textContent = manual ? '1' : '2';
+    $('etiquetaSection').classList.toggle('hidden', !manual && !state.selecionada);
+    try { localStorage.setItem('agf_balcao_aba', state.aba); } catch (e) { /* ok */ }
+    updateSummary();
+  }
+
   function limparCotacao() {
     ['cepDestino','pesoG','alturaCm','larguraCm','comprimentoCm','diametroCm','valorDeclarado'].forEach(id => { if ($(id)) $(id).value = ''; });
     $('ar').checked = false;
@@ -737,6 +788,9 @@ const BalcaoPage = (function () {
     bindEvents();
     syncTipoObjeto();
     renderResults(null);
+    let abaSalva = 'cotacao';
+    try { abaSalva = localStorage.getItem('agf_balcao_aba') || 'cotacao'; } catch (e) { /* ok */ }
+    trocarAba(abaSalva);
     await loadConfig();
   }
 
