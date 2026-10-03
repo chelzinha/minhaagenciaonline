@@ -128,3 +128,48 @@ Scopes adicionais para fulfillment/rastreio serão adicionados somente quando a 
 8. Etiqueta Correios + DANFE Simplificado 100x150.
 9. Retorno de fulfillment/rastreio à Shopify.
 10. Motor de Cotação AGF e adapters de produto/carrinho/checkout.
+
+## 9. Pedidos persistidos (migration 0002)
+
+Os pedidos deixam de ser lidos ao vivo a cada abertura da tela. A Shopify é consultada só na importação; a lista vem do D1.
+
+### Tabela `shopify_orders`
+
+- Chave: `shop_domain` + `order_gid`.
+- `order_key`: número do pedido normalizado (`#1001` -> `1001`). Base do pareamento com o XML da NF-e.
+- Dados de entrega, CPF/CNPJ (só dígitos), frete Shopify, peso e itens (`items_json`).
+- `agf_status`, `status_reason`, `alert_message`.
+- Atualização protegida por `shopify_updated_at`: um dado mais antigo nunca sobrescreve um mais novo (preparado para webhooks fora de ordem).
+
+### Status AGF calculados na importação
+
+| Status | Regra |
+|---|---|
+| CANCELADO | `cancelledAt` preenchido ou pagamento REFUNDED/VOIDED |
+| SEM_ENVIO | pedido sem item que exija envio |
+| ENVIADO_FORA_AGF | Shopify já marca o pedido como FULFILLED |
+| AGUARDANDO_PAGAMENTO | pagamento diferente de PAID/PARTIALLY_REFUNDED |
+| DADOS_INCOMPLETOS | falta nome, endereço, cidade, UF, CEP de 8 dígitos ou CPF/CNPJ |
+| AGUARDANDO_XML | pago, com dados completos |
+
+Regras de preservação:
+
+- EMITINDO, ETIQUETA_EMITIDA, RASTREIO_* e ERRO_RASTREIO nunca são alterados pela importação. Cancelamento posterior gera `alert_message`.
+- XML_VINCULADO, FISCAL_COM_ERRO e PRONTO_PARA_EMITIR são mantidos enquanto o pedido continuar apto.
+
+### Sincronização
+
+- Incremental por `updated_at`, janela máxima de 60 dias (limite sem `read_all_orders`), sobreposição de 2 minutos.
+- 20 pedidos por página, até 5 páginas por chamada; o frontend repete até `complete = true`.
+- Respeita o custo GraphQL (`throttleStatus`) e interrompe de forma segura se precisar esperar mais de 4 s.
+- Trava por loja em `shopify_sync_state` (90 s) impede duas importações simultâneas.
+- Gravação em uma instrução por página (`json_each`), dentro do limite de queries por invocação do plano gratuito.
+
+### Endpoints
+
+```text
+POST /api/shopify/orders/sync    { shop, mode: "incremental" | "full" }
+GET  /api/shopify/orders/local   ?shop=&status=&q=&limit=&offset=
+```
+
+`GET /api/shopify/orders` (leitura ao vivo) permanece disponível e sem alteração.

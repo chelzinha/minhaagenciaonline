@@ -114,3 +114,35 @@ button:disabled { opacity: .55; cursor: wait; }
   .detail-item { align-items: flex-start; flex-direction: column; }
   .detail-item-price { white-space: normal; }
 }
+
+/* Pedidos persistidos (2026-10-03) */
+.head-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.orders-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+.filter-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.filter-chip { min-height: 36px; padding: 6px 12px; border: 1px solid #cfd6df; border-radius: 999px; background: #fff; color: #263244; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.filter-chip:hover { border-color: #17365d; }
+.filter-chip.active { background: #17365d; border-color: #17365d; color: #fff; }
+.filter-chip:focus-visible, .btn-primary:focus-visible, .btn-secondary:focus-visible { outline: 2px solid #6a9fe6; outline-offset: 2px; }
+.orders-search { max-width: 300px; min-height: 40px; font-size: 16px; }
+.sync-info { margin: 0 0 14px; color: var(--shopify-muted); font-size: 12px; }
+.order-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.order-title strong { display: inline; }
+.order-header .order-title .agf-badge { display: inline-block; margin-top: 0; font-size: 11px; }
+.agf-badge { display: inline-block; padding: 3px 9px; border-radius: 999px; border: 1px solid; font-size: 11px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+.agf-badge.agf-badge-ok { color: #246b3b; background: #f4fbf6; border-color: #b8d8c2; }
+.agf-badge.agf-badge-info { color: #1d4f91; background: #f2f7ff; border-color: #b9d1f3; }
+.agf-badge.agf-badge-warn { color: #7a5a00; background: #fffaf0; border-color: #ead79d; }
+.agf-badge.agf-badge-error { color: #a22626; background: #fff6f6; border-color: #efb4b4; }
+.agf-badge.agf-badge-muted { color: #4b5565; background: #f5f7fa; border-color: #d9e0e7; }
+.order-reason { font-size: 12px; color: #7a5a00; }
+.order-alert { padding: 10px 12px; border: 1px solid #efb4b4; border-radius: 8px; background: #fff6f6; color: #a22626; font-size: 12px; font-weight: 600; }
+.orders-more { display: flex; justify-content: center; margin-top: 14px; }
+
+@media (max-width: 760px) {
+  .head-actions { justify-content: stretch; }
+  .head-actions button { flex: 1 1 auto; }
+  .orders-toolbar { flex-direction: column; align-items: stretch; }
+  .orders-search { max-width: none; }
+  .filter-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .filter-chip { flex: 0 0 auto; }
+}

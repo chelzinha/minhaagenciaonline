@@ -6,8 +6,38 @@
     customers: [],
     selectedCustomerId: '',
     selectedShop: '',
-    selectedOrderId: ''
+    selectedOrderId: '',
+    statusFilter: '',
+    search: '',
+    offset: 0,
+    total: 0,
+    importing: false,
+    autoImported: {}
   };
+
+  const PAGE_SIZE = 50;
+  const MAX_IMPORT_ROUNDS = 20;
+
+  // tone: ok | info | warn | error | muted
+  const STATUS_META = {
+    AGUARDANDO_PAGAMENTO: { label: 'Aguardando pagamento', tone: 'muted' },
+    AGUARDANDO_XML: { label: 'Aguardando XML', tone: 'info' },
+    DADOS_INCOMPLETOS: { label: 'Dados incompletos', tone: 'warn' },
+    XML_VINCULADO: { label: 'XML vinculado', tone: 'info' },
+    FISCAL_COM_ERRO: { label: 'Erro fiscal', tone: 'error' },
+    PRONTO_PARA_EMITIR: { label: 'Pronto para emitir', tone: 'ok' },
+    EMITINDO: { label: 'Emitindo', tone: 'info' },
+    ETIQUETA_EMITIDA: { label: 'Etiqueta emitida', tone: 'ok' },
+    RASTREIO_PENDENTE: { label: 'Rastreio pendente', tone: 'warn' },
+    RASTREIO_SINCRONIZADO: { label: 'Rastreio enviado', tone: 'ok' },
+    ERRO_RASTREIO: { label: 'Erro no rastreio', tone: 'error' },
+    CANCELADO: { label: 'Cancelado', tone: 'muted' },
+    SEM_ENVIO: { label: 'Sem envio', tone: 'muted' },
+    ENVIADO_FORA_AGF: { label: 'Enviado fora do AGF', tone: 'muted' }
+  };
+  const STATUS_ORDER = Object.keys(STATUS_META);
+
+  let searchTimer = null;
 
   const els = {};
 
@@ -21,6 +51,12 @@
     els.connectionsEmpty = document.getElementById('connectionsEmpty');
     els.connectionsList = document.getElementById('connectionsList');
     els.refreshOrdersBtn = document.getElementById('refreshOrdersBtn');
+    els.importOrdersBtn = document.getElementById('importOrdersBtn');
+    els.ordersToolbar = document.getElementById('ordersToolbar');
+    els.ordersFilters = document.getElementById('ordersFilters');
+    els.ordersSearch = document.getElementById('ordersSearch');
+    els.ordersSyncInfo = document.getElementById('ordersSyncInfo');
+    els.ordersMoreBtn = document.getElementById('ordersMoreBtn');
     els.ordersShopLabel = document.getElementById('ordersShopLabel');
     els.ordersEmpty = document.getElementById('ordersEmpty');
     els.ordersList = document.getElementById('ordersList');
@@ -213,8 +249,18 @@
 
   function resetOrders() {
     state.selectedShop = '';
+    state.statusFilter = '';
+    state.search = '';
+    state.offset = 0;
+    state.total = 0;
     els.refreshOrdersBtn.disabled = true;
+    els.importOrdersBtn.disabled = true;
     els.ordersShopLabel.textContent = 'Selecione uma loja vinculada para carregar os pedidos.';
+    els.ordersToolbar.hidden = true;
+    els.ordersSyncInfo.hidden = true;
+    els.ordersSearch.value = '';
+    els.ordersFilters.innerHTML = '';
+    els.ordersMoreBtn.hidden = true;
     els.ordersList.innerHTML = '';
     els.ordersList.hidden = true;
     els.ordersEmpty.hidden = false;
@@ -222,13 +268,69 @@
     closeOrderDetail();
   }
 
-  function renderOrders(orders) {
-    els.ordersList.innerHTML = '';
+  function statusMeta(code) {
+    return STATUS_META[code] || { label: statusLabel(code), tone: 'muted' };
+  }
 
-    if (!orders.length) {
+  function createBadge(code) {
+    const meta = statusMeta(code);
+    const badge = document.createElement('span');
+    badge.className = 'agf-badge agf-badge-' + meta.tone;
+    badge.textContent = meta.label;
+    return badge;
+  }
+
+  function renderFilters(counts) {
+    els.ordersFilters.innerHTML = '';
+    const total = Object.values(counts || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+
+    const chips = [{ code: '', label: 'Todos', count: total }].concat(
+      STATUS_ORDER
+        .filter((code) => counts && counts[code])
+        .map((code) => ({ code, label: statusMeta(code).label, count: counts[code] }))
+    );
+
+    for (const chip of chips) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'filter-chip' + (state.statusFilter === chip.code ? ' active' : '');
+      button.setAttribute('aria-pressed', state.statusFilter === chip.code ? 'true' : 'false');
+      button.textContent = chip.label + ' (' + chip.count + ')';
+      button.addEventListener('click', () => {
+        if (state.statusFilter === chip.code) return;
+        state.statusFilter = chip.code;
+        loadOrders();
+      });
+      els.ordersFilters.appendChild(button);
+    }
+  }
+
+  function renderSyncInfo(sync) {
+    if (!sync) {
+      els.ordersSyncInfo.hidden = true;
+      return;
+    }
+    let text = sync.lastOrdersSyncAt
+      ? 'Última importação: ' + formatDate(sync.lastOrdersSyncAt)
+      : 'Esta loja ainda não teve pedidos importados.';
+    if (sync.syncing) text += ' · importação em andamento';
+    els.ordersSyncInfo.textContent = text;
+    els.ordersSyncInfo.hidden = false;
+  }
+
+  function emptyOrdersText() {
+    if (state.search || state.statusFilter) return 'Nenhum pedido encontrado com esse filtro.';
+    return 'Nenhum pedido importado ainda. Clique em "Importar da Shopify".';
+  }
+
+  function renderOrders(orders, append) {
+    if (!append) els.ordersList.innerHTML = '';
+
+    if (!orders.length && !append) {
       els.ordersList.hidden = true;
       els.ordersEmpty.hidden = false;
-      els.ordersEmpty.textContent = 'Nenhum pedido recente foi retornado pela Shopify.';
+      els.ordersEmpty.textContent = emptyOrdersText();
+      els.ordersMoreBtn.hidden = true;
       closeOrderDetail();
       return;
     }
@@ -244,17 +346,27 @@
       header.className = 'order-header';
 
       const identity = document.createElement('div');
+      const titleLine = document.createElement('div');
+      titleLine.className = 'order-title';
       const number = document.createElement('strong');
       number.textContent = order.name || order.id;
+      titleLine.append(number, createBadge(order.agfStatus));
       const date = document.createElement('span');
-      date.textContent = formatDate(order.createdAt);
-      identity.append(number, date);
+      const place = [order.recipientName, [order.city, order.provinceCode].filter(Boolean).join('/')]
+        .filter(Boolean)
+        .join(' · ');
+      date.textContent = formatDate(order.createdAt) + (place ? ' · ' + place : '');
+      identity.append(titleLine, date);
 
       const total = document.createElement('strong');
       total.className = 'order-total';
       total.textContent = formatMoney(order.total);
 
       header.append(identity, total);
+      row.appendChild(header);
+
+      if (order.alert) appendText(row, 'div', order.alert, 'order-alert');
+      if (order.statusReason) appendText(row, 'div', order.statusReason, 'order-reason');
 
       const status = document.createElement('div');
       status.className = 'order-statuses';
@@ -262,9 +374,12 @@
       financial.append('Financeiro: ');
       appendText(financial, 'strong', statusLabel(order.financialStatus));
       const fulfillment = document.createElement('span');
-      fulfillment.append('Expedição: ');
+      fulfillment.append('Expedição Shopify: ');
       appendText(fulfillment, 'strong', statusLabel(order.fulfillmentStatus));
-      status.append(financial, fulfillment);
+      const shipping = document.createElement('span');
+      shipping.append('Frete: ');
+      appendText(shipping, 'strong', order.shippingTitle || 'Não informado');
+      status.append(financial, fulfillment, shipping);
 
       const items = document.createElement('div');
       items.className = 'order-items';
@@ -287,9 +402,12 @@
       detailBtn.addEventListener('click', () => loadOrderDetail(order.id, detailBtn));
       actions.appendChild(detailBtn);
 
-      row.append(header, status, items, actions);
+      row.append(status, items, actions);
       els.ordersList.appendChild(row);
     }
+
+    const shown = els.ordersList.children.length;
+    els.ordersMoreBtn.hidden = shown >= state.total;
   }
 
   function renderOrderDetail(data) {
@@ -423,30 +541,112 @@
     }
   }
 
-  async function loadOrders(shopOverride) {
+  async function loadOrders(shopOverride, options) {
+    const opts = options || {};
     const shop = shopOverride || state.selectedShop;
     if (!shop) {
       resetOrders();
       return;
     }
 
-    if (state.selectedShop !== shop) closeOrderDetail();
+    if (state.selectedShop !== shop) {
+      closeOrderDetail();
+      state.statusFilter = '';
+      state.search = '';
+      els.ordersSearch.value = '';
+    }
     state.selectedShop = shop;
-    els.ordersShopLabel.textContent = shop + ' · últimos pedidos disponíveis para o app';
+    state.offset = opts.append ? state.offset + PAGE_SIZE : 0;
+
+    els.ordersShopLabel.textContent = shop + ' · pedidos salvos na Plataforma AGF (últimos 60 dias)';
     els.refreshOrdersBtn.disabled = true;
-    els.ordersEmpty.hidden = false;
-    els.ordersEmpty.textContent = 'Carregando pedidos...';
-    els.ordersList.hidden = true;
+    els.importOrdersBtn.disabled = state.importing;
+    els.ordersMoreBtn.disabled = true;
+
+    if (!opts.append) {
+      els.ordersEmpty.hidden = false;
+      els.ordersEmpty.textContent = 'Carregando pedidos...';
+      els.ordersList.hidden = true;
+    }
 
     try {
-      const data = await window.AgfShopify.listOrders(shop, 20);
-      renderOrders(Array.isArray(data.orders) ? data.orders : []);
+      const data = await window.AgfShopify.listLocalOrders(shop, {
+        status: state.statusFilter,
+        q: state.search,
+        limit: PAGE_SIZE,
+        offset: state.offset
+      });
+      if (state.selectedShop !== shop) return;
+
+      state.total = Number(data.total || 0);
+      els.ordersToolbar.hidden = false;
+      renderFilters(data.statusCounts || {});
+      renderSyncInfo(data.sync);
+      renderOrders(Array.isArray(data.orders) ? data.orders : [], Boolean(opts.append));
+
+      const neverImported = data.sync && !data.sync.lastOrdersSyncAt && !data.sync.syncing;
+      if (neverImported && !state.autoImported[shop] && !state.importing) {
+        state.autoImported[shop] = true;
+        importOrders();
+      }
     } catch (error) {
-      els.ordersList.hidden = true;
-      els.ordersEmpty.hidden = false;
-      els.ordersEmpty.textContent = error.message || 'Não foi possível carregar os pedidos da Shopify.';
+      if (!opts.append) {
+        els.ordersList.hidden = true;
+        els.ordersEmpty.hidden = false;
+        els.ordersEmpty.textContent = error.message || 'Não foi possível carregar os pedidos.';
+      } else {
+        state.offset = Math.max(state.offset - PAGE_SIZE, 0);
+        showMessage(error.message || 'Não foi possível carregar mais pedidos.', 'error');
+      }
     } finally {
       els.refreshOrdersBtn.disabled = false;
+      els.importOrdersBtn.disabled = state.importing;
+      els.ordersMoreBtn.disabled = false;
+    }
+  }
+
+  async function importOrders() {
+    const shop = state.selectedShop;
+    if (!shop || state.importing) return;
+
+    state.importing = true;
+    els.importOrdersBtn.disabled = true;
+    const previous = els.importOrdersBtn.textContent;
+    els.importOrdersBtn.textContent = 'Importando...';
+
+    let inserted = 0;
+    let updated = 0;
+    let complete = false;
+
+    try {
+      for (let round = 1; round <= MAX_IMPORT_ROUNDS; round += 1) {
+        showMessage('Importando pedidos da Shopify... ' + (inserted + updated) + ' processados.');
+        const result = await window.AgfShopify.syncOrders(shop);
+        inserted += Number(result.inserted || 0);
+        updated += Number(result.updated || 0);
+        if (result.complete) {
+          complete = true;
+          break;
+        }
+        if (result.partialReason === 'THROTTLED') await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+
+      if (complete) {
+        const summary = inserted + ' novo(s), ' + updated + ' atualizado(s).';
+        showMessage('Importação concluída: ' + summary, 'success');
+      } else {
+        showMessage('Importação parcial: ' + (inserted + updated) + ' pedidos processados. Clique em "Importar da Shopify" para continuar.', 'error');
+      }
+    } catch (error) {
+      const busy = error.status === 409;
+      showMessage(busy
+        ? 'Já existe uma importação em andamento para esta loja. Aguarde e clique em "Atualizar lista".'
+        : (error.message || 'Não foi possível importar os pedidos.'), 'error');
+    } finally {
+      state.importing = false;
+      els.importOrdersBtn.textContent = previous;
+      els.importOrdersBtn.disabled = false;
+      if (state.selectedShop === shop) await loadOrders(shop);
     }
   }
 
@@ -529,6 +729,17 @@
     els.connectBtn.addEventListener('click', startConnection);
     els.refreshBtn.addEventListener('click', loadConnections);
     els.refreshOrdersBtn.addEventListener('click', () => loadOrders());
+    els.importOrdersBtn.addEventListener('click', () => importOrders());
+    els.ordersMoreBtn.addEventListener('click', () => loadOrders(null, { append: true }));
+    els.ordersSearch.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        const value = String(els.ordersSearch.value || '').trim();
+        if (value === state.search) return;
+        state.search = value;
+        loadOrders();
+      }, 350);
+    });
     els.closeOrderDetailBtn.addEventListener('click', closeOrderDetail);
     els.shopInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {

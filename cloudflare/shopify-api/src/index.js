@@ -1,3 +1,19 @@
+import {
+  SYNC_ORDERS_QUERY,
+  SYNC_PAGE_SIZE,
+  SYNC_MAX_PAGES,
+  SYNC_TIME_BUDGET_MS,
+  normalizeSyncOrder,
+  persistOrders,
+  acquireSyncLock,
+  finishSync,
+  readSyncState,
+  syncStartIso,
+  throttleWaitMs,
+  listLocalOrders as readLocalOrders,
+  AGF_STATUS
+} from './orders-store.js';
+
 const DEFAULT_ORIGINS = [
   'https://minhaagenciaonline.com.br',
   'https://www.minhaagenciaonline.com.br',
@@ -421,7 +437,7 @@ async function accessTokenForShop(shop, env) {
   return refreshed.access_token;
 }
 
-async function graphql(shop, accessToken, query, variables, env) {
+async function graphqlFull(shop, accessToken, query, variables, env) {
   const version = requireEnv(env, 'SHOPIFY_API_VERSION');
   const response = await fetch(`https://${shop}/admin/api/${version}/graphql.json`, {
     method: 'POST',
@@ -440,8 +456,19 @@ async function graphql(shop, accessToken, query, variables, env) {
     if (denied) {
       throw Object.assign(new Error('A Shopify bloqueou o acesso aos dados solicitados. Verifique as permissões de dados protegidos do app.'), { status: 403 });
     }
+    const throttled = Array.isArray(data?.errors)
+      ? data.errors.find((item) => item?.extensions?.code === 'THROTTLED')
+      : null;
+    if (throttled || response.status === 429) {
+      throw Object.assign(new Error('A Shopify pediu uma pausa nas consultas. Tente novamente em alguns segundos.'), { status: 429, code: 'THROTTLED' });
+    }
     throw Object.assign(new Error('Falha ao consultar a Shopify.'), { status: response.status === 401 ? 401 : 502 });
   }
+  return data;
+}
+
+async function graphql(shop, accessToken, query, variables, env) {
+  const data = await graphqlFull(shop, accessToken, query, variables, env);
   return data.data;
 }
 
@@ -874,6 +901,139 @@ async function testConnection(request, env) {
   return json({ ok: true, shop: identity.shop });
 }
 
+async function activeShopRow(env, shop) {
+  const row = await env.DB.prepare(
+    'SELECT customer_id, status FROM shopify_shops WHERE shop_domain = ?'
+  ).bind(shop).first();
+  if (!row) throw Object.assign(new Error('Loja não vinculada.'), { status: 404 });
+  if (row.status !== 'ACTIVE') throw Object.assign(new Error('Loja Shopify não está ativa.'), { status: 409 });
+  return row;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Importa pedidos da Shopify para o D1 (incremental por updated_at).
+// Cada chamada processa no máximo SYNC_MAX_PAGES páginas; complete=false indica que há mais.
+async function syncOrders(request, env) {
+  const body = await parseBody(request);
+  const shop = normalizeShop(body.shop);
+  const fullResync = body.mode === 'full';
+  const row = await activeShopRow(env, shop);
+  await validateAgfCustomer(request, env, row.customer_id);
+
+  const lockId = randomToken(12);
+  if (!(await acquireSyncLock(env, shop, lockId))) {
+    throw Object.assign(new Error('Já existe uma importação em andamento para esta loja. Aguarde alguns segundos.'), { status: 409 });
+  }
+
+  const startedAt = new Date();
+  const result = { inserted: 0, updated: 0, pages: 0, complete: false, partialReason: null };
+  let watermark = null;
+
+  try {
+    const state = await readSyncState(env, shop);
+    const since = syncStartIso(state, fullResync);
+    const token = await accessTokenForShop(shop, env);
+    let cursor = null;
+
+    while (true) {
+      let response;
+      try {
+        response = await graphqlFull(shop, token, SYNC_ORDERS_QUERY, {
+          first: SYNC_PAGE_SIZE,
+          after: cursor,
+          query: `updated_at:>='${since}'`
+        }, env);
+      } catch (error) {
+        if (error.code === 'THROTTLED' && result.pages > 0) {
+          result.partialReason = 'THROTTLED';
+          break;
+        }
+        throw error;
+      }
+
+      const connection = response.data?.orders;
+      const nodes = Array.isArray(connection?.nodes) ? connection.nodes : [];
+      const orders = nodes.map((node) => normalizeSyncOrder(node, findDocument));
+      const saved = await persistOrders(env, shop, row.customer_id, orders);
+
+      result.inserted += saved.inserted;
+      result.updated += saved.updated;
+      result.pages += 1;
+      if (nodes.length) watermark = nodes[nodes.length - 1].updatedAt || watermark;
+
+      if (!connection?.pageInfo?.hasNextPage) {
+        result.complete = true;
+        break;
+      }
+      cursor = connection.pageInfo.endCursor;
+
+      if (result.pages >= SYNC_MAX_PAGES) { result.partialReason = 'PAGE_LIMIT'; break; }
+      if (Date.now() - startedAt.getTime() > SYNC_TIME_BUDGET_MS) { result.partialReason = 'TIME_LIMIT'; break; }
+
+      const wait = throttleWaitMs(response.extensions);
+      if (wait > 4000) { result.partialReason = 'THROTTLED'; break; }
+      if (wait > 0) await sleep(wait);
+    }
+
+    // Completo: próxima rodada parte do início desta (a sobreposição cobre o que mudou durante).
+    // Parcial: retoma do último updated_at gravado.
+    const lastSyncAt = result.complete ? startedAt.toISOString() : watermark;
+    await finishSync(env, shop, lockId, lastSyncAt, Object.assign({ at: new Date().toISOString() }, result));
+    await env.DB.prepare(
+      'UPDATE shopify_shops SET last_verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE shop_domain = ?'
+    ).bind(shop).run();
+
+    console.log('[SHOPIFY_SYNC]', shop, JSON.stringify(result));
+    return json(Object.assign({ ok: true, shop, lastSyncAt }, result));
+  } catch (error) {
+    await finishSync(env, shop, lockId, watermark, null).catch(() => null);
+    throw error;
+  }
+}
+
+const AGF_STATUS_VALUES = new Set(Object.values(AGF_STATUS));
+
+async function listLocalOrders(request, url, env) {
+  const shop = normalizeShop(url.searchParams.get('shop'));
+  const row = await activeShopRow(env, shop);
+  await validateAgfCustomer(request, env, row.customer_id);
+
+  const status = String(url.searchParams.get('status') || '').trim().toUpperCase();
+  if (status && !AGF_STATUS_VALUES.has(status)) {
+    throw Object.assign(new Error('Filtro de status inválido.'), { status: 400 });
+  }
+  const search = String(url.searchParams.get('q') || '').trim().slice(0, 60);
+  const limit = normalizeLimit(url.searchParams.get('limit'), 50, 100);
+  const offset = Math.max(Number.parseInt(url.searchParams.get('offset') || '0', 10) || 0, 0);
+
+  const [data, state] = await Promise.all([
+    readLocalOrders(env, shop, { status, search, limit, offset }),
+    readSyncState(env, shop)
+  ]);
+
+  const syncing = Boolean(state?.sync_lock_until && new Date(state.sync_lock_until).getTime() > Date.now());
+  let lastResult = null;
+  try { lastResult = state?.last_sync_result ? JSON.parse(state.last_sync_result) : null; } catch { lastResult = null; }
+
+  return json({
+    ok: true,
+    shop,
+    orders: data.orders,
+    total: data.total,
+    statusCounts: data.statusCounts,
+    limit,
+    offset,
+    sync: {
+      lastOrdersSyncAt: state?.last_orders_sync_at || null,
+      lastResult,
+      syncing
+    }
+  });
+}
+
 async function handleApi(request, env) {
   const url = new URL(request.url);
   const method = request.method.toUpperCase();
@@ -890,6 +1050,8 @@ async function handleApi(request, env) {
   if (url.pathname === '/api/shopify/auth/callback' && method === 'GET') return oauthCallback(url, env);
   if (url.pathname === '/api/shopify/connections' && method === 'GET') return listConnections(request, url, env);
   if (url.pathname === '/api/shopify/orders' && method === 'GET') return listOrders(request, url, env);
+  if (url.pathname === '/api/shopify/orders/sync' && method === 'POST') return syncOrders(request, env);
+  if (url.pathname === '/api/shopify/orders/local' && method === 'GET') return listLocalOrders(request, url, env);
   if (url.pathname === '/api/shopify/order' && method === 'GET') return getOrderDetail(request, url, env);
   if (url.pathname === '/api/shopify/test' && method === 'POST') return testConnection(request, env);
 

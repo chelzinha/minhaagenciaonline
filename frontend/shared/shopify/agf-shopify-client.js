@@ -42,6 +42,14 @@
     listOrders: (shop, limit) => request(
       '/api/shopify/orders?shop=' + encodeURIComponent(shop) + '&limit=' + encodeURIComponent(limit || 20)
     ),
+    syncOrders: (shop, mode) => request('/api/shopify/orders/sync', {
+      method: 'POST',
+      body: { shop, mode: mode || 'incremental' }
+    }),
+    listLocalOrders: (shop, params) => {
+      const query = new URLSearchParams(Object.assign({ shop }, params || {}));
+      return request('/api/shopify/orders/local?' + query.toString());
+    },
     getOrder: (shop, orderId) => request(
       '/api/shopify/order?shop=' + encodeURIComponent(shop) + '&order_id=' + encodeURIComponent(orderId)
     ),

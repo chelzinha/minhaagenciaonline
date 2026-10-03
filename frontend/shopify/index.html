@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Conector Shopify | Plataforma AGF</title>
   <link rel="stylesheet" href="/shared/ui/agf-ui.css" />
-  <link rel="stylesheet" href="./shopify.css?v=20260924-3" />
+  <link rel="stylesheet" href="./shopify.css?v=20261003-1" />
   <link rel="stylesheet" href="./readiness.css?v=20260924-1" />
 
   <script src="/shared/auth/agf-auth-config.js"></script>
@@ -17,7 +17,7 @@
   <script src="/shared/core/agf-core-config.js"></script>
   <script src="/shared/core/agf-core-client.js"></script>
   <script src="/shared/shopify/agf-shopify-config.js?v=20260924-3"></script>
-  <script src="/shared/shopify/agf-shopify-client.js?v=20260924-3"></script>
+  <script src="/shared/shopify/agf-shopify-client.js?v=20261003-1"></script>
   <script src="./readiness.js?v=20260924-2"></script>
 </head>
 <body>
@@ -79,14 +79,26 @@
       <div class="section-head">
         <div>
           <span class="eyebrow">Pedidos</span>
-          <h2>Pedidos recentes da Shopify</h2>
+          <h2>Pedidos importados da Shopify</h2>
           <p id="ordersShopLabel" class="section-note">Selecione uma loja vinculada para carregar os pedidos.</p>
         </div>
-        <button id="refreshOrdersBtn" class="btn-secondary" type="button" disabled>Atualizar pedidos</button>
+        <div class="head-actions">
+          <button id="refreshOrdersBtn" class="btn-secondary" type="button" disabled>Atualizar lista</button>
+          <button id="importOrdersBtn" class="btn-primary" type="button" disabled>Importar da Shopify</button>
+        </div>
       </div>
+
+      <div id="ordersToolbar" class="orders-toolbar" hidden>
+        <div id="ordersFilters" class="filter-chips" role="group" aria-label="Filtrar por status"></div>
+        <input id="ordersSearch" class="orders-search" type="search" placeholder="Buscar nº do pedido ou destinatário" aria-label="Buscar pedido" autocomplete="off" />
+      </div>
+      <p id="ordersSyncInfo" class="sync-info" hidden></p>
 
       <div id="ordersEmpty" class="empty-state">Nenhuma loja selecionada.</div>
       <div id="ordersList" class="orders-list" hidden></div>
+      <div class="orders-more">
+        <button id="ordersMoreBtn" class="btn-secondary" type="button" hidden>Carregar mais</button>
+      </div>
     </section>
 
     <section id="orderDetailCard" class="shopify-card" hidden>
@@ -103,7 +115,7 @@
     </section>
   </main>
 
-  <script src="./shopify.js?v=20260924-3"></script>
+  <script src="./shopify.js?v=20261003-1"></script>
   <script>
     if (document.documentElement.classList.contains('agf-auth-ready')) {
       window.dispatchEvent(new CustomEvent('agf:auth-ready', { detail: { cached: true, replayed: true } }));
