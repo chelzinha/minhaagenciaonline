@@ -19,6 +19,8 @@ export function projetarAgenda(r, mapas) {
     resultadoNome: text(res.NOME_EXIBICAO) || text(r.RESULTADO_ID), midiaRecomendadaCodigo: text(r.MIDIA_RECOMENDADA_CODIGO),
     midiaUsadaCodigo: text(r.MIDIA_USADA_CODIGO), linkMidiaDireto: text(r.LINK_MIDIA_USADA) || text(r.LINK_MIDIA_RECOMENDADA),
     responsavelId: text(r.RESPONSAVEL_ID), responsavelNome: text(r.RESPONSAVEL), observacao: text(r.OBSERVACAO) || text(r.OBS_EXECUCAO) || text(r.OBS_PLANEJADA),
+    // tela da atividade v2: roteiro planejado e registro da execução separados (o campo observacao continua igual)
+    obsPlanejada: text(r.OBS_PLANEJADA), obsExecucao: text(r.OBS_EXECUCAO),
     // CRM integrado: atividade sem vinculo (reuniao interna, treinamento...) e duracao
     titulo: text(r.TITULO), avulsa: upper(r.ENTIDADE_TIPO) === 'AVULSA', duracaoMin: Number(r.DURACAO_MIN) || 0, prioridade: text(r.PRIORIDADE),
   };
