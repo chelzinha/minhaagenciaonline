@@ -236,18 +236,21 @@
   }
 
   /* ======================================================= EQUIPE */
+  /* Proximos 5 aniversarios a partir de hoje, virando o ano quando preciso. 29/02 cai em 01/03 fora do bissexto. */
+  var PROXIMOS_ANIVERSARIOS = 5;
   function renderAniversarios() {
-    var d = st.dados, hoje = dataLocal(d.hoje), m = hoje.getMonth() + 1;
-    $('ptBdayMonth').textContent = 'Aniversários de ' + MES[m - 1];
-    var doMes = d.aniversarios.filter(function (p) { return p.mes === m; }).sort(function (a, b) { return a.dia - b.dia; });
-    var prox = d.aniversarios.filter(function (p) { return p.mes === (m % 12) + 1; }).sort(function (a, b) { return a.dia - b.dia; })[0];
-    var h = doMes.map(function (p) {
-      var diff = p.dia - hoje.getDate();
-      return '<li class="' + (diff < 0 ? 'is-past' : '') + '">' + chipData(new Date(hoje.getFullYear(), m - 1, p.dia), diff === 0 ? 'bd' : '') + av(p.nome) +
-        '<span class="pt-name">' + esc(p.nome) + '</span><span class="pt-when">' + emDias(diff) + '</span></li>';
+    var d = st.dados, hoje = dataLocal(d.hoje);
+    $('ptBdayMonth').textContent = 'Próximos aniversários';
+    var lista = d.aniversarios.map(function (p) {
+      var dt = new Date(hoje.getFullYear(), p.mes - 1, p.dia);
+      if (dt < hoje) dt = new Date(hoje.getFullYear() + 1, p.mes - 1, p.dia);
+      return { nome: p.nome, dt: dt, diff: Math.round((dt - hoje) / 864e5) };
+    }).sort(function (a, b) { return a.diff - b.diff || a.nome.localeCompare(b.nome, 'pt-BR'); }).slice(0, PROXIMOS_ANIVERSARIOS);
+    var h = lista.map(function (p) {
+      return '<li>' + chipData(p.dt, p.diff === 0 ? 'bd' : '') + av(p.nome) +
+        '<span class="pt-name">' + esc(p.nome) + '</span><span class="pt-when">' + emDias(p.diff) + '</span></li>';
     }).join('');
-    if (prox) h += '<li class="is-past">' + chipData(new Date(hoje.getFullYear(), prox.mes - 1, prox.dia)) + av(prox.nome) + '<span class="pt-name">' + esc(prox.nome) + '<small>Próximo mês</small></span></li>';
-    if (!h) h = '<li class="pt-muted">' + (d.aniversarios.length ? 'Nenhum aniversário este mês.' : (eu().admin ? 'Nenhum aniversário cadastrado. Use "Editar equipe".' : 'Nenhum aniversário cadastrado ainda.')) + '</li>';
+    if (!h) h = '<li class="pt-muted">' + (eu().admin ? 'Nenhum aniversário cadastrado. Use "Editar equipe".' : 'Nenhum aniversário cadastrado ainda.') + '</li>';
     $('ptBdayList').innerHTML = h;
     $('ptTeamNames').innerHTML = d.aniversarios.filter(function (p) { return p.nome.toLowerCase() !== eu().nome.toLowerCase(); })
       .map(function (p) { return '<option value="' + esc(p.nome) + '"></option>'; }).join('');
