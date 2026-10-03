@@ -1,9 +1,16 @@
 /* ============================================================================
    agf-header.js - Cabecalho padrao da Plataforma AGF Jose Bonifacio
-   Versao 1.1.0 (pele "Selo solido", opcao C)
+   Versao 1.2.0 (pele "Selo solido", opcao C)
 
    O cabecalho e dado, nao markup. Cada app declara apenas a rota.
    Titulo, titulo curto, icone, cor e visibilidade publica vem do registro.
+
+   Novidades da 1.2.0
+   - Menu de aplicativos em ordem fixa (MENU), igual ao Portal Interno.
+     Gerencial (/intra) oculto do menu. Todos os itens com selo e cor.
+   - Glifos novos: caixa, sla, app, nuvemshop, superfrete e os 3 do Reverso.
+   - Zona B com contexto opcional: mount({ context }) e setContext(html).
+   - API: AgfHeader.mark(glifo) devolve o selo SVG para outras telas.
 
    Novidades da 1.1.0
    - Sessao lida sozinha via AgfAuth quando mount() nao recebe "user".
@@ -22,7 +29,7 @@
 (function (global, document) {
   'use strict';
 
-  var VERSION = '1.1.0';
+  var VERSION = '1.2.0';
   var SUBTITLE = 'AGF José Bonifácio';
   var AVATAR_KEY = 'agf_jb_avatar_v1';            /* mesmo cache usado pelo CRM e pelo Visao 360 */
   var LOGOUT_URL = '/agf/?reason=logout';
@@ -35,26 +42,38 @@
      ===================================================================== */
   var ROUTES = {
     '/agf':          { title: 'Portal Interno',        short: 'Portal',    glyph: 'portal',     accent: '#B07207', group: 'Operação', publico: false },
-    '/intra':        { title: 'Gerencial',             short: 'Gerencial', glyph: 'painel',     accent: '#0F766E', group: 'Operação', publico: false, roles: ['admin', 'manager'], app: 'intra' },
+    '/intra':        { title: 'Gerencial',             short: 'Gerencial', glyph: 'painel',     accent: '#0F766E', group: 'Operação', publico: false, roles: ['admin', 'manager'], app: 'intra', oculto: true },
     '/crm':          { title: 'CRM Comercial',         short: 'CRM',       glyph: 'crm',        accent: '#6D28D9', group: 'Operação', publico: false, app: 'crm' },
     '/balcao':       { title: 'Balcão',           short: 'Balcão', glyph: 'balcao',   accent: '#C2410C', group: 'Operação', publico: false, app: 'balcao' },
     '/atende':       { title: 'Visão 360',        short: 'Visão 360', glyph: 'atende', accent: '#9F1239', group: 'Operação', publico: false, app: 'atende' },
-    '/cadastros':    { title: 'Cadastro de Clientes',  short: 'Clientes',  glyph: 'cadastros',  accent: '#4338CA', group: 'Operação', publico: false, roles: ['admin'] },
+    '/cadastros':    { title: 'Cadastro de Clientes',  short: 'Clientes',  glyph: 'cadastros',  accent: '#4338CA', group: 'Administração', publico: false, roles: ['admin'] },
     '/comparador':   { title: 'Comparador de Tarifas', short: 'Tarifas',   glyph: 'comparador', accent: '#047857', group: 'Consulta', publico: false, roles: ['admin', 'manager'], app: 'intra' },
     '/cep':          { title: 'Consulta de CEP',       short: 'CEP',       glyph: 'cep',        accent: '#0083CA', group: 'Consulta', publico: true },
     '/agf/usuarios': { title: 'Usuários Internos', short: 'Usuários', glyph: 'usuarios', accent: '#B07207', group: 'Administração', publico: false, roles: ['admin'] },
     '/agf/icones':   { title: 'Biblioteca de Ícones', short: 'Ícones', glyph: 'icones', accent: '#B07207', group: 'Administração', publico: false, roles: ['admin'] }
   };
 
-  /* Apps FORA do padrao de topo (spec secao 7). Aparecem no alternador como links. */
+  /* Apps FORA do padrao de topo (spec secao 7). Aparecem no alternador como links
+     que abrem em nova aba no desktop. Tem selo e cor como as rotas do padrao. */
   var EXTERNOS = [
-    { href: '/app',              title: 'Minhas Postagens', publico: true },
-    { href: '/caixa',            title: 'Caixa Balcão', app: 'caixa' },
-    { href: '/nuvemshop',        title: 'Nuvemshop',        app: 'nuvemshop' },
-    { href: '/superfrete-admin', title: 'SuperFrete Admin', app: 'superfrete-admin' },
-    { href: '/reverso',          title: 'Home Reverso' },
-    { href: '/reverso-admin',    title: 'Admin Reverso',    app: 'reverso-admin' },
-    { href: '/reverso-coleta',   title: 'Coleta Reverso',   app: 'reverso-coleta' }
+    { href: '/caixa',            title: 'Caixa Balcão',     app: 'caixa',            glyph: 'caixa',      accent: '#0F766E' },
+    { href: '/sla',              title: 'SLA',              app: 'sla',              glyph: 'sla',        accent: '#475569' },
+    { href: '/app',              title: 'Minhas Postagens', publico: true,           glyph: 'app',        accent: '#00416B' },
+    { href: '/nuvemshop',        title: 'Nuvemshop',        app: 'nuvemshop',        glyph: 'nuvemshop',  accent: '#0369A1' },
+    { href: '/superfrete-admin', title: 'SuperFrete Admin', app: 'superfrete-admin', glyph: 'superfrete', accent: '#A21CAF' },
+    { href: '/reverso',          title: 'Home Reverso',     appAny: ['reverso-admin', 'reverso-coleta', 'reverso-expedicao'], glyph: 'revhome', accent: '#0E7490' },
+    { href: '/reverso-admin',    title: 'Admin Reverso',    app: 'reverso-admin',    glyph: 'revadmin',   accent: '#0E7490' },
+    { href: '/reverso-coleta',   title: 'Coleta Reverso',   app: 'reverso-coleta',   glyph: 'revcoleta',  accent: '#0E7490' }
+  ];
+
+  /* Ordem do alternador = ordem do Portal Interno (/agf). Fonte unica.
+     Portal Interno fica sempre no topo, fora dos grupos. */
+  var MENU = [
+    { group: 'Operação',          items: ['/atende', '/crm', '/balcao', '/caixa', '/sla'] },
+    { group: 'Consulta',          items: ['/comparador', '/cep'] },
+    { group: 'Aplicativos',       items: ['/app', '/nuvemshop', '/superfrete-admin'] },
+    { group: 'Logística reversa', items: ['/reverso', '/reverso-admin', '/reverso-coleta'] },
+    { group: 'Administração',     items: ['/cadastros', '/agf/usuarios', '/agf/icones'] }
   ];
 
   /* ========================================================== 2. ICONES ===
@@ -72,7 +91,15 @@
     comparador: '<path d="M12 4.4v15"/><path d="M5.2 7.2h13.6"/><path d="M5.2 7.2 2.8 13a2.6 2.6 0 0 0 4.8 0z"/><path d="M18.8 7.2 16.4 13a2.6 2.6 0 0 0 4.8 0z"/><path d="M8.6 19.4h6.8"/>',
     cadastros:  '<rect x="3.6" y="5.6" width="16.8" height="12.8" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M5.8 15.6c.6-1.4 1.8-2.1 3.2-2.1s2.6.7 3.2 2.1"/><path d="M14.4 10h3.6"/><path d="M14.4 13.4h2.6"/>',
     usuarios:   '<circle cx="9.4" cy="8.6" r="3.2"/><path d="M3.6 19.2c.8-3.3 3-5 5.8-5s5 1.7 5.8 5"/><path d="M15.6 5.8a3 3 0 0 1 0 5.8"/><path d="M17.8 14.6c1.3.7 2.2 2.2 2.6 4.6"/>',
-    icones:     '<rect x="4" y="4" width="6.6" height="6.6" rx="1.6"/><circle cx="16.7" cy="7.3" r="3.3"/><path d="M7.3 13.4 10.8 20H3.8z"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="3.3"/>'
+    icones:     '<rect x="4" y="4" width="6.6" height="6.6" rx="1.6"/><circle cx="16.7" cy="7.3" r="3.3"/><path d="M7.3 13.4 10.8 20H3.8z"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="3.3"/>',
+    caixa:      '<rect x="4.2" y="10.6" width="15.6" height="8.8" rx="1.6"/><path d="M7.2 10.6V5h7.6v5.6"/><path d="M9.6 7.8h2.8"/><path d="M8 15h.01M12 15h.01M16 15h.01" stroke-width="2.6"/>',
+    sla:        '<path d="M4.4 17.4a7.6 7.6 0 1 1 15.2 0"/><path d="M12 17.4l3.8-4.6"/><path d="M7 12.6l1 .8M12 9.8v1.2M17 12.6l-1 .8"/>',
+    app:        '<rect x="6.8" y="3.4" width="10.4" height="17.2" rx="2.2"/><path d="M9.6 7.6h4.8v4.6H9.6z"/><path d="M10.6 17.4h2.8"/>',
+    nuvemshop:  '<path d="M7.2 18.4h9.8a3.8 3.8 0 0 0 .5-7.6 5.6 5.6 0 0 0-10.8-1.2 4.4 4.4 0 0 0 .5 8.8z"/>',
+    superfrete: '<path d="M3.4 6.6h10.6v9.6H3.4z"/><path d="M14 9.8h3.8l2.8 3.2v3.2H14"/><circle cx="7" cy="17.6" r="1.7"/><circle cx="17" cy="17.6" r="1.7"/>',
+    revhome:    '<path d="M4.4 11.2 12 4.6l7.6 6.6"/><path d="M6.4 9.6v10h11.2v-10"/><path d="M14.6 15.6H9.8l1.8-1.8"/>',
+    revadmin:   '<rect x="5.4" y="4.8" width="13.2" height="15.6" rx="1.8"/><path d="M9.4 4.8V3.4h5.2v1.4"/><path d="M8.6 10h6.8M8.6 13.4h6.8M8.6 16.8h4"/>',
+    revcoleta:  '<path d="M4.2 7.8V5.2h2.6M17.2 5.2h2.6v2.6M19.8 16.2v2.6h-2.6M6.8 18.8H4.2v-2.6"/><path d="M8.4 8.6v6.8M11 8.6v6.8M13.4 8.6v6.8M16 8.6v6.8"/>'
   };
 
   function s(inner, w) {
@@ -180,6 +207,9 @@
     if (!user) return false;
     if (def.roles && def.roles.indexOf(user.roleKey) < 0) return false;
     var a = auth();
+    if (def.appAny && a && a.hasApp) {
+      try { return def.appAny.some(function (k) { return a.hasApp({ apps: user.apps }, k); }); } catch (e) { return true; }
+    }
     if (def.app && a && a.hasApp) {
       try { return a.hasApp({ apps: user.apps }, def.app); } catch (e) { return true; }
     }
@@ -251,36 +281,45 @@
       '</div>';
   }
 
+  var EXT_BY_HREF = {};
+  EXTERNOS.forEach(function (e) { EXT_BY_HREF[e.href] = e; });
+
+  function menuMark(glyph, accent) {
+    return '<span class="agf-hd__menu-mark" style="background:' + accent + '">' + markSVG(glyph) + '</span>';
+  }
+  function menuInternal(key, r, current) {
+    return '<a class="agf-hd__menu-item" role="menuitem" href="' + esc(key) + '/"' +
+      (key === current ? ' aria-current="page"' : '') + '>' + menuMark(r.glyph, r.accent) + esc(r.title) + '</a>';
+  }
+  function menuExternal(e, newTab) {
+    return '<a class="agf-hd__menu-item" role="menuitem" href="' + esc(e.href) + '/"' +
+      (newTab ? ' target="_blank" rel="noopener noreferrer"' : '') + '>' + menuMark(e.glyph, e.accent) + esc(e.title) +
+      (newTab ? '<span class="agf-hd__menu-ext" title="Abre em nova aba">' + UI.external + '<span class="agf-hd__sr">(abre em nova aba)</span></span>' : '') +
+      '</a>';
+  }
+
+  /* Ordem fixa do MENU. Rota oculta (Gerencial) so aparece quando e a rota atual. */
   function buildApps(current, user) {
-    var groups = {}, order = [];
-    for (var key in ROUTES) {
-      if (!Object.prototype.hasOwnProperty.call(ROUTES, key)) continue;
-      var r = ROUTES[key];
-      if (key !== current && !canSee(r, user)) continue;
-      if (!groups[r.group]) { groups[r.group] = []; order.push(r.group); }
-      groups[r.group].push({ href: key, r: r });
-    }
-    var html = '';
-    order.forEach(function (g) {
-      html += '<div class="agf-hd__menu-label">' + esc(g) + '</div>';
-      groups[g].forEach(function (it) {
-        html += '<a class="agf-hd__menu-item" role="menuitem" href="' + esc(it.href) + '/"' +
-          (it.href === current ? ' aria-current="page"' : '') + '>' +
-          '<span class="agf-hd__menu-mark" style="background:' + it.r.accent + '">' + markSVG(it.r.glyph) + '</span>' +
-          esc(it.r.title) + '</a>';
+    var newTab = global.matchMedia && global.matchMedia('(min-width: 768px)').matches;
+    var html = menuInternal('/agf', ROUTES['/agf'], current);
+    var listed = { '/agf': true };
+    MENU.forEach(function (g) {
+      var rows = '';
+      g.items.forEach(function (key) {
+        listed[key] = true;
+        var r = ROUTES[key];
+        if (r) {
+          if (key !== current && (r.oculto || !canSee(r, user))) return;
+          rows += menuInternal(key, r, current);
+          return;
+        }
+        var e = EXT_BY_HREF[key];
+        if (e && canSee({ publico: e.publico, app: e.app, appAny: e.appAny }, user)) rows += menuExternal(e, newTab);
       });
+      if (rows) html += '<div class="agf-hd__menu-sep"></div><div class="agf-hd__menu-label">' + esc(g.group) + '</div>' + rows;
     });
-    var ext = EXTERNOS.filter(function (e) { return canSee({ publico: e.publico, app: e.app }, user); });
-    if (ext.length) {
-      html += '<div class="agf-hd__menu-sep"></div><div class="agf-hd__menu-label">Aplicativos</div>';
-      var newTab = global.matchMedia && global.matchMedia('(min-width: 768px)').matches;
-      ext.forEach(function (e) {
-        html += '<a class="agf-hd__menu-item" role="menuitem" href="' + esc(e.href) + '/"' +
-          (newTab ? ' target="_blank" rel="noopener noreferrer"' : '') + '>' +
-          esc(e.title) +
-          (newTab ? '<span class="agf-hd__menu-ext" title="Abre em nova aba">' + UI.external + '<span class="agf-hd__sr">(abre em nova aba)</span></span>' : '') +
-          '</a>';
-      });
+    if (current && !listed[current] && ROUTES[current]) {
+      html = menuInternal(current, ROUTES[current], current) + html;
     }
     return '<div class="agf-hd__menu agf-hd__menu--apps" role="menu" data-open="false" data-agf-appsmenu-panel>' +
       html + '</div>';
@@ -312,7 +351,7 @@
             '<span class="agf-hd__sub">' + esc(SUBTITLE) + '</span>' +
           '</span>' +
         '</div>' +
-        '<span class="agf-hd__spacer"></span>' +
+        '<span class="agf-hd__spacer" data-agf-context>' + (cfg.context || '') + '</span>' +
         '<span class="agf-hd__actions" data-agf-actions>' + buildActions(cfg.actions) + '</span>' +
         '<span class="agf-hd__rule" aria-hidden="true"></span>' +
         '<button type="button" class="agf-hd__icon-btn" data-agf-refresh aria-label="Atualizar" title="Atualizar">' + UI.refresh + '</button>' +
@@ -667,10 +706,22 @@
     if (box) box.innerHTML = buildActions(state.cfg.actions);
   }
 
+  /* Zona B: contexto curto da pagina (ex.: data e dia util no Portal). HTML confiavel do app. */
+  function setContext(html) {
+    if (!state.el) return;
+    state.cfg.context = html || '';
+    var box = state.el.querySelector('[data-agf-context]');
+    if (box) box.innerHTML = state.cfg.context;
+  }
+
   var AgfHeader = {
     VERSION: VERSION,
     ROUTES: ROUTES,
     EXTERNOS: EXTERNOS,
+    MENU: MENU,
+    GLYPHS: GLYPHS,
+    mark: markSVG,
+    setContext: setContext,
     mount: mount,
     setUser: setUser,
     setTitle: setTitle,
