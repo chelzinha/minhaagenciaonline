@@ -92,11 +92,11 @@ body { background: #F4F7FB; margin: 0; }
 .cmp-res.desatualizado .cmp-res-h p::after { content: " | " attr(data-aviso); color: var(--aviso); font-weight: 600; }
 
 .cmp-hero { border: 2px solid var(--tinta); border-radius: var(--r-l); background: #fff; padding: 18px 22px; position: relative; }
-.cmp-hero::before { content: ""; position: absolute; left: -2px; top: 16px; bottom: 16px; border-left: 5px solid var(--amarelo); border-radius: 0 4px 4px 0; }
 .cmp-hero small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ouro); }
 .cmp-hero strong { display: block; font-size: clamp(30px, 5vw, 44px); line-height: 1.1; font-weight: 800; color: var(--tinta); letter-spacing: -.03em; margin: 4px 0; font-variant-numeric: tabular-nums; }
 .cmp-hero strong.menor { font-size: clamp(20px, 3vw, 26px); }
-.cmp-hero span { color: var(--ok); font-weight: 600; font-size: 14px; }
+.cmp-hero span { color: var(--tinta-2); font-weight: 600; font-size: 15px; }
+.cmp-hero strong em { font-style: normal; color: var(--ok); }
 
 .cmp-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 .cmp-tile { background: #fff; border: 1px solid var(--fio); border-top: 4px solid var(--c); border-radius: var(--r-m); padding: 14px 16px; display: flex; flex-direction: column; gap: 3px; }
@@ -141,7 +141,10 @@ body { background: #F4F7FB; margin: 0; }
 .cmp-vazio { text-align: center; color: var(--apoio); padding: 18px !important; }
 
 .cmp-melhores { display: grid; gap: 10px; }
-.m-l { display: grid; grid-template-columns: minmax(110px, 140px) 1fr 44px; gap: 10px; align-items: center; font-size: 13px; }
+.m-l { display: grid; grid-template-columns: minmax(120px, 160px) 1fr 48px; gap: 4px 10px; align-items: center; font-size: 13px; padding-bottom: 8px; border-bottom: 1px dashed var(--fio); }
+.m-l small { grid-column: 1 / -1; color: var(--apoio); font-size: 12px; }
+.m-l em { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--apoio); border: 1px solid var(--fio); border-radius: 5px; padding: 0 5px; white-space: nowrap; }
+.cmp-sim { margin-bottom: 6px !important; color: var(--info); }
 .m-l b { color: var(--tinta-2); font-weight: 650; }
 .m-l span { text-align: right; font-weight: 700; color: var(--tinta); font-variant-numeric: tabular-nums; }
 .m-t { height: 10px; border-radius: 6px; background: var(--fio-2); overflow: hidden; }

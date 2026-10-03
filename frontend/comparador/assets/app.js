@@ -2,7 +2,7 @@
    Fluxo: CSV do cliente -> lote no Worker (D1) -> comparação na tela -> PDF comercial (Worker). */
 import { Api } from './api.js';
 import { parseCsv, mapearColunas, montarLinhas } from './csv.js';
-import { CENARIOS, resumir, comparavel, melhorDaLinha, periodo, montarRelatorio } from './resumo.js';
+import { CENARIOS, resumir, comparavel, melhorDaLinha, periodo, montarRelatorio, ganhadores } from './resumo.js';
 
 const CFG = window.AGFCOMPARADOR_CONFIG || {};
 const COR = { AVISTA: '#94A3B8', CONTRATO: '#0D9488', CLUBE: '#0078D4', APP: '#D97706' };
@@ -12,6 +12,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   config: null,
   arquivo: '',
+  simulacao: false,     // true quando o calculo usa o arquivo de exemplo
   entrada: [],          // linhas lidas do CSV
   semMedidas: false,
   periodo: { inicio: '', fim: '' },
@@ -71,13 +72,13 @@ async function lerArquivo(file) {
   if (!file) return;
   if (!/\.csv$/i.test(file.name) && file.type !== 'text/csv') { mensagem($('fileMsg'), 'Escolha um arquivo .csv exportado do Portal Postal.'); return; }
   try {
-    aceitarCsv(await file.text(), file.name);
+    aceitarCsv(await file.text(), file.name, false);
   } catch (e) {
     mensagem($('fileMsg'), 'Não foi possível ler o arquivo: ' + esc(e.message));
   }
 }
 
-function aceitarCsv(texto, nome) {
+function aceitarCsv(texto, nome, simulacao) {
   const { cabecalhos, linhas } = parseCsv(texto);
   const { mapa, faltando, semMedidas } = mapearColunas(cabecalhos);
   if (faltando.length) {
@@ -86,6 +87,7 @@ function aceitarCsv(texto, nome) {
   }
   if (!linhas.length) { mensagem($('fileMsg'), 'O arquivo está vazio.'); return; }
   state.arquivo = nome;
+  state.simulacao = !!simulacao;
   state.entrada = montarLinhas(linhas, mapa);
   state.semMedidas = semMedidas;
   state.periodo = periodo(state.entrada.map((l) => l.data));
@@ -105,7 +107,7 @@ async function usarExemplo() {
   try {
     const r = await fetch(CFG.exemploCsv || './data/exemplo_postagens.csv', { cache: 'no-store' });
     if (!r.ok) throw new Error('arquivo de exemplo não encontrado');
-    aceitarCsv(await r.text(), 'exemplo_postagens.csv');
+    aceitarCsv(await r.text(), 'exemplo_postagens.csv', true);
   } catch (e) {
     mensagem($('fileMsg'), 'Não foi possível abrir o exemplo: ' + esc(e.message));
   }
@@ -189,7 +191,7 @@ function renderResultado() {
   const ganha = r.economia > 0.009;
   $('hero').innerHTML = ganha
     ? `<div><small>Economia com ${esc(nm[r.proposta])}, contra ${esc(nm[state.referencia])}</small>
-        <strong>${brl(r.economia)}</strong><span>${pct((r.economia / ref) * 100)} a menos | ${brl(prop / n)} por envio, antes ${brl(ref / n)}</span></div>`
+        <strong><em>${pct((r.economia / ref) * 100)}</em> a menos</strong><span>${brl(r.economia)} de economia | ${brl(prop / n)} por envio, antes ${brl(ref / n)}</span></div>`
     : `<div><small>Resultado</small><strong class="menor">${esc(nm[state.referencia])} já é a opção mais barata</strong><span>${brl(ref / n)} por envio</span></div>`;
 
   $('tiles').innerHTML = cen.map((c) => {
@@ -216,9 +218,21 @@ function renderResultado() {
   $('alerts').innerHTML = alertas.map(([t, m]) => `<p class="cmp-alert ${t}">${esc(m)}</p>`).join('');
 
   renderGrupos(r, cen, nm);
-  const soma = Object.values(r.melhores).reduce((a, b) => a + b, 0) || 1;
-  $('melhores').innerHTML = cen.map((c) => `<div class="m-l"><b>${esc(nm[c])}</b><div class="m-t"><i style="width:${(r.melhores[c] / soma * 100).toFixed(1)}%;background:${COR[c]}"></i></div><span>${int(r.melhores[c])}</span></div>`).join('');
-  $('melhoresNota').textContent = 'Número de postagens em que cada tabela sai mais barata. Empate conta para a primeira da lista.';
+  const g = ganhadores(res.linhas, cen, state.referencia);
+  const nomeG = (it) => it.cenarios.map((c) => nm[c]).join(' e ');
+  $('melhoresTitulo').textContent = g.modo === 'unico'
+    ? `Em quantos envios ${nomeG(g.itens[0] || { cenarios: [] })} sai mais barato`
+    : 'Qual opção sai mais barata em cada envio';
+  $('melhores').innerHTML = g.itens.map((it) => {
+    const p = g.total ? (it.n / g.total) * 100 : 0;
+    return `<div class="m-l"><b>${esc(nomeG(it))}${it.cenarios.length > 1 ? ' <em>mesmo preço</em>' : ''}</b>
+      <div class="m-t"><i style="width:${p.toFixed(1)}%;background:${COR[it.cenarios[0]]}"></i></div>
+      <span>${pct(p)}</span>
+      <small>${int(it.n)} de ${int(g.total)} postagens${it.n ? ` | ${brl(it.economiaMedia)} a menos que ${esc(nm[state.referencia])}, em média${it.servicoTop ? ` | mais vezes em ${esc(it.servicoTop)}, ${esc(it.faixaTop.toLowerCase())}` : ''}` : ''}</small></div>`;
+  }).join('');
+  $('melhoresNota').textContent = g.modo === 'unico'
+    ? `Comparação envio a envio contra ${nm[state.referencia]}.`
+    : `Comparação envio a envio entre as opções, sem ${nm[state.referencia]}. Tabelas com o mesmo preço aparecem juntas.`;
   renderLinhas(cen, nm);
 }
 
@@ -319,7 +333,7 @@ function atualizarDialogo() {
   $('pdfGerar').disabled = $('pdfImprimir').disabled = false;
   const r = resumir(state.resultado.linhas, cen, $('pdfReferencia').value);
   const ganha = r.economia > 0.009;
-  $('pdfPrevia').innerHTML = `<p><b>${int(r.comparaveis)}</b> postagens no PDF. ${ganha
+  $('pdfPrevia').innerHTML = (state.simulacao ? '<p class="cmp-sim">Arquivo de exemplo: o PDF sai como <b>simulação</b>, sem a expressão "seu histórico".</p>' : '') + `<p><b>${int(r.comparaveis)}</b> postagens no PDF. ${ganha
     ? `Mais econômico: <b>${esc(nm[r.proposta])}</b>, ${brl(r.economia)} a menos que ${esc(nm[$('pdfReferencia').value])}.`
     : `${esc(nm[$('pdfReferencia').value])} já é a opção mais barata.`}</p>`;
 }
@@ -335,6 +349,7 @@ function pedidoRelatorio() {
     preparadoPor: $('pdfPreparado').value.trim() || 'AGF José Bonifácio', validadeDias: Number($('pdfValidade').value) || 15,
     periodo: state.periodo, pacoteNome: state.resultado.pacoteNome, vigencia: state.resultado.vigencia,
     incluirValorDeclarado: state.resultado.opcoes.incluirValorDeclarado,
+    simulacao: state.simulacao,
   });
 }
 

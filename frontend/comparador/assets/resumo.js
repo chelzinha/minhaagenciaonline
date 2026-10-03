@@ -73,6 +73,50 @@ export function resumir(linhas, cenarios, referencia) {
   };
 }
 
+const contagemTop = (lista) => {
+  const m = new Map();
+  for (const k of lista) m.set(k, (m.get(k) || 0) + 1);
+  return [...m.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+};
+
+/**
+ * Quem ganha em cada envio entre as opcoes propostas (sem a referencia, que costuma ser o balcao).
+ * Opcoes com o mesmo preco em todos os envios (ex.: Clube Correios e Platinum 2026) viram um grupo so.
+ * Com uma unica alternativa, conta em quantos envios ela sai mais barata que a referencia.
+ */
+export function ganhadores(linhas, cenarios, referencia) {
+  const comp = linhas.filter((l) => comparavel(l, cenarios));
+  const alts = cenarios.filter((c) => c !== referencia);
+  const grupos = [];
+  for (const c of alts) {
+    const g = grupos.find((gr) => comp.every((l) => Math.abs(l[gr[0]].total - l[c].total) < 0.005));
+    g ? g.push(c) : grupos.push([c]);
+  }
+  const unico = grupos.length === 1;
+  const itens = grupos.map((g) => ({ cenarios: g, envios: [] }));
+  for (const l of comp) {
+    if (unico) { if (l[grupos[0][0]].total < l[referencia].total - 0.004) itens[0].envios.push(l); continue; }
+    let melhor = 0;
+    grupos.forEach((g, i) => { if (l[g[0]].total < l[grupos[melhor][0]].total) melhor = i; });
+    itens[melhor].envios.push(l);
+  }
+  return {
+    modo: unico ? 'unico' : 'disputa',
+    total: comp.length,
+    itens: itens.map((it) => {
+      const c = it.cenarios[0];
+      const eco = it.envios.reduce((s, l) => s + (l[referencia].total - l[c].total), 0);
+      return {
+        cenarios: it.cenarios,
+        n: it.envios.length,
+        economiaMedia: it.envios.length ? r2(eco / it.envios.length) : 0,
+        servicoTop: contagemTop(it.envios.map((l) => l.servico)),
+        faixaTop: contagemTop(it.envios.map((l) => faixaPeso(l.pesoG))),
+      };
+    }).sort((a, b) => b.n - a.n),
+  };
+}
+
 /** Ate n exemplos com maior diferenca entre a referencia e a proposta, destinos variados. */
 export function escolherExemplos(linhas, cenarios, referencia, proposta, n = 6) {
   const comp = linhas.filter((l) => comparavel(l, cenarios));
@@ -103,7 +147,7 @@ export function periodo(datas) {
 const titulo = (s) => String(s || '').toLowerCase().replace(/(^|\s|\/)(\S)/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Do|Da|De|Dos|Das|E)\b/g, (x) => x.toLowerCase());
 
 /** Pedido do relatorio para o Worker (PDF). */
-export function montarRelatorio({ linhas, cenarios, referencia, nomes, cliente, preparadoPor, validadeDias, periodo: per, pacoteNome, vigencia, incluirValorDeclarado }) {
+export function montarRelatorio({ linhas, cenarios, referencia, nomes, cliente, preparadoPor, validadeDias, periodo: per, pacoteNome, vigencia, incluirValorDeclarado, simulacao = false }) {
   const r = resumir(linhas, cenarios, referencia);
   const ex = escolherExemplos(linhas, cenarios, referencia, r.proposta);
   return {
@@ -118,7 +162,8 @@ export function montarRelatorio({ linhas, cenarios, referencia, nomes, cliente, 
       mini: cenarios.some((c) => (c === 'CONTRATO' || c === 'CLUBE') && l[c].mini),
     })),
     miniEnvios: r.miniEnvios,
-    melhores: r.melhores,
+    ganhadores: ganhadores(linhas, cenarios, referencia),
+    simulacao: !!simulacao,
     pacoteContrato: pacoteNome,
     vigencia,
     incluirValorDeclarado,

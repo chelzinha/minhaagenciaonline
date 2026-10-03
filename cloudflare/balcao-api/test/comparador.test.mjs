@@ -101,3 +101,17 @@ function dbFake() {
     batch: async (qs) => qs.map((q) => ({ results: fonte[q.sql.match(/FROM\s+(\w+)/i)[1]] })),
   };
 }
+
+// 8. Relatorio (PDF): simulacao muda o titulo, ganhadores nao mostram a referencia, so fundo branco
+const { montarHtmlRelatorio } = await import('../src/comparador/relatorio.js');
+const rel = ler('relatorio-exemplo.json');
+const htmlSim = montarHtmlRelatorio({ ...rel, simulacao: true });
+const htmlReal = montarHtmlRelatorio({ ...rel, simulacao: false });
+assert.ok(htmlSim.includes('Simulação com envios de exemplo') && !htmlSim.includes('Exemplos do seu histórico'));
+assert.ok(htmlReal.includes('Exemplos do seu histórico'));
+assert.ok(!/background:var\(--(tinta|amarelo|turquesa|azul)\)/.test(htmlReal), 'PDF sem fundo chapado');
+assert.ok(htmlReal.includes('Características de') && htmlReal.includes('Como começar'));
+assert.ok(!htmlReal.match(/class="gn-n"><b>Balcão à vista/), 'referencia fora de "qual opcao sai mais barata"');
+assert.throws(() => montarHtmlRelatorio({ ...rel, cliente: '' }));
+assert.throws(() => montarHtmlRelatorio({ ...rel, cenarios: ['APP'] }));
+console.log('relatorio OK: simulacao, caracteristicas, ganhadores e validacoes');
