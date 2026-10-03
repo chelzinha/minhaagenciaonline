@@ -47,4 +47,17 @@ z = precosDaZona(baseA, baseT, zonas.F4_INTERIOR_P3, e(1000, [27, 18, 9]));
 assert.equal(z.PLATINUM.SEDEX, 62.87);
 assert.equal(z.APP_PESO.SEDEX, 90.20);
 
+// Valor declarado e AR: contrato 1% sobre o que passa de R$ 25,63 e AR a faturar R$ 11,75;
+// balcão e App 2% e AR à vista R$ 8,10; Mini Envios 2% sobre o que passa de R$ 12,82.
+const base0 = precosDaZona(baseA, baseT, zonas.F4_CAPITAL_N3, e(1000, [27, 18, 9]));
+const comVd = precosDaZona(baseA, baseT, zonas.F4_CAPITAL_N3, { ...e(1000, [27, 18, 9]), valorDeclarado: 500, ar: true });
+const dif = (k, s) => Math.round((comVd[k][s] - base0[k][s]) * 100) / 100;
+assert.equal(dif('PLATINUM', 'SEDEX'), Math.round(((500 - 25.63) * 0.01 + 11.75) * 100) / 100, 'contrato: VD 1% + AR a faturar');
+assert.equal(dif('AVISTA', 'SEDEX'), Math.round(((500 - 25.63) * 0.02 + 8.10) * 100) / 100, 'balcão: VD 2% + AR');
+assert.equal(dif('APP_PESO', 'PAC'), Math.round(((500 - 25.63) * 0.02 + 8.10) * 100) / 100, 'App: VD 2% + AR à vista');
+const miniVd = precosDaZona(baseA, baseT, zonas.F4_CAPITAL_N3, { ...e(300), valorDeclarado: 100, ar: true });
+assert.equal(miniVd.PLATINUM.MINI, Math.round((17.85 + (100 - 12.82) * 0.02 + 11.75) * 100) / 100, 'Mini: VD 2% + AR');
+const miniAcima = precosDaZona(baseA, baseT, zonas.F4_CAPITAL_N3, { ...e(300), valorDeclarado: 200 });
+assert.equal(miniAcima.PLATINUM.MINI, null, 'Mini Envios recusa valor declarado acima do máximo');
+
 console.log('simulador.test: ok');

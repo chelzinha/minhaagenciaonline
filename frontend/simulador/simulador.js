@@ -43,7 +43,7 @@
 
   // ---------------------------------------------------------------- estado
   var S = { cx: 'T2', p: 1000, uf: 'SP', tipo: 'CAPITAL', serv: 'SEDEX', regra: 'PESO', modo: 'cap', cidade: '',
-    medLivre: false, med: [27, 18, 9], pesoLivre: false, unidade: 'kg' };
+    medLivre: false, med: [27, 18, 9], pesoLivre: false, unidade: 'kg', vd: 0, ar: false };
   var CHAVE_SESSAO = 'agf_simulador_v1';
   try { var salvo = JSON.parse(sessionStorage.getItem(CHAVE_SESSAO) || 'null'); if (salvo && salvo.cx) Object.assign(S, salvo); } catch (e) { /* sem sessão */ }
   function guardar() { try { sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(S)); } catch (e) { /* sem sessão */ } }
@@ -65,7 +65,13 @@
     if (S.medLivre) return { codigo: 'LIVRE', nome: 'Sua caixa', medidas: S.med };
     return caixa(S.cx) || caixa('T2');
   }
-  function numBR(v) { var n = Number(String(v == null ? '' : v).trim().replace(/\./g, '').replace(',', '.')); return isFinite(n) ? n : NaN; }
+  function numBR(v) {
+    var t = String(v == null ? '' : v).trim();
+    if (!t) return NaN;
+    // "1.234,56" e "1234,56": vírgula decimal. "12.5" (um ponto e até 2 casas, sem vírgula): ponto decimal.
+    t = t.indexOf(',') < 0 && /^\d+\.\d{1,2}$/.test(t) ? t : t.replace(/\./g, '').replace(',', '.');
+    var n = Number(t); return isFinite(n) ? n : NaN;
+  }
   function numTxt(n) { return String(Math.round(n * 10) / 10).replace('.', ','); }
   function ordenadas(m) { return m.slice().sort(function (a, b) { return b - a; }); }
   function cabeMini(m) { var o = ordenadas(m); return o[0] <= LIM.mini[0] && o[1] <= LIM.mini[1] && o[2] <= LIM.mini[2]; }
@@ -89,7 +95,14 @@
     if (!(S.p > 0)) peso.erros.push('Informe o peso.');
     else if (S.p > LIM.pesoMax) peso.erros.push('Peso de ' + kg(S.p) + ': SEDEX e PAC aceitam até 30 kg.');
     else if (caixaAtual().codigo === 'MINI' && S.p > LIM.miniPesoMax) peso.erros.push('A caixa Mini Envios aceita até 1 kg. Escolha outra embalagem.');
-    return { med: med, peso: peso, ok: !med.erros.length && !peso.erros.length };
+    // valor declarado: acima do máximo do serviço, a opção fica indisponível (não bloqueia as demais)
+    var vd = { erros: [], avisos: [] }, ad = CFG && CFG.adicionais;
+    if (ad && S.vd > 0) {
+      var maxServ = ad.vdMaximo[S.serv];
+      if (S.serv === 'MINI' && S.vd > ad.vdMaximo.MINI) vd.avisos.push('O Mini Envios aceita valor declarado até ' + brl(ad.vdMaximo.MINI) + '. Para valores maiores, use PAC ou SEDEX.');
+      else if (maxServ && S.vd > maxServ) vd.avisos.push('Valor declarado acima do máximo do ' + S.serv + ' (' + brl(maxServ) + ').');
+    }
+    return { med: med, peso: peso, vd: vd, ok: !med.erros.length && !peso.erros.length };
   }
   function vol(c) { return c.medidas[0] * c.medidas[1] * c.medidas[2]; }
   function nomeCaixa(c) { return c.destaque ? 'Caixa' : c.nome; }
@@ -176,6 +189,8 @@
     $('pesoUnTxt').textContent = S.unidade === 'g' ? 'g' : 'kg';
     $('pesoUn').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.v === S.unidade)); });
     mostrarAlertas($('medMsg'), lim.med);
+    mostrarAlertas($('vdMsg'), lim.vd);
+    $('ar').setAttribute('aria-pressed', String(!!S.ar));
     mostrarAlertas($('pesoMsg'), lim.peso);
     ['medC', 'medL', 'medA'].forEach(function (id, i) {
       $(id).parentNode.classList.toggle('erro', S.medLivre && lim.med.erros.length > 0 && (!(S.med[i] > 0) || S.med[i] > LIM.ladoMax || lim.med.erros.some(function (t) { return /Soma|mínimo/.test(t); })));
@@ -233,7 +248,8 @@
     var rotulo = ROTULO_CURTO[S.tipo];
     if (S.tipo === 'CAPITAL' && S.cidade && g && g.ex[0] && g.ex[0].toLowerCase() !== S.cidade.toLowerCase()) rotulo = 'Região metropolitana';
     $('destUf').textContent = S.cidade ? S.uf + ' · ' + rotulo : S.uf;
-    $('meta').textContent = (S.serv === 'MINI' ? 'Mini Envios' : S.serv) + ' · ' + (cx.destaque ? 'Caixa Mini Envios' : cx.nome) + ' (' + medidasTxt(cx.medidas.map(function (v) { return Math.round(v * 10) / 10; })) + ' cm) · ' + kg(S.p);
+    $('meta').textContent = (S.serv === 'MINI' ? 'Mini Envios' : S.serv) + ' · ' + (cx.destaque ? 'Caixa Mini Envios' : cx.nome) + ' (' + medidasTxt(cx.medidas.map(function (v) { return Math.round(v * 10) / 10; })) + ' cm) · ' + kg(S.p) +
+      (S.vd > 0 ? ' · valor declarado ' + brl(S.vd) : '') + (S.ar ? ' · com AR' : '');
     if (!atual || !g) return;
     var v = valores(g.zona);
     var m = menor(v);
@@ -306,13 +322,13 @@
   // ---------------------------------------------------------------- dados
   async function atualizarPrecos() {
     var m = caixaAtual().medidas;
-    var chave = m.join('|') + '|' + S.p;
+    var chave = m.join('|') + '|' + S.p + '|' + S.vd + '|' + (S.ar ? 1 : 0);
     var meu = ++pedido;
     if (!conferirLimites().ok) { atual = null; renderTudo(); foraDoLimite(); return; }
     if (PRECOS.has(chave)) { atual = PRECOS.get(chave); renderTudo(); return; }
     renderTudo(); carregandoResultado();
     try {
-      var d = await api('/precos?c=' + m[0] + '&l=' + m[1] + '&a=' + m[2] + '&p=' + S.p);
+      var d = await api('/precos?c=' + m[0] + '&l=' + m[1] + '&a=' + m[2] + '&p=' + S.p + (S.vd > 0 ? '&vd=' + S.vd : '') + (S.ar ? '&ar=1' : ''));
       PRECOS.set(chave, d);
       if (meu !== pedido) return;
       atual = d; renderTudo();
@@ -370,6 +386,8 @@
       if (S.pesoLivre) { S.pesoLivre = false; if (CFG.pesos.indexOf(S.p) < 0) S.p = CFG.pesos.reduce(function (a, x) { return Math.abs(x - S.p) < Math.abs(a - S.p) ? x : a; }, CFG.pesos[0]); }
       else { S.pesoLivre = true; preencherCampos(); setTimeout(function () { $('pesoV').focus(); $('pesoV').select(); }, 0); }
       atualizarPrecos();
+    } else if (b.id === 'ar') {
+      S.ar = !S.ar; atualizarPrecos();
     } else if (grupo.id === 'pesoUn') {
       S.unidade = b.dataset.v; preencherCampos(); renderTudo();
     } else if (grupo.id === 'mapa') {
@@ -401,6 +419,12 @@
       renderTudo(); aoDigitar();
     });
   });
+  $('vd').addEventListener('input', function (e) {
+    e.target.value = e.target.value.replace(/[^0-9,\.]/g, '');
+    var n = numBR(e.target.value);
+    S.vd = isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0;
+    renderTudo(); aoDigitar();
+  });
   $('pesoV').addEventListener('input', function (e) {
     e.target.value = e.target.value.replace(/[^0-9,\.]/g, '');
     var n = numBR(e.target.value);
@@ -426,6 +450,9 @@
       if (!Array.isArray(S.med) || S.med.length !== 3) { S.med = [27, 18, 9]; S.medLivre = false; }
       if (!S.pesoLivre && CFG.pesos.indexOf(S.p) < 0) S.p = 1000;
       if (S.unidade !== 'g') S.unidade = 'kg';
+      if (!(S.vd >= 0)) S.vd = 0;
+      S.ar = !!S.ar;
+      $('vd').value = S.vd > 0 ? String(S.vd).replace('.', ',') : '';
       preencherCampos();
       pressionar($('regra'), $('regra').querySelector('[data-v="' + S.regra + '"]') || $('regra').querySelector('button'));
       pressionar($('mapModo'), $('mapModo').querySelector('[data-v="' + S.modo + '"]') || $('mapModo').querySelector('button'));

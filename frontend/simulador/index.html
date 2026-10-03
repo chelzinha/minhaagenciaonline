@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/simulador/simulador.css?v=1.5.0" />
+  <link rel="stylesheet" href="/simulador/simulador.css?v=1.6.0" />
 </head>
 <body>
   <header class="sm-top">
@@ -114,8 +114,16 @@
           <button type="button" data-v="MINI" aria-pressed="false">Mini Envios</button>
         </div>
       </div>
+      <p class="sm-sr" id="meta"></p>
       <div class="sm-res-linha">
-        <p class="sm-meta" id="meta"></p>
+        <div class="sm-adic">
+          <label class="sm-vd" for="vd"><span>Valor declarado</span>
+            <span class="sm-campo-in sm-vd-in"><i>R$</i><input id="vd" inputmode="decimal" maxlength="10" placeholder="0,00" autocomplete="off" /></span>
+          </label>
+          <button type="button" class="sm-ar" id="ar" aria-pressed="false" title="Aviso de recebimento" aria-label="Aviso de recebimento (AR)">
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>AR
+          </button>
+        </div>
         <div class="sm-regra">
           <span class="sm-regra-t">Correios App</span>
           <div class="sm-seg" id="regra" role="group" aria-label="Cálculo do Correios App">
@@ -124,6 +132,7 @@
           </div>
         </div>
       </div>
+      <p class="sm-livre-msg" id="vdMsg" role="status" aria-live="polite" hidden></p>
       <div class="sm-cards" id="opcoes" aria-live="polite"></div>
       <div class="sm-res-pe">
         <div class="sm-economia" id="economia" hidden></div>
@@ -137,6 +146,6 @@
 
   <button type="button" class="sm-barra" id="barra" hidden></button>
 
-  <script src="/simulador/simulador.js?v=1.5.0" defer></script>
+  <script src="/simulador/simulador.js?v=1.6.0" defer></script>
 </body>
 </html>

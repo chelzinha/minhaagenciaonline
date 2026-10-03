@@ -16,7 +16,7 @@
 import { carregarBase, classificarTrecho, calcularPrecos, normalizarMunicipio } from '../preco/preco-avista.js';
 import { carregarBaseTabelas, classificarTrechoTabela, calcularContrato, calcularApp } from '../preco/preco-tabelas.js';
 
-export const SIMULADOR_VERSAO = 'simulador-2026.10.03';
+export const SIMULADOR_VERSAO = 'simulador-2026.10.03b';
 const ORIGEM = { uf: 'CE', municipio: 'FORTALEZA' };
 const SERVICOS = ['SEDEX', 'PAC'];
 const GENERICO = 'ZZ INTERIOR'; // cidade fora das listas: cai em "demais do interior"
@@ -132,7 +132,13 @@ async function carregarMapa(env) {
 
 export async function configSimulador(env) {
   const { baseA, baseT, mapa } = await carregarMapa(env);
-  return { versao: SIMULADOR_VERSAO, vigencia: baseT.vigencia || baseA.vigencia, ufs: mapa.ufs, caixas: CAIXAS, pesos: PESOS_G };
+  const re = baseT.re, ad = baseA.ad;
+  const adicionais = {
+    arAvista: ad.AR, arContrato: re.CTR_AR, vdMinimo: ad.INDENIZACAO_AUTOMATICA,
+    vdMaximo: { MINI: re.MINI_VD_MAX, PAC: Math.min(re.CTR_VD_MAX_PAC, Number((baseA.servicos.find((x) => x.chave === 'PAC') || {}).vd_max) || Infinity),
+      SEDEX: Math.min(re.CTR_VD_MAX_SEDEX, Number((baseA.servicos.find((x) => x.chave === 'SEDEX') || {}).vd_max) || Infinity) },
+  };
+  return { versao: SIMULADOR_VERSAO, vigencia: baseT.vigencia || baseA.vigencia, ufs: mapa.ufs, caixas: CAIXAS, pesos: PESOS_G, adicionais };
 }
 
 // ---------------------------------------------------------------- preços
@@ -141,11 +147,17 @@ function lerEntrada(q) {
   const c = n(q.c), l = n(q.l), a = n(q.a), p = Math.ceil(n(q.p));
   if (![c, l, a].every((v) => v > 0 && v <= 200)) throw erro('Informe as medidas da embalagem em cm.');
   if (!(p > 0 && p <= 30000)) throw erro('Informe o peso entre 1 g e 30 kg.');
-  return { comprimentoCm: c, larguraCm: l, alturaCm: a, pesoG: p, valorDeclarado: 0 };
+  const vd = q.vd == null || q.vd === '' ? 0 : n(q.vd);
+  if (!(vd >= 0 && vd <= 50000)) throw erro('Valor declarado inválido.');
+  return { comprimentoCm: c, larguraCm: l, alturaCm: a, pesoG: p, valorDeclarado: Math.round(vd * 100) / 100, ar: q.ar === '1' };
 }
 const total = (r) => (r && r.ok ? r2(r.total) : null);
 
-/** Preço de uma embalagem em uma zona: balcão, contrato (Platinum e Clube, com Mini Envios) e App. */
+/**
+ * Preço de uma embalagem em uma zona: balcão, contrato (Platinum e Clube, com Mini Envios) e App.
+ * e.valorDeclarado e e.ar entram em todos: balcão (2% e AR à vista), contrato (1% e AR a faturar),
+ * Mini Envios (2%, até o máximo do serviço) e App (2% e AR à vista).
+ */
 export function precosDaZona(baseA, baseT, z, e) {
   const destino = { uf: z.uf, municipio: z.municipio };
   const ta = classificarTrecho(baseA, ORIGEM, destino);
@@ -157,12 +169,13 @@ export function precosDaZona(baseA, baseT, z, e) {
     for (const [k, tabela] of [['PLATINUM', 'PLATINUM'], ['CLUBE', 'CLUBE_CORREIOS']]) {
       const r = calcularContrato(baseT, e, tt, { tabela, servico: s, usarMini: s === 'PAC' });
       if (s === 'PAC') {
-        out[k].MINI = r.mini && r.mini.ok ? r2(r.mini.total) : null;
+        out[k].MINI = r.mini && r.mini.ok ? r2(r.mini.total + (e.ar ? baseT.re.CTR_AR : 0)) : null; // AR também no Mini Envios
         out[k].PAC = r.ok ? r2(r.servicoUsado === 'MINI' ? calcularContrato(baseT, e, tt, { tabela, servico: 'PAC', usarMini: false }).total : r.total) : null;
       } else out[k][s] = total(r);
     }
-    out.APP_PESO[s] = total(calcularApp(baseT, e, tt, { servico: s, considerarPesoReal: true }));
-    out.APP_VOLUME[s] = total(calcularApp(baseT, e, tt, { servico: s }));
+    const adicionais = { AR: baseA.ad.AR || 0, MP: baseA.ad.MP || 0 };
+    out.APP_PESO[s] = total(calcularApp(baseT, e, tt, { servico: s, considerarPesoReal: true, adicionais }));
+    out.APP_VOLUME[s] = total(calcularApp(baseT, e, tt, { servico: s, adicionais }));
   }
   return out;
 }

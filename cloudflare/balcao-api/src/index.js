@@ -42,7 +42,7 @@ import { montarHtmlRelatorio, validarRelatorio } from './comparador/relatorio.js
 import { gerarPdf } from './comparador/pdf.js';
 import { configSimulador, precosSimulador, cepSimulador } from './simulador/simulador.js';
 
-const VERSAO = '2.3.1';
+const VERSAO = '2.3.2';
 
 // ---------------------------------------------------------------- http
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'cache-control': 'no-store' } });

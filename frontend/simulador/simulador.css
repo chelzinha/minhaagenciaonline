@@ -232,8 +232,22 @@ button:disabled { cursor: not-allowed; }
 .sm-meta { margin: 0; font-size: 12.5px; color: var(--agf-marca-cinza-500); }
 
 .sm-res-linha { display: flex; justify-content: space-between; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+.sm-adic { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sm-vd { display: flex; align-items: center; gap: 6px; }
+.sm-vd > span:first-child { font: 600 12.5px var(--agf-marca-fonte-texto); color: var(--agf-marca-azul-profundo); white-space: nowrap; }
+.sm-vd-in { min-height: 34px; width: 104px; padding: 0 8px; gap: 4px; }
+.sm-vd-in i { font-style: normal; font-size: 12.5px; color: var(--agf-marca-cinza-500); }
+.sm-vd-in input { border: 0; outline: 0; width: 100%; min-width: 0; background: transparent; font: 600 14px var(--agf-marca-fonte-texto); color: var(--agf-marca-azul-profundo); font-variant-numeric: tabular-nums; }
+.sm-vd-in input:focus-visible { box-shadow: none; }
+.sm-ar {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px 0 8px; border-radius: 999px;
+  border: 1.5px solid var(--agf-marca-cinza-100); background: var(--agf-marca-branco); font: 600 12.5px var(--agf-marca-fonte-texto); color: var(--agf-marca-cinza-500);
+}
+.sm-ar .ic { width: 16px; height: 16px; padding: 1px; border-radius: 4px; border: 1.5px solid var(--agf-marca-cinza-400); color: transparent; }
+.sm-ar[aria-pressed="true"] { border-color: var(--agf-marca-azul-profundo); background: var(--agf-marca-azul-fundo); color: var(--agf-marca-azul-profundo); }
+.sm-ar[aria-pressed="true"] .ic { background: var(--agf-marca-azul-profundo); border-color: var(--agf-marca-azul-profundo); color: var(--agf-marca-branco); }
 .sm-regra { display: flex; align-items: center; gap: 8px; }
-.sm-regra-t { font: 600 13px var(--agf-marca-fonte-titulo); color: var(--agf-marca-violeta-tinta); }
+.sm-regra-t { font: 600 12.5px var(--agf-marca-fonte-titulo); white-space: nowrap; color: var(--agf-marca-violeta-tinta); }
 .sm-regra .sm-seg button { min-height: 30px; padding: 0 11px; font-size: 12.5px; }
 
 .sm-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
