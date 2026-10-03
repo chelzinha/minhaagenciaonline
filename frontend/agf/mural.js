@@ -221,10 +221,7 @@
     var itens = (d.agenda || []).filter(function (e) { return e.data >= d.hoje; }).map(function (e) {
       return { id: e.id, dt: dataLocal(e.data), t: e.titulo, s: e.descricao, k: e.tipo === 'feriado' ? 'hol' : 'int' };
     });
-    var du = diasUteis();
-    if (du && du.ultimoUtil && du.ultimoUtil >= hoje) {
-      itens.push({ id: '', dt: du.ultimoUtil, t: 'Fechamento do mês', s: 'Último dia útil de ' + MES[du.mes] + ': conferência do caixa e relatórios', k: 'fec' });
-    }
+    /* Fechamento do mes automatico removido em 03/10/2026: so entra se for cadastrado na agenda. */
     itens.sort(function (a, b) { return a.dt - b.dt; });
     itens = itens.slice(0, 5);
     $('ptAgenda').innerHTML = itens.length ? itens.map(function (e) {
