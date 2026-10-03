@@ -7,7 +7,7 @@
    - Validado contra postagens reais a vista do Atende (ago-set/2026).
    ===================================================== */
 
-export const PRECO_VERSAO = 'preco-avista-2026.10.03';
+export const PRECO_VERSAO = 'preco-avista-2026.10.03b';
 const FAIXAS_G = [300, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000];
 const BASE_TTL_MS = 10 * 60 * 1000;
 let baseMem = null;          // { base, ate }
@@ -134,7 +134,8 @@ export function calcularPrecos(base, entrada, trecho) {
 
   const opcoes = base.servicos.map((s) => {
     try {
-      if (peso.pesoTarifadoG > Number(s.limite_peso_g)) throw new Error('Peso tarifado acima do limite de ' + Number(s.limite_peso_g) / 1000 + ' kg.');
+      // Limite dos Correios vale para o peso real; o peso cúbico pode passar de 30 kg (cobra kg adicional).
+      if (peso.pesoRealG > Number(s.limite_peso_g)) throw new Error('Peso acima do limite de ' + Number(s.limite_peso_g) / 1000 + ' kg.');
       if (vd > Number(s.vd_max)) throw new Error('Valor declarado acima do máximo de R$ ' + Number(s.vd_max).toFixed(2).replace('.', ',') + '.');
       const pb = precoDaFaixa(base, s.codigo, trecho.escala, trecho.coluna, peso.pesoTarifadoG);
       const vdValor = vd > 0 ? r2(Math.max(0, vd - ad.INDENIZACAO_AUTOMATICA) * ad.VD_PERCENTUAL) : 0;

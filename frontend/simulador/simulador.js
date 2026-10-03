@@ -32,7 +32,7 @@
   var LIM = {
     ladoMax: 100, somaMax: 200, pesoMax: 30000, minimo: [11, 6, 0.4],
     mini: [24, 16, 4], miniPesoTabela: 300, miniPesoMax: 1000,
-    manuseio: 70, cubContrato: 6000, cubApp: 7000, isencaoCub: 5000
+    manuseio: 70
   };
   var PERFIS = [
     { k: 'env', nome: 'Envelope', ic: 'envelope', cx: 'MINI', p: 300 },
@@ -81,9 +81,7 @@
       if (soma > LIM.somaMax) med.erros.push('Soma das medidas de ' + numTxt(soma) + ' cm: SEDEX e PAC aceitam até ' + LIM.somaMax + ' cm (C + L + A).');
       if (o[0] < LIM.minimo[0] || o[1] < LIM.minimo[1] || o[2] < LIM.minimo[2]) med.erros.push('Menor que o mínimo aceito para caixa: 11 x 6 x 0,4 cm.');
       if (!med.erros.length) {
-        var cub6 = (m[0] * m[1] * m[2]) / LIM.cubContrato * 1000, cub7 = (m[0] * m[1] * m[2]) / LIM.cubApp * 1000;
-        if (cub7 > LIM.pesoMax) med.erros.push('Pelo tamanho, a caixa é cobrada como mais de 30 kg em todas as opções (' + numTxt(cub6 / 1000) + ' kg no contrato e no balcão, ' + numTxt(cub7 / 1000) + ' kg no App). Use uma caixa menor.');
-        else if (cub6 > LIM.pesoMax) med.avisos.push('Pelo tamanho, a caixa é cobrada como ' + numTxt(cub6 / 1000) + ' kg no balcão, no Platinum e no Clube Correios: acima do limite de 30 kg. Só o Correios App aceita.');
+        // Peso cúbico acima de 30 kg é aceito: os Correios cobram o kg adicional (conferido em postagens reais).
         if (o[0] > LIM.manuseio) med.avisos.push('Lado acima de ' + LIM.manuseio + ' cm: soma a taxa de manuseio especial.');
         if (S.medLivre && !cabeMini(m) && o[0] <= 30 && o[2] <= 8) med.avisos.push('Não cabe no Mini Envios: máximo de 24 x 16 x 4 cm.');
       }

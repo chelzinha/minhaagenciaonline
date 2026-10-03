@@ -9,7 +9,7 @@
    ===================================================== */
 import { normalizarMunicipio, calcularPeso } from './preco-avista.js';
 
-export const TABELAS_VERSAO = 'preco-tabelas-2026.10.03';
+export const TABELAS_VERSAO = 'preco-tabelas-2026.10.03b';
 const BASE_TTL_MS = 10 * 60 * 1000;
 let baseMem = null; // { base, ate }
 
@@ -148,7 +148,8 @@ export function calcularContrato(baseT, entrada, trecho, { tabela, servico, usar
   if (servico !== 'SEDEX' && servico !== 'PAC') return { ok: false, erro: 'Serviço sem comparação.' };
   const peso = calcularPeso(entrada, { CUBAGEM_DIVISOR: re.CTR_DIVISOR, CUBAGEM_ISENCAO_KG: re.CTR_ISENCAO_CUBAGEM_KG });
   if (peso.pesoRealG <= 0) return { ok: false, erro: 'Peso ausente.' };
-  if (peso.pesoTarifadoG > re.LIMITE_PESO_G) return { ok: false, erro: 'Peso tarifado acima de 30 kg.' };
+  // Limite de 30 kg vale para o peso real; o cúbico acima disso é cobrado com kg adicional (conferido no Atende).
+  if (peso.pesoRealG > re.LIMITE_PESO_G) return { ok: false, erro: 'Peso acima de 30 kg.' };
   const vd = Math.max(0, Number(entrada.valorDeclarado) || 0);
   if (vd > (servico === 'SEDEX' ? re.CTR_VD_MAX_SEDEX : re.CTR_VD_MAX_PAC)) return { ok: false, erro: 'Valor declarado acima do máximo do contrato.' };
   const coluna = colunaDoServico(trecho, servico);
@@ -182,7 +183,7 @@ export function calcularApp(baseT, entrada, trecho, { servico, adicionais = {}, 
   const semMedidas = !(dims[0] > 0 && dims[1] > 0 && dims[2] > 0);
   const cubicoG = semMedidas ? 1 : Math.ceil((dims[0] * dims[1] * dims[2] / re.APP_DIVISOR) * 1000);
   const tarifadoG = considerarPesoReal ? Math.max(cubicoG, Math.ceil(Number(entrada.pesoG) || 0)) : cubicoG;
-  if (tarifadoG > re.LIMITE_PESO_G) return { ok: false, erro: considerarPesoReal ? 'Peso acima de 30 kg.' : 'Peso cúbico acima de 30 kg.' };
+  if (Math.ceil(Number(entrada.pesoG) || 0) > re.LIMITE_PESO_G) return { ok: false, erro: 'Peso acima de 30 kg.' };
   let coluna = colunaDoServico(trecho, servico);
   let pb = precoFaixa(baseT, 'APP', servico, coluna, tarifadoG);
   if (!pb && trecho.colunaSemP) { coluna = trecho.colunaSemP; pb = precoFaixa(baseT, 'APP', servico, coluna, tarifadoG); }
