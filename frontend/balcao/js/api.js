@@ -1,60 +1,52 @@
 /* =====================================================
-   CALCULADORA BALCÃO AGF — API Client
+   CALCULADORA BALCÃO AGF — API Client (Worker agf-balcao-api)
+   Mesmos métodos da versão Apps Script: config, cep, cotar, salvarRascunho.
    ===================================================== */
 
 const BalcaoApi = (function () {
-  async function call(action, params, options) {
-    if (!BALCAO_CONFIG.GAS_WEBAPP_URL || BALCAO_CONFIG.GAS_WEBAPP_URL.indexOf('__COLE_AQUI') >= 0) {
-      throw new Error('GAS_WEBAPP_URL não configurada em balcao/js/config.js');
-    }
+  async function call(caminho, opcoes, tentativa) {
+    opcoes = opcoes || {};
+    tentativa = tentativa || 1;
+    if (!BALCAO_CONFIG.API_URL) throw new Error('API_URL não configurada em balcao/js/config.js');
 
-    const timeoutMs = Number((options && options.timeoutMs) || 120000);
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    let timer = null;
-    let timedOut = false;
-
-    if (controller && timeoutMs > 0) {
-      timer = setTimeout(() => {
-        timedOut = true;
-        try { controller.abort(); } catch (e) {}
-      }, timeoutMs);
-    }
-
+    const token = window.AgfAuth ? window.AgfAuth.getToken() : '';
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), opcoes.timeoutMs || 30000);
     let resp;
     try {
-      resp = await fetch(BALCAO_CONFIG.GAS_WEBAPP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(Object.assign({ action: action }, params || {})),
-        redirect: 'follow',
-        signal: controller ? controller.signal : undefined
+      resp = await fetch(BALCAO_CONFIG.API_URL + caminho, {
+        method: opcoes.method || 'GET',
+        headers: Object.assign({ Authorization: 'Bearer ' + token }, opcoes.body ? { 'Content-Type': 'application/json' } : {}),
+        body: opcoes.body ? JSON.stringify(opcoes.body) : undefined,
+        signal: controller.signal
       });
     } catch (e) {
-      if (timedOut || (e && e.name === 'AbortError')) {
-        throw new Error('O servidor demorou demais para responder. Tente novamente.');
-      }
-      throw new Error('Falha de rede ao contatar o servidor: ' + (e.message || e));
+      throw new Error(e && e.name === 'AbortError' ? 'O servidor demorou demais para responder. Tente novamente.' : 'Sem conexão com o servidor do Balcão.');
     } finally {
-      if (timer) clearTimeout(timer);
+      clearTimeout(timer);
     }
 
-    let json;
-    try {
-      json = await resp.json();
-    } catch (e) {
-      throw new Error('Resposta inválida do servidor. O retorno não é JSON.');
-    }
+    let json = null;
+    try { json = await resp.json(); } catch (e) { /* resposta sem JSON */ }
 
-    if (!json || typeof json !== 'object') throw new Error('Resposta vazia do servidor.');
-    if (json.ok === false) throw new Error(json.error || 'Erro desconhecido no backend.');
+    // 401: só volta ao login se o controle de acesso confirmar que a sessão acabou.
+    if (resp.status === 401 && window.AgfAuth) {
+      let sessaoValida = false;
+      try { await window.AgfAuth.validate(); sessaoValida = true; }
+      catch (e) {
+        if (e && e.code === 'rejected') { window.AgfAuth.redirectToLogin('sessao'); throw new Error('Sessão expirada. Entre novamente.'); }
+      }
+      if (sessaoValida && tentativa === 1) return call(caminho, opcoes, 2);
+      throw new Error('Não foi possível confirmar seu acesso agora. Tente de novo em instantes.');
+    }
+    if (!resp.ok || !json || json.ok === false) throw new Error((json && json.erro) || ('Erro ' + resp.status + ' no servidor do Balcão.'));
     return json.data;
   }
 
   return {
-    config: () => call('balcaoConfig'),
-    // /balcao usa action pública e isolada. Não usar action 'cep' do /app, pois ela exige sessão de cliente.
-    cep: (cep) => call('balcaoCep', { cep: cep }),
-    cotar: (payload) => call('balcaoCotar', { payload: payload }, { timeoutMs: 150000 }),
-    salvarRascunho: (payload) => call('balcaoSalvarRascunho', { payload: payload })
+    config: () => call('/config'),
+    cep: (cep) => call('/cep?cep=' + encodeURIComponent(String(cep || '').replace(/\D/g, ''))),
+    cotar: (payload) => call('/cotar', { method: 'POST', body: { payload: payload }, timeoutMs: 45000 }),
+    salvarRascunho: (payload) => call('/rascunhos', { method: 'POST', body: { payload: payload } })
   };
 })();
