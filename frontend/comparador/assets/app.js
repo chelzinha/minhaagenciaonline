@@ -1,8 +1,8 @@
 /* app.js - Comparador de Tarifas v5 (rota /comparador)
    Fluxo: CSV do cliente -> lote no Worker (D1) -> comparação na tela -> PDF comercial (Worker). */
-import { Api } from './api.js';
-import { parseCsv, mapearColunas, montarLinhas } from './csv.js';
-import { CENARIOS, resumir, comparavel, melhorDaLinha, periodo, montarRelatorio, ganhadores } from './resumo.js';
+import { Api } from './api.js?v=5.3.0';
+import { parseCsv, mapearColunas, montarLinhas } from './csv.js?v=5.3.0';
+import { CENARIOS, resumir, comparavel, melhorDaLinha, periodo, montarRelatorio, ganhadores } from './resumo.js?v=5.3.0';
 
 const CFG = window.AGFCOMPARADOR_CONFIG || {};
 const COR = { AVISTA: '#94A3B8', CONTRATO: '#0D9488', CLUBE: '#0078D4', APP: '#D97706' };
@@ -215,6 +215,22 @@ function renderResultado() {
   if (r.foraDaComparacao) alertas.push(['info', `${int(r.foraDaComparacao)} postagens sem preço em alguma tabela escolhida (peso ou valor declarado acima do limite) ficaram fora dos totais.`]);
   if (cen.includes('CONTRATO') && cen.includes('CLUBE') && res.tabelaContrato === 'PLATINUM') alertas.push(['info', 'Na tabela 2026, Clube Correios e Platinum têm os mesmos preços.']);
   if (r.miniEnvios) alertas.push(['info', `Mini Envios aplicado em ${int(r.miniEnvios)} postagens PAC que cabem no formato.`]);
+  if (cen.includes('APP') && (cen.includes('CONTRATO') || cen.includes('CLUBE'))) {
+    const ctr = cen.includes('CONTRATO') ? 'CONTRATO' : 'CLUBE';
+    const comp = res.linhas.filter((l) => comparavel(l, cen));
+    const appCubico = comp.filter((l) => l.APP.total < l[ctr].total && l.APP.pesoTarifadoG < l[ctr].pesoTarifadoG);
+    const ctrGanha = comp.filter((l) => l[ctr].total <= l.APP.total).length;
+    if (appCubico.length) {
+      const dif = appCubico.reduce((s, l) => s + (l[ctr].total - l.APP.total), 0);
+      alertas.push(['info', `Correios App sai mais barato em ${int(appCubico.length)} postagens porque cobra só o peso cúbico, que nelas é menor que o peso real (objeto pesado em caixa pequena). Essas postagens somam ${brl(dif)} de diferença. Nas outras ${int(ctrGanha)}, ${nm[ctr]} é mais barato.`]);
+    }
+  }
+  {
+    const dims = new Map();
+    for (const l of state.entrada) { const k = [l.alturaCm, l.larguraCm, l.comprimentoCm].join('x'); if (l.alturaCm > 0) dims.set(k, (dims.get(k) || 0) + 1); }
+    const [k, n] = [...dims.entries()].sort((a, b) => b[1] - a[1])[0] || ['', 0];
+    if (n >= 10 && n / state.entrada.length >= 0.5) alertas.push(['aviso', `${int(n)} postagens têm a mesma medida (${k} cm). Se for medida padrão do sistema e não a caixa real, o valor do Correios App e do Mini Envios fica distorcido.`]);
+  }
   $('alerts').innerHTML = alertas.map(([t, m]) => `<p class="cmp-alert ${t}">${esc(m)}</p>`).join('');
 
   renderGrupos(r, cen, nm);
