@@ -1,0 +1,16 @@
+{
+  "name": "agf-mural-api",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "migrate:local": "wrangler d1 migrations apply agf-mural --local",
+    "migrate:remote": "wrangler d1 migrations apply agf-mural --remote",
+    "test": "node test/datas.test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

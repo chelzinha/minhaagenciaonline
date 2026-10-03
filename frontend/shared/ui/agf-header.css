@@ -1,6 +1,6 @@
 /* ============================================================================
    agf-header.css - Cabecalho padrao da Plataforma AGF Jose Bonifacio
-   Versao 1.1.0 - pele "Selo solido" (opcao C, escolhida em 29/09/2026)
+   Versao 1.2.0 - pele "Selo solido" (opcao C, escolhida em 29/09/2026)
    Namespace obrigatorio: .agf-hd-*  (Trava A)
    Depende de: nada. Nao importa nenhum outro arquivo.
    ========================================================================== */
@@ -470,4 +470,49 @@ html:has(.agf-hd) body{ overflow-x: clip; }
   [data-agf-header],
   .agf-hd-toast,
   .agf-hd-dlg{ display: none !important; }
+}
+
+/* --------------------------------------------- 16. ZONA B: CONTEXTO (v1.2.0)
+   Opcional. So aparece quando o app passa mount({ context }) ou setContext().
+   Uso atual: Portal Interno (data e dia util do mes). */
+.agf-hd__spacer:not(:empty){
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 12px;
+  min-width: 0;
+  flex: 1 0 auto;
+}
+.agf-hd__ctx-text{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--agf-hd-muted);
+  white-space: nowrap;
+}
+.agf-hd__ctx-pill{
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  border: 1px solid color-mix(in srgb, var(--agf-hd-accent) 28%, #E5E7EB);
+  font-size: 12px;
+  line-height: 26px;
+  color: var(--agf-hd-muted);
+  white-space: nowrap;
+}
+.agf-hd__ctx-pill b{
+  font-size: 14px;
+  font-weight: 750;
+  color: color-mix(in srgb, var(--agf-hd-accent) 80%, #1F2937);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 860px){ .agf-hd__ctx-text{ display: none; } }
+@media (max-width: 640px){
+  .agf-hd__spacer:not(:empty){ padding: 0 6px; }
+  .agf-hd__ctx-pill{ padding: 0 8px; }
+  .agf-hd__ctx-pill i{ display: none; }
 }

@@ -1,0 +1,18 @@
+{
+  // agf-mural-api - Portal Interno vivo (/agf): mural, aniversarios, elogios e agenda
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "agf-mural-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-22",
+  "workers_dev": true,
+  "d1_databases": [
+    { "binding": "DB", "database_name": "agf-mural", "database_id": "cb3d3ece-6198-4b0e-97cf-ca77307c617f", "migrations_dir": "migrations" }
+  ],
+  "vars": {
+    "AGF_AUTH_API_URL": "https://script.google.com/macros/s/AKfycbxv_3OLKyy13PqtEdqnVSA2zg3xljaU5gAKgn-TIVaaSRaTNPGgWIaRvDV_JuT9PTc5/exec",
+    "ALLOWED_ORIGINS": "https://minhaagenciaonline.com.br,https://www.minhaagenciaonline.com.br,http://localhost:8080,http://127.0.0.1:8080",
+    // previews das branches do Cloudflare Pages (ex.: https://feat-portal-mural.minhaagenciaonline.pages.dev)
+    "PREVIEW_ORIGIN_SUFFIX": ".minhaagenciaonline.pages.dev"
+  },
+  "observability": { "enabled": true }
+}
