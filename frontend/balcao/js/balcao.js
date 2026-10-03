@@ -133,7 +133,8 @@ const BalcaoPage = (function () {
         cidade: cfg.cidadeOrigemDefault || BALCAO_CONFIG.CIDADE_ORIGEM_FALLBACK,
         uf: (cfg.ufOrigemDefault || BALCAO_CONFIG.UF_ORIGEM_FALLBACK).toUpperCase()
       };
-      $('apiPrazoStatus').textContent = cfg.apiPrazoConfigurada ? 'Prazo via API Correios configurado' : 'Prazo não configurado';
+      const vig = String(cfg.vigencia || '').split('-').reverse().join('/');
+      $('apiPrazoStatus').textContent = 'Preço: tabela à vista' + (vig ? ' ' + vig : '') + ' • ' + (cfg.apiPrazoConfigurada ? 'Prazo: API Correios' : 'Prazo: confirmar no SARA');
       $('apiPrazoStatus').className = 'field-hint ' + (cfg.apiPrazoConfigurada ? 'ok' : 'warn');
     } catch (e) {
       $('apiPrazoStatus').textContent = 'Não consegui carregar a configuração';
@@ -334,8 +335,14 @@ const BalcaoPage = (function () {
         '</article>';
       }
       const prazoLabel = op.prazo && op.prazo.ok
-        ? ((op.prazoDias || 0) + ' dia(s) útil(eis)')
-        : (op.prazo && op.prazo.erro ? 'Não retornou' : '—');
+        ? ((op.prazoDias || 0) + (Number(op.prazoDias) === 1 ? ' dia útil' : ' dias úteis'))
+        : 'Confirmar no SARA';
+      const trecho = data.trecho || {};
+      const notas = [];
+      if (trecho.motivo) notas.push(trecho.motivo + (trecho.escala === 'CAPITAL' ? ' • Capital/Metropolitana' : ' • Interior'));
+      if (Number(op.manuseioValor) > 0) notas.push('Manuseio especial ' + fmtMoney(op.manuseioValor));
+      if (data.entrada && data.entrada.cubagemAplicada) notas.push('Peso cúbico aplicado');
+      if (op.prazo && !op.prazo.ok && op.prazo.erro) notas.push('Prazo: ' + op.prazo.erro);
       return '<article class="result-card is-ok" data-idx="' + idx + '">' +
         '<div class="result-top">' +
           '<div><div class="result-name">' + escapeHtml(op.nome || op.servico) + '</div>' +
@@ -343,13 +350,14 @@ const BalcaoPage = (function () {
           '<div class="result-price">' + fmtMoney(op.total) + '</div>' +
         '</div>' +
         '<div class="result-grid">' +
-          '<div class="result-mini"><small>Serviço</small><strong>' + fmtMoney(op.precoBase) + '</strong></div>' +
+          '<div class="result-mini"><small>Tarifa</small><strong>' + fmtMoney(op.precoBase) + '</strong></div>' +
           '<div class="result-mini"><small>VD</small><strong>' + fmtMoney(op.vdAdicional) + '</strong></div>' +
           '<div class="result-mini"><small>Prazo</small><strong>' + escapeHtml(prazoLabel) + '</strong></div>' +
           '<div class="result-mini"><small>AR</small><strong>' + fmtMoney(op.arValor) + '</strong></div>' +
           '<div class="result-mini"><small>Mão Própria</small><strong>' + fmtMoney(op.mpValor) + '</strong></div>' +
           '<div class="result-mini"><small>Faixa</small><strong>' + escapeHtml(op.faixa || '—') + '</strong></div>' +
         '</div>' +
+        (notas.length ? '<div class="result-note">' + escapeHtml(notas.join(' • ')) + '</div>' : '') +
         '<button type="button" class="btn btn-primary btn-block" data-select="' + idx + '"><span class="material-symbols-rounded">check_circle</span>Selecionar para Etiqueta</button>' +
       '</article>';
     }).join('');

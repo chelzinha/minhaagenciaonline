@@ -1,49 +1,47 @@
-# Balcão / Etiquetas
+# Balcão / Calculadora à vista
 
-**Module ID:** `balcao`  
-**Tipo:** interno operacional  
-**Rota:** `/balcao`  
-**Frontend:** `frontend/balcao`  
-**Backends prováveis:** `apps-script/etiquetas`, `apps-script/cep`, `apps-script/caixa` - vínculo detalhado NÃO CONFIRMADO  
-**Dados sensíveis:** SIM
+**Module ID:** `balcao`
+**Rota:** `/balcao`
+**Frontend:** `frontend/balcao`
+**Backend:** Worker `agf-balcao-api` (`cloudflare/balcao-api`), banco D1 `agf-balcao`
+**Backend anterior (desativado no front, mantido no repo):** Apps Script `apps-script/etiquetas/2x_BALCAO_*`
+**Dados sensíveis:** SIM (endereços e dados da ficha)
 
 ## 1. Finalidade
 
-Apoiar a operação de balcão com geração/visualização de etiquetas e documentos associados, priorizando rapidez de atendimento e impressão correta.
+Cotar PAC à vista (04510) e SEDEX à vista (04014) com origem na Região Metropolitana de Fortaleza para qualquer CEP do Brasil e montar a ficha de endereçamento de balcão (sem SRO).
 
-## 2. Regras operacionais
+## 2. Dois caminhos separados
 
-- ajustes de layout não devem alterar dados de postagem;
-- impressão/PDF deve respeitar tamanho, margens, fontes e códigos de barras;
-- rotinas de CEP e dados do destinatário devem validar entradas antes da emissão;
-- falha parcial não deve deixar registros inconsistentes.
+| | Preço | Prazo |
+|---|---|---|
+| Código | `src/preco/preco-avista.js` | `src/prazo/prazo-correios.js` |
+| Fonte | Tabelas à vista no D1 | API Prazo dos Correios |
+| Internet | Nunca | Só o endereço de prazo |
+| Credencial do contrato | Sem acesso | Sim |
 
-## 3. UX/UI
+- A API de preço dos Correios é proibida: o contrato tem preço diferente do balcão.
+- `src/correios/cliente-correios.js` só aceita os endereços de token, prazo e CEP.
+- `test/separacao.test.mjs` falha se aparecer endereço de preço ou import cruzado.
+- Se o prazo falhar, a cotação sai com o preço e "Confirmar no SARA".
 
-Interface de uso rápido, com poucos passos, botões evidentes, loading e mensagens claras. Como módulo interno, deve convergir para autenticação AGF e shell visual compartilhado.
+## 3. Fonte dos dados
 
-## 4. Performance
+Pasta do Drive `02 - Tarifas e Tabelas de Preços\FONTE_D1_BALCAO_A_VISTA` (LEIA-ME com a regra de cálculo e o passo a passo do reajuste anual). Migrations `0001` e `0002` são cópias do schema e da carga dessa pasta.
 
-O fluxo de balcão não pode depender de leitura de bases extensas para ações simples. Consultas de CEP/configuração devem ser enxutas e cacheáveis quando seguro.
+## 4. Configuração
 
-## 5. Segurança
+- Segredos do Worker: `CORREIOS_USUARIO`, `CORREIOS_CODIGO_ACESSO`, `CORREIOS_CARTAO`.
+- Variáveis: `AGF_AUTH_API_URL`, `ALLOWED_ORIGINS`, `CEP_ORIGEM_PADRAO`.
+- Acesso: sessão AGF com o app `balcao` (admin sempre).
+- Saúde: `GET https://agf-balcao-api.chelzinha.workers.dev/api/balcao/saude`.
 
-**Atenção sensível.** Pode manipular nomes, endereços, CEP, documentos, rastreios e dados financeiros. O frontend não deve armazenar segredos.
+## 5. Caches
 
-## 6. Testes mínimos
+- Prazo: `balcao_prazo_cache`, 7 dias por serviço + CEP origem + CEP destino.
+- CEP: `balcao_cep_cache`, 30 dias (Correios; ViaCEP só se a API dos Correios falhar).
+- Tabelas: memória do Worker, 10 minutos.
 
-- abrir módulo e autenticar quando aplicável;
-- buscar/preencher CEP;
-- gerar etiqueta;
-- salvar/imprimir PDF;
-- conferir dimensões físicas e legibilidade;
-- erro de dados incompletos;
-- reabertura sem cache antigo;
-- desktop operacional.
+## 6. Testes
 
-## 7. Pendências
-
-- confirmar actions e backends reais;
-- mapear planilhas e relação com caixa;
-- confirmar rota publicada e autenticação atual;
-- registrar padrão físico oficial das etiquetas em documento próprio, se ainda não existir.
+`node test/preco.test.mjs` (513 postagens reais do Atende), `node test/separacao.test.mjs`, `node test/cotacao.test.mjs`.

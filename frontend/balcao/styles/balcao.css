@@ -414,6 +414,7 @@ textarea { min-height: 86px; resize: vertical; }
 .result-mini small { display: block; color: var(--muted); font-size: 11px; font-weight: 700; }
 .result-mini strong { display: block; margin-top: 3px; color: var(--text); font-size: 13px; }
 .result-error { color: var(--danger); font-size: 13px; line-height: 1.35; }
+.result-note { color: var(--muted); font-size: 12px; line-height: 1.4; background: #f6f8fb; border-radius: 10px; padding: 6px 8px; }
 .empty-state {
   border: 1px dashed #bdc9d7;
   border-radius: 18px;
