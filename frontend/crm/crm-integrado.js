@@ -1163,6 +1163,19 @@ window.CRM_CIX_SPRITE = "<svg width=\"0\" height=\"0\" style=\"position:absolute
   }
   window.addEventListener('resize', () => GRAF.forEach((c) => { try { c.resize(); } catch (e) { /* gráfico já descartado */ } }));
 
+  /* ================= ponte para a tela da atividade (atividade.js) ================= */
+  // Só leitura: entrega a linha da Curva ABC do cliente (todos os LOCAIS ativos) e abre a ficha. Nada muda nas telas do CRM integrado.
+  window.CRM_CIX = {
+    resumoCliente(id) {
+      const abc = curva();
+      if (!abc) return { pronto: false, r: null };
+      const m = abcPorId();
+      return { pronto: true, r: (m && m.get(id)) || null, meses: abc.meses, baseIni: abc.baseIni, mesParcial: abc.mesParcial };
+    },
+    aguardarCurva() { return Promise.all(locaisAtivos().map((l) => S.carregando['abc:' + l] || Promise.resolve())); },
+    abrirFicha(id) { abrirFicha(id); },
+  };
+
   /* ================= desenhar ================= */
   const raiz = (id) => { const v = document.getElementById(id === 'cixClientes' ? 'view-clientes' : 'view-agenda'); if (!v) return null; v.classList.add('cix-on'); return document.getElementById(id); };
   let ultimoScroll = {};
