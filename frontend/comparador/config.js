@@ -1,5 +1,11 @@
+/* Comparador de Tarifas - configuração
+   Backend: Worker agf-balcao-api (Cloudflare), rotas /api/comparador/*.
+   Preço à vista: tabelas do /balcao no D1. Contrato, Clube e App: tabelas cmp_* no mesmo D1. */
 window.AGFCOMPARADOR_CONFIG = {
-  tariffApiUrl: "https://script.google.com/macros/s/AKfycbzo-d0QoACAx_a4ipuQbKRBGWS4-wVoyzXIWtkUCT3i4Jvx94uDDrilfbibBF8Ztgwx8g/exec",
-  spreadsheetUrl: "https://docs.google.com/spreadsheets/d/17XkP_N6kXfYao54SX7HMeCDPEQ_CpmLbBY66ZThlu1g/edit",
-  defaultTariffUrl: "./data/tarifas.json",
+  apiUrl: /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+    ? 'http://127.0.0.1:8787/api/comparador'
+    : 'https://agf-balcao-api.chelzinha.workers.dev/api/comparador',
+  version: '5.0.0',
+  exemploCsv: './data/exemplo_postagens.csv',
+  loteTamanho: 200,
 };

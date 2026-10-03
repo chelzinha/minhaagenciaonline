@@ -9,13 +9,22 @@
  *   GET  /api/balcao/cep?cep=         sessao
  *   POST /api/balcao/cotar            sessao  { cepOrigem, cepDestino, tipoObjeto, pesoG, ... }
  *   POST /api/balcao/rascunhos        sessao  { entrada, opcao, ficha }
+ *
+ * Comparador de Tarifas (/comparador) - mesma base D1:
+ *   GET  /api/comparador/config       sessao  pacotes de contrato, App, vigencias
+ *   POST /api/comparador/lote         sessao  { linhas[], tabelaContrato, usarMini, incluirValorDeclarado } (ate 400 por chamada)
+ *   POST /api/comparador/relatorio    sessao  { relatorio } -> HTML do estudo (impressao)
+ *   POST /api/comparador/pdf          sessao  { relatorio } -> PDF (Browser Rendering) e registro em cmp_propostas
  */
 import { cotar } from './cotacao.js';
 import { buscarCep } from './cep/cep.js';
 import { carregarBase, PRECO_VERSAO } from './preco/preco-avista.js';
 import { prazoConfigurado } from './prazo/prazo-correios.js';
+import { calcularLote, catalogo } from './comparador/lote.js';
+import { montarHtmlRelatorio, validarRelatorio } from './comparador/relatorio.js';
+import { gerarPdf } from './comparador/pdf.js';
 
-const VERSAO = '2.0.0';
+const VERSAO = '2.1.0';
 
 // ---------------------------------------------------------------- http
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'cache-control': 'no-store' } });
@@ -87,6 +96,14 @@ async function exigirBalcao(request, env) {
   return u;
 }
 
+/** Comparador: mesma regra da pagina /comparador (admin, ou app "intra" ou "comparador" liberado). */
+async function exigirComparador(request, env) {
+  const u = await usuarioDaSessao(request, env);
+  const apps = (Array.isArray(u.apps) ? u.apps : []).map((a) => String(a || '').trim().toLowerCase());
+  if (String(u.role || '').toLowerCase() !== 'admin' && !apps.includes('intra') && !apps.includes('comparador')) erro('Acesso restrito ao Comparador.', 403);
+  return u;
+}
+
 // ---------------------------------------------------------------- handlers
 async function saude(env) {
   let vigencia = '', tarifas = 0;
@@ -123,10 +140,54 @@ async function salvarRascunho(env, usuario, p) {
   return { id, message: 'Rascunho salvo.' };
 }
 
+async function salvarProposta(env, usuario, r) {
+  const id = 'CMP-' + crypto.randomUUID().slice(0, 8).toUpperCase();
+  const ref = r.totais[r.referencia];
+  const prop = Math.min(...r.cenarios.filter((c) => c !== r.referencia).map((c) => r.totais[c]));
+  try {
+    await env.DB.prepare(`INSERT INTO cmp_propostas (id, usuario, cliente, cenarios, referencia, postagens, total_referencia, total_proposta, payload_json)
+      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`)
+      .bind(id, String(usuario.username || usuario.displayName || ''), r.cliente, r.cenarios.join(','), r.referencia, r.postagens,
+        ref, prop, JSON.stringify(r).slice(0, 60000)).run();
+  } catch (e) { console.warn('[COMPARADOR][proposta]', e.message); }
+  return id;
+}
+
+function nomeArquivo(cliente) {
+  const base = String(cliente || 'cliente').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40);
+  return 'Estudo_de_frete_' + (base || 'cliente') + '.pdf';
+}
+
+async function rotearComparador(request, env, rota) {
+  const usuario = await exigirComparador(request, env);
+  if (request.method === 'GET' && rota === '/api/comparador/config') return json({ ok: true, data: await catalogo(env) });
+  if (request.method === 'POST' && rota === '/api/comparador/lote') {
+    const p = await corpo(request);
+    return json({ ok: true, data: await calcularLote(env, p.payload || p) });
+  }
+  if (request.method === 'POST' && rota === '/api/comparador/relatorio') {
+    const p = await corpo(request);
+    return new Response(montarHtmlRelatorio(p.relatorio || p), { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
+  }
+  if (request.method === 'POST' && rota === '/api/comparador/pdf') {
+    const p = await corpo(request);
+    const r = validarRelatorio(p.relatorio || p);
+    const pdf = await gerarPdf(env, montarHtmlRelatorio(r));
+    const id = await salvarProposta(env, usuario, r);
+    return new Response(pdf, { headers: {
+      'content-type': 'application/pdf', 'cache-control': 'no-store', 'x-proposta-id': id,
+      'content-disposition': 'attachment; filename="' + nomeArquivo(r.cliente) + '"',
+      'access-control-expose-headers': 'content-disposition, x-proposta-id',
+    } });
+  }
+  return erro('Rota não encontrada.', 404);
+}
+
 async function rotear(request, env) {
   const url = new URL(request.url);
   const rota = url.pathname.replace(/\/+$/, '');
   if (request.method === 'GET' && rota === '/api/balcao/saude') return json(await saude(env));
+  if (rota.startsWith('/api/comparador/')) return rotearComparador(request, env, rota);
 
   const usuario = await exigirBalcao(request, env);
   if (request.method === 'GET' && rota === '/api/balcao/config') return json({ ok: true, data: await config(env) });
@@ -151,7 +212,7 @@ export default {
     } catch (e) {
       const status = e.status && e.status >= 400 && e.status < 600 ? e.status : 500;
       if (status >= 500) console.error('[BALCAO][erro]', e.stack || e.message);
-      resp = json({ ok: false, erro: status === 500 ? 'Erro interno ao calcular. Tente de novo.' : e.message }, status);
+      resp = json({ ok: false, erro: status === 500 ? 'Erro interno ao calcular. Tente de novo.' : e.message, codigo: e.code || undefined }, status);
     }
     return comCors(resp, request, env);
   },

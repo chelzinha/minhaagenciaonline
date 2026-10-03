@@ -1,19 +1,22 @@
 {
   // agf-balcao-api - Calculadora Balcão à vista (/balcao)
   // Preço: tabelas à vista no D1 (agf-balcao). Prazo: API Prazo dos Correios.
+  // Comparador (/comparador): mesma base D1, tabelas cmp_*. PDF pelo Browser Rendering (binding BROWSER).
   // Segredos (wrangler secret put): CORREIOS_USUARIO, CORREIOS_CODIGO_ACESSO, CORREIOS_CARTAO
   "name": "agf-balcao-api",
   "main": "src/index.js",
   "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "d1_databases": [
     { "binding": "DB", "database_name": "agf-balcao", "database_id": "37577a06-1f9e-41fb-ab06-4cd4b888f0cb", "migrations_dir": "migrations" }
   ],
   "vars": {
     "AGF_AUTH_API_URL": "https://script.google.com/macros/s/AKfycbxv_3OLKyy13PqtEdqnVSA2zg3xljaU5gAKgn-TIVaaSRaTNPGgWIaRvDV_JuT9PTc5/exec",
-    "ALLOWED_ORIGINS": "https://minhaagenciaonline.com.br,https://www.minhaagenciaonline.com.br,https://feat-balcao-d1-20261003.minhaagenciaonline.pages.dev,http://localhost:8788,http://127.0.0.1:8788",
+    "ALLOWED_ORIGINS": "https://minhaagenciaonline.com.br,https://www.minhaagenciaonline.com.br,https://feat-balcao-d1-20261003.minhaagenciaonline.pages.dev,https://feat-comparador-v5-20261003.minhaagenciaonline.pages.dev,http://localhost:8788,http://127.0.0.1:8788",
     "CEP_ORIGEM_PADRAO": "60055974"
   },
+  "browser": { "binding": "BROWSER" },
   "triggers": { "crons": [] },
   "observability": { "enabled": true }
 }

@@ -1,0 +1,152 @@
+[
+{
+"servico": "PAC",
+"uf": "SP",
+"municipio": "SAO PAULO",
+"alturaCm": 7,
+"larguraCm": 20,
+"comprimentoCm": 15,
+"valorDeclarado": 119,
+"valorAtende": 26.02
+},
+{
+"servico": "SEDEX",
+"uf": "CE",
+"municipio": "MARACANAU",
+"alturaCm": 4,
+"larguraCm": 12,
+"comprimentoCm": 16,
+"valorDeclarado": 0,
+"valorAtende": 10.88
+},
+{
+"servico": "SEDEX",
+"uf": "CE",
+"municipio": "FORTALEZA",
+"alturaCm": 10,
+"larguraCm": 10,
+"comprimentoCm": 13,
+"valorDeclarado": 0,
+"valorAtende": 10.88
+},
+{
+"servico": "SEDEX",
+"uf": "CE",
+"municipio": "QUIXADA",
+"alturaCm": 8,
+"larguraCm": 16,
+"comprimentoCm": 24,
+"valorDeclarado": 225,
+"valorAtende": 26.95
+},
+{
+"servico": "SEDEX",
+"uf": "SP",
+"municipio": "RIBEIRAO PRETO",
+"alturaCm": 4,
+"larguraCm": 15,
+"comprimentoCm": 20,
+"valorDeclarado": 0,
+"valorAtende": 54.53
+},
+{
+"servico": "SEDEX",
+"uf": "SP",
+"municipio": "SOROCABA",
+"alturaCm": 2,
+"larguraCm": 19,
+"comprimentoCm": 21,
+"valorDeclarado": 0,
+"valorAtende": 54.53
+},
+{
+"servico": "SEDEX",
+"uf": "DF",
+"municipio": "BRASILIA",
+"alturaCm": 5,
+"larguraCm": 12,
+"comprimentoCm": 16,
+"valorDeclarado": 0,
+"valorAtende": 54.53
+},
+{
+"servico": "SEDEX",
+"uf": "RJ",
+"municipio": "DUQUE DE CAXIAS",
+"alturaCm": 0,
+"larguraCm": 0,
+"comprimentoCm": 0,
+"valorDeclarado": 0,
+"valorAtende": 42.41
+},
+{
+"servico": "SEDEX",
+"uf": "PI",
+"municipio": "TERESINA",
+"alturaCm": 0,
+"larguraCm": 0,
+"comprimentoCm": 0,
+"valorDeclarado": 0,
+"valorAtende": 30.29
+},
+{
+"servico": "SEDEX",
+"uf": "BA",
+"municipio": "SALVADOR",
+"alturaCm": 0,
+"larguraCm": 0,
+"comprimentoCm": 0,
+"valorDeclarado": 0,
+"valorAtende": 42.41
+},
+{
+"servico": "PAC",
+"uf": "PE",
+"municipio": "RECIFE",
+"alturaCm": 10,
+"larguraCm": 10,
+"comprimentoCm": 15,
+"valorDeclarado": 26.53,
+"valorAtende": 19.34
+},
+{
+"servico": "PAC",
+"uf": "MA",
+"municipio": "SAO LUIS",
+"alturaCm": 10,
+"larguraCm": 16,
+"comprimentoCm": 20,
+"valorDeclarado": 0,
+"valorAtende": 21.46
+},
+{
+"servico": "SEDEX",
+"uf": "PI",
+"municipio": "TERESINA",
+"alturaCm": 11,
+"larguraCm": 16,
+"comprimentoCm": 22,
+"valorDeclarado": 0,
+"valorAtende": 32.83
+},
+{
+"servico": "SEDEX",
+"uf": "PI",
+"municipio": "TERESINA",
+"alturaCm": 25,
+"larguraCm": 30,
+"comprimentoCm": 45,
+"valorDeclarado": 1923.98,
+"valorAtende": 96.44
+},
+{
+"servico": "SEDEX",
+"uf": "CE",
+"municipio": "JUAZEIRO DO NORTE",
+"alturaCm": 12,
+"larguraCm": 10,
+"comprimentoCm": 20,
+"valorDeclarado": 200,
+"valorAtende": 25.09
+}
+]
