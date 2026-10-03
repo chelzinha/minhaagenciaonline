@@ -65,6 +65,7 @@
      que abrem em nova aba no desktop. Tem selo e cor como as rotas do padrao. */
   var EXTERNOS = [
     { href: '/simulador',        title: 'Simulador de Frete', publico: true,         glyph: 'simulador',  accent: '#1D4ED8' },
+    { href: '/postar',           title: 'Postar no Balcão', publico: true,           glyph: 'postar',     accent: '#EA580C' },
     { href: '/caixa',            title: 'Caixa Balcão',     app: 'caixa',            glyph: 'caixa',      accent: '#0F766E' },
     { href: '/sla',              title: 'SLA',              app: 'sla',              glyph: 'sla',        accent: '#475569' },
     { href: '/app',              title: 'Minhas Postagens', publico: true,           glyph: 'app',        accent: '#00416B' },
@@ -79,7 +80,7 @@
      Portal Interno fica sempre no topo, fora dos grupos. */
   var MENU = [
     { group: 'Operação',          items: ['/atende', '/crm', '/balcao', '/caixa', '/sla', '/comparador'] },
-    { group: 'Consulta',          items: ['/simulador', '/cep'] },
+    { group: 'Consulta',          items: ['/simulador', '/cep', '/postar'] },
     { group: 'Aplicativos',       items: ['/app', '/nuvemshop', '/superfrete-admin'] },
     { group: 'Logística reversa', items: ['/reverso', '/reverso-admin', '/reverso-coleta'] },
     { group: 'Administração',     items: ['/cadastros', '/agf/usuarios', '/agf/icones'] }
@@ -99,6 +100,7 @@
     cep:        '<path d="M12 20.6s6-5.7 6-9.6a6 6 0 1 0-12 0c0 3.9 6 9.6 6 9.6z"/><circle cx="12" cy="10.8" r="2.2"/>',
     comparador: '<path d="M12 4.4v15"/><path d="M5.2 7.2h13.6"/><path d="M5.2 7.2 2.8 13a2.6 2.6 0 0 0 4.8 0z"/><path d="M18.8 7.2 16.4 13a2.6 2.6 0 0 0 4.8 0z"/><path d="M8.6 19.4h6.8"/>',
     simulador:  '<path d="M19.6 12.8V7.4L12 3.4 4.4 7.4v9.2l7.6 4"/><path d="M4.4 7.4 12 11.4l7.6-4"/><path d="M12 11.4v9.2"/><path d="M15 17.4h6M18.6 15l2.4 2.4-2.4 2.4"/>',
+    postar:     '<rect x="4" y="4" width="6.2" height="6.2" rx="1.2"/><rect x="13.8" y="4" width="6.2" height="6.2" rx="1.2"/><rect x="4" y="13.8" width="6.2" height="6.2" rx="1.2"/><path d="M13.8 13.8h2.6v2.6"/><path d="M20 13.8v.01"/><path d="M13.8 20h.01"/><path d="M17.2 20H20v-2.8"/>',
     cadastros:  '<rect x="3.6" y="5.6" width="16.8" height="12.8" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M5.8 15.6c.6-1.4 1.8-2.1 3.2-2.1s2.6.7 3.2 2.1"/><path d="M14.4 10h3.6"/><path d="M14.4 13.4h2.6"/>',
     usuarios:   '<circle cx="9.4" cy="8.6" r="3.2"/><path d="M3.6 19.2c.8-3.3 3-5 5.8-5s5 1.7 5.8 5"/><path d="M15.6 5.8a3 3 0 0 1 0 5.8"/><path d="M17.8 14.6c1.3.7 2.2 2.2 2.6 4.6"/>',
     icones:     '<rect x="4" y="4" width="6.6" height="6.6" rx="1.6"/><circle cx="16.7" cy="7.3" r="3.3"/><path d="M7.3 13.4 10.8 20H3.8z"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="3.3"/>',
