@@ -1,5 +1,5 @@
 /* AGF José Bonifácio — Balcão — cache enxuto da casca visual. */
-const CACHE='agf-balcao-v5-fila-cliente';
+const CACHE='agf-balcao-v6-so-etiqueta';
 const STATIC=['/balcao/','/balcao/index.html','/balcao/manifest.webmanifest','/shared/ui/agf-ui.css','/shared/ui/agf-ui.js','/shared/auth/agf-auth-client.js','/assets/pwa/balcao/icon-192.png'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>Promise.all(STATIC.map(url=>cache.add(url).catch(()=>{})))));});
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE&&key.startsWith('agf-balcao-')).map(key=>caches.delete(key)))),self.clients.claim()])));

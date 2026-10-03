@@ -726,7 +726,7 @@ const BalcaoPage = (function () {
       document.body.appendChild(s);
     });
     add('/postar/agf-validacao.js?v=1.0.0')
-      .then(() => add('./js/pendentes.js?v=2.1.0'))
+      .then(() => add('./js/pendentes.js?v=2.2.0'))
       .catch(() => console.warn('[BALCAO] fila de etiquetas do cliente indisponivel'));
   }
 

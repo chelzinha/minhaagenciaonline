@@ -11,7 +11,7 @@
   ],
   "vars": {
     "AGF_AUTH_API_URL": "https://script.google.com/macros/s/AKfycbxv_3OLKyy13PqtEdqnVSA2zg3xljaU5gAKgn-TIVaaSRaTNPGgWIaRvDV_JuT9PTc5/exec",
-    "ALLOWED_ORIGINS": "https://minhaagenciaonline.com.br,https://www.minhaagenciaonline.com.br,https://feat-balcao-fila-cliente-20261003.minhaagenciaonline.pages.dev,http://localhost:8788,http://127.0.0.1:8788",
+    "ALLOWED_ORIGINS": "https://minhaagenciaonline.com.br,https://www.minhaagenciaonline.com.br,https://feat-balcao-so-etiqueta-20261003.minhaagenciaonline.pages.dev,http://localhost:8788,http://127.0.0.1:8788",
     "CEP_ORIGEM_PADRAO": "60055974"
   },
   // limpeza diaria 03:20 UTC (00:20 em Fortaleza): expira etiquetas do dia anterior e apaga dados com mais de 30 dias

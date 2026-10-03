@@ -27,7 +27,7 @@ import { prazoConfigurado } from './prazo/prazo-correios.js';
 import { salvarEtiquetaCliente, listarEtiquetas, mudarStatus, limpezaDiaria, LOCAIS } from './etiqueta/etiquetas.js';
 import { hashIp, conferirLimite } from './limites.js';
 
-const VERSAO = '2.1.0';
+const VERSAO = '2.2.0';
 
 // ---------------------------------------------------------------- http
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'cache-control': 'no-store' } });

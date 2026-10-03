@@ -65,3 +65,4 @@ body.bp-travado { overflow: hidden; }
 .bp-perigo { color: var(--danger) !important; }
 .bp-copiar:focus-visible, .bp-locais button:focus-visible, .bp-icone:focus-visible { outline: 3px solid var(--amarelo-correios); outline-offset: 2px; }
 @media print { .bp-fila, .bp-modal { display: none !important; } }
+.bp-tag { display: inline-block; font-size: 11px; font-weight: 800; color: var(--azul-correios); background: #fff5c2; border-radius: 999px; padding: 1px 8px; margin-right: 4px; }

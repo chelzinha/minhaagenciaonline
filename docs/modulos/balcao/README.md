@@ -28,7 +28,10 @@ Cotar PAC à vista (04510) e SEDEX à vista (04014) com origem na Região Metrop
 ## 3. Etiqueta gerada pelo cliente (/postar)
 
 - QR Code impresso no balcão: `https://minhaagenciaonline.com.br/postar/?local=AGF` e `?local=METRO`. Sem código de acesso.
-- Fluxo do cliente: preço, remetente, destinatário, conferir, aceite de uma linha, código curto (`A-1234` AGF, `M-1234` Metrô).
+- Dois modos, escolhidos depois do local:
+  - **Cotar e gerar etiqueta:** preço (SEDEX e PAC), remetente, destinatário com o CEP da cotação travado, conferir.
+  - **Só gerar a etiqueta:** remetente, destinatário com CEP livre, serviço opcional (SEDEX, PAC ou decidir no balcão), conferir. Sem preço; o atendente pesa e cota no SARA.
+- Aceite de uma linha e código curto no fim (`A-1234` AGF, `M-1234` Metrô).
 - Validação única em `frontend/postar/agf-validacao.js`, usada pelo cliente, pela ficha do atendente e pelo Worker: CPF/CNPJ, CEP existente e UF do CEP, celular com DDD, e-mail, campos obrigatórios. Texto em maiúsculas e sem acento.
 - O servidor recalcula o preço e grava em `balcao_etiquetas`. O CEP do destinatário precisa ser o da cotação.
 - Atendente: painel "Etiquetas do cliente" no topo do `/balcao`, fila por local (AGF ou METRÔ), atualização a cada 10 s, copiar campo a campo na ordem do Atende, imprimir etiqueta (espaço superior para o SRO), concluir com SRO opcional, devolver à fila ou cancelar. "Atender" impede que dois atendentes peguem a mesma etiqueta.
