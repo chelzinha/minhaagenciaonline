@@ -45,11 +45,19 @@ assert.equal(s.status, 200, JSON.stringify(s)); assert.match(s.data.codigo, /^A-
 const s2 = await req('POST', '/api/balcao/publico/etiquetas', { local: 'METRO', servico: '04510', cotacao, remetente, destinatario, aceite: true });
 assert.match(s2.data.codigo, /^M-\d{4}$/);
 
+// 3b. modo "só etiqueta": sem cotação, CEP livre, serviço opcional
+let so = await req('POST', '/api/balcao/publico/etiquetas', { local: 'AGF', modo: 'ETIQUETA', servico: '', remetente, destinatario: { ...destinatario, cep: '60115170', cidade: 'Fortaleza', uf: 'CE' }, aceite: true });
+assert.equal(so.status, 200, JSON.stringify(so)); assert.equal(so.data.servico, 'A definir no balcão'); assert.equal(so.data.total, null);
+so = await req('POST', '/api/balcao/publico/etiquetas', { local: 'AGF', modo: 'ETIQUETA', servico: '99999', remetente, destinatario, aceite: true });
+assert.equal(so.status, 422, 'serviço inválido no modo só etiqueta');
+
 // 4. fila do atendente
 assert.equal((await req('GET', '/api/balcao/etiquetas?local=AGF')).status, 401, 'fila exige login');
 let f = await req('GET', '/api/balcao/etiquetas?local=AGF', null, 'tk');
-assert.equal(f.data.pendentes, 1); assert.equal(f.data.etiquetas.length, 1, 'fila separada por local');
-const e = f.data.etiquetas[0];
+assert.equal(f.data.pendentes, 2); assert.equal(f.data.etiquetas.length, 2, 'fila separada por local');
+const soEtq = f.data.etiquetas.find((x) => x.servico === '');
+assert.equal(soEtq.total, null); assert.equal(soEtq.cotacao.modo, 'ETIQUETA');
+const e = f.data.etiquetas.find((x) => x.servico === '04014');
 assert.equal(e.remetente.nome, 'JOSE DA CONCEICAO'); assert.equal(e.remetente.endereco, 'RUA BARAO DE ARACATI');
 assert.equal(e.remetente.complemento, 'APTO 2'); assert.equal(e.remetente.email, 'jose@mail.com'); assert.equal(e.remetente.documento, '52998224725');
 assert.equal(e.destinatario.numero, 'S/N'); assert.equal(e.destinatario.nome, 'MARIA ANGELA');
@@ -63,7 +71,7 @@ st = await req('POST', '/api/balcao/etiquetas/status', { id: e.id, status: 'CONC
 assert.equal(st.status, 422, 'SRO inválido');
 st = await req('POST', '/api/balcao/etiquetas/status', { id: e.id, status: 'CONCLUIDA', sro: 'ab123456789br' }, 'tk');
 assert.equal(st.data.status, 'CONCLUIDA'); assert.equal(st.data.sro, 'AB123456789BR');
-f = await req('GET', '/api/balcao/etiquetas?local=AGF', null, 'tk'); assert.equal(f.data.pendentes, 0);
+f = await req('GET', '/api/balcao/etiquetas?local=AGF', null, 'tk'); assert.equal(f.data.pendentes, 1);
 
 // 6. limpeza: etiqueta de ontem expira; com 31 dias é apagada
 DB._db.exec(`UPDATE balcao_etiquetas SET dia='2000-01-01' WHERE local='METRO'`);
@@ -74,4 +82,4 @@ await (await import('../src/etiqueta/etiquetas.js')).limpezaDiaria(env);
 assert.equal(DB._db.prepare('SELECT COUNT(*) n FROM balcao_etiquetas').get().n, 0, 'dados apagados após 30 dias');
 
 assert.ok(chamadas.every((u) => !/preco/i.test(u)), 'chamada a preco');
-console.log('etiquetas OK: cliente salva, fila por local, status, limpeza de 30 dias');
+console.log('etiquetas OK: cotar+etiqueta e só etiqueta, cliente salva, fila por local, status, limpeza de 30 dias');

@@ -1,6 +1,7 @@
 /* =====================================================
    ETIQUETAS DO CLIENTE (/postar) -> fila do atendente (/balcao)
    - O cliente salva remetente + destinatário + serviço escolhido.
+   - Dois modos: COTAR (cotação + etiqueta, preço recalculado no servidor) e ETIQUETA (só os dados, preço no SARA).
    - O servidor revalida tudo e recalcula o preço (não confia no valor do navegador).
    - A etiqueta vale só no dia (fuso de Fortaleza). Dados apagados após 30 dias.
    - Status: PENDENTE -> EM_ATENDIMENTO -> CONCLUIDA | CANCELADA (ou volta para PENDENTE).
@@ -13,6 +14,8 @@ const V = globalThis.AgfValidacao;
 export const LOCAIS = { AGF: 'AGF José Bonifácio', METRO: 'Shopping Metrô' };
 const PREFIXO = { AGF: 'A', METRO: 'M' };
 const RETENCAO_DIAS = 30;
+/** Serviços que o cliente pode indicar no modo "só etiqueta" (vazio = decidir no balcão). */
+const SERVICOS_SEM_COTACAO = { '': 'A definir no balcão', '04014': 'SEDEX à vista', '04510': 'PAC à vista' };
 const erro = (msg, status = 422, extra = {}) => { throw Object.assign(new Error(msg), { status, ...extra }); };
 
 /** Data de hoje no fuso de Fortaleza (UTC-3, sem horário de verão). */
@@ -52,31 +55,38 @@ export async function salvarEtiquetaCliente(env, p, ipHash) {
     Object.keys(dest.erros).forEach((k) => { campos['destinatario.' + k] = dest.erros[k]; });
     erro('Confira os campos destacados.', 422, { campos });
   }
+  await Promise.all([conferirCep(env, rem.dados, 'Remetente'), conferirCep(env, dest.dados, 'Destinatario')]);
+  const dia = hojeFortaleza();
+  const codigo = await gerarCodigo(env.DB, local, dia);
+  const id = crypto.randomUUID();
+  const gravar = (srv, nome, total, prazo, pesoG, cotacaoResumo) => env.DB.prepare(`INSERT INTO balcao_etiquetas (id, codigo, local, dia, status, servico, servico_nome, total, prazo_dias, peso_g,
+      cotacao_json, remetente_json, destinatario_json, ip_hash)
+    VALUES (?1, ?2, ?3, ?4, 'PENDENTE', ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)`)
+    .bind(id, codigo, local, dia, srv, nome, total, prazo, pesoG, JSON.stringify(cotacaoResumo), JSON.stringify(rem.dados), JSON.stringify(dest.dados), ipHash || null).run();
+
+  // Modo "só etiqueta": sem cotação. O serviço é opcional (SEDEX, PAC ou decidido no balcão) e o preço sai no SARA.
+  if (String(p.modo || '').toUpperCase() === 'ETIQUETA') {
+    if (servico && !SERVICOS_SEM_COTACAO[servico]) erro('Serviço inválido.');
+    const nome = SERVICOS_SEM_COTACAO[servico || ''];
+    await gravar(servico || '', nome, null, null, null, { modo: 'ETIQUETA' });
+    return { codigo, local, localNome: LOCAIS[local], modo: 'ETIQUETA', servico: nome, total: null, prazoDias: null };
+  }
+
+  // Modo "cotar e gerar": recalcula no servidor com a mesma regra do balcão (preço da tabela à vista, prazo da API).
   const c = p.cotacao || {};
   if (V.digitos(c.cepDestino) !== dest.dados.cep) erro('O CEP do destinatário precisa ser o mesmo da cotação.', 422, { campo: 'destinatario.cep' });
-  await Promise.all([conferirCep(env, rem.dados, 'Remetente'), conferirCep(env, dest.dados, 'Destinatario')]);
-
-  // Recalcula no servidor com a mesma regra do balcão (preço da tabela à vista, prazo da API).
   const cot = await cotar(env, {
     cepOrigem: env.CEP_ORIGEM_PADRAO || '60055974', cepDestino: dest.dados.cep,
     tipoObjeto: ['PACOTE', 'ENVELOPE', 'ROLO'].includes(String(c.tipoObjeto || '').toUpperCase()) ? String(c.tipoObjeto).toUpperCase() : 'PACOTE', pesoG: c.pesoG, alturaCm: c.alturaCm, larguraCm: c.larguraCm, comprimentoCm: c.comprimentoCm,
   }, { exigirDimensoes: false });
   const op = cot.opcoes.find((o) => o.codigoServico === servico);
   if (!op || !op.ok) erro((op && op.erro) || 'Serviço indisponível para este envio.');
-
-  const dia = hojeFortaleza();
-  const codigo = await gerarCodigo(env.DB, local, dia);
-  const id = crypto.randomUUID();
   const cotacaoResumo = {
-    tipoObjeto: cot.entrada.tipoObjeto, pesoG: cot.entrada.pesoG, alturaCm: cot.entrada.alturaCm, larguraCm: cot.entrada.larguraCm, comprimentoCm: cot.entrada.comprimentoCm,
+    modo: 'COTAR', tipoObjeto: cot.entrada.tipoObjeto, pesoG: cot.entrada.pesoG, alturaCm: cot.entrada.alturaCm, larguraCm: cot.entrada.larguraCm, comprimentoCm: cot.entrada.comprimentoCm,
     pesoTarifadoG: cot.entrada.pesoTarifadoG, cepDestino: cot.entrada.cepDestino, trecho: cot.trecho, faixa: op.faixa,
   };
-  await env.DB.prepare(`INSERT INTO balcao_etiquetas (id, codigo, local, dia, status, servico, servico_nome, total, prazo_dias, peso_g,
-      cotacao_json, remetente_json, destinatario_json, ip_hash)
-    VALUES (?1, ?2, ?3, ?4, 'PENDENTE', ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)`)
-    .bind(id, codigo, local, dia, op.codigoServico, op.nome, op.total, op.prazoDias || null, Math.round(cot.entrada.pesoG),
-      JSON.stringify(cotacaoResumo), JSON.stringify(rem.dados), JSON.stringify(dest.dados), ipHash || null).run();
-  return { codigo, local, localNome: LOCAIS[local], servico: op.nome, total: op.total, prazoDias: op.prazoDias || null };
+  await gravar(op.codigoServico, op.nome, op.total, op.prazoDias || null, Math.round(cot.entrada.pesoG), cotacaoResumo);
+  return { codigo, local, localNome: LOCAIS[local], modo: 'COTAR', servico: op.nome, total: op.total, prazoDias: op.prazoDias || null };
 }
 
 function linhaParaEtiqueta(r) {

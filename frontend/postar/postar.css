@@ -1279,3 +1279,15 @@ textarea:focus-visible {
 .pt-codigo { font-size: 54px; font-weight: 900; letter-spacing: .06em; color: var(--nv); background: var(--yl-100); border: 2px dashed var(--nv); border-radius: 20px; padding: 16px 10px; margin: 4px 0 12px; }
 .pt-final-info { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
 .pt-pronto .btn + .btn { margin-top: 10px; }
+
+/* Escolha do modo: cotar e gerar, ou só gerar a etiqueta */
+.pt-modos { display: grid; gap: 12px; }
+.pt-modo { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 16px; background: var(--card); border: 1.5px solid var(--line-strong); border-radius: var(--r-lg); box-shadow: var(--sh); cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .08s; color: var(--text); }
+.pt-modo:hover { border-color: var(--nv-300); box-shadow: 0 10px 24px rgba(0, 65, 107, .12); }
+.pt-modo:active { transform: translateY(1px); }
+.pt-modo > .material-symbols-rounded:first-child { font-size: 28px; color: var(--nv); background: var(--yl-100); padding: 12px; border-radius: 16px; }
+.pt-modo[data-modo="ETIQUETA"] > .material-symbols-rounded:first-child { background: var(--nv-50); }
+.pt-modo-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.pt-modo-txt b { font-size: 16px; color: var(--nv); }
+.pt-modo-txt small { font-size: 13px; color: var(--muted); line-height: 1.35; }
+.pt-modo-seta { color: var(--muted-2); }

@@ -36,7 +36,7 @@
     var main = document.querySelector('main.app-shell');
     if (!main || $('bpFila')) return;
     var css = document.createElement('link');
-    css.rel = 'stylesheet'; css.href = './styles/pendentes.css?v=2.1.0';
+    css.rel = 'stylesheet'; css.href = './styles/pendentes.css?v=2.2.0';
     document.head.appendChild(css);
     var sec = document.createElement('section');
     sec.className = 'card bp-fila';
@@ -105,7 +105,7 @@
       '<div class="bp-cod">' + esc(e.codigo) + '<small>' + esc(hora(e.criadaEm)) + '</small></div>' +
       '<div class="bp-info"><b>' + esc(e.remetente.nome) + '</b>' +
         '<span>para ' + esc(e.destinatario.nome) + ' • ' + esc(e.destinatario.cidade) + '/' + esc(e.destinatario.uf) + '</span>' +
-        '<span>' + esc(e.servicoNome) + ' • ' + brl(e.total) + (e.atendente && e.status !== 'PENDENTE' ? ' • ' + esc(e.atendente) : '') + (e.sro ? ' • ' + esc(e.sro) : '') + '</span></div>' +
+        '<span>' + (e.servico ? '' : '<b class="bp-tag">Só etiqueta</b> ') + esc(e.servicoNome) + ' • ' + (e.total != null ? brl(e.total) : 'preço no SARA') + (e.atendente && e.status !== 'PENDENTE' ? ' • ' + esc(e.atendente) : '') + (e.sro ? ' • ' + esc(e.sro) : '') + '</span></div>' +
       '<span class="bp-chip">' + esc(STATUS[e.status] || e.status) + '</span>' +
       '<button type="button" class="btn ' + (e.status === 'PENDENTE' ? 'btn-primary' : 'btn-ghost') + '" data-bp-abrir="' + esc(e.id) + '">' + acao + '</button>' +
     '</article>';
@@ -172,8 +172,12 @@
     $('bpModalCard').innerHTML =
       '<header class="bp-modal-head">' +
         '<div><div class="bp-modal-cod">' + esc(e.codigo) + '</div><span class="bp-chip">' + esc(STATUS[e.status] || e.status) + (e.atendente ? ' • ' + esc(e.atendente) : '') + '</span></div>' +
-        '<div class="bp-modal-srv"><b>' + esc(e.servicoNome) + ' (' + esc(e.servico) + ')</b><span>' + brl(e.total) + ' estimado' + (e.prazoDias ? ' • ' + e.prazoDias + (Number(e.prazoDias) === 1 ? ' dia útil' : ' dias úteis') : '') + '</span>' +
-        '<span>Peso informado pelo cliente: ' + esc(e.pesoG) + ' g' + esc(medidas) + '</span></div>' +
+        '<div class="bp-modal-srv"><b>' + esc(e.servicoNome) + (e.servico ? ' (' + esc(e.servico) + ')' : '') + '</b>' +
+          (e.total != null
+            ? '<span>' + brl(e.total) + ' estimado' + (e.prazoDias ? ' • ' + e.prazoDias + (Number(e.prazoDias) === 1 ? ' dia útil' : ' dias úteis') : '') + '</span>' +
+              '<span>Peso informado pelo cliente: ' + esc(e.pesoG) + ' g' + esc(medidas) + '</span>'
+            : '<span>Cliente escolheu "Só gerar a etiqueta": sem cotação. Pese e defina o serviço no SARA.</span>') +
+        '</div>' +
         '<button type="button" class="bp-icone" id="bpFechar" aria-label="Fechar"><span class="material-symbols-rounded">close</span></button>' +
       '</header>' +
       '<p class="bp-aviso">Confira o peso na balança e lance no SARA. Clique no ícone para copiar cada campo.</p>' +
@@ -229,7 +233,7 @@
   function imprimir() {
     var e = st.aberta;
     if (!e || typeof BalcaoPage === 'undefined' || !BalcaoPage.imprimirEtiqueta) { toast('Impressão indisponível. Atualize a página.', 'error'); return; }
-    BalcaoPage.imprimirEtiqueta({ pesoG: e.pesoG }, { nome: e.servicoNome, codigoServico: e.servico }, {
+    BalcaoPage.imprimirEtiqueta({ pesoG: e.pesoG || '' }, { nome: e.servico ? e.servicoNome : '', codigoServico: e.servico }, {
       remetente: e.remetente, destinatario: e.destinatario, observacao: 'Etiqueta ' + e.codigo
     });
   }

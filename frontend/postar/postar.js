@@ -1,6 +1,7 @@
 /* =====================================================
    /postar - cliente gera a própria etiqueta no balcão (QR Code)
-   Fluxo: local -> cotação -> remetente -> destinatário -> conferir -> código
+   Fluxo: local -> modo -> [cotação] -> remetente -> destinatário -> conferir -> código
+   Modos: COTAR (cotação + etiqueta) ou ETIQUETA (só os dados; preço no guichê).
    Visual: componentes do app Minhas Postagens (card, field-input, seg, opcao-card).
    O servidor revalida e recalcula tudo; aqui a validação é para ajudar na hora.
    ===================================================== */
@@ -15,7 +16,7 @@
   var ICONE_SERVICO = { '04014': 'bolt', '04510': 'inventory_2' };
 
   var $ = function (id) { return document.getElementById(id); };
-  var estado = { local: '', cotacao: null, opcoes: [], servico: null, remetente: {}, destinatario: {} };
+  var estado = { local: '', modo: '', cotacao: null, opcoes: [], servico: null, remetente: {}, destinatario: {} };
 
   // ---------------------------------------------------------------- utilidades
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -58,6 +59,15 @@
 
   // ---------------------------------------------------------------- telas
   function irPara(n) {
+    var soEtiqueta = estado.modo === 'ETIQUETA';
+    if (n === 1 && soEtiqueta) n = 7;                       // "Voltar" do remetente no modo só etiqueta
+    document.querySelectorAll('[data-num]').forEach(function (b) {
+      var base = Number(b.dataset.base || b.textContent);
+      b.dataset.base = base;
+      b.textContent = soEtiqueta ? base - 1 : base;
+    });
+    document.querySelector('#passos > span[data-passo="1"]').hidden = soEtiqueta;
+    $('passos').style.gridTemplateColumns = soEtiqueta ? 'repeat(3, 1fr)' : '';
     document.querySelectorAll('.pt-tela').forEach(function (s) { s.hidden = Number(s.dataset.tela) !== n; });
     $('passos').hidden = !(n >= 1 && n <= 4);
     document.querySelectorAll('#passos > span').forEach(function (s) {
@@ -74,7 +84,12 @@
     $('localNome').textContent = l === 'METRO' ? 'Metrô' : 'AGF';
     $('localChip').hidden = false;
     salvarRascunho();
-    irPara(1);
+    irPara(7);
+  }
+
+  function definirModo(m) {
+    estado.modo = m;
+    irPara(m === 'ETIQUETA' ? 2 : 1);
   }
 
   // ---------------------------------------------------------------- 1. cotação
@@ -268,7 +283,7 @@
   function avancarPessoa(papel, proxima) {
     var form = document.querySelector('form[data-pessoa="' + papel + '"]');
     var r = V.validarPessoa(lerForm(papel), papel);
-    if (papel === 'destinatario' && r.dados.cep !== V.digitos(estado.cotacao.cepDestino)) r.erros.cep = 'O CEP precisa ser o da cotação.';
+    if (papel === 'destinatario' && estado.modo === 'COTAR' && r.dados.cep !== V.digitos(estado.cotacao.cepDestino)) r.erros.cep = 'O CEP precisa ser o da cotação.';
     if (Object.keys(r.erros).length) { mostrarErros(form, r.erros); toast('Confira os campos em vermelho.', 'erro'); return; }
     estado[papel] = r.dados;
     preencherForm(papel, r.dados);
@@ -279,16 +294,20 @@
   function prepararDestinatario() {
     var form = document.querySelector('form[data-pessoa="destinatario"]');
     var cepInp = form.querySelector('input[name="cep"]');
-    var cep = V.digitos(estado.cotacao && estado.cotacao.cepDestino);
-    if (V.digitos(estado.destinatario.cep) !== cep) {
-      estado.destinatario = { cep: cep };
-      form.querySelectorAll('input').forEach(function (i) { i.value = ''; });
-      cepInp.value = V.formatarCep(cep);
-      preencherPorCep(form, cep);
+    var travar = estado.modo === 'COTAR';
+    if (travar) {
+      // CEP vem da cotação e fica travado (o preço depende dele)
+      var cep = V.digitos(estado.cotacao && estado.cotacao.cepDestino);
+      if (V.digitos(estado.destinatario.cep) !== cep) {
+        estado.destinatario = { cep: cep };
+        form.querySelectorAll('input').forEach(function (i) { i.value = ''; });
+        cepInp.value = V.formatarCep(cep);
+        preencherPorCep(form, cep);
+      }
     }
-    cepInp.readOnly = true;
-    cepInp.closest('.field-input').classList.add('is-locked');
-    form.querySelector('[data-buscar-cep]').hidden = true;
+    cepInp.readOnly = travar;
+    cepInp.closest('.field-input').classList.toggle('is-locked', travar);
+    form.querySelector('[data-buscar-cep]').hidden = travar;
   }
 
   // ---------------------------------------------------------------- 4. conferir e salvar
@@ -305,9 +324,11 @@
   }
   function montarResumo() {
     var s = estado.servico || {};
-    $('resumo').innerHTML =
+    var cotar = estado.modo === 'COTAR';
+    $('cardServicoLivre').hidden = cotar;
+    $('resumo').innerHTML = (cotar ?
       '<section class="card"><div class="pt-srv"><span class="material-symbols-rounded">' + (ICONE_SERVICO[s.codigoServico] || 'local_shipping') + '</span>' +
-        '<div><b>' + esc(s.nome) + '</b><span>' + esc(prazoTexto(s.prazoDias)) + ' • estimado</span></div><strong>' + brl(s.total) + '</strong></div></section>' +
+        '<div><b>' + esc(s.nome) + '</b><span>' + esc(prazoTexto(s.prazoDias)) + ' • estimado</span></div><strong>' + brl(s.total) + '</strong></div></section>' : '') +
       cardPessoa('Remetente', 'person', estado.remetente, 2) + cardPessoa('Destinatário', 'person_pin_circle', estado.destinatario, 3, true);
     $('resumo').querySelectorAll('[data-voltar]').forEach(function (b) { b.addEventListener('click', function () { irPara(Number(b.dataset.voltar)); }); });
   }
@@ -317,12 +338,18 @@
     var btn = $('btnSalvar'); btn.disabled = true;
     carregando(true, 'Salvando etiqueta...');
     try {
+      var cotar = estado.modo === 'COTAR';
+      var livre = document.querySelector('input[name="servicoLivre"]:checked');
       var r = await api('/etiquetas', {
-        local: estado.local, servico: estado.servico.codigoServico, cotacao: estado.cotacao,
+        local: estado.local, modo: estado.modo,
+        servico: cotar ? estado.servico.codigoServico : (livre ? livre.value : ''),
+        cotacao: cotar ? estado.cotacao : null,
         remetente: estado.remetente, destinatario: estado.destinatario, aceite: true
       });
       $('codigoFinal').textContent = r.codigo;
-      $('finalInfo').innerHTML = '<span class="badge badge-info">' + esc(r.servico) + '</span><span class="badge badge-muted">' + brl(r.total) + ' estimado</span><span class="badge badge-muted">' + esc(r.localNome) + '</span>';
+      $('finalInfo').innerHTML = '<span class="badge badge-info">' + esc(r.servico) + '</span>' +
+        (r.total != null ? '<span class="badge badge-muted">' + brl(r.total) + ' estimado</span>' : '<span class="badge badge-muted">Preço no guichê</span>') +
+        '<span class="badge badge-muted">' + esc(r.localNome) + '</span>';
       $('aceite').checked = false;
       irPara(5);
     } catch (e) {
@@ -339,7 +366,8 @@
   }
 
   function outroObjeto(mesmoRemetente) {
-    estado.cotacao = null; estado.opcoes = []; estado.servico = null; estado.destinatario = {};
+    estado.modo = ''; estado.cotacao = null; estado.opcoes = []; estado.servico = null; estado.destinatario = {};
+    document.querySelector('input[name="servicoLivre"][value=""]').checked = true; marcarSeg('servicoLivre');
     if (!mesmoRemetente) {
       estado.remetente = {}; limparRascunho();
       document.querySelectorAll('form[data-pessoa="remetente"] input').forEach(function (i) { i.value = ''; });
@@ -348,7 +376,11 @@
     ['cepDestino', 'pesoG', 'alturaCm', 'larguraCm', 'comprimentoCm', 'diametroCm'].forEach(function (id) { $(id).value = ''; });
     $('cepDestinoInfo').hidden = true; marcarPesoRapido(); limparOpcoes();
     salvarRascunho();
-    irPara(1);
+    irPara(7);
+  }
+
+  function marcarSeg(nome) {
+    document.querySelectorAll('input[name="' + nome + '"]').forEach(function (r) { r.closest('.seg-item').classList.toggle('is-selected', r.checked); });
   }
 
   // ---------------------------------------------------------------- início
@@ -356,6 +388,8 @@
     montarForm('remetente');
     montarForm('destinatario');
 
+    document.querySelectorAll('[data-modo]').forEach(function (b) { b.addEventListener('click', function () { definirModo(b.dataset.modo); }); });
+    document.querySelectorAll('input[name="servicoLivre"]').forEach(function (r) { r.addEventListener('change', function () { marcarSeg('servicoLivre'); }); });
     document.querySelectorAll('[data-local]').forEach(function (b) { b.addEventListener('click', function () { definirLocal(b.dataset.local); }); });
     document.querySelectorAll('.pt-acoes [data-voltar]').forEach(function (b) { b.addEventListener('click', function () { irPara(Number(b.dataset.voltar)); }); });
     document.querySelectorAll('input[name="tipoObjeto"]').forEach(function (r) { r.addEventListener('change', aplicarTipo); });
