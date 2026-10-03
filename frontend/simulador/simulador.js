@@ -13,6 +13,7 @@
   var WHATSAPP = '5585920023386';
   var ORDEM_TIPOS = ['RMF', 'CAPITAL', 'POLO', 'MEDIA', 'CE_POLO', 'DIVISA', 'INTERIOR', 'CE_INT'];
   var ROTULO_CURTO = { RMF: 'Região metropolitana', CAPITAL: 'Capital', POLO: 'Cidade polo', MEDIA: 'Cidade média', CE_POLO: 'Cidade polo', DIVISA: 'Mossoró', INTERIOR: 'Interior', CE_INT: 'Interior' };
+  var NOMES_UF = { AC: 'Acre', AL: 'Alagoas', AP: 'Amapá', AM: 'Amazonas', BA: 'Bahia', CE: 'Ceará', DF: 'Distrito Federal', ES: 'Espírito Santo', GO: 'Goiás', MA: 'Maranhão', MT: 'Mato Grosso', MS: 'Mato Grosso do Sul', MG: 'Minas Gerais', PA: 'Pará', PB: 'Paraíba', PR: 'Paraná', PE: 'Pernambuco', PI: 'Piauí', RJ: 'Rio de Janeiro', RN: 'Rio Grande do Norte', RS: 'Rio Grande do Sul', RO: 'Rondônia', RR: 'Roraima', SC: 'Santa Catarina', SP: 'São Paulo', SE: 'Sergipe', TO: 'Tocantins' };
   var GRADE = { RR: [2, 0], AP: [4, 0], AM: [1, 1], PA: [3, 1], MA: [4, 1], CE: [5, 1], RN: [6, 1], AC: [0, 2], RO: [1, 2], MT: [2, 2], TO: [3, 2], PI: [4, 2], PE: [5, 2], PB: [6, 2], MS: [2, 3], GO: [3, 3], DF: [4, 3], BA: [5, 3], AL: [6, 3], SP: [3, 4], MG: [4, 4], ES: [5, 4], SE: [6, 4], PR: [3, 5], RJ: [4, 5], SC: [3, 6], RS: [3, 7] };
   var IC = {
     envelope: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
@@ -48,6 +49,8 @@
   function kg(g) { return g < 1000 ? g + ' g' : (g / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' kg'; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function caixa(cod) { return CFG.caixas.find(function (c) { return c.codigo === cod; }); }
+  function vol(c) { return c.medidas[0] * c.medidas[1] * c.medidas[2]; }
+  function nomeCaixa(c) { return c.destaque ? 'Caixa' : c.nome; }
   function medidasTxt(m) { return m.map(function (v) { return String(v).replace('.', ','); }).join(' x '); }
   function pressionar(grupo, botao) { grupo.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b === botao)); }); }
 
@@ -101,10 +104,11 @@
     }).join('');
   }
   function renderCaixas() {
-    $('caixas').innerHTML = CFG.caixas.map(function (c) {
+    var porTamanho = CFG.caixas.slice().sort(function (x, y) { return vol(x) - vol(y); });
+    $('caixas').innerHTML = porTamanho.map(function (c) {
       return '<button type="button" class="sm-op' + (c.destaque ? ' sm-mini' : '') + '" data-cx="' + c.codigo + '" aria-pressed="' + (S.cx === c.codigo) + '" aria-label="' + esc(c.nome) + ', ' + medidasTxt(c.medidas) + ' cm">' +
         (c.destaque ? '<span class="sm-selo">Mini Envios</span>' : '') + caixaSvg(c.medidas) +
-        '<b>' + (c.destaque ? 'Envelope' : esc(c.nome)) + '</b><small>' + medidasTxt(c.medidas) + '</small></button>';
+        '<b>' + esc(nomeCaixa(c)) + '</b><small>' + medidasTxt(c.medidas) + '</small></button>';
     }).join('');
   }
   function renderPesos() {
@@ -127,7 +131,7 @@
   }
   function renderTipos() {
     var t = CFG.ufs[S.uf] || {};
-    $('tipos').innerHTML = ORDEM_TIPOS.filter(function (k) { return t[k]; }).map(function (k) {
+    $('tipos').innerHTML = '<p class="sm-tipos-uf">Destino em ' + esc(NOMES_UF[S.uf] || S.uf) + '</p>' + ORDEM_TIPOS.filter(function (k) { return t[k]; }).map(function (k) {
       var g = t[k];
       var ex = g.ex.length ? g.ex.join(', ') + (g.n > g.ex.length ? ' e mais ' + (g.n - g.ex.length) : '') : 'Demais cidades do estado';
       return '<button type="button" class="sm-op" data-t="' + k + '" aria-pressed="' + (S.tipo === k) + '"><b>' + esc(g.nome) + '</b><small>' + esc(ex) + '</small></button>';
@@ -149,7 +153,7 @@
     var rotulo = ROTULO_CURTO[S.tipo];
     if (S.tipo === 'CAPITAL' && S.cidade && g && g.ex[0] && g.ex[0].toLowerCase() !== S.cidade.toLowerCase()) rotulo = 'Região metropolitana';
     $('destUf').textContent = S.cidade ? S.uf + ' · ' + rotulo : S.uf;
-    $('meta').textContent = (S.serv === 'MINI' ? 'Mini Envios' : S.serv) + ' · ' + (cx.destaque ? 'Envelope Mini Envios' : cx.nome) + ' (' + medidasTxt(cx.medidas) + ' cm) · ' + kg(S.p);
+    $('meta').textContent = (S.serv === 'MINI' ? 'Mini Envios' : S.serv) + ' · ' + (cx.destaque ? 'Caixa Mini Envios' : cx.nome) + ' (' + medidasTxt(cx.medidas) + ' cm) · ' + kg(S.p);
     if (!atual || !g) return;
     var v = valores(g.zona);
     var m = menor(v);
@@ -168,8 +172,10 @@
       var preco = val == null
         ? '<b>Indisponível</b>'
         : '<b class="num">' + brl(val) + '</b>' + (pct == null ? '' : '<span class="num' + (pct < 0 ? ' mais' : '') + '">' + (pct >= 0 ? '-' + pct : '+' + Math.abs(pct)) + '%</span>');
-      return '<div class="sm-opc' + (o.ref ? ' ref' : '') + (melhor ? ' melhor' : '') + (val == null ? ' indisp' : '') + '" data-k="' + o.k + '">' +
-        '<span class="sm-opc-ic">' + ic(o.ic) + '</span><div class="sm-opc-nome">' + o.nome + chips + '</div><div class="sm-opc-val">' + preco + '</div></div>';
+
+      return '<div class="sm-card' + (o.ref ? ' ref' : '') + (melhor ? ' melhor' : '') + (val == null ? ' indisp' : '') + '" data-k="' + o.k + '">' +
+        '<span class="sm-card-ic">' + ic(o.ic) + '</span><div class="sm-card-txt"><span class="sm-card-nome">' + o.nome + '</span>' +
+        (chips ? '<div class="sm-chips">' + chips + '</div>' : '') + '</div><div class="sm-card-val">' + preco + '</div></div>';
     }).join('');
 
     var box = $('economia');
@@ -179,11 +185,11 @@
       if (v.CLUBE === m) nomes.push('Clube Correios');
       if (v.APP === m) nomes.push('Correios App');
       var eco = v.AVISTA - m;
-      box.innerHTML = '<span class="pct num">' + Math.round((1 - m / v.AVISTA) * 100) + '%</span><p>Com <b>' + nomes.join(' ou ') + '</b>: <b class="num">' + brl(eco) + '</b> a menos por envio. Em 100 envios por mês, <b class="num">' + brl(eco * 100) + '</b>.</p>';
+      box.innerHTML = '<span class="pct num">' + Math.round((1 - m / v.AVISTA) * 100) + '%</span><p><b class="num">' + brl(eco) + '</b> a menos por envio<small class="num">' + brl(eco * 100) + ' em 100 envios</small></p>';
       box.hidden = false;
       $('barra').innerHTML = '<span>' + esc(nomes[0]) + '<br><b class="num">' + brl(m) + '</b></span><em class="num">-' + Math.round((1 - m / v.AVISTA) * 100) + '%</em>';
       $('barra').hidden = resultadoVisivel;
-      var txt = 'Olá! Fiz uma simulação de frete no site: ' + (S.serv === 'MINI' ? 'Mini Envios' : S.serv) + ', ' + (cx.destaque ? 'envelope Mini Envios' : 'caixa ' + cx.nome) + ', ' + kg(S.p) +
+      var txt = 'Olá! Fiz uma simulação de frete no site: ' + (S.serv === 'MINI' ? 'Mini Envios' : S.serv) + ', ' + (cx.destaque ? 'caixa Mini Envios' : 'caixa ' + cx.nome) + ', ' + kg(S.p) +
         ', de Fortaleza para ' + (S.cidade ? S.cidade + '/' : '') + S.uf + ' (' + ROTULO_CURTO[S.tipo] + '). Quero conhecer as condições do ' + nomes[0] + '.';
       $('cta').href = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(txt);
     } else {

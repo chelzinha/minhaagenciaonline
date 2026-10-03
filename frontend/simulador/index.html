@@ -14,83 +14,85 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/simulador/simulador.css?v=1.0.0" />
+  <link rel="stylesheet" href="/simulador/simulador.css?v=1.1.0" />
 </head>
 <body>
   <header class="sm-top">
     <div class="sm-top-in">
-      <a href="/" class="sm-marca" aria-label="AGF José Bonifácio, página inicial"><img src="/assets/logo-agf-jose-bonifacio.png" alt="AGF José Bonifácio" width="200" height="26" /></a>
-      <span class="sm-top-titulo">Simulador de frete</span>
+      <a class="sm-marca" href="/" aria-label="AGF José Bonifácio, página inicial">
+        <img class="sm-marca-ic" src="/assets/correios-logo-2.png" alt="" width="42" height="42" />
+        <span class="sm-marca-txt"><strong>AGF José Bonifácio</strong><small>Minha Agência Online</small></span>
+      </a>
+      <h1 class="sm-h1">Simule seu envio</h1>
     </div>
   </header>
 
-  <main class="sm-main">
-    <h1 class="sm-h1">Quanto custa o seu envio <span class="sm-marca-txt">saindo de Fortaleza?</span></h1>
+  <main class="sm-app">
+    <!-- Passos 1 a 3 -->
+    <div class="sm-passos">
+      <section class="sm-passo" aria-labelledby="p1">
+        <h2 id="p1"><span class="sm-n">1</span>Como é o seu envio hoje?</h2>
+        <div class="sm-perfis" id="perfil"></div>
+      </section>
+      <section class="sm-passo" aria-labelledby="p2">
+        <h2 id="p2"><span class="sm-n">2</span>Embalagem</h2>
+        <div class="sm-caixas" id="caixas"></div>
+      </section>
+      <section class="sm-passo" aria-labelledby="p3">
+        <h2 id="p3"><span class="sm-n">3</span>Peso com a embalagem</h2>
+        <div class="sm-pesos" id="pesos"></div>
+      </section>
+    </div>
 
-    <div class="sm-grid">
-      <div class="sm-col" id="colEntrada">
-        <section class="sm-passo" aria-labelledby="p1">
-          <h2 id="p1"><span class="sm-n">1</span>Como é o seu envio hoje?</h2>
-          <div class="sm-perfis" id="perfil"></div>
-        </section>
-
-        <section class="sm-passo" aria-labelledby="p2">
-          <h2 id="p2"><span class="sm-n">2</span>Embalagem</h2>
-          <div class="sm-caixas" id="caixas"></div>
-        </section>
-
-        <section class="sm-passo" aria-labelledby="p3">
-          <h2 id="p3"><span class="sm-n">3</span>Peso com a embalagem</h2>
-          <div class="sm-pesos" id="pesos"></div>
-        </section>
-
-        <section class="sm-passo" aria-labelledby="p4">
-          <h2 id="p4"><span class="sm-n">4</span>Para onde vai?</h2>
-          <form class="sm-cep" id="cepForm" novalidate>
-            <label for="cep" class="sm-sr">CEP de destino</label>
-            <span class="sm-cep-campo">
-              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
-              <input id="cep" inputmode="numeric" maxlength="9" placeholder="CEP de destino" autocomplete="postal-code" />
-            </span>
-            <button type="submit" class="sm-btn" id="cepBtn">Buscar</button>
-          </form>
-          <p class="sm-cep-msg" id="cepMsg" role="status" aria-live="polite" hidden></p>
-          <div class="sm-mapa-topo">
-            <div class="sm-seg" id="mapModo" role="group" aria-label="Pintar o mapa por">
-              <button type="button" data-v="cap" aria-pressed="true">Capital</button>
-              <button type="button" data-v="int" aria-pressed="false">Interior</button>
-            </div>
-            <div class="sm-legenda" aria-hidden="true"><span>menor</span><i class="h1"></i><i class="h2"></i><i class="h3"></i><i class="h4"></i><i class="h5"></i><span>maior</span></div>
-          </div>
-          <div class="sm-mapa" id="mapa" role="group" aria-label="Mapa do Brasil por estado"></div>
-          <div class="sm-tipos" id="tipos"></div>
-        </section>
+    <!-- Passo 4: destino -->
+    <section class="sm-destino" aria-labelledby="p4">
+      <div class="sm-destino-h">
+        <h2 id="p4"><span class="sm-n">4</span>Para onde vai?</h2>
+        <p class="sm-dica">Digite o CEP ou clique no estado, no mapa.</p>
       </div>
-
-      <aside class="sm-col sm-res-col" id="resultado" aria-labelledby="tRes">
-        <div class="sm-res-topo">
-          <h2 id="tRes">Resultado</h2>
-          <div class="sm-seg" id="servico" role="group" aria-label="Serviço">
-            <button type="button" data-v="SEDEX" aria-pressed="true">SEDEX</button>
-            <button type="button" data-v="PAC" aria-pressed="false">PAC</button>
-            <button type="button" data-v="MINI" aria-pressed="false">Mini Envios</button>
-          </div>
+      <div class="sm-cep-linha">
+        <form class="sm-cep" id="cepForm" novalidate>
+          <label for="cep" class="sm-sr">CEP de destino</label>
+          <span class="sm-cep-campo">
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+            <input id="cep" inputmode="numeric" maxlength="9" placeholder="CEP de destino" autocomplete="postal-code" />
+          </span>
+          <button type="submit" class="sm-btn" id="cepBtn">Buscar</button>
+        </form>
+        <div class="sm-seg" id="mapModo" role="group" aria-label="Pintar o mapa por">
+          <button type="button" data-v="cap" aria-pressed="true">Capital</button>
+          <button type="button" data-v="int" aria-pressed="false">Interior</button>
         </div>
-
-        <div class="sm-etiqueta">
-          <div class="sm-rota" id="rota">
-            <span class="sm-no sm-no-origem" aria-hidden="true"></span>
-            <span class="sm-rota-txt"><b>Fortaleza</b><small>CE</small></span>
-            <span class="sm-linha" aria-hidden="true"></span>
-            <span class="sm-no sm-no-destino" aria-hidden="true"></span>
-            <span class="sm-rota-txt sm-rota-dest"><b id="destNome">-</b><small id="destUf">-</small></span>
-          </div>
-          <p class="sm-meta" id="meta"></p>
-          <div class="sm-opcoes" id="opcoes" aria-live="polite"></div>
+      </div>
+      <p class="sm-cep-msg" id="cepMsg" role="status" aria-live="polite" hidden></p>
+      <div class="sm-destino-corpo">
+        <div class="sm-mapa-box">
+          <div class="sm-mapa" id="mapa" role="group" aria-label="Mapa do Brasil por estado"></div>
+          <div class="sm-legenda" aria-hidden="true"><span>menor</span><i class="h1"></i><i class="h2"></i><i class="h3"></i><i class="h4"></i><i class="h5"></i><span>maior</span></div>
         </div>
+        <div class="sm-tipos" id="tipos"></div>
+      </div>
+    </section>
 
-        <div class="sm-economia" id="economia" hidden></div>
-
+    <!-- Resultado -->
+    <section class="sm-res" id="resultado" aria-labelledby="tRes">
+      <h2 id="tRes" class="sm-sr">Resultado</h2>
+      <div class="sm-res-topo">
+        <div class="sm-rota" id="rota">
+          <span class="sm-no sm-no-origem" aria-hidden="true"></span>
+          <span class="sm-rota-txt"><b>Fortaleza</b><small>CE</small></span>
+          <span class="sm-linha" aria-hidden="true"></span>
+          <span class="sm-no sm-no-destino" aria-hidden="true"></span>
+          <span class="sm-rota-txt sm-rota-dest"><b id="destNome">-</b><small id="destUf">-</small></span>
+        </div>
+        <div class="sm-seg" id="servico" role="group" aria-label="Serviço">
+          <button type="button" data-v="SEDEX" aria-pressed="true">SEDEX</button>
+          <button type="button" data-v="PAC" aria-pressed="false">PAC</button>
+          <button type="button" data-v="MINI" aria-pressed="false">Mini Envios</button>
+        </div>
+      </div>
+      <div class="sm-res-linha">
+        <p class="sm-meta" id="meta"></p>
         <div class="sm-regra">
           <span class="sm-regra-t">Correios App</span>
           <div class="sm-seg" id="regra" role="group" aria-label="Cálculo do Correios App">
@@ -98,16 +100,19 @@
             <button type="button" data-v="VOLUME" aria-pressed="false">Por volume</button>
           </div>
         </div>
-
+      </div>
+      <div class="sm-cards" id="opcoes" aria-live="polite"></div>
+      <div class="sm-res-pe">
+        <div class="sm-economia" id="economia" hidden></div>
         <a class="sm-cta" id="cta" href="https://wa.me/5585920023386" target="_blank" rel="noopener">
           <span class="sm-wa" aria-hidden="true"><i></i></span>Fale com a nossa equipe
         </a>
-      </aside>
-    </div>
+      </div>
+    </section>
   </main>
 
   <button type="button" class="sm-barra" id="barra" hidden></button>
 
-  <script src="/simulador/simulador.js?v=1.0.0" defer></script>
+  <script src="/simulador/simulador.js?v=1.1.0" defer></script>
 </body>
 </html>
