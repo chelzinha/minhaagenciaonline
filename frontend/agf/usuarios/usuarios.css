@@ -4,3 +4,25 @@
 .users-panel .password-field{display:grid;gap:4px;margin-top:8px}.users-panel .password-field>.password-input-wrap{position:relative!important;display:block!important;width:100%!important}.users-panel .password-field>.password-input-wrap>input{width:100%!important;padding-right:46px!important}.users-panel .password-field>.password-input-wrap>button.password-toggle{position:absolute!important;top:50%!important;right:7px!important;left:auto!important;bottom:auto!important;transform:translateY(-50%)!important;width:31px!important;min-width:31px!important;max-width:31px!important;height:31px!important;min-height:31px!important;max-height:31px!important;margin:0!important;padding:0!important;display:grid!important;place-items:center!important;border:0!important;border-radius:8px!important;background:transparent!important;color:#527087!important;box-shadow:none!important;line-height:1!important;appearance:none!important;-webkit-appearance:none!important}.users-panel .password-field>.password-input-wrap>button.password-toggle:hover{background:#eef6fb!important;color:#00416b!important}.users-panel .password-field>.password-input-wrap>button.password-toggle .material-symbols-rounded{font-size:18px!important;line-height:1!important}
 
 .crm-locais{margin-top:10px;padding-top:9px;border-top:1px dashed #dce6ef}.crm-locais-head{display:grid;gap:2px;margin-bottom:6px}.crm-locais-head strong{font-size:10.5px;font-weight:850;color:#456276;text-transform:uppercase;letter-spacing:.04em}.crm-locais-head span{font-size:11px;color:#60788d}.crm-locais-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.user-badge.local{background:#e6f4ea;color:#1e6b3a;border-color:#bfe3cb}
+
+/* Perfil na equipe (perfil-equipe.js v1.0.0): foto e aniversario */
+.pe-row{grid-template-columns:auto minmax(0,1fr) auto}
+.pe-avatar{width:36px;height:36px;border-radius:50%;flex:none;display:grid;place-items:center;overflow:hidden;color:#fff;font:800 12px/1 Inter,Arial,sans-serif;background:#5C7799}
+.pe-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.pe-avatar--lg{width:64px;height:64px;font-size:20px;box-shadow:0 0 0 3px #fff,0 0 0 4px #dce6ef}
+.pe-linha{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start;margin-top:8px}
+.pe-foto{display:flex;align-items:center;gap:10px}
+.pe-foto-acoes{display:flex;flex-direction:column;gap:6px}
+.pe-foto-acoes .users-button{min-height:32px;justify-content:flex-start}
+.pe-aniv{display:grid;gap:4px;min-width:0}
+.pe-rotulo{font-size:10.5px;font-weight:850;color:#456276;text-transform:uppercase;letter-spacing:.04em}
+.pe-aniv-campos{display:grid;grid-template-columns:72px minmax(0,1fr);gap:6px}
+.pe-aniv select{width:100%;min-height:35px;padding:7px 8px;border:1px solid #cfdee9;border-radius:8px;background:#fff;color:#24445b;font:600 12px/1.2 Inter,Arial,sans-serif}
+.pe-aniv select:focus{outline:none;border-color:#66acd0;box-shadow:0 0 0 3px rgba(0,124,195,.11)}
+.pe-aniv small{color:#60788d;font-size:11px}
+.pe-aviso{margin:8px 0 0;font-size:11px;color:#60788d;min-height:0}
+.pe-aviso:empty{display:none}
+.pe-aviso.is-erro{color:#b42318}
+.user-badge.pe-badge{background:#fff7e6;color:#8a5a00}
+.users-button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:420px){.pe-linha{grid-template-columns:1fr}.pe-row{grid-template-columns:auto minmax(0,1fr)}.pe-row .user-actions{grid-column:1/-1}}

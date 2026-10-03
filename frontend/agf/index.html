@@ -16,14 +16,14 @@
   <link rel="manifest" href="/agf/manifest.webmanifest">
   <link rel="stylesheet" href="/shared/ui/agf-ui.css?v=ver-senha-v3">
   <link rel="stylesheet" href="/agf/agf.css?v=reverso-home-v168">
-  <link rel="stylesheet" href="/shared/ui/agf-header.css?v=3">
-  <link rel="stylesheet" href="/agf/portal.css?v=mural-v1">
+  <link rel="stylesheet" href="/shared/ui/agf-header.css?v=4">
+  <link rel="stylesheet" href="/agf/portal.css?v=mural-v2">
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
 </head>
 <body>
   <div class="portal-shell">
-    <!-- Topo padrao (agf-header v1.2.0). Os elementos abaixo sao do topo antigo e ficam
+    <!-- Topo padrao (agf-header v1.2.1). Os elementos abaixo sao do topo antigo e ficam
          ocultos so porque o agf.js ainda escreve neles pelo id (#topUserPill, #userName,
          #userRole, #logoutButton). O cabecalho novo aciona o Sair do portal. -->
     <div data-agf-header data-route="/agf"></div>
@@ -200,7 +200,7 @@
             <button class="pt-tab" role="tab" type="button" id="ptTabK" aria-controls="ptPanK" aria-selected="false" tabindex="-1">Elogios</button>
           </div>
           <div class="pt-side__body" id="ptPanB" role="tabpanel" aria-labelledby="ptTabB">
-            <div class="pt-bar"><span class="pt-sub" id="ptBdayMonth">Próximos aniversários</span><span class="pt-spacer"></span><button class="pt-link" id="ptManageTeam" type="button" hidden>Editar equipe</button></div>
+            <div class="pt-bar"><span class="pt-sub" id="ptBdayMonth">Próximos aniversários</span><span class="pt-spacer"></span><a class="pt-link" id="ptManageTeam" href="/agf/usuarios/" hidden title="Aniversário e foto ficam em Usuários internos">Editar equipe</a></div>
             <ul class="pt-rows" id="ptBdayList"><li class="pt-muted">Carregando…</li></ul>
           </div>
           <div class="pt-side__body" id="ptPanK" role="tabpanel" aria-labelledby="ptTabK" hidden>
@@ -219,18 +219,6 @@
         </section>
       </div>
     </main>
-  </div>
-
-  <!-- Gaveta: aniversarios da equipe (admin) -->
-  <div class="pt-drawer" id="ptTeamDrawer" data-open="false">
-    <div class="pt-drawer__card" role="dialog" aria-modal="true" aria-labelledby="ptTeamTitle">
-      <div class="pt-row"><h3 id="ptTeamTitle">Aniversários da equipe</h3><span class="pt-spacer"></span><button class="pt-ghost" type="button" data-pt-close>Fechar</button></div>
-      <p>Só dia e mês, sem ano. Os nomes daqui também aparecem como sugestão no elogio.</p>
-      <div class="pt-team-head"><span>Nome</span><span>Dia</span><span>Mês</span><span></span></div>
-      <div id="ptTeamRows" class="pt-team-rows"></div>
-      <div class="pt-row"><button class="pt-ghost" type="button" id="ptAddRow">Adicionar pessoa</button><span class="pt-spacer"></span><button class="pt-primary" type="button" id="ptSaveTeam">Salvar aniversários</button></div>
-      <div class="pt-hint" id="ptTeamHint" aria-live="polite"></div>
-    </div>
   </div>
 
   <!-- Gaveta: novo evento na agenda (admin e gestor) -->
@@ -253,9 +241,9 @@
 
   <script src="/shared/ui/agf-ui.js?v=ver-senha-v3"></script>
   <script src="/agf/agf.js?v=topo-c-v1"></script>
-  <script src="/shared/ui/agf-header.js?v=3"></script>
-  <script src="/agf/mural-config.js?v=mural-v1"></script>
-  <script src="/agf/mural.js?v=mural-v1"></script>
+  <script src="/shared/ui/agf-header.js?v=4"></script>
+  <script src="/agf/mural-config.js?v=mural-v2"></script>
+  <script src="/agf/mural.js?v=mural-v2"></script>
   <script>
   /* Topo padrao do Portal. O portal e tambem a tela de login e troca de estado
      sem recarregar (entrar e sair). O agf.js mostra ou esconde #topUserPill

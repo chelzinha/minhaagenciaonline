@@ -1,9 +1,11 @@
 /* ============================================================================
-   mural.js - Portal Interno vivo (/agf) v1.0.0
+   mural.js - Portal Interno vivo (/agf) v1.1.0
    Mural de recados, aniversarios, elogios, agenda e o dia util no topo.
    Depende de: AgfAuth (sessao), AgfHeader v1.2.0 (selos e zona B), AGF_MURAL_CONFIG.
    Expoe window.AgfPortal { contexto, atualizar, sessaoMudou } para o script do topo.
    O agf.js continua dono do login, das permissoes dos cartoes e do Sair.
+   v1.1.0: fotos da equipe (agf-mural-api) no lugar das iniciais; aniversario e foto
+   passam a ser cadastrados em Usuarios internos (sai a gaveta Editar equipe).
    ========================================================================== */
 (function (global, document) {
   'use strict';
@@ -27,14 +29,36 @@
     pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3.8h6l-1 5.4 3.2 3.2H6.8L10 9.2z"/><path d="M12 12.4v7.8"/></svg>',
     heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 19.6s-7.4-4.4-7.4-9.6a4.2 4.2 0 0 1 7.4-2.7A4.2 4.2 0 0 1 19.4 10c0 5.2-7.4 9.6-7.4 9.6z"/></svg>',
     reply: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.6 7.4 4.6 12l5 4.6"/><path d="M4.8 12h9.4a5.2 5.2 0 0 1 5.2 5.2v.6"/></svg>',
-    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.8 7h14.4M9.6 7V4.8h4.8V7M6.6 7l.8 12.2h9.2L17.4 7"/></svg>',
-    star: '<svg viewBox="0 0 24 24" fill="none" stroke="#7648B6" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.8l2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8z"/></svg>'
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.8 7h14.4M9.6 7V4.8h4.8V7M6.6 7l.8 12.2h9.2L17.4 7"/></svg>'
   };
+
+  /* ============================================================ FOTOS
+     Cache por pessoa no navegador ({ v, d }). So baixa de novo quando a versao
+     (avatarV do painel) muda. localStorage pode falhar: tudo segue com iniciais. */
+  var FOTOS_KEY = 'agf_mural_fotos_v1';
+  function lerFotos() { try { return JSON.parse(global.localStorage.getItem(FOTOS_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function gravarFotos() { try { global.localStorage.setItem(FOTOS_KEY, JSON.stringify(st.fotos)); } catch (e) {} }
+  function atualizarFotos() {
+    var eq = (st.dados && st.dados.equipe) || [], faltam = [], mudou = false, ativos = {};
+    eq.forEach(function (p) {
+      ativos[p.username] = true;
+      var c = st.fotos[p.username];
+      if (!p.avatarV) { if (c) { delete st.fotos[p.username]; mudou = true; } return; }
+      if (!c || c.v !== p.avatarV) faltam.push(p.username);
+    });
+    Object.keys(st.fotos).forEach(function (u) { if (!ativos[u]) { delete st.fotos[u]; mudou = true; } });
+    if (!faltam.length) { if (mudou) { gravarFotos(); renderTudo(); } return Promise.resolve(); }
+    return api('GET', '/api/mural/avatares?u=' + encodeURIComponent(faltam.join(','))).then(function (d) {
+      var r = d.avatares || {};
+      faltam.forEach(function (u) { if (r[u]) st.fotos[u] = r[u]; else delete st.fotos[u]; });
+      gravarFotos(); renderTudo();
+    }).catch(function () { if (mudou) renderTudo(); });
+  }
 
   /* ============================================================ ESTADO */
   var st = {
     logado: false, iniciado: false, carregando: false, dados: null, erro: '',
-    abertos: {}, verTodos: false, cat: 'oper', timer: null, confete: {}
+    abertos: {}, verTodos: false, cat: 'oper', timer: null, confete: {}, fotos: lerFotos()
   };
 
   /* ========================================================= UTILITARIOS */
@@ -46,7 +70,20 @@
   }
   function corAvatar(n) { var h = 0; for (var i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0; return AV_CORES[h % AV_CORES.length]; }
   function iniciais(n) { var p = String(n || '?').trim().split(/\s+/); return ((p[0] || '?')[0] + ((p[1] || '')[0] || (p[0] || '')[1] || '')).toUpperCase(); }
-  function av(n, xs) { return '<span class="pt-av' + (xs ? ' pt-av--xs' : '') + '" style="--av:' + corAvatar(String(n || '')) + '" aria-hidden="true">' + esc(iniciais(n)) + '</span>'; }
+  /* Avatar: foto da pessoa quando existe (por login ou pelo nome da equipe); senao, iniciais. */
+  function usernameDe(nome, username) {
+    if (username) return username;
+    var alvo = String(nome || '').toLowerCase();
+    var eq = (st.dados && st.dados.equipe) || [];
+    for (var i = 0; i < eq.length; i++) if (eq[i].nome.toLowerCase() === alvo) return eq[i].username;
+    return '';
+  }
+  function av(n, xs, username) {
+    var u = usernameDe(n, username), foto = u && st.fotos[u] && st.fotos[u].d;
+    var cls = 'pt-av' + (xs ? ' pt-av--xs' : '');
+    if (foto) return '<img class="' + cls + ' pt-av--img" src="' + esc(foto) + '" alt="" aria-hidden="true">';
+    return '<span class="' + cls + '" style="--av:' + corAvatar(String(n || '')) + '" aria-hidden="true">' + esc(iniciais(n)) + '</span>';
+  }
   function pad2(n) { return String(n).padStart(2, '0'); }
   function dataLocal(iso) { var p = iso.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
   function isoLocal(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
@@ -160,7 +197,7 @@
       var conf = '', chave = d.hoje + '|' + p.nome;
       if (st.confete[chave]) { /* confete so na primeira vez que a pessoa ve o card na sessao */ }
       else for (var i = 0; i < 14; i++) conf += '<i style="left:' + (4 + i * 7) + '%;background:' + ['#F2A900', '#7648B6', '#0078D4', '#EA580C', '#0D9488'][i % 5] + ';animation-delay:' + (0.2 + (i % 5) * 0.12) + 's"></i>';
-      h += '<div class="pt-bday"><div class="pt-confetti" aria-hidden="true">' + conf + '</div>' + av(p.nome) +
+      h += '<div class="pt-bday"><div class="pt-confetti" aria-hidden="true">' + conf + '</div>' + av(p.nome, false, p.username) +
         '<div style="min-width:0"><strong>' + esc(p.nome) + ' faz aniversário hoje</strong><small>Deixe uma mensagem no mural.</small></div>' +
         '<button class="pt-gold" type="button" data-parabens="' + esc(p.nome) + '">Dar parabéns</button></div>';
       st.confete[chave] = true;
@@ -168,7 +205,7 @@
     d.recados.filter(function (r) { return r.fixado; }).forEach(function (r) {
       var c = CATS[r.categoria] || CATS.oper;
       var podeApagar = r.autorUsername === me.username || me.admin;
-      h += '<div class="pt-pin" data-recado="' + esc(r.id) + '"><div class="pt-meta">' + av(r.autor, true) + '<b>' + esc(r.autor) + '</b>' +
+      h += '<div class="pt-pin" data-recado="' + esc(r.id) + '"><div class="pt-meta">' + av(r.autor, true, r.autorUsername) + '<b>' + esc(r.autor) + '</b>' +
         '<span class="pt-tag" style="--c:' + c.c + '">' + c.l + '</span><span>' + atras(r.criadoEm) + '</span></div>' +
         '<p>' + esc(r.texto) + '</p>' +
         ((me.gestor || podeApagar) ? '<div class="pt-acts">' +
@@ -205,7 +242,7 @@
     var quem = r.curtidas.map(function (x) { return x.nome; }).join(', ') || 'Ninguém curtiu ainda';
     var podeApagar = r.autorUsername === me.username || me.admin;
     var aberto = !!st.abertos[r.id], n = r.respostas.length;
-    var h = '<article class="pt-post" data-recado="' + esc(r.id) + '">' + av(r.autor) + '<div style="min-width:0">' +
+    var h = '<article class="pt-post" data-recado="' + esc(r.id) + '">' + av(r.autor, false, r.autorUsername) + '<div style="min-width:0">' +
       '<div class="pt-meta"><b>' + esc(r.autor) + '</b><span class="pt-tag" style="--c:' + c.c + '">' + c.l + '</span><span>' + atras(r.criadoEm) + '</span></div>' +
       '<p class="pt-text">' + esc(r.texto) + '</p>' +
       '<div class="pt-acts">' +
@@ -217,7 +254,7 @@
     if (aberto) {
       h += '<div class="pt-replies">' + r.respostas.map(function (x) {
         var minha = x.autorUsername === me.username || me.admin;
-        return '<div class="pt-reply">' + av(x.autor, true) + '<div><b>' + esc(x.autor) + '</b><span class="pt-ago">' + atras(x.criadoEm) + '</span>' +
+        return '<div class="pt-reply">' + av(x.autor, true, x.autorUsername) + '<div><b>' + esc(x.autor) + '</b><span class="pt-ago">' + atras(x.criadoEm) + '</span>' +
           (minha ? ' <button class="pt-act" type="button" data-apagar-resposta="' + esc(x.id) + '">Apagar</button>' : '') + '<br>' + esc(x.texto) + '</div></div>';
       }).join('') +
       '<form class="pt-reply-form" data-resposta-form><label class="pt-sr" for="ptRf' + esc(r.id) + '">Sua resposta</label>' +
@@ -244,22 +281,25 @@
     var lista = d.aniversarios.map(function (p) {
       var dt = new Date(hoje.getFullYear(), p.mes - 1, p.dia);
       if (dt < hoje) dt = new Date(hoje.getFullYear() + 1, p.mes - 1, p.dia);
-      return { nome: p.nome, dt: dt, diff: Math.round((dt - hoje) / 864e5) };
+      return { nome: p.nome, username: p.username || '', dt: dt, diff: Math.round((dt - hoje) / 864e5) };
     }).sort(function (a, b) { return a.diff - b.diff || a.nome.localeCompare(b.nome, 'pt-BR'); }).slice(0, PROXIMOS_ANIVERSARIOS);
     var h = lista.map(function (p) {
-      return '<li>' + chipData(p.dt, p.diff === 0 ? 'bd' : '') + av(p.nome) +
+      return '<li>' + chipData(p.dt, p.diff === 0 ? 'bd' : '') + av(p.nome, false, p.username) +
         '<span class="pt-name">' + esc(p.nome) + '</span><span class="pt-when">' + emDias(p.diff) + '</span></li>';
     }).join('');
-    if (!h) h = '<li class="pt-muted">' + (eu().admin ? 'Nenhum aniversário cadastrado. Use "Editar equipe".' : 'Nenhum aniversário cadastrado ainda.') + '</li>';
+    if (!h) h = '<li class="pt-muted">' + (eu().admin ? 'Nenhum aniversário cadastrado. Use "Editar equipe" para cadastrar em Usuários internos.' : 'Nenhum aniversário cadastrado ainda.') + '</li>';
     $('ptBdayList').innerHTML = h;
-    $('ptTeamNames').innerHTML = d.aniversarios.filter(function (p) { return p.nome.toLowerCase() !== eu().nome.toLowerCase(); })
-      .map(function (p) { return '<option value="' + esc(p.nome) + '"></option>'; }).join('');
+    /* Sugestoes do elogio: equipe ativa (Usuarios internos) e nomes da lista antiga de aniversarios */
+    var nomes = {}, meuNome = eu().nome.toLowerCase();
+    (d.equipe || []).concat(d.aniversarios).forEach(function (p) { if (p.nome && p.nome.toLowerCase() !== meuNome) nomes[p.nome] = true; });
+    $('ptTeamNames').innerHTML = Object.keys(nomes).sort(function (a, b) { return a.localeCompare(b, 'pt-BR'); })
+      .map(function (n) { return '<option value="' + esc(n) + '"></option>'; }).join('');
   }
   function renderElogios() {
     var d = st.dados, me = eu();
     $('ptKudos').innerHTML = d.elogios.length ? d.elogios.slice(0, 5).map(function (k) {
       var pode = k.deUsername === me.username || me.admin;
-      return '<div class="pt-kudo" data-elogio="' + esc(k.id) + '"><div class="pt-kudo__who">' + ICO.star + '<span><b>' + esc(k.de) + '</b> elogiou <b>' + esc(k.para) + '</b></span>' +
+      return '<div class="pt-kudo" data-elogio="' + esc(k.id) + '"><div class="pt-kudo__who">' + av(k.de, true, k.deUsername) + '<span><b>' + esc(k.de) + '</b> elogiou <b>' + esc(k.para) + '</b></span>' +
         '<span style="margin-left:auto;white-space:nowrap">' + atras(k.criadoEm) + '</span>' +
         (pode ? '<button class="pt-x" type="button" data-apagar-elogio aria-label="Apagar elogio">' + ICO.trash + '</button>' : '') + '</div>' +
         '<p>' + esc(k.texto) + '</p></div>';
@@ -299,6 +339,7 @@
     return api('GET', '/api/mural/painel').then(function (d) {
       st.dados = d; st.erro = '';
       renderTudo();
+      atualizarFotos();
       if (manual) toast('Portal atualizado');
     }).catch(function (e) {
       st.erro = e.message; renderErro(e.message);
@@ -465,34 +506,6 @@
     Array.prototype.forEach.call(document.querySelectorAll('.pt-drawer[data-open="true"]'), function (d) { d.setAttribute('data-open', 'false'); });
     if (ultimoFoco && ultimoFoco.focus) { try { ultimoFoco.focus(); } catch (e) {} }
   }
-  function linhaEquipe(p) {
-    return '<div class="pt-team-row"><input aria-label="Nome" maxlength="60" value="' + esc(p.nome || '') + '">' +
-      '<input aria-label="Dia" inputmode="numeric" maxlength="2" value="' + (p.dia || '') + '">' +
-      '<input aria-label="Mês" inputmode="numeric" maxlength="2" value="' + (p.mes || '') + '">' +
-      '<button class="pt-x" type="button" data-remover-linha aria-label="Remover pessoa">' + ICO.trash + '</button></div>';
-  }
-  function abrirEquipe() {
-    var lista = (st.dados && st.dados.aniversarios) || [];
-    $('ptTeamRows').innerHTML = (lista.length ? lista : [{}]).map(linhaEquipe).join('');
-    $('ptTeamHint').textContent = ''; $('ptTeamHint').className = 'pt-hint';
-    abrirGaveta('ptTeamDrawer');
-  }
-  function salvarEquipe() {
-    var dias = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31], erro = '', lista = [];
-    Array.prototype.forEach.call($('ptTeamRows').children, function (row, i) {
-      var v = row.querySelectorAll('input'), nome = v[0].value.trim(), dia = Number(v[1].value), mes = Number(v[2].value);
-      if (!nome && !v[1].value && !v[2].value) return;
-      if (!nome || !(mes >= 1 && mes <= 12) || !(dia >= 1 && dia <= dias[mes - 1])) { erro = erro || 'Linha ' + (i + 1) + ': confira nome, dia (1 a 31) e mês (1 a 12).'; return; }
-      lista.push({ nome: nome, dia: dia, mes: mes });
-    });
-    var hint = $('ptTeamHint');
-    if (erro) { hint.textContent = erro; hint.className = 'pt-hint is-err'; return; }
-    var btn = $('ptSaveTeam'); btn.disabled = true; btn.textContent = 'Salvando…';
-    api('PUT', '/api/mural/aniversarios', { lista: lista }).then(function () {
-      fecharGavetas(); toast('Aniversários salvos'); return carregar(false);
-    }).catch(function (e) { hint.textContent = e.message; hint.className = 'pt-hint is-err'; })
-      .then(function () { btn.disabled = false; btn.textContent = 'Salvar aniversários'; });
-  }
   function abrirEvento() {
     $('ptEventForm').reset();
     $('ptEvData').value = hojeIso();
@@ -542,13 +555,8 @@
     $('ptCancelKudo').addEventListener('click', function () { abrirElogio(false); });
     $('ptKudoForm').addEventListener('submit', enviarElogio);
 
-    $('ptManageTeam').addEventListener('click', abrirEquipe);
-    $('ptAddRow').addEventListener('click', function () {
-      $('ptTeamRows').insertAdjacentHTML('beforeend', linhaEquipe({}));
-      $('ptTeamRows').lastElementChild.querySelector('input').focus();
-    });
-    $('ptTeamRows').addEventListener('click', function (e) { var x = e.target.closest('[data-remover-linha]'); if (x) x.parentNode.remove(); });
-    $('ptSaveTeam').addEventListener('click', salvarEquipe);
+    /* Foto trocada pelo menu do avatar: busca a versao nova no proximo painel */
+    global.addEventListener('agf:avatar-changed', function () { carregar(false); });
     $('ptAddEvent').addEventListener('click', abrirEvento);
     $('ptEventForm').addEventListener('submit', salvarEvento);
 

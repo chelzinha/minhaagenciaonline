@@ -1,5 +1,5 @@
-const CACHE='agf-portal-v14-mural';
-const STATIC=['/agf/','/agf/index.html','/agf/agf.css?v=reverso-home-v168','/agf/agf.js?v=topo-c-v1','/agf/portal.css?v=mural-v1','/agf/mural.js?v=mural-v1','/agf/mural-config.js?v=mural-v1','/shared/ui/agf-ui.css?v=ver-senha-v3','/shared/ui/agf-ui.js?v=ver-senha-v3','/shared/ui/agf-header.css?v=3','/shared/ui/agf-header.js?v=3','/shared/auth/agf-auth-client.js','/assets/pwa/agf/icon-192.png'];
+const CACHE='agf-portal-v15-perfis';
+const STATIC=['/agf/','/agf/index.html','/agf/agf.css?v=reverso-home-v168','/agf/agf.js?v=topo-c-v1','/agf/portal.css?v=mural-v2','/agf/mural.js?v=mural-v2','/agf/mural-config.js?v=mural-v2','/shared/ui/agf-ui.css?v=ver-senha-v3','/shared/ui/agf-ui.js?v=ver-senha-v3','/shared/ui/agf-header.css?v=4','/shared/ui/agf-header.js?v=4','/shared/auth/agf-auth-client.js','/assets/pwa/agf/icon-192.png'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>Promise.all(STATIC.map(url=>cache.add(url).catch(()=>{})))));});
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE&&key.startsWith('agf-portal-')).map(key=>caches.delete(key)))),self.clients.claim()])));
 self.addEventListener('fetch',event=>{
