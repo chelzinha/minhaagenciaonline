@@ -80,7 +80,7 @@
       AVISTA: z.AVISTA[base],
       PLATINUM: z.PLATINUM[S.serv],
       CLUBE: z.CLUBE[S.serv],
-      APP: app[base]
+      APP: S.serv === 'MINI' ? null : app[base] // Mini Envios: só contrato (Platinum e Clube)
     };
   }
   function menor(v) {
@@ -161,23 +161,27 @@
     var m = menor(v);
     var ops = [
       { k: 'AVISTA', nome: 'Balcão à vista', ic: 'loja', ref: true },
-      { k: 'PLATINUM', nome: 'Platinum', ic: 'contrato' },
-      { k: 'CLUBE', nome: 'Clube Correios', ic: 'clube' },
-      { k: 'APP', nome: 'Correios App', ic: 'app' }
+      { k: 'PLATINUM', nome: 'Platinum', ic: 'contrato', pessoa: 'PJ' },
+      { k: 'CLUBE', nome: 'Clube Correios', ic: 'clube', pessoa: 'PJ' },
+      { k: 'APP', nome: 'Correios App', ic: 'app', pessoa: 'PF' }
     ];
+    var soContrato = S.serv === 'MINI';
     $('opcoes').innerHTML = ops.map(function (o) {
-      var val = v[o.k];
+      var bloqueado = soContrato && (o.k === 'AVISTA' || o.k === 'APP');
+      var val = bloqueado ? null : v[o.k];
       var melhor = !o.ref && val != null && val === m;
       var pct = !o.ref && val != null && v.AVISTA ? Math.round((1 - val / v.AVISTA) * 100) : null;
-      var chips = (o.ref ? '<span class="sm-chip ref">Referência</span>' : '') + (melhor ? '<span class="sm-chip melhor">Mais barato</span>' : '') +
-        (S.serv === 'MINI' && (o.k === 'PLATINUM' || o.k === 'CLUBE') && val != null ? '<span class="sm-chip mini">Mini Envios</span>' : '');
-      var preco = val == null
+      var chips = (o.pessoa ? '<span class="sm-chip pessoa ' + o.pessoa.toLowerCase() + '" title="' + (o.pessoa === 'PJ' ? 'Pessoa jurídica' : 'Pessoa física') + '">' + o.pessoa + '</span>' : '') +
+        (o.ref && !bloqueado ? '<span class="sm-chip ref">Referência</span>' : '') + (melhor ? '<span class="sm-chip melhor">Mais barato</span>' : '');
+      var preco = bloqueado
+        ? '<em class="sm-bloq">Opção disponível somente para clientes com contrato</em>'
+        : val == null
         ? '<b>Indisponível</b>'
         : '<b class="num">' + brl(val) + '</b>' + (pct == null ? '' : '<span class="num' + (pct < 0 ? ' mais' : '') + '">' + (pct >= 0 ? '-' + pct : '+' + Math.abs(pct)) + '%</span>');
 
-      return '<div class="sm-card' + (o.ref ? ' ref' : '') + (melhor ? ' melhor' : '') + (val == null ? ' indisp' : '') + '" data-k="' + o.k + '">' +
-        '<span class="sm-card-ic">' + ic(o.ic) + '</span><div class="sm-card-txt"><span class="sm-card-nome">' + o.nome + '</span>' +
-        (chips ? '<div class="sm-chips">' + chips + '</div>' : '') + '</div><div class="sm-card-val">' + preco + '</div></div>';
+      return '<div class="sm-card' + (o.ref ? ' ref' : '') + (melhor ? ' melhor' : '') + (bloqueado ? ' bloq' : (val == null ? ' indisp' : '')) + '" data-k="' + o.k + '">' +
+        '<span class="sm-card-ic">' + ic(o.ic) + '</span><span class="sm-card-nome">' + o.nome + '</span>' +
+        '<div class="sm-card-val">' + preco + '</div>' + (chips ? '<div class="sm-chips">' + chips + '</div>' : '') + '</div>';
     }).join('');
 
     var box = $('economia');
@@ -187,7 +191,7 @@
       if (v.CLUBE === m) nomes.push('Clube Correios');
       if (v.APP === m) nomes.push('Correios App');
       var eco = v.AVISTA - m;
-      box.innerHTML = '<span class="pct num">' + Math.round((1 - m / v.AVISTA) * 100) + '%</span><p><b class="num">' + brl(eco) + '</b> a menos por envio<small class="num">' + brl(eco * 100) + ' em 100 envios</small></p>';
+      box.innerHTML = '<span class="pct num">' + Math.round((1 - m / v.AVISTA) * 100) + '%</span><p><b class="num">' + brl(eco) + '</b> ' + (soContrato ? 'a menos que o PAC no balcão' : 'a menos por envio') + '<small class="num">' + brl(eco * 100) + ' em 100 envios</small></p>';
       box.hidden = false;
       $('barra').innerHTML = '<span>' + esc(nomes[0]) + '<br><b class="num">' + brl(m) + '</b></span><em class="num">-' + Math.round((1 - m / v.AVISTA) * 100) + '%</em>';
       $('barra').hidden = resultadoVisivel;

@@ -35,7 +35,7 @@
   --sm-h1: #E6F1FB; --sm-h2: #B9D8F2; --sm-h3: #6FB0E6; --sm-h4: #0078D4; --sm-h5: #0B2D58;
   --sm-max: 1440px;
   --sm-topo: 60px;
-  --sm-uf: 46px; /* lado de cada estado no mapa */
+  --sm-uf-h: 46px; /* lado de cada estado no mapa, pela altura da tela */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -75,7 +75,7 @@ button:disabled { cursor: not-allowed; }
   min-height: calc(100dvh - var(--sm-topo) - 1px);
 }
 .sm-passos { grid-area: passos; display: grid; gap: 12px; min-width: 0; }
-.sm-destino { grid-area: destino; display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px 16px; border: 1.5px solid var(--agf-marca-cinza-100); border-radius: var(--agf-marca-raio-lg); align-self: start; }
+.sm-destino { grid-area: destino; container-type: inline-size; display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px 16px; border: 1.5px solid var(--agf-marca-cinza-100); border-radius: var(--agf-marca-raio-lg); align-self: start; }
 .sm-res { grid-area: res; align-self: start; display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 12px 14px; border: 1.5px solid var(--agf-marca-cinza-100); border-radius: var(--agf-marca-raio-lg); }
 
 .sm-passo { display: grid; gap: 6px; }
@@ -145,7 +145,7 @@ button:disabled { cursor: not-allowed; }
 .sm-cep-msg.ok { color: var(--agf-marca-verde-tinta); }
 .sm-cep-msg.erro { color: var(--agf-marca-vermelho-tinta); }
 
-.sm-destino-corpo { flex: 1; display: grid; grid-template-columns: auto minmax(170px, 1fr); gap: 16px; align-items: start; min-height: 0; }
+.sm-destino-corpo { --sm-uf: min(var(--sm-uf-h), calc((100cqw - 236px) / 7.6)); flex: 1; display: grid; grid-template-columns: auto minmax(200px, 1fr); gap: 16px; align-items: start; min-height: 0; }
 .sm-mapa-box { display: grid; gap: 8px; justify-items: start; }
 .sm-mapa { display: grid; grid-template-columns: repeat(7, var(--sm-uf)); grid-auto-rows: var(--sm-uf); gap: 4px; }
 .sm-uf {
@@ -171,7 +171,7 @@ button:disabled { cursor: not-allowed; }
 .sm-tipos-uf { font: 700 15px/1.2 var(--agf-marca-fonte-titulo); color: var(--agf-marca-azul-profundo); margin: 0 0 2px; }
 .sm-tipos .sm-op { padding: 8px 11px; text-align: left; display: grid; gap: 2px; min-height: 44px; }
 .sm-tipos b { font: 600 13.5px/1.25 var(--agf-marca-fonte-titulo); color: var(--agf-marca-azul-profundo); }
-.sm-tipos small { font-size: 12px; color: var(--agf-marca-cinza-500); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sm-tipos small { font-size: 12px; line-height: 1.35; color: var(--agf-marca-cinza-500); }
 
 /* ---------- segmentado ---------- */
 .sm-seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 999px; background: var(--agf-marca-cinza-50); border: 1px solid var(--agf-marca-cinza-100); }
@@ -199,9 +199,14 @@ button:disabled { cursor: not-allowed; }
 
 .sm-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .sm-card {
-  display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 12px; min-width: 0; min-height: 60px;
+  display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; grid-template-areas: "ic nome val" "ic chips val";
+  column-gap: 10px; row-gap: 4px; align-items: center; padding: 9px 12px; min-width: 0; min-height: 60px;
   border: 1.5px solid var(--agf-marca-cinza-100); border-radius: var(--agf-marca-raio-md); background: var(--agf-marca-branco);
 }
+.sm-card-ic { grid-area: ic; align-self: center; }
+.sm-card-nome { grid-area: nome; }
+.sm-card-val { grid-area: val; }
+.sm-card .sm-chips { grid-area: chips; }
 .sm-card-ic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: var(--agf-marca-cinza-50); color: var(--agf-marca-azul-profundo); }
 .sm-card-ic .ic { width: 18px; height: 18px; }
 .sm-card[data-k="APP"] .sm-card-ic { background: var(--agf-marca-violeta-fundo); color: var(--agf-marca-violeta-tinta); }
@@ -211,6 +216,14 @@ button:disabled { cursor: not-allowed; }
 .sm-chip { font: 700 9.5px/1 var(--agf-marca-fonte-texto); letter-spacing: .5px; text-transform: uppercase; padding: 4px 6px; border-radius: 999px; white-space: nowrap; }
 .sm-chip.ref { background: var(--agf-marca-cinza-50); color: var(--agf-marca-cinza-500); border: 1px solid var(--agf-marca-cinza-100); }
 .sm-chip.melhor { background: var(--agf-marca-branco); color: var(--agf-marca-verde-tinta); border: 1px solid #86EFAC; }
+.sm-chip.pessoa { padding: 4px 6px; letter-spacing: .3px; }
+.sm-chip.pj { background: var(--agf-marca-azul-fundo); color: var(--agf-marca-azul-profundo); border: 1px solid #B9D8F2; }
+.sm-chip.pf { background: var(--agf-marca-violeta-fundo); color: var(--agf-marca-violeta-tinta); border: 1px solid #DDD0FB; }
+.sm-card.bloq { background: var(--agf-marca-cinza-50); border-style: dashed; grid-template-areas: "ic nome chips" "ic val val"; grid-template-columns: 32px auto minmax(0, 1fr); }
+.sm-card.bloq .sm-chips { justify-content: flex-start; }
+.sm-card.bloq .sm-card-ic, .sm-card.bloq .sm-card-nome { opacity: .55; }
+.sm-card.bloq .sm-card-val { justify-items: start; }
+.sm-bloq { font: 700 9.5px/1.3 var(--agf-marca-fonte-texto); font-style: normal; letter-spacing: .2px; text-transform: uppercase; color: var(--agf-marca-cinza-500); text-align: left; }
 .sm-chip.mini { background: var(--agf-marca-amarelo); color: var(--agf-marca-azul-profundo); border: 1px solid var(--agf-marca-amarelo); }
 .sm-card-val { display: grid; justify-items: end; gap: 3px; }
 .sm-card-val b { font: 700 20px/1 var(--agf-marca-fonte-titulo); color: var(--agf-marca-azul-profundo); white-space: nowrap; }
@@ -260,12 +273,14 @@ button:disabled { cursor: not-allowed; }
 
 /* ---------- tamanho do mapa conforme a altura da tela (computador) ---------- */
 @media (min-width: 1100px) {
-  :root { --sm-uf: clamp(32px, calc((100dvh - var(--sm-topo) - 236px) / 8.5), 56px); }
+  :root { --sm-uf-h: clamp(32px, calc((100dvh - var(--sm-topo) - 236px) / 8.5), 56px); }
   .sm-barra { display: none !important; }
 }
 @media (min-width: 1100px) and (max-height: 680px) {
   .sm-caixas svg { height: 26px !important; }
   .sm-card { min-height: 54px; padding-top: 7px; padding-bottom: 7px; }
+  .sm-card.bloq { padding-top: 5px; padding-bottom: 5px; row-gap: 2px; }
+  .sm-cards { gap: 6px; }
   .sm-passo h2 { font-size: 15px; }
 }
 @media (min-width: 1100px) and (max-height: 720px) {
@@ -282,7 +297,7 @@ button:disabled { cursor: not-allowed; }
 /* ---------- tablet e celular: uma coluna ---------- */
 @media (max-width: 1099px) {
   .sm-app { grid-template-columns: minmax(0, 1fr); grid-template-areas: "passos" "destino" "res"; grid-template-rows: auto; min-height: 0; padding-bottom: 96px; }
-  :root { --sm-uf: min(52px, calc((100vw - 76px) / 7.6)); }
+  :root { --sm-uf-h: 52px; }
   .sm-destino-corpo { grid-template-columns: auto minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
@@ -292,7 +307,7 @@ button:disabled { cursor: not-allowed; }
   .sm-h1 { font-size: 16px; padding-left: 12px; white-space: normal; }
   .sm-app { padding: 14px 16px 96px; }
   .sm-destino { padding: 12px; }
-  .sm-destino-corpo { grid-template-columns: minmax(0, 1fr); }
+  .sm-destino-corpo { grid-template-columns: minmax(0, 1fr); --sm-uf: min(52px, calc((100cqw - 28px) / 7.4)); }
   .sm-mapa-box { justify-items: center; }
   .sm-perfis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sm-caixas { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 14px; }
@@ -305,7 +320,7 @@ button:disabled { cursor: not-allowed; }
 
 /* ---------- telas altas (monitor grande): elementos maiores em vez de espaço vazio ---------- */
 @media (min-width: 1100px) and (min-height: 860px) {
-  :root { --sm-uf: clamp(32px, calc((100dvh - var(--sm-topo) - 250px) / 8.5), 66px); }
+  :root { --sm-uf-h: clamp(32px, calc((100dvh - var(--sm-topo) - 250px) / 8.5), 66px); }
   .sm-passos { gap: 18px; }
   .sm-passo { gap: 10px; }
   .sm-passo h2, .sm-destino h2 { font-size: 18px; }
