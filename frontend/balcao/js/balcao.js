@@ -711,8 +711,28 @@ const BalcaoPage = (function () {
     updateSummary();
   }
 
+  /** Imprime a etiqueta de balcão para dados vindos de fora da ficha (fila do cliente /postar). */
+  function imprimirEtiqueta(entrada, op, ficha) {
+    const print = $('printArea');
+    print.innerHTML = buildPrintHtml(entrada || {}, op || {}, ficha || {});
+    setTimeout(() => window.print(), 100);
+  }
+
+  /** Fila de etiquetas do cliente: validação compartilhada + painel. Falha aqui não afeta a calculadora. */
+  function carregarFilaCliente() {
+    const add = (src) => new Promise((ok, falha) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = ok; s.onerror = falha;
+      document.body.appendChild(s);
+    });
+    add('/postar/agf-validacao.js?v=1.0.0')
+      .then(() => add('./js/pendentes.js?v=2.1.0'))
+      .catch(() => console.warn('[BALCAO] fila de etiquetas do cliente indisponivel'));
+  }
+
   async function init() {
     document.title = BALCAO_CONFIG.APP_NAME;
+    carregarFilaCliente();
     $('versionText').textContent = 'v' + BALCAO_CONFIG.VERSION;
     bindEvents();
     syncTipoObjeto();
@@ -720,7 +740,7 @@ const BalcaoPage = (function () {
     await loadConfig();
   }
 
-  return { init };
+  return { init, imprimirEtiqueta };
 })();
 
 document.addEventListener('DOMContentLoaded', BalcaoPage.init);
