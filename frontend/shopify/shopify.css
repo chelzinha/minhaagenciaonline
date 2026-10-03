@@ -146,3 +146,21 @@ button:disabled { opacity: .55; cursor: wait; }
   .filter-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
   .filter-chip { flex: 0 0 auto; }
 }
+
+/* Configuração de envio (2026-10-03) */
+.config-title { margin: 22px 0 4px; font-size: 15px; }
+.config-title:first-of-type { margin-top: 0; }
+.package-grid { display: grid; grid-template-columns: 1.4fr repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.service-map { display: grid; gap: 10px; margin-top: 12px; }
+.service-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; border: 1px solid var(--shopify-border); border-radius: 10px; }
+.service-row > div { min-width: 0; }
+.service-row strong, .service-row span { display: block; }
+.service-row span { margin-top: 3px; color: var(--shopify-muted); font-size: 12px; }
+.service-row select { max-width: 260px; }
+.service-row-pending { border-color: #efb4b4; background: #fff7f7; }
+@media (max-width: 760px) {
+  .package-grid { grid-template-columns: 1fr 1fr; }
+  .package-grid label:first-child { grid-column: 1 / -1; }
+  .service-row { flex-direction: column; align-items: stretch; }
+  .service-row select { max-width: none; }
+}

@@ -26,3 +26,12 @@
   .readiness-head { flex-direction: column; }
   .readiness-grid { grid-template-columns: 1fr; }
 }
+
+/* Ajustes por pedido (2026-10-03) */
+.adjust-grid { display: grid; grid-template-columns: 2fr repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.agf-adjustments .actions { margin-top: 14px; }
+.agf-adjustments .message { margin: 12px 0 0; }
+@media (max-width: 760px) {
+  .adjust-grid { grid-template-columns: 1fr 1fr; }
+  .adjust-grid label:first-child { grid-column: 1 / -1; }
+}

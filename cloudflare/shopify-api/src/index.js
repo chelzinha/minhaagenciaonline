@@ -1,4 +1,10 @@
 import {
+  readShippingConfig,
+  saveShippingConfig as storeShippingConfig,
+  saveOrderShipping as storeOrderShipping,
+  buildAgfShipping
+} from './shipping-config.js';
+import {
   SYNC_ORDERS_QUERY,
   SYNC_PAGE_SIZE,
   SYNC_MAX_PAGES,
@@ -882,10 +888,17 @@ async function getOrderDetail(request, url, env) {
   ).bind(shop).run();
 
   const detail = normalizeOrderDetail(data.order);
+  let agfShipping = null;
+  try {
+    agfShipping = await buildAgfShipping(env, shop, orderId, detail);
+  } catch (error) {
+    console.error('[SHOPIFY_SHIPPING_CONFIG]', shop, orderId, error?.message || error);
+  }
   return json({
     ok: true,
     shop,
-    ...detail
+    ...detail,
+    agfShipping
   });
 }
 
@@ -1034,6 +1047,34 @@ async function listLocalOrders(request, url, env) {
   });
 }
 
+async function getShippingConfig(request, url, env) {
+  const shop = normalizeShop(url.searchParams.get('shop'));
+  const row = await activeShopRow(env, shop);
+  await validateAgfCustomer(request, env, row.customer_id);
+  const config = await readShippingConfig(env, shop);
+  return json(Object.assign({ ok: true, shop }, config));
+}
+
+async function saveShippingConfig(request, env) {
+  const body = await parseBody(request);
+  const shop = normalizeShop(body.shop);
+  const row = await activeShopRow(env, shop);
+  await validateAgfCustomer(request, env, row.customer_id);
+  await storeShippingConfig(env, shop, body);
+  const config = await readShippingConfig(env, shop);
+  return json(Object.assign({ ok: true, shop }, config));
+}
+
+async function saveOrderShipping(request, env) {
+  const body = await parseBody(request);
+  const shop = normalizeShop(body.shop);
+  const orderId = normalizeOrderId(body.orderId || body.order_id);
+  const row = await activeShopRow(env, shop);
+  await validateAgfCustomer(request, env, row.customer_id);
+  await storeOrderShipping(env, shop, orderId, body);
+  return json({ ok: true, shop, orderId });
+}
+
 async function handleApi(request, env) {
   const url = new URL(request.url);
   const method = request.method.toUpperCase();
@@ -1052,6 +1093,9 @@ async function handleApi(request, env) {
   if (url.pathname === '/api/shopify/orders' && method === 'GET') return listOrders(request, url, env);
   if (url.pathname === '/api/shopify/orders/sync' && method === 'POST') return syncOrders(request, env);
   if (url.pathname === '/api/shopify/orders/local' && method === 'GET') return listLocalOrders(request, url, env);
+  if (url.pathname === '/api/shopify/shipping-config' && method === 'GET') return getShippingConfig(request, url, env);
+  if (url.pathname === '/api/shopify/shipping-config' && method === 'POST') return saveShippingConfig(request, env);
+  if (url.pathname === '/api/shopify/order/shipping' && method === 'POST') return saveOrderShipping(request, env);
   if (url.pathname === '/api/shopify/order' && method === 'GET') return getOrderDetail(request, url, env);
   if (url.pathname === '/api/shopify/test' && method === 'POST') return testConnection(request, env);
 

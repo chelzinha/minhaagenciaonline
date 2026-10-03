@@ -173,3 +173,22 @@ GET  /api/shopify/orders/local   ?shop=&status=&q=&limit=&offset=
 ```
 
 `GET /api/shopify/orders` (leitura ao vivo) permanece disponível e sem alteração.
+
+## 10. Configuração de envio (migration 0003)
+
+- `shopify_shop_settings`: embalagem padrão da loja (formato, C x L x A, peso padrão).
+- `shopify_shipping_service_map`: título do frete Shopify normalizado -> `SEDEX`, `PAC`, `MINI_ENVIOS` ou `NAO_CORREIOS`. O código do serviço do contrato é resolvido na emissão.
+- `shopify_orders`: `district`, `district_source` (CEP ou MANUAL), `cep_city`, `cep_uf`, `cep_checked_at` e embalagem/peso ajustados no pedido (`pkg_*`).
+- Bairro: consultado no ViaCEP (reserva BrasilAPI) na primeira abertura do pedido e gravado. Se o CEP mudar na Shopify, o bairro obtido pelo CEP é descartado; o manual é mantido.
+- Prioridade da embalagem: ajuste do pedido > padrão da loja. Peso: ajuste do pedido > Shopify > padrão da loja.
+- Limites validados: mínimo 15 x 10 x 1 cm, máximo 100 cm por lado, soma até 200 cm, até 30 kg. Mini Envios: até 24 x 16 x 4 cm e 300 g (bloqueio na prontidão).
+
+Endpoints:
+
+```text
+GET  /api/shopify/shipping-config?shop=
+POST /api/shopify/shipping-config   { shop, package?, services?: [{ shippingTitle, correiosService|null }] }
+POST /api/shopify/order/shipping    { shop, orderId, district?, package?: { lengthCm, widthCm, heightCm, weightGrams } }
+```
+
+`GET /api/shopify/order` passa a devolver `agfShipping` (serviço mapeado, bairro, embalagem e peso efetivos).

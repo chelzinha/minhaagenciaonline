@@ -244,6 +244,15 @@ const UPSERT_ORDERS_SQL = `
   ON CONFLICT(shop_domain, order_gid) DO UPDATE SET
     customer_id = excluded.customer_id,
     ${ORDER_COLUMNS.filter((col) => col !== 'order_gid').map((col) => `${col} = excluded.${col}`).join(',\n    ')},
+    -- CEP mudou na Shopify: descarta o bairro obtido pelo CEP antigo (o manual é mantido).
+    district = CASE WHEN excluded.postal_code IS NOT shopify_orders.postal_code
+                     AND COALESCE(shopify_orders.district_source, '') <> 'MANUAL'
+                    THEN NULL ELSE shopify_orders.district END,
+    district_source = CASE WHEN excluded.postal_code IS NOT shopify_orders.postal_code
+                            AND COALESCE(shopify_orders.district_source, '') <> 'MANUAL'
+                           THEN NULL ELSE shopify_orders.district_source END,
+    cep_checked_at = CASE WHEN excluded.postal_code IS NOT shopify_orders.postal_code
+                          THEN NULL ELSE shopify_orders.cep_checked_at END,
     synced_at = CURRENT_TIMESTAMP,
     updated_at = CURRENT_TIMESTAMP
   WHERE shopify_orders.shopify_updated_at IS NULL

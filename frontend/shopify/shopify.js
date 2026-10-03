@@ -247,7 +247,12 @@
     }
   }
 
+  function announceShop(shop) {
+    window.dispatchEvent(new CustomEvent('agf-shopify:shop-selected', { detail: { shop: shop || '' } }));
+  }
+
   function resetOrders() {
+    if (state.selectedShop) announceShop('');
     state.selectedShop = '';
     state.statusFilter = '';
     state.search = '';
@@ -549,13 +554,15 @@
       return;
     }
 
-    if (state.selectedShop !== shop) {
+    const shopChanged = state.selectedShop !== shop;
+    if (shopChanged) {
       closeOrderDetail();
       state.statusFilter = '';
       state.search = '';
       els.ordersSearch.value = '';
     }
     state.selectedShop = shop;
+    if (shopChanged) announceShop(shop);
     state.offset = opts.append ? state.offset + PAGE_SIZE : 0;
 
     els.ordersShopLabel.textContent = shop + ' · pedidos salvos na Plataforma AGF (últimos 60 dias)';
@@ -646,7 +653,10 @@
       state.importing = false;
       els.importOrdersBtn.textContent = previous;
       els.importOrdersBtn.disabled = false;
-      if (state.selectedShop === shop) await loadOrders(shop);
+      if (state.selectedShop === shop) {
+        await loadOrders(shop);
+        if (window.AgfShopifyShippingConfig) window.AgfShopifyShippingConfig.reload();
+      }
     }
   }
 

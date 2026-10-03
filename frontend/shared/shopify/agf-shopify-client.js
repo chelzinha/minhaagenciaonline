@@ -50,6 +50,15 @@
       const query = new URLSearchParams(Object.assign({ shop }, params || {}));
       return request('/api/shopify/orders/local?' + query.toString());
     },
+    getShippingConfig: (shop) => request('/api/shopify/shipping-config?shop=' + encodeURIComponent(shop)),
+    saveShippingConfig: (shop, payload) => request('/api/shopify/shipping-config', {
+      method: 'POST',
+      body: Object.assign({ shop }, payload || {})
+    }),
+    saveOrderShipping: (shop, orderId, payload) => request('/api/shopify/order/shipping', {
+      method: 'POST',
+      body: Object.assign({ shop, orderId }, payload || {})
+    }),
     getOrder: (shop, orderId) => request(
       '/api/shopify/order?shop=' + encodeURIComponent(shop) + '&order_id=' + encodeURIComponent(orderId)
     ),

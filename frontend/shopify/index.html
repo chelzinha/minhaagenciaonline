@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Conector Shopify | Plataforma AGF</title>
   <link rel="stylesheet" href="/shared/ui/agf-ui.css" />
-  <link rel="stylesheet" href="./shopify.css?v=20261003-1" />
-  <link rel="stylesheet" href="./readiness.css?v=20260924-1" />
+  <link rel="stylesheet" href="./shopify.css?v=20261003-2" />
+  <link rel="stylesheet" href="./readiness.css?v=20261003-1" />
 
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
@@ -17,8 +17,8 @@
   <script src="/shared/core/agf-core-config.js"></script>
   <script src="/shared/core/agf-core-client.js"></script>
   <script src="/shared/shopify/agf-shopify-config.js?v=20260924-3"></script>
-  <script src="/shared/shopify/agf-shopify-client.js?v=20261003-1"></script>
-  <script src="./readiness.js?v=20260924-2"></script>
+  <script src="/shared/shopify/agf-shopify-client.js?v=20261003-2"></script>
+  <script src="./readiness.js?v=20261003-1"></script>
 </head>
 <body>
   <header class="shopify-topbar">
@@ -75,6 +75,45 @@
       <div id="connectionsList" class="connections-list" hidden></div>
     </section>
 
+    <section id="shippingConfigCard" class="shopify-card" hidden>
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Configuração de envio</span>
+          <h2>Frete e embalagem da loja</h2>
+          <p id="shippingConfigShop" class="section-note"></p>
+        </div>
+        <button id="shippingConfigToggle" class="btn-secondary" type="button" aria-expanded="true" aria-controls="shippingConfigBody">Recolher</button>
+      </div>
+
+      <div id="shippingConfigBody">
+        <div id="shippingConfigMessage" class="message" hidden></div>
+
+        <h3 class="config-title">Embalagem padrão</h3>
+        <p class="section-note">Usada quando o pedido não tem ajuste próprio. A Shopify não envia dimensões. Mínimo 15 x 10 x 1 cm, soma até 200 cm.</p>
+        <div class="package-grid">
+          <label>Formato
+            <select id="pkgFormat">
+              <option value="CAIXA">Caixa / pacote</option>
+              <option value="ENVELOPE">Envelope</option>
+            </select>
+          </label>
+          <label>Comprimento (cm)<input id="pkgLength" type="number" inputmode="decimal" min="15" max="100" step="0.1" /></label>
+          <label>Largura (cm)<input id="pkgWidth" type="number" inputmode="decimal" min="10" max="100" step="0.1" /></label>
+          <label>Altura (cm)<input id="pkgHeight" type="number" inputmode="decimal" min="1" max="100" step="0.1" /></label>
+          <label>Peso padrão (g)<input id="pkgWeight" type="number" inputmode="numeric" min="1" max="30000" step="1" placeholder="Se a Shopify não enviar" /></label>
+        </div>
+
+        <h3 class="config-title">Frete Shopify para serviço Correios</h3>
+        <p class="section-note">Fretes encontrados nos pedidos importados. Defina uma vez; vale para todos os pedidos da loja.</p>
+        <div id="serviceMapEmpty" class="empty-state" hidden>Nenhum frete encontrado. Importe os pedidos primeiro.</div>
+        <div id="serviceMapList" class="service-map"></div>
+
+        <div class="actions">
+          <button id="shippingConfigSave" class="btn-primary" type="button">Salvar configuração</button>
+        </div>
+      </div>
+    </section>
+
     <section class="shopify-card">
       <div class="section-head">
         <div>
@@ -115,7 +154,8 @@
     </section>
   </main>
 
-  <script src="./shopify.js?v=20261003-1"></script>
+  <script src="./shipping-config.js?v=20261003-1"></script>
+  <script src="./shopify.js?v=20261003-2"></script>
   <script>
     if (document.documentElement.classList.contains('agf-auth-ready')) {
       window.dispatchEvent(new CustomEvent('agf:auth-ready', { detail: { cached: true, replayed: true } }));
