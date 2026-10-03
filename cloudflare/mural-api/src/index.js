@@ -1,17 +1,19 @@
 /**
- * agf-mural-api v1.0.0 - Portal Interno vivo (rota /agf)
+ * agf-mural-api v1.1.0 - Portal Interno vivo (rota /agf)
  * Mural de recados, aniversarios da equipe, elogios e agenda da agencia.
+ * v1.1.0: perfil da equipe por login (aniversario e foto), editado em Usuarios internos.
  * Bindings: DB (agf-mural), AGF_AUTH_API_URL, ALLOWED_ORIGINS, PREVIEW_ORIGIN_SUFFIX
  *
  * Regras de permissao
  * - Qualquer usuario logado: le o painel, publica recado, responde, curte, elogia.
  * - Autor ou admin: apaga o proprio recado, resposta ou elogio.
  * - Admin e gestor (manager): fixam recado e cuidam da agenda.
- * - Admin: edita a lista de aniversarios da equipe.
+ * - Admin: edita o perfil da equipe (aniversario e foto) em Usuarios internos.
+ * - Cada usuario: le e troca a propria foto (menu do avatar no topo).
  */
 
 // ================================================================ CFG
-const VERSAO = '1.0.0';
+const VERSAO = '1.1.0';
 const LIMITES = { recado: 600, resposta: 280, elogio: 280, nome: 60, titulo: 80, descricao: 140 };
 const CATEGORIAS = ['aviso', 'oper', 'lembrete', 'festa'];
 const TZ_OFFSET_MIN = -180;                       // America/Fortaleza, UTC-3, sem horario de verao
@@ -19,6 +21,9 @@ const RECADOS_NO_PAINEL = 60;
 const ELOGIOS_NO_PAINEL = 20;
 const AGENDA_DIAS = 120;
 const SESSAO_TTL_MS = 5 * 60 * 1000;
+const AVATAR_MAX = 60000;                         // data URL; o navegador entrega 128px JPEG (~10 a 25 mil caracteres)
+const AVATAR_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+const USERNAME_RE = /^[a-z0-9._-]{2,60}$/;
 
 // ================================================================ HTTP
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'cache-control': 'no-store' } });
@@ -141,7 +146,7 @@ async function painel(env, eu) {
   const mes = limitesDoMesUtc(hoje);
   const iniMes = hoje.slice(0, 8) + '01';
   const subRecados = `SELECT id FROM mural_recados WHERE excluido_em IS NULL ORDER BY fixado DESC, criado_em DESC LIMIT ${RECADOS_NO_PAINEL}`;
-  const [recados, respostas, curtidas, aniversarios, elogios, placar, agenda] = await db.batch([
+  const [recados, respostas, curtidas, aniversarios, elogios, placar, agenda, perfis] = await db.batch([
     db.prepare(`SELECT id, autor_username, autor_nome, categoria, texto, fixado, criado_em FROM mural_recados
                 WHERE excluido_em IS NULL ORDER BY fixado DESC, criado_em DESC LIMIT ${RECADOS_NO_PAINEL}`),
     db.prepare(`SELECT id, recado_id, autor_username, autor_nome, texto, criado_em FROM mural_respostas
@@ -153,7 +158,8 @@ async function painel(env, eu) {
     db.prepare(`SELECT para_nome, COUNT(*) total FROM mural_elogios
                 WHERE excluido_em IS NULL AND criado_em >= ? AND criado_em < ? GROUP BY para_nome ORDER BY total DESC, para_nome`).bind(mes.ini, mes.fim),
     db.prepare(`SELECT id, data, titulo, descricao, tipo, dia_util FROM agenda_eventos
-                WHERE excluido_em IS NULL AND data >= ? AND data <= ? ORDER BY data, tipo, titulo`).bind(iniMes, somarDias(hoje, AGENDA_DIAS))
+                WHERE excluido_em IS NULL AND data >= ? AND data <= ? ORDER BY data, tipo, titulo`).bind(iniMes, somarDias(hoje, AGENDA_DIAS)),
+    db.prepare('SELECT username, nome, dia, mes, avatar_em FROM equipe_perfis WHERE ativo = 1 ORDER BY nome')
   ]);
 
   const porRecado = new Map();
@@ -168,13 +174,21 @@ async function painel(env, eu) {
   }
   for (const c of curtidas.results) porRecado.get(c.recado_id)?.curtidas.push({ username: c.username, nome: c.nome });
 
+  // Aniversarios: perfis por login primeiro; a lista antiga por nome so entra para quem ainda nao tem perfil com data.
+  const comData = perfis.results.filter((p) => p.dia && p.mes);
+  const nomesComPerfil = new Set(comData.map((p) => p.nome.toLowerCase()));
+  const listaAniversarios = comData.map((p) => ({ id: 'u:' + p.username, username: p.username, nome: p.nome, dia: p.dia, mes: p.mes }))
+    .concat(aniversarios.results.filter((a) => !nomesComPerfil.has(String(a.nome).toLowerCase()))
+      .map((a) => ({ id: a.id, username: '', nome: a.nome, dia: a.dia, mes: a.mes })));
+
   return {
     ok: true,
     versao: VERSAO,
     hoje,
     eu: { username: eu.username, nome: eu.nome, admin: eu.admin, gestor: eu.gestor },
     recados: [...porRecado.values()],
-    aniversarios: aniversarios.results.map((a) => ({ id: a.id, nome: a.nome, dia: a.dia, mes: a.mes })),
+    aniversarios: listaAniversarios,
+    equipe: perfis.results.map((p) => ({ username: p.username, nome: p.nome, avatarV: p.avatar_em || '' })),
     elogios: elogios.results.map((e) => ({ id: e.id, de: e.de_nome, deUsername: e.de_username, para: e.para_nome, texto: e.texto, criadoEm: e.criado_em })),
     placar: placar.results.map((p) => ({ nome: p.para_nome, total: p.total })),
     agenda: agenda.results.map((a) => ({ id: a.id, data: a.data, titulo: a.titulo, descricao: a.descricao, tipo: a.tipo, diaUtil: !!a.dia_util }))
@@ -316,6 +330,88 @@ async function excluirEvento(env, eu, id) {
   return { ok: true };
 }
 
+// ================================================================ PERFIS DA EQUIPE
+function validarAvatar(v) {
+  const a = String(v ?? '');
+  if (!a) return '';
+  if (a.length > AVATAR_MAX) erro('Imagem muito grande. Escolha uma foto menor.');
+  if (!AVATAR_RE.test(a)) erro('Formato de imagem inválido. Use JPG, PNG ou WebP.');
+  return a;
+}
+function validarUsername(u) {
+  const v = String(u ?? '').trim().toLowerCase();
+  if (!USERNAME_RE.test(v)) erro('Login inválido.');
+  return v;
+}
+function validarData(dia, mes) {
+  if ((dia === null || dia === '' || dia === undefined) && (mes === null || mes === '' || mes === undefined)) return { dia: null, mes: null };
+  const d = Number(dia), m = Number(mes);
+  const DIAS_MES = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (!(m >= 1 && m <= 12) || !(d >= 1 && d <= DIAS_MES[m - 1])) erro('Aniversário inválido. Escolha dia e mês, ou deixe os dois em branco.');
+  return { dia: d, mes: m };
+}
+async function listarPerfis(env) {
+  const r = await env.DB.prepare('SELECT username, nome, ativo, dia, mes, avatar, avatar_em FROM equipe_perfis ORDER BY nome').all();
+  return r.results.map((p) => ({ username: p.username, nome: p.nome, ativo: !!p.ativo, dia: p.dia, mes: p.mes, avatar: p.avatar || '', avatarV: p.avatar_em || '' }));
+}
+// Usuarios internos manda a lista de logins a cada carga: cria perfis novos e mantem nome e situacao em dia.
+async function sincronizarPerfis(env, eu, b) {
+  if (!eu.admin) erro('Só o administrador edita a equipe.', 403);
+  const lista = Array.isArray(b.usuarios) ? b.usuarios.slice(0, 300) : null;
+  if (!lista) erro('Lista inválida.');
+  const db = env.DB, quando = agoraIso();
+  const stmts = lista.map((u) => {
+    const username = validarUsername(u?.username);
+    const nome = limpar(u?.nome || username, LIMITES.nome);
+    const ativo = u?.ativo === false ? 0 : 1;
+    return db.prepare(`INSERT INTO equipe_perfis (username, nome, ativo, atualizado_em, atualizado_por) VALUES (?,?,?,?,?)
+      ON CONFLICT(username) DO UPDATE SET nome = excluded.nome, ativo = excluded.ativo
+      WHERE equipe_perfis.nome <> excluded.nome OR equipe_perfis.ativo <> excluded.ativo`).bind(username, nome, ativo, quando, eu.username);
+  });
+  if (stmts.length) await db.batch(stmts);
+  return { ok: true, perfis: await listarPerfis(env) };
+}
+async function salvarPerfil(env, eu, username, b) {
+  if (!eu.admin) erro('Só o administrador edita a equipe.', 403);
+  const u = validarUsername(username);
+  const nome = limpar(b.nome || u, LIMITES.nome);
+  const ativo = b.ativo === false ? 0 : 1;
+  const { dia, mes } = validarData(b.dia, b.mes);
+  const mudarFoto = Object.prototype.hasOwnProperty.call(b, 'avatar') && b.avatar !== null;
+  const avatar = mudarFoto ? validarAvatar(b.avatar) : null;
+  const quando = agoraIso();
+  await env.DB.prepare(`INSERT INTO equipe_perfis (username, nome, ativo, dia, mes, avatar, avatar_em, atualizado_em, atualizado_por)
+      VALUES (?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(username) DO UPDATE SET nome = excluded.nome, ativo = excluded.ativo, dia = excluded.dia, mes = excluded.mes,
+      avatar = CASE WHEN ? THEN excluded.avatar ELSE equipe_perfis.avatar END,
+      avatar_em = CASE WHEN ? THEN excluded.avatar_em ELSE equipe_perfis.avatar_em END,
+      atualizado_em = excluded.atualizado_em, atualizado_por = excluded.atualizado_por`)
+    .bind(u, nome, ativo, dia, mes, avatar || '', mudarFoto ? quando : null, quando, eu.username, mudarFoto ? 1 : 0, mudarFoto ? 1 : 0).run();
+  await registrar(env, eu, 'perfil.salvar', u, `${dia ? dia + '/' + mes : 'sem data'}${mudarFoto ? (avatar ? ' foto nova' : ' foto removida') : ''}`);
+  return { ok: true };
+}
+async function meuAvatar(env, eu) {
+  const r = await env.DB.prepare('SELECT avatar FROM equipe_perfis WHERE username = ?').bind(eu.username).first();
+  return { ok: true, avatar: r?.avatar || '' };
+}
+async function salvarMeuAvatar(env, eu, b) {
+  const avatar = validarAvatar(b.avatar);
+  const quando = agoraIso();
+  await env.DB.prepare(`INSERT INTO equipe_perfis (username, nome, ativo, avatar, avatar_em, atualizado_em, atualizado_por) VALUES (?,?,1,?,?,?,?)
+    ON CONFLICT(username) DO UPDATE SET avatar = excluded.avatar, avatar_em = excluded.avatar_em, atualizado_em = excluded.atualizado_em, atualizado_por = excluded.atualizado_por`)
+    .bind(eu.username, eu.nome, avatar, quando, quando, eu.username).run();
+  if (b.origem !== 'migracao') await registrar(env, eu, avatar ? 'avatar.trocar' : 'avatar.remover', eu.username);
+  return { ok: true };
+}
+async function avatares(env, url) {
+  const nomes = [...new Set(String(url.searchParams.get('u') || '').toLowerCase().split(',').map((s) => s.trim()).filter((s) => USERNAME_RE.test(s)))].slice(0, 60);
+  if (!nomes.length) return { ok: true, avatares: {} };
+  const r = await env.DB.prepare(`SELECT username, avatar, avatar_em FROM equipe_perfis WHERE avatar <> '' AND username IN (${nomes.map(() => '?').join(',')})`).bind(...nomes).all();
+  const out = {};
+  for (const p of r.results) out[p.username] = { v: p.avatar_em || '', d: p.avatar };
+  return { ok: true, avatares: out };
+}
+
 // ================================================================ ROTEADOR
 async function rotear(request, env) {
   const url = new URL(request.url);
@@ -331,6 +427,13 @@ async function rotear(request, env) {
   if (p === '/api/mural/elogios' && m === 'POST') return json(await criarElogio(env, eu, await corpo(request)), 201);
   if (p === '/api/mural/aniversarios' && m === 'PUT') return json(await salvarAniversarios(env, eu, await corpo(request)));
   if (p === '/api/mural/agenda' && m === 'POST') return json(await criarEvento(env, eu, await corpo(request)), 201);
+  if (p === '/api/mural/avatares' && m === 'GET') return json(await avatares(env, url));
+  if (p === '/api/mural/eu/avatar' && m === 'GET') return json(await meuAvatar(env, eu));
+  if (p === '/api/mural/eu/avatar' && m === 'PUT') return json(await salvarMeuAvatar(env, eu, await corpo(request)));
+  if (p === '/api/mural/perfis' && m === 'GET') { if (!eu.admin) erro('Só o administrador edita a equipe.', 403); return json({ ok: true, perfis: await listarPerfis(env) }); }
+  if (p === '/api/mural/perfis/sincronizar' && m === 'POST') return json(await sincronizarPerfis(env, eu, await corpo(request)));
+  const rp = p.match(/^\/api\/mural\/perfis\/([a-z0-9._-]{2,60})$/);
+  if (rp && m === 'PUT') return json(await salvarPerfil(env, eu, rp[1], await corpo(request)));
 
   let r = p.match(/^\/api\/mural\/recados\/([0-9a-f-]{36})\/(excluir|fixar|curtir|respostas)$/);
   if (r && m === 'POST') {
@@ -364,4 +467,4 @@ export default {
 };
 
 // exportado para testes
-export const _interno = { hojeLocal, somarDias, limitesDoMesUtc, dataValida, limpar, perfil };
+export const _interno = { hojeLocal, somarDias, limitesDoMesUtc, dataValida, limpar, perfil, validarData, validarAvatar, validarUsername };

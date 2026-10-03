@@ -1,5 +1,5 @@
 /* ============================================================================
-   portal.css - Portal Interno vivo (/agf) v1.0.0
+   portal.css - Portal Interno vivo (/agf) v1.1.0
    Layout: modulos em caixinhas (2/3) + coluna da equipe (1/3): Hoje, Mural, Equipe.
    Namespace .pt-* para nao colidir com agf-ui.css nem com o agf.css antigo.
    Classes .card-copy, .card-badge e .card-bottom ficam porque o agf.js
@@ -86,6 +86,8 @@
 .pt-bar .pt-sub{ margin:0; }
 .pt-av{ width:28px; height:28px; border-radius:50%; flex:none; display:grid; place-items:center; color:#FFFFFF; font-weight:700; font-size:11px; background:var(--av, #5C7799); }
 .pt-av--xs{ width:22px; height:22px; font-size:9.5px; }
+img.pt-av{ object-fit:cover; display:block; background:#E4E9F0; }
+a.pt-link{ display:inline-flex; align-items:center; text-decoration:none; }
 
 /* Hoje */
 .pt-bday{ position:relative; overflow:hidden; display:flex; align-items:center; gap:10px; padding:10px; border-radius:var(--pt-r-md); background:color-mix(in srgb, #F2A900 14%, #FFF); border:1px solid color-mix(in srgb, #F2A900 40%, #FFF); margin-bottom:10px; }
@@ -202,10 +204,6 @@
 .pt-drawer__card{ position:absolute; right:0; top:0; bottom:0; width:min(420px,100%); margin:0; background:#FFFFFF; padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px)); overflow:auto; display:flex; flex-direction:column; gap:12px; color:#14324A; }
 .pt-drawer__card h3{ margin:0; font-size:17px; color:#00416B; }
 .pt-drawer__card p{ margin:0; color:#5E7489; font-size:13px; line-height:1.5; }
-.pt-team-head, .pt-team-row{ display:grid; grid-template-columns:minmax(0,1fr) 64px 64px 32px; gap:6px; align-items:center; }
-.pt-team-head{ font-size:11.5px; color:#5E7489; font-weight:600; }
-.pt-team-rows{ display:flex; flex-direction:column; gap:6px; }
-.pt-team-row input{ min-height:36px; border:1px solid #DCE6EF; border-radius:9px; padding:0 9px; min-width:0; width:100%; font-variant-numeric:tabular-nums; font-size:14px; }
 .pt-field{ display:grid; gap:5px; }
 .pt-field span{ font-size:12.5px; font-weight:600; color:#3C5B71; }
 .pt-field input, .pt-field select{ min-height:40px; border:1px solid #CFDEE9; border-radius:10px; padding:0 10px; background:#FFFFFF; font-size:14px; width:100%; }

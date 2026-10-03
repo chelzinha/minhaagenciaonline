@@ -19,3 +19,16 @@ assert.deepEqual(t.perfil({ username: 'ana', role: 'manager' }).admin, false);
 assert.deepEqual(t.perfil({ username: 'leo', role: 'user' }).gestor, false);
 assert.match(t.hojeLocal(), /^\d{4}-\d{2}-\d{2}$/);
 console.log('[mural-api] datas e perfis: ok');
+
+// v1.1.0: perfis
+assert.deepEqual(t.validarData('', ''), { dia: null, mes: null });
+assert.deepEqual(t.validarData(7, 12), { dia: 7, mes: 12 });
+assert.throws(() => t.validarData(31, 4));
+assert.throws(() => t.validarData(5, ''));
+assert.equal(t.validarAvatar(''), '');
+assert.equal(t.validarAvatar('data:image/jpeg;base64,AAAA'), 'data:image/jpeg;base64,AAAA');
+assert.throws(() => t.validarAvatar('data:text/html;base64,AAAA'));
+assert.throws(() => t.validarAvatar('data:image/jpeg;base64,' + 'A'.repeat(70000)));
+assert.equal(t.validarUsername(' Julio '), 'julio');
+assert.throws(() => t.validarUsername('a b'));
+console.log('[mural-api] perfis: ok');

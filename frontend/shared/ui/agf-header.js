@@ -1,9 +1,14 @@
 /* ============================================================================
    agf-header.js - Cabecalho padrao da Plataforma AGF Jose Bonifacio
-   Versao 1.2.0 (pele "Selo solido", opcao C)
+   Versao 1.2.1 (pele "Selo solido", opcao C)
 
    O cabecalho e dado, nao markup. Cada app declara apenas a rota.
    Titulo, titulo curto, icone, cor e visibilidade publica vem do registro.
+
+   Novidades da 1.2.1
+   - Foto do usuario passa a morar no agf-mural-api (D1), a mesma fonte do
+     Portal e de Usuarios internos. O Apps Script segue como copia e como
+     origem de migracao: foto que so existe la e copiada para o D1 no 1o acesso.
 
    Novidades da 1.2.0
    - Menu de aplicativos em ordem fixa (MENU), igual ao Portal Interno.
@@ -29,12 +34,15 @@
 (function (global, document) {
   'use strict';
 
-  var VERSION = '1.2.0';
+  var VERSION = '1.2.1';
   var SUBTITLE = 'AGF José Bonifácio';
   var AVATAR_KEY = 'agf_jb_avatar_v1';            /* mesmo cache usado pelo CRM e pelo Visao 360 */
   var LOGOUT_URL = '/agf/?reason=logout';
   var PASSWORD_URL = '/agf/?reason=password-changed';
   var ROLE_LABELS = { admin: 'Administrador', manager: 'Gestor', user: 'Usuário' };
+  /* Fonte da foto do usuario (Worker agf-mural-api). Local usa o wrangler dev. */
+  var MURAL_API = (global.AGF_MURAL_CONFIG && global.AGF_MURAL_CONFIG.apiUrl) ||
+    (/^(localhost|127\.0\.0\.1)$/.test(global.location.hostname) ? 'http://127.0.0.1:8787' : 'https://agf-mural-api.chelzinha.workers.dev');
 
   /* =========================================================== 1. ROTAS ===
      Fonte unica da verdade. roles/app espelham o AGF_ACCESS de cada pagina
@@ -240,6 +248,21 @@
     });
   }
 
+  function muralFetch(method, path, body) {
+    var tk = token();
+    if (!tk) return Promise.reject(new Error('Sem sessão.'));
+    return fetch(String(MURAL_API).replace(/\/+$/, '') + path, {
+      method: method,
+      headers: { 'Authorization': 'Bearer ' + tk, 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok || d.ok === false) throw new Error(d.error || 'Não foi possível concluir a operação.');
+        return d;
+      });
+    });
+  }
+
   /* ========================================================= 5. COMPONENTE */
   var state = {
     el: null, cfg: null, route: null, def: null, user: null,
@@ -367,18 +390,27 @@
     refreshAvatar();
   }
 
-  /* Busca a foto no servidor uma vez por usuario e atualiza as <img> no lugar. */
+  /* Busca a foto uma vez por usuario: primeiro no agf-mural-api (fonte unica);
+     sem foto la, procura no Apps Script e, se achar, copia para o D1 (migracao). */
   function refreshAvatar() {
     var user = state.user;
     if (!user || user.photo || !user.username) return;
     if (state.avatarFetched === user.username) return;
-    var tk = token();
-    if (!tk) return;
+    if (!token()) return;
     state.avatarFetched = user.username;
-    authPost('getMyAvatar', { token: tk }).then(function (d) {
-      var data = (d && d.avatar) || '';
-      cacheAvatar(user, data);
-      paintAvatar(data);
+    function aplicar(data) { cacheAvatar(user, data); paintAvatar(data); }
+    function doAppsScript(migrar) {
+      return authPost('getMyAvatar', { token: token() }).then(function (d) {
+        var data = (d && d.avatar) || '';
+        aplicar(data);
+        if (migrar && data) muralFetch('PUT', '/api/mural/eu/avatar', { avatar: data, origem: 'migracao' }).catch(function () {});
+      });
+    }
+    muralFetch('GET', '/api/mural/eu/avatar').then(function (d) {
+      if (d && d.avatar) aplicar(d.avatar);
+      else return doAppsScript(true);
+    }).catch(function () {
+      return doAppsScript(false);
     }).catch(function () { /* sem foto: segue o avatar generico */ });
   }
 
@@ -516,10 +548,18 @@
             var user = state.user;
             toast('Enviando foto…');
             AgfHeader.loading.start();
-            authPost('uploadMyAvatar', { token: token(), avatarData: data })
-              .then(function () { cacheAvatar(user, data); paintAvatar(data); toast('Foto atualizada.'); })
-              .catch(function (err) { toast(err.message || 'Não foi possível atualizar a foto.', true); })
-              .then(function () { AgfHeader.loading.done(); });
+            /* Grava no agf-mural-api (fonte unica) e mantem a copia no Apps Script.
+               Basta um dos dois dar certo para a foto aparecer. */
+            var mural = muralFetch('PUT', '/api/mural/eu/avatar', { avatar: data }).then(function () { return true; }, function (e) { return e; });
+            var apps = authPost('uploadMyAvatar', { token: token(), avatarData: data }).then(function () { return true; }, function (e) { return e; });
+            Promise.all([mural, apps]).then(function (res) {
+              if (res[0] === true || res[1] === true) {
+                cacheAvatar(user, data); paintAvatar(data); toast('Foto atualizada.');
+                try { global.dispatchEvent(new CustomEvent('agf:avatar-changed', { detail: { username: user.username } })); } catch (e) {}
+              } else {
+                toast((res[0] && res[0].message) || 'Não foi possível atualizar a foto.', true);
+              }
+            }).then(function () { AgfHeader.loading.done(); });
           } catch (e) { toast('Não foi possível processar a imagem.', true); }
           finally { URL.revokeObjectURL(img.src); }
         };
