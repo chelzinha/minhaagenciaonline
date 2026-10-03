@@ -237,6 +237,7 @@ button:disabled { cursor: not-allowed; }
   text-decoration: none; font: 700 15px var(--agf-marca-fonte-titulo); white-space: nowrap;
 }
 .sm-cta:hover { background: #0A2649; }
+.sm-cta .ic { width: 20px; height: 20px; }
 .sm-wa { width: 28px; height: 28px; border-radius: 50%; background: var(--agf-marca-branco); display: grid; place-items: center; flex: none; }
 .sm-wa i { width: 17px; height: 17px; background: #25D366; -webkit-mask: url(/assets/whatsapp.svg) center / contain no-repeat; mask: url(/assets/whatsapp.svg) center / contain no-repeat; }
 

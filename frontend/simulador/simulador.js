@@ -10,7 +10,6 @@
   var API = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
     ? 'http://127.0.0.1:8787/api/simulador'
     : 'https://agf-balcao-api.chelzinha.workers.dev/api/simulador';
-  var WHATSAPP = '5585920023386';
   var ORDEM_TIPOS = ['RMF', 'CAPITAL', 'POLO', 'MEDIA', 'CE_POLO', 'DIVISA', 'INTERIOR', 'CE_INT'];
   var ROTULO_CURTO = { RMF: 'Região metropolitana', CAPITAL: 'Capital', POLO: 'Cidade polo', MEDIA: 'Cidade média', CE_POLO: 'Cidade polo', DIVISA: 'Mossoró', INTERIOR: 'Interior', CE_INT: 'Interior' };
   var NOMES_UF = { AC: 'Acre', AL: 'Alagoas', AP: 'Amapá', AM: 'Amazonas', BA: 'Bahia', CE: 'Ceará', DF: 'Distrito Federal', ES: 'Espírito Santo', GO: 'Goiás', MA: 'Maranhão', MT: 'Mato Grosso', MS: 'Mato Grosso do Sul', MG: 'Minas Gerais', PA: 'Pará', PB: 'Paraíba', PR: 'Paraná', PE: 'Pernambuco', PI: 'Piauí', RJ: 'Rio de Janeiro', RN: 'Rio Grande do Norte', RS: 'Rio Grande do Sul', RO: 'Rondônia', RR: 'Roraima', SC: 'Santa Catarina', SP: 'São Paulo', SE: 'Sergipe', TO: 'Tocantins' };
@@ -36,6 +35,9 @@
 
   // ---------------------------------------------------------------- estado
   var S = { cx: 'T2', p: 1000, uf: 'SP', tipo: 'CAPITAL', serv: 'SEDEX', regra: 'PESO', modo: 'cap', cidade: '' };
+  var CHAVE_SESSAO = 'agf_simulador_v1';
+  try { var salvo = JSON.parse(sessionStorage.getItem(CHAVE_SESSAO) || 'null'); if (salvo && salvo.cx) Object.assign(S, salvo); } catch (e) { /* sem sessão */ }
+  function guardar() { try { sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(S)); } catch (e) { /* sem sessão */ } }
   var CFG = null;           // { ufs, caixas, pesos, vigencia }
   var PRECOS = new Map();   // c|l|a|p -> dados
   var atual = null;         // preços da embalagem atual
@@ -189,9 +191,8 @@
       box.hidden = false;
       $('barra').innerHTML = '<span>' + esc(nomes[0]) + '<br><b class="num">' + brl(m) + '</b></span><em class="num">-' + Math.round((1 - m / v.AVISTA) * 100) + '%</em>';
       $('barra').hidden = resultadoVisivel;
-      var txt = 'Olá! Fiz uma simulação de frete no site: ' + (S.serv === 'MINI' ? 'Mini Envios' : S.serv) + ', ' + (cx.destaque ? 'caixa Mini Envios' : 'caixa ' + cx.nome) + ', ' + kg(S.p) +
-        ', de Fortaleza para ' + (S.cidade ? S.cidade + '/' : '') + S.uf + ' (' + ROTULO_CURTO[S.tipo] + '). Quero conhecer as condições do ' + nomes[0] + '.';
-      $('cta').href = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(txt);
+      var melhorK = v.PLATINUM === m ? 'platinum' : (v.CLUBE === m ? 'clube' : 'app');
+      $('cta').href = '/simulador/opcoes/#' + melhorK;
     } else {
       box.hidden = true;
       $('barra').hidden = true;
@@ -207,6 +208,7 @@
   }
 
   function renderTudo() {
+    guardar();
     renderPerfis(); renderCaixas(); renderPesos(); renderServico(); renderTipos();
     if (atual) renderMapa();
     renderResultado();
@@ -301,8 +303,14 @@
     carregandoResultado();
     try {
       CFG = await api('/config');
-      if (!CFG.ufs[S.uf]) S.uf = Object.keys(CFG.ufs)[0];
-      S.tipo = tipoPadrao(S.uf, 'cap');
+      if (!CFG.ufs[S.uf]) { S.uf = Object.keys(CFG.ufs)[0]; S.tipo = ''; }
+      if (!CFG.ufs[S.uf][S.tipo]) { S.tipo = tipoPadrao(S.uf, 'cap'); S.cidade = ''; }
+      if (!caixa(S.cx)) S.cx = 'T2';
+      if (CFG.pesos.indexOf(S.p) < 0) S.p = 1000;
+      if (S.serv === 'MINI' && S.cx !== 'MINI') S.serv = 'PAC';
+      pressionar($('regra'), $('regra').querySelector('[data-v="' + S.regra + '"]') || $('regra').querySelector('button'));
+      pressionar($('mapModo'), $('mapModo').querySelector('[data-v="' + S.modo + '"]') || $('mapModo').querySelector('button'));
+      if (S.cidade) { $('cepMsg').className = 'sm-cep-msg ok'; $('cepMsg').innerHTML = ic('ok') + esc(S.cidade + ' / ' + S.uf); $('cepMsg').hidden = false; }
       await atualizarPrecos();
     } catch (e) {
       $('opcoes').innerHTML = '<div class="sm-aviso" role="alert">' + ic('alerta') + '<span>' + esc(e.message) + '</span><button type="button" id="recarregar">Tentar de novo</button></div>';
