@@ -9,13 +9,25 @@
  *   GET  /api/balcao/cep?cep=         sessao
  *   POST /api/balcao/cotar            sessao  { cepOrigem, cepDestino, tipoObjeto, pesoG, ... }
  *   POST /api/balcao/rascunhos        sessao  { entrada, opcao, ficha }
+ *   GET  /api/balcao/etiquetas?local= sessao  fila do dia (etiquetas digitadas pelo cliente)
+ *   POST /api/balcao/etiquetas/status sessao  { id, status, sro? }
+ *
+ * Rotas públicas do /postar (sem login, com limite por IP):
+ *   GET  /api/balcao/publico/config
+ *   GET  /api/balcao/publico/cep?cep=
+ *   POST /api/balcao/publico/cotar     { cepDestino, pesoG, alturaCm?, larguraCm?, comprimentoCm? }
+ *   POST /api/balcao/publico/etiquetas { local, servico, cotacao, remetente, destinatario, aceite }
+ *
+ * Agendamento diário: expira etiquetas de dias anteriores e apaga dados com mais de 30 dias.
  */
 import { cotar } from './cotacao.js';
 import { buscarCep } from './cep/cep.js';
 import { carregarBase, PRECO_VERSAO } from './preco/preco-avista.js';
 import { prazoConfigurado } from './prazo/prazo-correios.js';
+import { salvarEtiquetaCliente, listarEtiquetas, mudarStatus, limpezaDiaria, LOCAIS } from './etiqueta/etiquetas.js';
+import { hashIp, conferirLimite } from './limites.js';
 
-const VERSAO = '2.0.0';
+const VERSAO = '2.1.0';
 
 // ---------------------------------------------------------------- http
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'cache-control': 'no-store' } });
@@ -123,12 +135,47 @@ async function salvarRascunho(env, usuario, p) {
   return { id, message: 'Rascunho salvo.' };
 }
 
+/** Tipo do objeto aceito no /postar (o rolo cobra manuseio especial). */
+export const tipoPublico = (v) => (['PACOTE', 'ENVELOPE', 'ROLO'].includes(String(v || '').toUpperCase()) ? String(v).toUpperCase() : 'PACOTE');
+
+/** Rotas do /postar: sem login. Origem fixa da agência; o preço sempre é recalculado no servidor. */
+async function rotearPublico(request, env, url, rota) {
+  const ip = await hashIp(request, env);
+  if (request.method === 'GET' && rota === '/api/balcao/publico/config') {
+    const base = await carregarBase(env.DB);
+    return json({ ok: true, data: { versao: VERSAO, vigencia: base.vigencia, locais: LOCAIS, prazoConfigurado: prazoConfigurado(env) } });
+  }
+  if (request.method === 'GET' && rota === '/api/balcao/publico/cep') {
+    await conferirLimite(env, 'cep', ip);
+    return json({ ok: true, data: await buscarCep(env, url.searchParams.get('cep')) });
+  }
+  if (request.method === 'POST' && rota === '/api/balcao/publico/cotar') {
+    await conferirLimite(env, 'cotar', ip);
+    const p = await corpo(request);
+    const r = await cotar(env, {
+      cepOrigem: env.CEP_ORIGEM_PADRAO || '60055974', cepDestino: p.cepDestino, tipoObjeto: tipoPublico(p.tipoObjeto),
+      pesoG: p.pesoG, alturaCm: p.alturaCm, larguraCm: p.larguraCm, comprimentoCm: p.comprimentoCm,
+    }, { exigirDimensoes: false });
+    return json({ ok: true, data: { destino: { cidade: r.destino.municipio, uf: r.destino.uf, cep: r.destino.cep }, pesoTarifadoG: r.entrada.pesoTarifadoG,
+      opcoes: r.opcoes.map((o) => ({ ok: o.ok, codigoServico: o.codigoServico, nome: o.nome, total: o.total, prazoDias: o.prazoDias, erro: o.erro })) } });
+  }
+  if (request.method === 'POST' && rota === '/api/balcao/publico/etiquetas') {
+    await conferirLimite(env, 'salvar', ip);
+    return json({ ok: true, data: await salvarEtiquetaCliente(env, await corpo(request), ip) });
+  }
+  return erro('Rota não encontrada.', 404);
+}
+
 async function rotear(request, env) {
   const url = new URL(request.url);
   const rota = url.pathname.replace(/\/+$/, '');
   if (request.method === 'GET' && rota === '/api/balcao/saude') return json(await saude(env));
 
+  if (rota.startsWith('/api/balcao/publico/')) return rotearPublico(request, env, url, rota);
+
   const usuario = await exigirBalcao(request, env);
+  if (request.method === 'GET' && rota === '/api/balcao/etiquetas') return json({ ok: true, data: await listarEtiquetas(env, url.searchParams.get('local')) });
+  if (request.method === 'POST' && rota === '/api/balcao/etiquetas/status') return json({ ok: true, data: await mudarStatus(env, usuario, await corpo(request)) });
   if (request.method === 'GET' && rota === '/api/balcao/config') return json({ ok: true, data: await config(env) });
   if (request.method === 'GET' && rota === '/api/balcao/cep') return json({ ok: true, data: await buscarCep(env, url.searchParams.get('cep')) });
   if (request.method === 'POST' && rota === '/api/balcao/cotar') {
@@ -151,8 +198,11 @@ export default {
     } catch (e) {
       const status = e.status && e.status >= 400 && e.status < 600 ? e.status : 500;
       if (status >= 500) console.error('[BALCAO][erro]', e.stack || e.message);
-      resp = json({ ok: false, erro: status === 500 ? 'Erro interno ao calcular. Tente de novo.' : e.message }, status);
+      resp = json({ ok: false, erro: status === 500 ? 'Erro interno. Tente de novo.' : e.message, campos: e.campos, campo: e.campo, etiqueta: e.etiqueta }, status);
     }
     return comCors(resp, request, env);
+  },
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(limpezaDiaria(env).catch((e) => console.error('[BALCAO][limpeza] falhou:', e.message)));
   },
 };

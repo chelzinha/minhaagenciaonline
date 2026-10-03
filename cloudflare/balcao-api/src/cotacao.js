@@ -21,7 +21,11 @@ async function resolverPonto(env, cep, rotulo) {
   return r;
 }
 
-export async function cotar(env, p) {
+/**
+ * config.exigirDimensoes: false no /postar (o cliente pode não saber as medidas; o atendente confere no balcão).
+ */
+export async function cotar(env, p, config = {}) {
+  const exigirDimensoes = config.exigirDimensoes !== false;
   const tipoObjeto = String(p.tipoObjeto || 'PACOTE').toUpperCase();
   const entrada = {
     tipoObjeto,
@@ -30,7 +34,7 @@ export async function cotar(env, p) {
     valorDeclarado: Math.max(0, num(p.valorDeclarado)), ar: sim(p.ar), maoPropria: sim(p.maoPropria),
   };
   if (entrada.pesoG <= 0) erro('Informe o peso em gramas.');
-  if (tipoObjeto === 'PACOTE' && !(entrada.alturaCm > 0 && entrada.larguraCm > 0 && entrada.comprimentoCm > 0)) erro('Informe altura, largura e comprimento.');
+  if (exigirDimensoes && tipoObjeto === 'PACOTE' && !(entrada.alturaCm > 0 && entrada.larguraCm > 0 && entrada.comprimentoCm > 0)) erro('Informe altura, largura e comprimento.');
 
   const [base, origem, destino] = await Promise.all([
     carregarBase(env.DB),

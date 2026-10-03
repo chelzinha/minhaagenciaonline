@@ -47,6 +47,9 @@ const BalcaoApi = (function () {
     config: () => call('/config'),
     cep: (cep) => call('/cep?cep=' + encodeURIComponent(String(cep || '').replace(/\D/g, ''))),
     cotar: (payload) => call('/cotar', { method: 'POST', body: { payload: payload }, timeoutMs: 45000 }),
-    salvarRascunho: (payload) => call('/rascunhos', { method: 'POST', body: { payload: payload } })
+    salvarRascunho: (payload) => call('/rascunhos', { method: 'POST', body: { payload: payload } }),
+    // Etiquetas geradas pelo cliente no /postar (fila do dia por local)
+    etiquetas: (local) => call('/etiquetas?local=' + encodeURIComponent(local || 'AGF'), { timeoutMs: 15000 }),
+    mudarStatus: (p) => call('/etiquetas/status', { method: 'POST', body: p })
   };
 })();
