@@ -45,6 +45,7 @@ body {
   font-family: var(--agf-marca-fonte-texto); font-size: 15px; line-height: 1.45;
   -webkit-font-smoothing: antialiased; padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+[hidden] { display: none !important; }
 button { font: inherit; color: inherit; cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 :focus-visible { outline: none; box-shadow: var(--agf-marca-foco); }
@@ -121,6 +122,44 @@ button:disabled { cursor: not-allowed; }
 
 .sm-pesos { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
 .sm-pesos .sm-op { min-height: 38px; font: 700 15px/1 var(--agf-marca-fonte-titulo); color: var(--agf-marca-azul-profundo); }
+
+/* ---------- medidas e peso digitados ---------- */
+.sm-passo-h { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
+.sm-digitar {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 26px; margin-block: -3px; padding: 0 9px; border-radius: 999px;
+  border: 1.5px solid var(--agf-marca-cinza-100); background: var(--agf-marca-branco);
+  font: 600 12.5px var(--agf-marca-fonte-texto); color: var(--agf-marca-azul);
+}
+.sm-digitar:hover { border-color: var(--agf-marca-azul); }
+.sm-digitar .ic { width: 15px; height: 15px; }
+.sm-digitar[aria-pressed="true"] { color: var(--agf-marca-azul-profundo); background: var(--agf-marca-cinza-50); }
+.sm-livre {
+  display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; padding: 6px 10px 8px;
+  border: 1.5px solid var(--agf-marca-azul-profundo); border-radius: 12px; background: var(--agf-marca-azul-fundo);
+}
+.sm-livre-peso { padding: 0; border: 0; background: transparent; align-items: center; }
+.sm-livre-peso .sm-seg { align-self: center; }
+.sm-livre-cx { width: 64px; height: 44px; flex: none; display: grid; place-items: center; }
+.sm-livre-cx svg { width: 64px; height: 44px; overflow: visible; }
+.sm-campo { display: grid; gap: 3px; flex: 1 1 90px; min-width: 0; }
+.sm-campo > span:first-child { font: 600 11.5px/1.2 var(--agf-marca-fonte-texto); color: var(--agf-marca-azul-profundo); }
+.sm-campo-in {
+  display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px;
+  border: 1.5px solid var(--agf-marca-cinza-400); border-radius: var(--agf-marca-raio-sm); background: var(--agf-marca-branco);
+}
+.sm-campo-in:focus-within { border-color: var(--agf-marca-azul); box-shadow: 0 0 0 3px var(--agf-marca-azul-fundo); }
+.sm-campo-in.erro { border-color: var(--agf-marca-vermelho-tinta); }
+.sm-campo input:focus-visible { box-shadow: none; }
+.sm-campo input { border: 0; outline: 0; width: 100%; min-width: 0; background: transparent; font: 600 16px var(--agf-marca-fonte-texto); color: var(--agf-marca-azul-profundo); font-variant-numeric: tabular-nums; }
+.sm-campo i { font-style: normal; font-size: 13px; color: var(--agf-marca-cinza-500); }
+.sm-campo-peso { flex: 0 1 180px; }
+.sm-x { align-self: flex-end; line-height: 44px; font-weight: 700; color: var(--agf-marca-cinza-500); }
+.sm-livre .sm-seg { align-self: flex-end; background: var(--agf-marca-branco); }
+.sm-livre-msg { margin: -2px 0 0; display: grid; gap: 4px; }
+.sm-livre-msg span { display: flex; align-items: flex-start; gap: 6px; font-size: 12.5px; line-height: 1.35; padding: 6px 10px; border-radius: var(--agf-marca-raio-sm); }
+.sm-livre-msg .erro { color: var(--agf-marca-vermelho-tinta); background: var(--agf-marca-vermelho-fundo); font-weight: 600; }
+.sm-livre-msg .aviso { color: var(--agf-marca-coral-tinta); background: #FFF1E6; }
+.sm-livre-msg .ic { width: 16px; height: 16px; flex: none; margin-top: 1px; }
 
 /* ---------- destino: CEP, mapa e tipos de cidade ---------- */
 .sm-destino-h { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; }
@@ -284,6 +323,10 @@ button:disabled { cursor: not-allowed; }
   .sm-passo h2 { font-size: 15px; }
 }
 @media (min-width: 1100px) and (max-height: 720px) {
+  .sm-campo-in { min-height: 38px; }
+  .sm-x { line-height: 38px; }
+  .sm-livre-cx, .sm-livre-cx svg { height: 36px; }
+  .sm-campo { gap: 1px; }
   .sm-app { padding-top: 10px; padding-bottom: 8px; gap: 10px 24px; }
   .sm-res, .sm-destino { padding-top: 10px; padding-bottom: 10px; }
   .sm-passos { gap: 8px; }
@@ -301,6 +344,9 @@ button:disabled { cursor: not-allowed; }
   .sm-destino-corpo { grid-template-columns: auto minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
+  .sm-livre-cx { display: none; }
+  .sm-x { display: none; }
+  .sm-livre .sm-campo { flex: 1 1 28%; }
   .sm-top-in { padding: 8px 16px; gap: 12px; }
   .sm-marca-txt strong { font-size: 15px; }
   .sm-marca-ic { width: 38px; height: 38px; }

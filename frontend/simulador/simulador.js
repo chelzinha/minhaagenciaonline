@@ -24,7 +24,15 @@
     clube: '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/>',
     app: '<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>',
     ok: '<path d="M20 6 9 17l-5-5"/>',
+    lapis: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+    grade: '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
     alerta: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>'
+  };
+  // Limites dos Correios para SEDEX e PAC (contrato, Clube, balcão e App) e para o Mini Envios
+  var LIM = {
+    ladoMax: 100, somaMax: 200, pesoMax: 30000, minimo: [11, 6, 0.4],
+    mini: [24, 16, 4], miniPesoTabela: 300, miniPesoMax: 1000,
+    manuseio: 70, cubContrato: 6000, cubApp: 7000, isencaoCub: 5000
   };
   var PERFIS = [
     { k: 'env', nome: 'Envelope', ic: 'envelope', cx: 'MINI', p: 300 },
@@ -34,7 +42,8 @@
   ];
 
   // ---------------------------------------------------------------- estado
-  var S = { cx: 'T2', p: 1000, uf: 'SP', tipo: 'CAPITAL', serv: 'SEDEX', regra: 'PESO', modo: 'cap', cidade: '' };
+  var S = { cx: 'T2', p: 1000, uf: 'SP', tipo: 'CAPITAL', serv: 'SEDEX', regra: 'PESO', modo: 'cap', cidade: '',
+    medLivre: false, med: [27, 18, 9], pesoLivre: false, unidade: 'kg' };
   var CHAVE_SESSAO = 'agf_simulador_v1';
   try { var salvo = JSON.parse(sessionStorage.getItem(CHAVE_SESSAO) || 'null'); if (salvo && salvo.cx) Object.assign(S, salvo); } catch (e) { /* sem sessão */ }
   function guardar() { try { sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(S)); } catch (e) { /* sem sessão */ } }
@@ -48,9 +57,42 @@
   var $ = function (id) { return document.getElementById(id); };
   function ic(nome, cls) { return '<svg class="ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + IC[nome] + '</svg>'; }
   function brl(v) { return v == null ? '-' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
-  function kg(g) { return g < 1000 ? g + ' g' : (g / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' kg'; }
+  function kg(g) { return g < 1000 ? Math.round(g) + ' g' : (g / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 3 }) + ' kg'; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function caixa(cod) { return CFG.caixas.find(function (c) { return c.codigo === cod; }); }
+  /** Embalagem em uso: uma das caixas padrão ou as medidas digitadas. */
+  function caixaAtual() {
+    if (S.medLivre) return { codigo: 'LIVRE', nome: 'Sua caixa', medidas: S.med };
+    return caixa(S.cx) || caixa('T2');
+  }
+  function numBR(v) { var n = Number(String(v == null ? '' : v).trim().replace(/\./g, '').replace(',', '.')); return isFinite(n) ? n : NaN; }
+  function numTxt(n) { return String(Math.round(n * 10) / 10).replace('.', ','); }
+  function ordenadas(m) { return m.slice().sort(function (a, b) { return b - a; }); }
+  function cabeMini(m) { var o = ordenadas(m); return o[0] <= LIM.mini[0] && o[1] <= LIM.mini[1] && o[2] <= LIM.mini[2]; }
+  function miniPossivel() { return cabeMini(caixaAtual().medidas) && S.p <= LIM.miniPesoMax; }
+
+  /** Confere medidas e peso contra os limites de cada tipo de envio. erros bloqueiam a simulação; avisos não. */
+  function conferirLimites() {
+    var m = caixaAtual().medidas, o = ordenadas(m), soma = m[0] + m[1] + m[2];
+    var med = { erros: [], avisos: [] }, peso = { erros: [], avisos: [] };
+    if (m.some(function (v) { return !(v > 0); })) med.erros.push('Informe comprimento, largura e altura em centímetros.');
+    else {
+      if (o[0] > LIM.ladoMax) med.erros.push('Lado de ' + numTxt(o[0]) + ' cm: SEDEX e PAC aceitam até ' + LIM.ladoMax + ' cm em cada lado.');
+      if (soma > LIM.somaMax) med.erros.push('Soma das medidas de ' + numTxt(soma) + ' cm: SEDEX e PAC aceitam até ' + LIM.somaMax + ' cm (C + L + A).');
+      if (o[0] < LIM.minimo[0] || o[1] < LIM.minimo[1] || o[2] < LIM.minimo[2]) med.erros.push('Menor que o mínimo aceito para caixa: 11 x 6 x 0,4 cm.');
+      if (!med.erros.length) {
+        var cub6 = (m[0] * m[1] * m[2]) / LIM.cubContrato * 1000, cub7 = (m[0] * m[1] * m[2]) / LIM.cubApp * 1000;
+        if (cub7 > LIM.pesoMax) med.erros.push('Pelo tamanho, a caixa é cobrada como mais de 30 kg em todas as opções (' + numTxt(cub6 / 1000) + ' kg no contrato e no balcão, ' + numTxt(cub7 / 1000) + ' kg no App). Use uma caixa menor.');
+        else if (cub6 > LIM.pesoMax) med.avisos.push('Pelo tamanho, a caixa é cobrada como ' + numTxt(cub6 / 1000) + ' kg no balcão, no Platinum e no Clube Correios: acima do limite de 30 kg. Só o Correios App aceita.');
+        if (o[0] > LIM.manuseio) med.avisos.push('Lado acima de ' + LIM.manuseio + ' cm: soma a taxa de manuseio especial.');
+        if (S.medLivre && !cabeMini(m) && o[0] <= 30 && o[2] <= 8) med.avisos.push('Não cabe no Mini Envios: máximo de 24 x 16 x 4 cm.');
+      }
+    }
+    if (!(S.p > 0)) peso.erros.push('Informe o peso.');
+    else if (S.p > LIM.pesoMax) peso.erros.push('Peso de ' + kg(S.p) + ': SEDEX e PAC aceitam até 30 kg.');
+    else if (caixaAtual().codigo === 'MINI' && S.p > LIM.miniPesoMax) peso.erros.push('A caixa Mini Envios aceita até 1 kg. Escolha outra embalagem.');
+    return { med: med, peso: peso, ok: !med.erros.length && !peso.erros.length };
+  }
   function vol(c) { return c.medidas[0] * c.medidas[1] * c.medidas[2]; }
   function nomeCaixa(c) { return c.destaque ? 'Caixa' : c.nome; }
   function medidasTxt(m) { return m.map(function (v) { return String(v).replace('.', ','); }).join(' x '); }
@@ -101,7 +143,7 @@
   }
   function renderPerfis() {
     $('perfil').innerHTML = PERFIS.map(function (f) {
-      var on = S.cx === f.cx && S.p === f.p;
+      var on = !S.medLivre && S.cx === f.cx && S.p === f.p;
       return '<button type="button" class="sm-op" data-k="' + f.k + '" aria-pressed="' + on + '">' + ic(f.ic) + '<b>' + f.nome + '</b></button>';
     }).join('');
   }
@@ -114,12 +156,50 @@
     }).join('');
   }
   function renderPesos() {
-    var cx = caixa(S.cx);
+    var cx = caixaAtual();
     $('pesos').innerHTML = CFG.pesos.map(function (p) {
       var bloqueado = cx.pesoMaxG && p > cx.pesoMaxG;
-      return '<button type="button" class="sm-op num" data-p="' + p + '" aria-pressed="' + (S.p === p) + '"' + (bloqueado ? ' disabled' : '') + '>' + kg(p) + '</button>';
+      return '<button type="button" class="sm-op num" data-p="' + p + '" aria-pressed="' + (!S.pesoLivre && S.p === p) + '"' + (bloqueado ? ' disabled' : '') + '>' + kg(p) + '</button>';
     }).join('');
   }
+  /** Mostra caixas ou campos de medida, pesos ou campo de peso, e os alertas de limite. */
+  function renderLivres(lim) {
+    $('caixas').hidden = S.medLivre; $('medidas').hidden = !S.medLivre;
+    $('pesos').hidden = S.pesoLivre; $('pesoLivre').hidden = !S.pesoLivre;
+    var bm = $('digitarMed'), bp = $('digitarPeso');
+    bm.setAttribute('aria-pressed', String(S.medLivre));
+    bm.innerHTML = S.medLivre ? ic('grade') + 'Caixas padrão' : ic('lapis') + 'Digitar medidas';
+    bp.setAttribute('aria-pressed', String(S.pesoLivre));
+    bp.innerHTML = S.pesoLivre ? ic('grade') + 'Pesos padrão' : ic('lapis') + 'Digitar peso';
+    if (S.medLivre) {
+      var o = S.med;
+      $('medPrevia').innerHTML = o.every(function (v) { return v > 0; }) ? caixaSvg(escalaPrevia(o)) : '';
+    }
+    $('pesoUnTxt').textContent = S.unidade === 'g' ? 'g' : 'kg';
+    $('pesoUn').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.v === S.unidade)); });
+    mostrarAlertas($('medMsg'), lim.med);
+    mostrarAlertas($('pesoMsg'), lim.peso);
+    ['medC', 'medL', 'medA'].forEach(function (id, i) {
+      $(id).parentNode.classList.toggle('erro', S.medLivre && lim.med.erros.length > 0 && (!(S.med[i] > 0) || S.med[i] > LIM.ladoMax || lim.med.erros.some(function (t) { return /Soma|mínimo/.test(t); })));
+    });
+    $('pesoV').parentNode.classList.toggle('erro', S.pesoLivre && lim.peso.erros.length > 0);
+  }
+  function mostrarAlertas(el, a) {
+    var linhas = a.erros.map(function (t) { return '<span class="erro">' + ic('alerta') + esc(t) + '</span>'; })
+      .concat(a.avisos.map(function (t) { return '<span class="aviso">' + ic('alerta') + esc(t) + '</span>'; }));
+    el.innerHTML = linhas.join('');
+    el.hidden = !linhas.length;
+  }
+  /** Reduz a caixa digitada para caber no desenho (até 100 cm de lado). */
+  function escalaPrevia(m) {
+    var f = Math.min(1, 50 / (m[0] + m[1] * 0.5), 34 / (m[2] + m[1] * 0.3));
+    return m.map(function (v) { return v * f; });
+  }
+  function preencherCampos() {
+    $('medC').value = numTxt(S.med[0]); $('medL').value = numTxt(S.med[1]); $('medA').value = numTxt(S.med[2]);
+    $('pesoV').value = S.unidade === 'g' ? String(Math.round(S.p)) : numTxt3(S.p / 1000);
+  }
+  function numTxt3(n) { return String(Math.round(n * 1000) / 1000).replace('.', ','); }
   function renderMapa() {
     var vals = Object.keys(GRADE).map(function (uf) { var v = valores((CFG.ufs[uf][tipoPadrao(uf, S.modo)] || {}).zona); return v ? menor(v) : null; });
     var ord = vals.filter(function (v) { return v != null; }).sort(function (a, b) { return a - b; });
@@ -140,7 +220,7 @@
     }).join('');
   }
   function renderServico() {
-    var mini = S.cx === 'MINI';
+    var mini = miniPossivel();
     $('servico').querySelectorAll('button').forEach(function (b) {
       if (b.dataset.v === 'MINI') b.disabled = !mini;
       b.setAttribute('aria-pressed', String(b.dataset.v === S.serv));
@@ -150,12 +230,12 @@
   // ---------------------------------------------------------------- render: resultado
   function renderResultado() {
     var g = (CFG.ufs[S.uf] || {})[S.tipo];
-    var cx = caixa(S.cx);
+    var cx = caixaAtual();
     $('destNome').textContent = S.cidade || (g ? ROTULO_CURTO[S.tipo] : '-');
     var rotulo = ROTULO_CURTO[S.tipo];
     if (S.tipo === 'CAPITAL' && S.cidade && g && g.ex[0] && g.ex[0].toLowerCase() !== S.cidade.toLowerCase()) rotulo = 'Região metropolitana';
     $('destUf').textContent = S.cidade ? S.uf + ' · ' + rotulo : S.uf;
-    $('meta').textContent = (S.serv === 'MINI' ? 'Mini Envios' : S.serv) + ' · ' + (cx.destaque ? 'Caixa Mini Envios' : cx.nome) + ' (' + medidasTxt(cx.medidas) + ' cm) · ' + kg(S.p);
+    $('meta').textContent = (S.serv === 'MINI' ? 'Mini Envios' : S.serv) + ' · ' + (cx.destaque ? 'Caixa Mini Envios' : cx.nome) + ' (' + medidasTxt(cx.medidas.map(function (v) { return Math.round(v * 10) / 10; })) + ' cm) · ' + kg(S.p);
     if (!atual || !g) return;
     var v = valores(g.zona);
     var m = menor(v);
@@ -203,6 +283,10 @@
     }
   }
 
+  function foraDoLimite() {
+    $('economia').hidden = true; $('barra').hidden = true;
+    $('opcoes').innerHTML = '<div class="sm-aviso" role="alert">' + ic('alerta') + '<span>Ajuste as medidas ou o peso para simular. Veja o alerta acima.</span></div>';
+  }
   function carregandoResultado() {
     $('opcoes').innerHTML = '<div class="sm-carregando" aria-label="Calculando"><i></i><i></i><i></i><i></i></div>';
   }
@@ -212,17 +296,21 @@
   }
 
   function renderTudo() {
+    if (S.serv === 'MINI' && !miniPossivel()) S.serv = 'PAC';
     guardar();
-    renderPerfis(); renderCaixas(); renderPesos(); renderServico(); renderTipos();
+    var lim = conferirLimites();
+    renderPerfis(); renderCaixas(); renderPesos(); renderLivres(lim); renderServico(); renderTipos();
     if (atual) renderMapa();
     renderResultado();
+    return lim;
   }
 
   // ---------------------------------------------------------------- dados
   async function atualizarPrecos() {
-    var cx = caixa(S.cx), m = cx.medidas;
+    var m = caixaAtual().medidas;
     var chave = m.join('|') + '|' + S.p;
     var meu = ++pedido;
+    if (!conferirLimites().ok) { atual = null; renderTudo(); foraDoLimite(); return; }
     if (PRECOS.has(chave)) { atual = PRECOS.get(chave); renderTudo(); return; }
     renderTudo(); carregandoResultado();
     try {
@@ -266,7 +354,7 @@
     var grupo = b.parentNode;
     if (grupo.id === 'perfil') {
       var f = PERFIS.find(function (x) { return x.k === b.dataset.k; });
-      S.cx = f.cx; S.p = f.p; S.serv = f.cx === 'MINI' ? 'MINI' : (S.serv === 'MINI' ? 'PAC' : S.serv);
+      S.cx = f.cx; S.p = f.p; S.medLivre = false; S.pesoLivre = false; S.serv = f.cx === 'MINI' ? 'MINI' : (S.serv === 'MINI' ? 'PAC' : S.serv);
       atualizarPrecos();
     } else if (grupo.id === 'caixas') {
       S.cx = b.dataset.cx;
@@ -276,6 +364,16 @@
       atualizarPrecos();
     } else if (grupo.id === 'pesos') {
       S.p = Number(b.dataset.p); atualizarPrecos();
+    } else if (b.id === 'digitarMed') {
+      if (S.medLivre) { S.medLivre = false; if (!caixa(S.cx)) S.cx = 'T2'; }
+      else { S.med = caixaAtual().medidas.slice(); S.medLivre = true; preencherCampos(); setTimeout(function () { $('medC').focus(); $('medC').select(); }, 0); }
+      atualizarPrecos();
+    } else if (b.id === 'digitarPeso') {
+      if (S.pesoLivre) { S.pesoLivre = false; if (CFG.pesos.indexOf(S.p) < 0) S.p = CFG.pesos.reduce(function (a, x) { return Math.abs(x - S.p) < Math.abs(a - S.p) ? x : a; }, CFG.pesos[0]); }
+      else { S.pesoLivre = true; preencherCampos(); setTimeout(function () { $('pesoV').focus(); $('pesoV').select(); }, 0); }
+      atualizarPrecos();
+    } else if (grupo.id === 'pesoUn') {
+      S.unidade = b.dataset.v; preencherCampos(); renderTudo();
     } else if (grupo.id === 'mapa') {
       S.uf = b.dataset.uf; S.tipo = tipoPadrao(S.uf, S.modo); limparCep(); renderTudo();
     } else if (grupo.id === 'tipos') {
@@ -295,6 +393,23 @@
   });
   $('cepForm').addEventListener('submit', buscarCep);
 
+  // medidas e peso digitados: recalcula 450 ms depois da última tecla
+  var espera = null;
+  function aoDigitar() { clearTimeout(espera); espera = setTimeout(atualizarPrecos, 450); }
+  ['medC', 'medL', 'medA'].forEach(function (id, i) {
+    $(id).addEventListener('input', function (e) {
+      e.target.value = e.target.value.replace(/[^0-9,\.]/g, '');
+      S.med[i] = numBR(e.target.value); if (!isFinite(S.med[i])) S.med[i] = 0;
+      renderTudo(); aoDigitar();
+    });
+  });
+  $('pesoV').addEventListener('input', function (e) {
+    e.target.value = e.target.value.replace(/[^0-9,\.]/g, '');
+    var n = numBR(e.target.value);
+    S.p = isFinite(n) && n > 0 ? Math.ceil(S.unidade === 'g' ? n : n * 1000) : 0;
+    renderTudo(); aoDigitar();
+  });
+
   if ('IntersectionObserver' in window) {
     new IntersectionObserver(function (ents) {
       resultadoVisivel = ents[0].isIntersecting;
@@ -310,8 +425,10 @@
       if (!CFG.ufs[S.uf]) { S.uf = Object.keys(CFG.ufs)[0]; S.tipo = ''; }
       if (!CFG.ufs[S.uf][S.tipo]) { S.tipo = tipoPadrao(S.uf, 'cap'); S.cidade = ''; }
       if (!caixa(S.cx)) S.cx = 'T2';
-      if (CFG.pesos.indexOf(S.p) < 0) S.p = 1000;
-      if (S.serv === 'MINI' && S.cx !== 'MINI') S.serv = 'PAC';
+      if (!Array.isArray(S.med) || S.med.length !== 3) { S.med = [27, 18, 9]; S.medLivre = false; }
+      if (!S.pesoLivre && CFG.pesos.indexOf(S.p) < 0) S.p = 1000;
+      if (S.unidade !== 'g') S.unidade = 'kg';
+      preencherCampos();
       pressionar($('regra'), $('regra').querySelector('[data-v="' + S.regra + '"]') || $('regra').querySelector('button'));
       pressionar($('mapModo'), $('mapModo').querySelector('[data-v="' + S.modo + '"]') || $('mapModo').querySelector('button'));
       if (S.cidade) { $('cepMsg').className = 'sm-cep-msg ok'; $('cepMsg').innerHTML = ic('ok') + esc(S.cidade + ' / ' + S.uf); $('cepMsg').hidden = false; }

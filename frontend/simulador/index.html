@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/simulador/simulador.css?v=1.3.0" />
+  <link rel="stylesheet" href="/simulador/simulador.css?v=1.4.0" />
 </head>
 <body>
   <header class="sm-top">
@@ -35,12 +35,35 @@
         <div class="sm-perfis" id="perfil"></div>
       </section>
       <section class="sm-passo" aria-labelledby="p2">
-        <h2 id="p2"><span class="sm-n">2</span>Embalagem</h2>
+        <div class="sm-passo-h">
+          <h2 id="p2"><span class="sm-n">2</span>Embalagem</h2>
+          <button type="button" class="sm-digitar" id="digitarMed" aria-pressed="false" aria-controls="medidas"></button>
+        </div>
         <div class="sm-caixas" id="caixas"></div>
+        <div class="sm-livre" id="medidas" hidden>
+          <span class="sm-livre-cx" id="medPrevia" aria-hidden="true"></span>
+          <label class="sm-campo"><span>Comprimento</span><span class="sm-campo-in"><input id="medC" inputmode="decimal" maxlength="5" autocomplete="off" /><i>cm</i></span></label>
+          <span class="sm-x" aria-hidden="true">x</span>
+          <label class="sm-campo"><span>Largura</span><span class="sm-campo-in"><input id="medL" inputmode="decimal" maxlength="5" autocomplete="off" /><i>cm</i></span></label>
+          <span class="sm-x" aria-hidden="true">x</span>
+          <label class="sm-campo"><span>Altura</span><span class="sm-campo-in"><input id="medA" inputmode="decimal" maxlength="5" autocomplete="off" /><i>cm</i></span></label>
+        </div>
+        <p class="sm-livre-msg" id="medMsg" role="status" aria-live="polite" hidden></p>
       </section>
       <section class="sm-passo" aria-labelledby="p3">
-        <h2 id="p3"><span class="sm-n">3</span>Peso com a embalagem</h2>
+        <div class="sm-passo-h">
+          <h2 id="p3"><span class="sm-n">3</span>Peso com a embalagem</h2>
+          <button type="button" class="sm-digitar" id="digitarPeso" aria-pressed="false" aria-controls="pesoLivre"></button>
+        </div>
         <div class="sm-pesos" id="pesos"></div>
+        <div class="sm-livre sm-livre-peso" id="pesoLivre" hidden>
+          <label class="sm-campo sm-campo-peso"><span class="sm-sr">Peso com a embalagem</span><span class="sm-campo-in"><input id="pesoV" inputmode="decimal" maxlength="7" autocomplete="off" /><i id="pesoUnTxt">kg</i></span></label>
+          <div class="sm-seg" id="pesoUn" role="group" aria-label="Unidade do peso">
+            <button type="button" data-v="g" aria-pressed="false">gramas</button>
+            <button type="button" data-v="kg" aria-pressed="true">quilos</button>
+          </div>
+        </div>
+        <p class="sm-livre-msg" id="pesoMsg" role="status" aria-live="polite" hidden></p>
       </section>
     </div>
 
@@ -114,6 +137,6 @@
 
   <button type="button" class="sm-barra" id="barra" hidden></button>
 
-  <script src="/simulador/simulador.js?v=1.3.0" defer></script>
+  <script src="/simulador/simulador.js?v=1.4.0" defer></script>
 </body>
 </html>
