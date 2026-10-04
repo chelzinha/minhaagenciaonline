@@ -1,0 +1,19 @@
+#correiosGatewaySection .cws-status { margin: 4px 0 14px; padding: 10px 12px; border-radius: 10px; font-size: 13px; background: #f2f4f7; color: #344054; }
+#correiosGatewaySection .cws-ok { background: #ecfdf3; color: #067647; }
+#correiosGatewaySection .cws-warn { background: #fffaeb; color: #93370d; }
+#correiosGatewaySection .cws-error { background: #fef3f2; color: #b42318; }
+#correiosGatewaySection .cws-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+#correiosGatewaySection .cws-btn { min-height: 40px; padding: 9px 14px; border: 1px solid #d0d5dd; border-radius: 10px; background: #fff; color: #344054; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+#correiosGatewaySection .cws-btn-primary { background: #00416b; border-color: #00416b; color: #fff; }
+#correiosGatewaySection .cws-btn:disabled { opacity: .55; cursor: wait; }
+#correiosGatewaySection .cws-btn:focus-visible { outline: 2px solid #6a9fe6; outline-offset: 2px; }
+#correiosGatewaySection .cws-sim { margin-top: 18px; padding: 14px; border: 1px dashed #d0d5dd; border-radius: 12px; display: grid; gap: 12px; }
+#correiosGatewaySection .cws-sim-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr repeat(3, .8fr); gap: 10px; }
+#correiosGatewaySection .cws-sim .cws-btn { justify-self: start; }
+#correiosGatewaySection .cws-sim-result { display: grid; gap: 8px; font-size: 13px; }
+#correiosGatewaySection .cws-sim-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 10px; background: #f8fafc; }
+#correiosGatewaySection .cws-sim-row.is-error { background: #fef3f2; color: #b42318; }
+@media (max-width: 760px) {
+  #correiosGatewaySection .cws-sim-grid { grid-template-columns: 1fr 1fr; }
+  #correiosGatewaySection .cws-sim-row { flex-direction: column; }
+}

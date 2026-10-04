@@ -6,6 +6,7 @@
   <title>Cadastros | Plataforma AGF</title>
   <link rel="stylesheet" href="/shared/ui/agf-ui.css" />
   <link rel="stylesheet" href="./cadastros.css?v=20260924-3" />
+  <link rel="stylesheet" href="/shared/correios/agf-correios-account.css?v=20261003-1" />
 
   <script src="/shared/auth/agf-auth-config.js"></script>
   <script src="/shared/auth/agf-auth-client.js"></script>
@@ -15,6 +16,8 @@
   <script src="/shared/auth/agf-route-guard.js"></script>
   <script src="/shared/core/agf-core-config.js"></script>
   <script src="/shared/core/agf-core-client.js?v=20260924-3"></script>
+  <script src="/shared/correios/agf-correios-config.js?v=20261003-1"></script>
+  <script src="/shared/correios/agf-correios-account.js?v=20261003-1"></script>
 </head>
 <body>
   <header class="core-topbar">
@@ -173,6 +176,8 @@
           </div>
           <p id="correiosCredentialNote" class="integration-note">Credenciais CWS ainda não configuradas.</p>
         </section>
+
+        <section id="correiosGatewaySection" class="form-section" hidden></section>
 
         <section class="form-section">
           <div class="section-title">

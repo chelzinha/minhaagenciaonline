@@ -134,6 +134,10 @@
     showMessage('', '');
   }
 
+  function resetCorreiosGateway() {
+    if (window.AgfCorreiosAccount) window.AgfCorreiosAccount.load('');
+  }
+
   function showEditor() {
     els.emptyState.hidden = true;
     els.customerForm.hidden = false;
@@ -150,6 +154,7 @@
   function startNewCustomer() {
     state.currentId = '';
     resetForm();
+    resetCorreiosGateway();
     showEditor();
     els.formEyebrow.textContent = 'Novo cliente';
     els.formTitle.textContent = 'Cadastrar cliente';
@@ -185,6 +190,7 @@
     state.hasCorreiosIntegration = Boolean(correios?.id);
     renderCorreiosNote(correios || null);
 
+    if (window.AgfCorreiosAccount) window.AgfCorreiosAccount.load(customer.id);
     renderModules(modules || []);
   }
 
@@ -297,6 +303,7 @@
       if (state.hasCorreiosIntegration || hasValues) {
         if (!hasValues) correios.status = 'DISABLED';
         finalData = await window.AgfCore.setCorreiosIntegration(state.currentId, correios);
+        if (window.AgfCorreiosAccount) await window.AgfCorreiosAccount.syncAfterCoreSave(state.currentId);
       }
 
       fillForm(finalData.customer, finalData.modules, finalData.correios);
